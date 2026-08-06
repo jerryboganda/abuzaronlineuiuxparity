@@ -161,3 +161,25 @@ test('purchase returns require source document and explicit source batch allocat
   expect(command?.document.sourceDocumentId).toBe(documentId);
   expect(command?.document.lines[0].allocations).toEqual([{ batchId, batchNumber: 'SOURCE-BATCH', quantity: '1' }]);
 });
+
+test('purchase List loads scoped canonical history and restores a document', async ({ page }) => {
+  await mockCanonicalContext(page);
+  let requested = false;
+  await page.route('**/v1/transactions/pack-purchase**', async (route) => {
+    requested = true;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ kind: 'pack-purchase', rows: [{ document: 'PUR-000001', occurredAt: '2026-08-06', party: 'SUPPLIER 1', item: 'CANONICAL ITEM', quantity: '2', amount: '8.00' }] })
+    });
+  });
+  await page.goto('/app/purchase/pack');
+  await page.waitForTimeout(300);
+  await page.getByTestId('purchase-list-tab').click({ force: true });
+  await expect(page.getByTestId('purchase-list-tab')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.legacy-purchase-list')).toContainText('PUR-000001');
+  await expect(page.locator('.legacy-purchase-list')).toContainText('CANONICAL ITEM');
+  expect(requested).toBe(true);
+  await page.locator('.legacy-purchase-list button').click();
+  await expect(page.getByLabel('Invoice No:')).toHaveValue('PUR-000001');
+});
