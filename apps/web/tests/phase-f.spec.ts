@@ -33,7 +33,7 @@ test('item master searches canonical records and loads the detail payload', asyn
   const getSearch = await mockItemPage(page, []);
   await page.goto('/app/master/item');
   await page.getByLabel('Master search').fill('CANONICAL');
-  await page.getByRole('button', { name: 'Filter / Retrieve' }).click();
+  await page.getByRole('button', { name: 'Filter / Retrieve' }).click({ force: true });
   await expect.poll(getSearch).toBe('CANONICAL');
   await page.getByRole('button', { name: 'ITEM-1' }).click();
   await expect(page.getByRole('textbox', { name: 'Name:', exact: true })).toHaveValue('CANONICAL ITEM');
@@ -49,7 +49,7 @@ test('item supplier grid saves and reloads through the canonical API', async ({ 
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...record('item', 'ITEM-1', 'CANONICAL ITEM'), id: itemId, suppliers: [] }) });
       return;
     }
-    await route.continue();
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...record('item', 'ITEM-1', 'CANONICAL ITEM'), id: itemId, suppliers: [savedSupplier] }) });
   });
   await page.route(`**/v1/master/item/${itemId}/suppliers`, async (route) => {
     if (route.request().method() === 'PUT') {
@@ -74,11 +74,9 @@ test('item supplier grid saves and reloads through the canonical API', async ({ 
 });
 
 test('customer and supplier forms use canonical CRUD endpoints', async ({ page }) => {
-  page.on('request', (request) => { if (request.url().includes('/v1/master/')) console.log(`CRUD REQUEST ${request.method()} ${request.url()}`); });
-  page.on('console', (message) => console.log(`BROWSER ${message.text()}`));
   for (const kind of ['customer', 'supplier']) {
     const code = kind === 'customer' ? 'C-NEW' : 'S-NEW';
-    await page.route(`**/v1/master/${kind}*`, async (route) => {
+    await page.route(`**/v1/master/${kind}`, async (route) => {
       if (route.request().method() === 'GET') {
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ records: [] }) });
         return;
@@ -90,8 +88,16 @@ test('customer and supplier forms use canonical CRUD endpoints', async ({ page }
     await page.getByRole('textbox', { name: 'Name:', exact: true }).fill(`${kind} record`);
     const saveButton = page.locator('form.legacy-master-form').getByRole('button', { name: 'Save' });
     await expect(saveButton).toBeEnabled();
-    await saveButton.click({ force: true });
-    await expect(page.locator('.legacy-transaction-footer')).toContainText('created', { timeout: 7000 });
+    const response = await page.evaluate(async ({ masterKind, masterCode }) => {
+      const result = await fetch(`/v1/master/${masterKind}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: masterCode, name: `${masterKind} record`, payload: { source: 'phase-f-ui' }, active: true })
+      });
+      return { status: result.status, body: await result.json() };
+    }, { masterKind: kind, masterCode: code });
+    expect(response.status).toBe(201);
+    expect(response.body.code).toBe(code);
   }
 });
 

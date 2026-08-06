@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-08-06T19:36:03.3976986Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purdetail",
+      "targetSchema": "public",
+      "targetTable": "business_document_lines",
+      "read": 113564,
+      "imported": 112032,
+      "duplicates": 1500,
+      "exceptions": 32,
+      "exceptionReasons": {
+        "non_positive_quantity": 32
+      },
+      "exceptionSamples": [
+        "779:36730: non_positive_quantity",
+        "830:39051: non_positive_quantity",
+        "965:44746: non_positive_quantity",
+        "1007:46223: non_positive_quantity",
+        "3737:155774: non_positive_quantity",
+        "3737:155781: non_positive_quantity",
+        "3737:155770: non_positive_quantity",
+        "3737:155772: non_positive_quantity",
+        "3737:155771: non_positive_quantity",
+        "3737:155783: non_positive_quantity",
+        "3737:155787: non_positive_quantity",
+        "3737:155776: non_positive_quantity",
+        "3737:155775: non_positive_quantity",
+        "3737:155777: non_positive_quantity",
+        "3737:155773: non_positive_quantity",
+        "3737:155794: non_positive_quantity",
+        "3737:155796: non_positive_quantity",
+        "3737:155780: non_positive_quantity",
+        "3737:155782: non_positive_quantity",
+        "3737:155778: non_positive_quantity"
+      ]
+    }
+  ]
+}

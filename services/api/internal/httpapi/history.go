@@ -94,7 +94,8 @@ func (s *Server) transactionHistory(w http.ResponseWriter, r *http.Request) {
 				LIMIT 1
 			) line ON true
 			WHERE d.tenant_id = $1::uuid AND d.branch_id = $2::uuid AND d.kind = $3
-			  AND d.occurred_at::date BETWEEN $4::date AND $5::date
+			  AND d.occurred_at >= $4::date
+			  AND d.occurred_at < ($5::date + INTERVAL '1 day')
 			  AND ($6 = '' OR d.document_number ILIKE '%' || $6 || '%'
 			       OR COALESCE(mp.name, '') ILIKE '%' || $6 || '%'
 			       OR COALESCE(line.item_name, '') ILIKE '%' || $6 || '%')
@@ -110,7 +111,8 @@ func (s *Server) transactionHistory(w http.ResponseWriter, r *http.Request) {
 			FROM sync_events
 			WHERE tenant_id = $1::uuid AND aggregate = $2
 			  AND ($3 = '' OR branch_id::text = $3)
-			  AND occurred_at::date BETWEEN $4::date AND $5::date
+			  AND occurred_at >= $4::date
+			  AND occurred_at < ($5::date + INTERVAL '1 day')
 			  AND ($6 = '' OR event_id::text ILIKE '%' || $6 || '%' OR payload::text ILIKE '%' || $6 || '%' OR COALESCE(payload->'rows'->0->>'itemName', '') ILIKE '%' || $6 || '%')
 			ORDER BY occurred_at DESC LIMIT $7`
 		args = []any{operator.TenantID, kind, operator.BranchID, from, to, filter, limit}

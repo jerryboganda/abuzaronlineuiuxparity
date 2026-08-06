@@ -1,0 +1,186 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "tables": [
+    {
+      "source": { "schema": "dbo", "table": "SaleLedger" },
+      "target": { "schema": "public", "table": "party_ledger_entries" },
+      "sourceId": "SaleInvCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "party-ledger" },
+      "columns": { "debit_amount": "InvTotal", "occurred_at": "date" },
+      "lookups": {
+        "source_event_id": {
+          "target": { "schema": "public", "table": "sync_events" },
+          "targetColumn": "legacy_id", "valueColumn": "event_id",
+          "sourceColumn": "SaleInvCode",
+          "predicates": { "legacy_source_table": "SaleLedger" }
+        },
+        "source_document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id", "valueColumn": "id",
+          "sourceColumn": "SaleInvCode",
+          "predicates": { "legacy_source_table": "SaleLedger" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": { "SaleInvCode": "SaleInvCode", "CustCode": "CustCode", "InvTotal": "InvTotal", "Paid": "Paid" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counterparty_kind": "cash",
+        "entry_kind": "sale"
+      },
+      "sourceFilter": "CustCode = 19 AND Posted = 'Y'",
+      "conflictColumns": ["tenant_id", "branch_id", "source_document_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "SaleLedger" },
+      "target": { "schema": "public", "table": "party_ledger_entries" },
+      "sourceId": "SaleInvCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "party-ledger" },
+      "columns": { "party_id": "CustCode", "debit_amount": "InvTotal", "occurred_at": "date" },
+      "lookups": {
+        "party_id": {
+          "target": { "schema": "public", "table": "master_parties" },
+          "targetColumn": "legacy_id", "valueColumn": "id",
+          "sourceColumn": "CustCode", "predicates": { "party_type": "customer" }
+        },
+        "source_event_id": {
+          "target": { "schema": "public", "table": "sync_events" },
+          "targetColumn": "legacy_id", "valueColumn": "event_id",
+          "sourceColumn": "SaleInvCode",
+          "predicates": { "legacy_source_table": "SaleLedger" }
+        },
+        "source_document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id", "valueColumn": "id",
+          "sourceColumn": "SaleInvCode",
+          "predicates": { "legacy_source_table": "SaleLedger" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": { "SaleInvCode": "SaleInvCode", "CustCode": "CustCode", "InvTotal": "InvTotal", "Paid": "Paid" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counterparty_kind": "customer",
+        "entry_kind": "sale"
+      },
+      "sourceFilter": "CustCode <> 19 AND Posted = 'Y'",
+      "conflictColumns": ["tenant_id", "branch_id", "source_document_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "SRLedger" },
+      "target": { "schema": "public", "table": "party_ledger_entries" },
+      "sourceId": "SRInvCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "party-ledger" },
+      "columns": { "credit_amount": "invtotal", "occurred_at": "Date" },
+      "lookups": {
+        "source_event_id": {
+          "target": { "schema": "public", "table": "sync_events" },
+          "targetColumn": "legacy_id", "valueColumn": "event_id",
+          "sourceColumn": "SRInvCode",
+          "predicates": { "legacy_source_table": "SRLedger" }
+        },
+        "source_document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id", "valueColumn": "id",
+          "sourceColumn": "SRInvCode",
+          "predicates": { "legacy_source_table": "SRLedger" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": { "SRInvCode": "SRInvCode", "CustCode": "CustCode", "invtotal": "invtotal", "SaleInvCode": "SaleInvCode" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counterparty_kind": "cash",
+        "entry_kind": "sale"
+      },
+      "conflictColumns": ["tenant_id", "branch_id", "source_document_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Purledger" },
+      "target": { "schema": "public", "table": "party_ledger_entries" },
+      "sourceId": "PurInvCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "party-ledger" },
+      "columns": { "party_id": "SuppCode", "credit_amount": "InvTotal", "occurred_at": "Date" },
+      "lookups": {
+        "party_id": {
+          "target": { "schema": "public", "table": "master_parties" },
+          "targetColumn": "legacy_id", "valueColumn": "id",
+          "sourceColumn": "SuppCode", "predicates": { "party_type": "supplier" }
+        },
+        "source_event_id": {
+          "target": { "schema": "public", "table": "sync_events" },
+          "targetColumn": "legacy_id", "valueColumn": "event_id",
+          "sourceColumn": "PurInvCode",
+          "predicates": { "legacy_source_table": "Purledger" }
+        },
+        "source_document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id", "valueColumn": "id",
+          "sourceColumn": "PurInvCode",
+          "predicates": { "legacy_source_table": "Purledger" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": { "PurInvCode": "PurInvCode", "SuppCode": "SuppCode", "InvTotal": "InvTotal", "OutstandingAmt": "OutstandingAmt" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counterparty_kind": "supplier",
+        "entry_kind": "purchase"
+      },
+      "sourceFilter": "Posted = 'Y'",
+      "conflictColumns": ["tenant_id", "branch_id", "source_document_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "PRLedger" },
+      "target": { "schema": "public", "table": "party_ledger_entries" },
+      "sourceId": "PRInvCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "party-ledger" },
+      "columns": { "party_id": "SuppCode", "debit_amount": "invtotal", "occurred_at": "Date" },
+      "lookups": {
+        "party_id": {
+          "target": { "schema": "public", "table": "master_parties" },
+          "targetColumn": "legacy_id", "valueColumn": "id",
+          "sourceColumn": "SuppCode", "predicates": { "party_type": "supplier" }
+        },
+        "source_event_id": {
+          "target": { "schema": "public", "table": "sync_events" },
+          "targetColumn": "legacy_id", "valueColumn": "event_id",
+          "sourceColumn": "PRInvCode",
+          "predicates": { "legacy_source_table": "PRLedger" }
+        },
+        "source_document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id", "valueColumn": "id",
+          "sourceColumn": "PRInvCode",
+          "predicates": { "legacy_source_table": "PRLedger" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": { "PRInvCode": "PRInvCode", "SuppCode": "SuppCode", "invtotal": "invtotal", "PurInvCode": "PurInvCode" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counterparty_kind": "supplier",
+        "entry_kind": "purchase-return"
+      },
+      "conflictColumns": ["tenant_id", "branch_id", "source_document_id"]
+    }
+  ]
+}

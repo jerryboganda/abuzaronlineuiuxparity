@@ -57,13 +57,17 @@ The following remain intentionally unimplemented or unreconciled:
   `Alt+F8` hardware behavior.
 - Full GST/PCT/advance-income-tax source tables, legacy tax ordering,
   per-line tax allocation, tax registers, and exact historical GST parity.
-- Legacy batch-number format and `Ctrl+B` auto-generation; callers must supply
-  a batch number. No synthetic batch is generated.
-- PO-to-invoice fetch and purchase history helpers; no command reports success
-  for these unsupported verbs.
+- Legacy batch-number format remains a source-reconciliation item. The client
+  convenience action currently generates deterministic `AUTO-YYYYMMDD-NNN`
+  identifiers for populated rows through `Ctrl+B`; this is not evidence of
+  legacy-format parity, and explicit operator-entered batches remain unchanged.
+- Purchase history/list restore is live through the canonical transaction
+  history endpoint. PO-to-invoice fetch still requires source-specific mapping
+  and remains a follow-on reconciliation item.
 - Supplier schemes beyond the existing deterministic pricing inputs.
-- Purchase reports, formats, print preview, exports, GRN/slip UI, and full
-  legacy purchase workflow parity.
+- Full purchase report projections and legacy byte-identical slip/GRN output
+  remain open; the shared report surface now supplies format selection, print
+  preview, CSV, browser PDF, and Excel-compatible workbook export.
 - Historical `Purdetail`, `PurOrderDetail`, `Purledger`, `VirtualGl`, batch,
   tax, label, and stock reconciliation/import remain open.
 - Weighted-average/legacy valuation, multi-line source-line disambiguation,
@@ -80,20 +84,24 @@ families call only the typed `/v1/documents/{kind}` lifecycle, preserve stable
 command/idempotency state and expected versions, and reject non-accepted or
 wrong-status responses without rendering success. Purchase orders report their
 stock/GL-neutral response. Legacy compatibility events remain available only
-for route kinds outside the supported Phase I set, and unsupported purchase
-history, slip, label, and automatic batch verbs are explicitly labelled
-“Not implemented”.
+for route kinds outside the supported Phase I set. Purchase history/list restore
+and the deterministic client-convenience `AUTO-YYYYMMDD-NNN` batch helper are
+live; slip/label hardware output, source-specific PO fetch, and legacy
+batch-format reconciliation remain follow-on work.
 
 Focused evidence:
 
-- `apps/web/tests/purchase-canonical.spec.ts` — 5/5 passed: no fallback or
+- `apps/web/tests/purchase-canonical.spec.ts` — 6/6 passed: no fallback or
   false success, canonical receipt payload and revision state, missing identity
   fail-closed, purchase-order neutrality, and return source/batch validation.
-- `apps/web/tests/phase-cd.spec.ts` — 9/9 passed with the canonical PO shell
-  integration; the Auto Batch Generation check confirms no client batch is
-  synthesized and reports “Not implemented”.
+- `apps/web/tests/phase-cd.spec.ts` — contextual purchase tests passed with the
+  canonical PO shell integration; the Auto Batch Generation check only asserts
+  the documented client-convenience identifier, not legacy-format parity.
+- Focused browser run: `pack purchase Ctrl+B generates a deterministic batch
+  identifier` passed (1/1). No sandbox evidence for the legacy batch format is
+  claimed by this test.
 - `pnpm --filter @abuzar/web check` — 0 errors and 0 warnings.
 - `pnpm --filter @abuzar/web build` — production build passed.
-- `pnpm --filter @abuzar/web test -- --workers=1 --retries=1` — exit 0;
-  42 tests completed, with one unrelated browser-context startup flake passing
-  on retry.
+- `pnpm exec playwright test --workers=1 --retries=1` — the current 67-test
+  suite completed successfully with one transient browser-context retry
+  (66 passed, 1 flaky/recovered).

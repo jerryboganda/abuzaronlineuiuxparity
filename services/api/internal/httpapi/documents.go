@@ -21,13 +21,19 @@ import (
 var documentUUIDPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
 var businessDocumentKinds = map[string]struct{}{
-	"cash-sale":        {},
-	"credit-sale":      {},
-	"pack-purchase":    {},
-	"loose-purchase":   {},
-	"opening-purchase": {},
-	"purchase-return":  {},
-	"purchase-order":   {},
+	"cash-sale":          {},
+	"credit-sale":        {},
+	"cash-return":        {},
+	"credit-return":      {},
+	"open-cash-return":   {},
+	"open-credit-return": {},
+	"quotation":          {},
+	"refused-sale":       {},
+	"pack-purchase":      {},
+	"loose-purchase":     {},
+	"opening-purchase":   {},
+	"purchase-return":    {},
+	"purchase-order":     {},
 }
 
 var purchaseDocumentKinds = map[string]struct{}{
@@ -45,6 +51,22 @@ func isPurchaseDocumentKind(kind string) bool {
 
 func isPurchasePostingKind(kind string) bool {
 	return isPurchaseDocumentKind(kind) && kind != "purchase-order"
+}
+
+func isStockAndFinanceSaleKind(kind string) bool {
+	return kind == "cash-sale" || kind == "credit-sale"
+}
+
+func isSaleReturnDocumentKind(kind string) bool {
+	return kind == "cash-return" || kind == "credit-return" || kind == "open-cash-return" || kind == "open-credit-return"
+}
+
+func isOpenSaleReturnDocumentKind(kind string) bool {
+	return kind == "open-cash-return" || kind == "open-credit-return"
+}
+
+func isSourceBoundSaleReturnDocumentKind(kind string) bool {
+	return kind == "cash-return" || kind == "credit-return"
 }
 
 type documentCommandRequest struct {
@@ -82,6 +104,7 @@ type documentDraftRequest struct {
 type documentLineRequest struct {
 	LineNumber      int                           `json:"lineNumber"`
 	ItemID          string                        `json:"itemId"`
+	SourceLineID    string                        `json:"sourceLineId,omitempty"`
 	Quantity        string                        `json:"quantity"`
 	UnitPrice       string                        `json:"unitPrice,omitempty"`
 	DiscountPercent string                        `json:"discountPercent,omitempty"`
@@ -162,6 +185,7 @@ type documentLineResponse struct {
 	ID           string                       `json:"id"`
 	LineNumber   int                          `json:"lineNumber"`
 	ItemID       string                       `json:"itemId"`
+	SourceLineID string                       `json:"sourceLineId,omitempty"`
 	ItemLegacyID string                       `json:"itemLegacyId,omitempty"`
 	ItemCode     string                       `json:"itemCode"`
 	ItemName     string                       `json:"itemName"`
@@ -228,7 +252,7 @@ func (s *Server) documentCommand(w http.ResponseWriter, r *http.Request) {
 	operator := currentSession(r)
 	kind := strings.ToLower(strings.TrimSpace(r.PathValue("kind")))
 	if _, ok := businessDocumentKinds[kind]; !ok {
-		writeProblem(w, http.StatusBadRequest, "invalid_document_kind", "Invalid business document kind", "Only cash-sale and credit-sale lifecycle commands are implemented in this slice.")
+		writeProblem(w, http.StatusBadRequest, "invalid_document_kind", "Invalid business document kind", "The requested business document family is not supported.")
 		return
 	}
 	writePermission := "sales.write"
@@ -345,7 +369,7 @@ func (s *Server) documentCommand(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			}
-		} else {
+		} else if isStockAndFinanceSaleKind(response.Document.Kind) {
 			if err := projectPostedSaleStock(r.Context(), tx, operator, request.Document, response.Document, eventID); err != nil {
 				status, code := stockCommandErrorStatus(err)
 				writeProblem(w, status, code, "Document stock rejected", err.Error())
@@ -355,6 +379,22 @@ func (s *Server) documentCommand(w http.ResponseWriter, r *http.Request) {
 			// allocation provides authoritative COGS, and before the receipt,
 			// revision, audit, and commit can succeed.
 			if err := projectPostedSaleFinance(r.Context(), tx, operator, response.Document, eventID); err != nil {
+				writeProblem(w, http.StatusUnprocessableEntity, "document_finance_rejected", "Document finance rejected", err.Error())
+				return
+			}
+		} else if isSaleReturnDocumentKind(response.Document.Kind) {
+			stockErr := error(nil)
+			if isOpenSaleReturnDocumentKind(response.Document.Kind) {
+				stockErr = projectPostedOpenSaleReturnStock(r.Context(), tx, operator, request.Document, response.Document, eventID)
+			} else {
+				stockErr = projectPostedSaleReturnStock(r.Context(), tx, operator, request.Document, response.Document, eventID)
+			}
+			if stockErr != nil {
+				status, code := stockCommandErrorStatus(stockErr)
+				writeProblem(w, status, code, "Document stock rejected", stockErr.Error())
+				return
+			}
+			if err := projectPostedSaleReturnFinance(r.Context(), tx, operator, response.Document, eventID); err != nil {
 				writeProblem(w, http.StatusUnprocessableEntity, "document_finance_rejected", "Document finance rejected", err.Error())
 				return
 			}
@@ -573,12 +613,28 @@ func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 				return "", documentCommandResponse{}, errors.New("purchase posting requires an explicit godownId")
 			}
 		}
-	} else if supplierID != "" || sourceDocumentID != "" {
+	} else if supplierID != "" || (sourceDocumentID != "" && !isSaleReturnDocumentKind(command.Kind)) {
 		return "", documentCommandResponse{}, errors.New("supplier and source document fields are only valid for purchases")
 	}
-	if command.Kind == "credit-sale" {
+	if isSaleReturnDocumentKind(command.Kind) {
+		if sourceDocumentID != "" && !documentUUIDPattern.MatchString(sourceDocumentID) {
+			return "", documentCommandResponse{}, errors.New("sourceDocumentId must be a UUID")
+		}
+		if isOpenSaleReturnDocumentKind(command.Kind) && sourceDocumentID != "" {
+			return "", documentCommandResponse{}, errors.New("open sale returns cannot specify a sourceDocumentId")
+		}
+		if command.Action == "post" || command.Action == "save-and-post" {
+			if isSourceBoundSaleReturnDocumentKind(command.Kind) && sourceDocumentID == "" {
+				return "", documentCommandResponse{}, errors.New("sale-return posting requires sourceDocumentId")
+			}
+			if strings.TrimSpace(draft.GodownID) == "" || !documentUUIDPattern.MatchString(strings.TrimSpace(draft.GodownID)) {
+				return "", documentCommandResponse{}, errors.New("sale-return posting requires an explicit godownId")
+			}
+		}
+	}
+	if command.Kind == "credit-sale" || command.Kind == "credit-return" || command.Kind == "open-credit-return" {
 		if customerID == "" || !documentUUIDPattern.MatchString(customerID) {
-			return "", documentCommandResponse{}, errors.New("credit-sale requires a canonical customerId")
+			return "", documentCommandResponse{}, errors.New("credit sale/return requires a canonical customerId")
 		}
 		var customerExists bool
 		if err := tx.QueryRowContext(ctx, `
@@ -652,13 +708,14 @@ func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 		}
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO business_document_lines
-				(tenant_id, branch_id, document_id, line_number, item_id, item_legacy_id, item_code, item_name,
+				(tenant_id, branch_id, document_id, line_number, item_id, source_line_id, item_legacy_id, item_code, item_name,
 				 quantity, unit_price, line_gross, supplier_discount, item_discount, customer_discount, line_total,
 				 pricing, batch_number, expiry_date, unit_cost, gst_rate, pct_rate, advance_tax_rate, tax_amount, notes)
-			VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::uuid, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-			        $16::jsonb, $17, NULLIF($18, '')::date, $19, $20, $21, $22, $23, $24)
-		`, operator.TenantID, operator.BranchID, documentID, index+1, line.itemID, line.legacyID, line.code, line.name,
-			formatQuantityString(line.request.Quantity), formatMoney(line.result.ResolvedUnitPrice), formatMoney(line.result.LineGross),
+			VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::uuid, NULLIF($6, '')::uuid, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+			        $17::jsonb, $18, NULLIF($19, '')::date, $20, $21, $22, $23, $24, $25)
+		`, operator.TenantID, operator.BranchID, documentID, index+1, line.itemID, line.request.SourceLineID,
+			line.legacyID, line.code, line.name, formatQuantityString(line.request.Quantity),
+			formatMoney(line.result.ResolvedUnitPrice), formatMoney(line.result.LineGross),
 			formatMoney(line.result.SupplierDiscount), formatMoney(line.result.ItemDiscount), formatMoney(line.result.CustomerDiscount),
 			formatMoney(line.result.Net), mustJSON(linePricing), strings.TrimSpace(line.request.BatchNumber), strings.TrimSpace(line.request.ExpiryDate),
 			purchaseUnitCost(line), decimalOrZero(line.request.GSTRate), decimalOrZero(line.request.PCTRate),
@@ -695,7 +752,7 @@ func (s *Server) voidBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 	if status == "void" {
 		return "", documentCommandResponse{}, errors.New("document is already void")
 	}
-	if status == "posted" && command.Kind != "purchase-order" {
+	if status == "posted" && command.Kind != "purchase-order" && command.Kind != "quotation" && command.Kind != "refused-sale" {
 		return "", documentCommandResponse{}, errors.New("posted document cannot be voided until a stock reversal workflow exists")
 	}
 	if _, err := tx.ExecContext(ctx, `
@@ -868,6 +925,23 @@ func validateDocumentCommand(request documentCommandRequest, kind string) error 
 				if err := validatePurchaseLineMetadata(line, kind, request.Action, index); err != nil {
 					return err
 				}
+			}
+			if isSourceBoundSaleReturnDocumentKind(kind) {
+				if strings.TrimSpace(line.SourceLineID) != "" &&
+					!documentUUIDPattern.MatchString(strings.TrimSpace(line.SourceLineID)) {
+					return fmt.Errorf("line %d sourceLineId must be a UUID", index+1)
+				}
+				if (request.Action == "post" || request.Action == "save-and-post") &&
+					strings.TrimSpace(line.SourceLineID) == "" {
+					return fmt.Errorf("line %d sourceLineId is required when posting a sale return", index+1)
+				}
+			} else if strings.TrimSpace(line.SourceLineID) != "" {
+				return fmt.Errorf("line %d sourceLineId is only valid for a source-bound sale return", index+1)
+			}
+			if isOpenSaleReturnDocumentKind(kind) &&
+				(request.Action == "post" || request.Action == "save-and-post") &&
+				strings.TrimSpace(line.BatchNumber) == "" {
+				return fmt.Errorf("line %d batchNumber is required when posting an open sale return", index+1)
 			}
 		}
 	case "void":
@@ -1077,7 +1151,7 @@ func readBusinessDocument(ctx context.Context, tx *sql.Tx, operator *sessionCont
 	document.Lines = make([]documentLineResponse, 0)
 	document.Pricing = json.RawMessage(pricingJSON)
 	rows, err := tx.QueryContext(ctx, `
-		SELECT id::text, line_number, item_id::text, item_legacy_id, item_code, item_name, quantity::text,
+		SELECT id::text, line_number, item_id::text, COALESCE(source_line_id::text, ''), item_legacy_id, item_code, item_name, quantity::text,
 			unit_price::text, line_gross::text, supplier_discount::text, item_discount::text,
 			customer_discount::text, line_total::text, batch_number, COALESCE(expiry_date::text, ''),
 			unit_cost::text, tax_amount::text, notes
@@ -1092,7 +1166,7 @@ func readBusinessDocument(ctx context.Context, tx *sql.Tx, operator *sessionCont
 	for rows.Next() {
 		var line documentLineResponse
 		var quantity, unitPrice, gross, supplierDiscount, itemDiscount, customerDiscount, total string
-		if err := rows.Scan(&line.ID, &line.LineNumber, &line.ItemID, &line.ItemLegacyID, &line.ItemCode, &line.ItemName, &quantity,
+		if err := rows.Scan(&line.ID, &line.LineNumber, &line.ItemID, &line.SourceLineID, &line.ItemLegacyID, &line.ItemCode, &line.ItemName, &quantity,
 			&unitPrice, &gross, &supplierDiscount, &itemDiscount, &customerDiscount, &total,
 			&line.BatchNumber, &line.ExpiryDate, &line.UnitCost, &line.TaxAmount, &line.Notes); err != nil {
 			return documentResponse{}, err

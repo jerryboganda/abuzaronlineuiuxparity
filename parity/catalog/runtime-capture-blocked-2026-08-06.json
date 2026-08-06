@@ -1,0 +1,136 @@
+{
+  "capturedAt": "2026-08-06T19:03:07.6013299+05:00",
+  "viewport": {
+    "width": 1936,
+    "height": 1048,
+    "deviceScaleFactor": 1
+  },
+  "productionParityApproved": false,
+  "legacyAutomationBlocked": true,
+  "legacyReference": {
+    "mode": "sandbox-read-only",
+    "executable": "D:\\ABUZAR\\LegacyReferenceSandbox\\Application\\abuzar.exe",
+    "processId": 2100,
+    "windowHandle": "0x40616",
+    "lastWindowTitle": "Login",
+    "mainShellReached": false,
+    "loginCapture": "D:\\ABUZAR\\tmp\\visual-remediation\\legacy-sandbox-login-20260806.png"
+  },
+  "localStack": {
+    "startCommand": "powershell -ExecutionPolicy Bypass -File .\\ops\\local\\start-local.ps1",
+    "statusCommand": "powershell -ExecutionPolicy Bypass -File .\\ops\\local\\status-local.ps1",
+    "status": "healthy postgres/api/edge/web; web listener healthy",
+    "database": "D:\\ABUZAR\\AbuzarNext\\tmp\\pg-test-20260805-complete",
+    "legacyDatabaseTouched": false
+  },
+  "candidateCaptures": {
+    "shell": "tmp/visual-remediation-runtime-20260806/candidate-shell.png",
+    "customer": "tmp/visual-remediation-runtime-20260806/candidate-customer.png",
+    "item": "tmp/visual-remediation-runtime-20260806/candidate-item.png",
+    "cashSale": "tmp/visual-remediation-runtime-20260806/candidate-cashSale.png",
+    "packPurchase": "tmp/visual-remediation-runtime-20260806/candidate-packPurchase.png",
+    "dailySalesDetail": "tmp/visual-remediation-runtime-20260806/candidate-dailySalesDetail.png",
+    "preferences": "tmp/visual-remediation-runtime-20260806/candidate-preferences.png",
+    "groupsRights": "tmp/visual-remediation-runtime-20260806/candidate-groupsRights.png"
+  },
+  "exactCommands": [
+    {
+      "command": "Start-Process -FilePath 'D:\\ABUZAR\\LegacyReferenceSandbox\\Application\\abuzar.exe' -WorkingDirectory 'D:\\ABUZAR\\LegacyReferenceSandbox\\Application' -PassThru",
+      "result": "PID 2100 opened Login."
+    },
+    {
+      "command": "powershell -ExecutionPolicy Bypass -File D:\\ABUZAR\\send_login.ps1",
+      "result": "False; HWND=263702; Sent login keys; process remained Login."
+    },
+    {
+      "command": "D:\\ABUZAR\\AbuzarNext\\parity\\tools\\capture-window.ps1 -ProcessId 2100 -OutputPath D:\\ABUZAR\\tmp\\visual-remediation\\legacy-sandbox-login-20260806.png",
+      "result": "Success: 350x263 Login capture."
+    },
+    {
+      "command": "D:\\ABUZAR\\AbuzarNext\\tmp\\gap-audit\\open-and-capture.ps1 -ProcId 2100 -CommandId 13539 -Name runtime-customer-blocked-20260806",
+      "result": "Exit 1: No menu on window. At tmp\\gap-audit\\enum-menu.ps1 line 31."
+    }
+  ],
+  "compareEvidence": [
+    {
+      "surface": "Login only",
+      "command": "parity/tools/compare-png.ps1 -Reference legacy-sandbox-login-20260806.png -Candidate candidate-login-window-clipped.png -ReportPath login-compare.json",
+      "differentPixels": 173,
+      "maxChannelDelta": 145,
+      "result": "fail",
+      "scope": "Fresh sandbox login vs fresh browser login; not an approval for target screens."
+    },
+    {
+      "surface": "Shell",
+      "command": "parity/tools/compare-png.ps1 -Reference parity/captures/legacy/sandbox-main-window-2026-08-05-rerun.png -Candidate candidate-shell.png -ReportPath shell-compare-stored-reference.json",
+      "differentPixels": 88986,
+      "maxChannelDelta": 255,
+      "result": "fail",
+      "scope": "Stored legacy reference, not an independent same-session pair; candidate shell reports a substrate background."
+    },
+    {
+      "surface": "Customer",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "error": "Image dimensions differ: reference 1922x970, candidate 1936x1048."
+    },
+    {
+      "surface": "Item",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "error": "Image dimensions differ: reference 1922x970, candidate 1936x1048."
+    },
+    {
+      "surface": "Cash Sale",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "error": "Image dimensions differ: reference 1922x970, candidate 1936x1048."
+    },
+    {
+      "surface": "Pack Purchase",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "error": "Image dimensions differ: reference 1922x970, candidate 1936x1048."
+    },
+    {
+      "surface": "Daily Sales Detail",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "error": "Image dimensions differ: reference 1922x970, candidate 1936x1048."
+    },
+    {
+      "surface": "Preferences",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "error": "Image dimensions differ: reference 1536x972, candidate 1936x1048."
+    },
+    {
+      "surface": "Groups rights",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "error": "No raster baseline; legacy shell could not be reached past Login."
+    }
+  ],
+  "missingOrBlocked": [
+    "Fresh legacy shell at 1936x1048",
+    "Fresh legacy Customer at 1936x1048",
+    "Fresh legacy Item at 1936x1048",
+    "Fresh legacy Cash Sale at 1936x1048",
+    "Fresh legacy Pack Purchase at 1936x1048",
+    "Fresh legacy Daily Sales Detail at 1936x1048",
+    "Fresh legacy Preferences at 1936x1048",
+    "Fresh legacy Groups rights at 1936x1048"
+  ],
+  "exceptions": [
+    "Legacy sandbox automation could not enter credentials: Login remained visible after documented SendKeys and direct Win32 message attempts.",
+    "No canonical legacy installation or canonical database was modified.",
+    "No substrate equivalence or production parity approval is claimed."
+  ]
+}

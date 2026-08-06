@@ -10,6 +10,31 @@ export interface TenantContext {
   permissions?: string[];
 }
 
+export interface LegacyRight {
+  rightCode: string;
+  permission?: string;
+  allowed: boolean;
+  legacyStatus?: string;
+  mapping: 'explicit' | 'ambiguous';
+}
+
+export interface LegacyScope {
+  scopeKind: string;
+  scopeKey: string;
+  scopeLabel?: string;
+  allowed: boolean;
+  legacyTable?: string;
+}
+
+export interface AccessResponse {
+  tenantAdmin: boolean;
+  permissions: string[];
+  legacyRights: LegacyRight[];
+  scopes: Record<string, Record<string, boolean>>;
+  scopeRows: LegacyScope[];
+  exceptions: string[];
+}
+
 export interface SessionResponse {
   authenticated: boolean;
   context: TenantContext & { displayName: string; tenantCode: string } | null;
@@ -75,6 +100,13 @@ export interface RoleSummary {
   name: string;
   memberCount: number;
   permissions: string[];
+}
+
+export interface RoleRightsResponse {
+  roleId: UUID;
+  permissions: string[];
+  legacyRights: LegacyRight[];
+  scopes: LegacyScope[];
 }
 
 export interface SyncBatchResult {
@@ -150,6 +182,70 @@ export interface ItemLookupResult {
   payload: Record<string, unknown>;
   active: boolean;
   aliases: string[];
+}
+
+export type EdgeHardwareCapabilityName =
+  | 'thermal_printer'
+  | 'barcode_scanner'
+  | 'cash_drawer'
+  | 'biometric_reader'
+  | 'sms'
+  | 'email';
+
+export interface EdgeHardwareCapability {
+  name: EdgeHardwareCapabilityName;
+  available: boolean;
+  provider: string;
+  reason?: string;
+}
+
+export interface EdgeHardwareCapabilitiesResponse {
+  capabilities: EdgeHardwareCapability[];
+}
+
+export interface EdgeSaleSlipLine {
+  itemName: string;
+  quantity?: string;
+  total?: string;
+}
+
+export interface EdgeSaleSlip {
+  header?: string;
+  store?: string;
+  invoiceNumber: string;
+  date?: string;
+  customer?: string;
+  lines?: EdgeSaleSlipLine[];
+  subtotal?: string;
+  discount?: string;
+  tax?: string;
+  total: string;
+  footer?: string;
+}
+
+export interface EdgePurchaseLabel {
+  itemName: string;
+  batch?: string;
+  expiry?: string;
+  mrp?: string;
+  quantity?: string;
+}
+
+export interface EdgePurchaseLabelBatch {
+  labels: EdgePurchaseLabel[];
+  cutAfter?: boolean;
+}
+
+export interface EdgePrintResult {
+  printed: true;
+  bytes: number;
+  provider: string;
+}
+
+export interface EdgeBarcodeItem {
+  code: string;
+  itemId: string;
+  name: string;
 }
 
 export type TaxKind = 'gst' | 'pct' | 'advance';
@@ -463,6 +559,8 @@ export interface DocumentStockSummary {
 export interface DocumentLineDraft {
   lineNumber: number;
   itemId: UUID;
+  /** Canonical source sale line required for posted closed returns. */
+  sourceLineId?: UUID;
   quantity: Decimal;
   unitOfMeasure?: string;
   unitPrice?: Decimal;
@@ -483,6 +581,7 @@ export interface DocumentLine {
   id: UUID;
   lineNumber: number;
   itemId: UUID;
+  sourceLineId?: UUID;
   itemLegacyId?: string;
   itemCode: string;
   itemName: string;

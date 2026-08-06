@@ -1,0 +1,16 @@
+{
+  "metrics": [
+    {
+      "name": "item_gst_assignment_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Item WHERE SalesTaxScheduleCode IS NOT NULL",
+      "targetQuery": "SELECT COUNT(*) FROM public.item_tax_assignments a JOIN public.tax_rates t ON t.tenant_id = a.tenant_id AND t.branch_id = a.branch_id AND t.id = a.tax_rate_id WHERE a.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND t.tax_kind = 'gst' AND a.source_table = 'Item'",
+      "tolerance": 0
+    },
+    {
+      "name": "item_pct_assignment_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Item WHERE PCTCode IS NOT NULL",
+      "targetQuery": "SELECT COUNT(*) FROM public.item_tax_assignments a JOIN public.tax_rates t ON t.tenant_id = a.tenant_id AND t.branch_id = a.branch_id AND t.id = a.tax_rate_id WHERE a.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND t.tax_kind = 'pct' AND a.source_table = 'Item'",
+      "tolerance": 0
+    }
+  ]
+}

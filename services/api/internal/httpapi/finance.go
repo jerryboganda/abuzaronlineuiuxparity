@@ -399,6 +399,152 @@ func projectPostedSaleFinance(ctx context.Context, tx *sql.Tx, operator *session
 	return nil
 }
 
+func projectPostedSaleReturnFinance(ctx context.Context, tx *sql.Tx, operator *sessionContext, document documentResponse, eventID string) error {
+	if document.Status != "posted" {
+		return errors.New("finance posting requires a posted document")
+	}
+	if !isSaleReturnDocumentKind(document.Kind) {
+		return fmt.Errorf("sale-return finance posting is not implemented for %s", document.Kind)
+	}
+	if (document.Kind == "credit-return" || document.Kind == "open-credit-return") && document.CustomerID == "" {
+		return errors.New("credit-return finance posting requires a customer")
+	}
+
+	var existingJournal, existingEvent string
+	err := tx.QueryRowContext(ctx, `
+		SELECT id::text, source_event_id::text
+		FROM gl_journals
+		WHERE tenant_id = $1::uuid AND branch_id = $2::uuid
+		  AND (source_document_id = $3::uuid OR source_event_id = $4::uuid)
+		FOR UPDATE
+	`, operator.TenantID, operator.BranchID, document.ID, eventID).Scan(&existingJournal, &existingEvent)
+	if err == nil {
+		if existingEvent != eventID {
+			return errors.New("document already has a finance journal for a different source event")
+		}
+		var ledgerExists bool
+		if err := tx.QueryRowContext(ctx, `
+			SELECT EXISTS (
+				SELECT 1 FROM party_ledger_entries
+				WHERE tenant_id = $1::uuid AND branch_id = $2::uuid
+				  AND source_document_id = $3::uuid
+			)
+		`, operator.TenantID, operator.BranchID, document.ID).Scan(&ledgerExists); err != nil {
+			return err
+		}
+		if !ledgerExists {
+			return errors.New("existing sale-return GL journal has no party ledger entry")
+		}
+		return nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+
+	accounts, err := requiredFinanceAccounts(ctx, tx, operator, document)
+	if err != nil {
+		return err
+	}
+	taxAmount, err := financeTaxAmount(document.Pricing)
+	if err != nil {
+		return err
+	}
+	total, err := parseMoney(document.Totals.TotalAmount)
+	if err != nil {
+		return fmt.Errorf("sale-return total is invalid for finance posting: %w", err)
+	}
+	if taxAmount > total {
+		return errors.New("output tax exceeds the sale-return total")
+	}
+	revenue := total - taxAmount
+	cogs, hasCost, err := saleCOGS(ctx, tx, operator, document.ID)
+	if err != nil {
+		return err
+	}
+	if !hasCost {
+		cogs = "0"
+	}
+
+	var journalID string
+	if err := tx.QueryRowContext(ctx, `
+		INSERT INTO gl_journals
+			(tenant_id, branch_id, source_event_id, source_document_id, kind,
+			 description, posted_at, total_debit, total_credit)
+		VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7::timestamptz,
+		        ($8::numeric + $9::numeric), ($10::numeric + $9::numeric))
+		RETURNING id::text
+	`, operator.TenantID, operator.BranchID, eventID, document.ID, document.Kind,
+		"Posted "+document.Kind+" "+document.DocumentNumber, document.OccurredAt,
+		formatMoney(total), cogs, formatMoney(total)).Scan(&journalID); err != nil {
+		return err
+	}
+
+	cashOrReceivable := accounts["cash"]
+	counterpartyKind := "cash"
+	if document.Kind == "credit-return" || document.Kind == "open-credit-return" {
+		cashOrReceivable = accounts["accounts_receivable"]
+		counterpartyKind = "customer"
+	}
+	if err := insertGLLine(ctx, tx, operator, journalID, 1, cashOrReceivable, document.CustomerID,
+		"0", formatMoney(total), "Sale return settlement"); err != nil {
+		return err
+	}
+	if revenue > 0 {
+		if err := insertGLLine(ctx, tx, operator, journalID, 2, accounts["sales_revenue"], "",
+			formatMoney(revenue), "0", "Sales revenue reversed"); err != nil {
+			return err
+		}
+	}
+	lineNumber := 3
+	if taxAmount > 0 {
+		if err := insertGLLine(ctx, tx, operator, journalID, lineNumber, accounts["output_tax"], "",
+			formatMoney(taxAmount), "0", "Output tax reversed"); err != nil {
+			return err
+		}
+		lineNumber++
+	}
+	if hasCost {
+		if err := insertGLLine(ctx, tx, operator, journalID, lineNumber, accounts["inventory"], "",
+			cogs, "0", "Inventory restored at allocated cost"); err != nil {
+			return err
+		}
+		if err := insertGLLine(ctx, tx, operator, journalID, lineNumber+1, accounts["cogs"], "",
+			"0", cogs, "Cost of goods sold reversed"); err != nil {
+			return err
+		}
+	}
+
+	balanceAfter := ""
+	if document.CustomerID != "" {
+		if err := tx.QueryRowContext(ctx, `
+			INSERT INTO party_ledger_balances
+				(tenant_id, branch_id, party_id, debit_total, credit_total, balance)
+			VALUES ($1::uuid, $2::uuid, $3::uuid, 0, $4::numeric, -$4::numeric)
+			ON CONFLICT (tenant_id, branch_id, party_id) DO UPDATE
+			SET credit_total = party_ledger_balances.credit_total + EXCLUDED.credit_total,
+			    balance = party_ledger_balances.balance + EXCLUDED.balance,
+			    updated_at = now()
+			RETURNING balance::text
+		`, operator.TenantID, operator.BranchID, document.CustomerID, formatMoney(total)).Scan(&balanceAfter); err != nil {
+			return err
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO party_ledger_entries
+			(tenant_id, branch_id, party_id, counterparty_kind, source_event_id,
+			 source_document_id, entry_kind, debit_amount, credit_amount,
+			 balance_after, occurred_at, description)
+		VALUES ($1::uuid, $2::uuid, NULLIF($3, '')::uuid, $4, $5::uuid, $6::uuid,
+		        'sale-return', 0, $7::numeric, NULLIF($8, '')::numeric,
+		        $9::timestamptz, $10)
+	`, operator.TenantID, operator.BranchID, document.CustomerID, counterpartyKind,
+		eventID, document.ID, formatMoney(total), balanceAfter, document.OccurredAt,
+		"Posted "+document.Kind+" "+document.DocumentNumber); err != nil {
+		return err
+	}
+	return nil
+}
+
 func requiredFinanceAccounts(ctx context.Context, tx *sql.Tx, operator *sessionContext, document documentResponse) (map[string]string, error) {
 	keys := append([]string(nil), financeAccountKeys...)
 	taxAmount, err := financeTaxAmount(document.Pricing)

@@ -1,0 +1,44 @@
+{
+  "generatedAt": "2026-08-06T19:05:14.4149735Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purledger",
+      "sourceCount": 6395,
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "targetCount": 6395,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purledger",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "targetCount": 1,
+      "status": "matched"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "purchase_header_count",
+      "sourceValue": "6419",
+      "targetValue": "6419",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_total",
+      "sourceValue": "198071256.00",
+      "targetValue": "198071256.0000",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    }
+  ]
+}

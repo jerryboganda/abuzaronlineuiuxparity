@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-08-06T18:32:32.1435918Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SRLedger",
+      "sourceCount": 30704,
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "targetCount": 30704,
+      "status": "matched"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "sale_return_header_count",
+      "sourceValue": "30704",
+      "targetValue": "30704",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "sale_return_total",
+      "sourceValue": "19691238.00",
+      "targetValue": "19691238.0000",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    }
+  ]
+}

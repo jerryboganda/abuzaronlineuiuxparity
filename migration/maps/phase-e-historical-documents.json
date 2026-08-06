@@ -1,0 +1,652 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "tables": [
+    {
+      "source": { "schema": "dbo", "table": "SaleLedger" },
+      "target": { "schema": "public", "table": "business_documents" },
+      "sourceId": "SaleInvCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "document" },
+      "columns": {
+        "legacy_id": "SaleInvCode",
+        "document_number": "SaleInvCode",
+        "occurred_at": "date",
+        "subtotal": "InvTotal",
+        "discount_amount": "FlatDisc",
+        "misc_amount": "MiscCharges",
+        "tax_amount": "SalesTax",
+        "total_amount": "InvTotal",
+        "paid_amount": "Amt",
+        "balance_amount": "OutstandingAmt"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('SaleLedger:', CAST(SaleInvCode AS varchar(30)))"
+      },
+      "lookups": {
+        "customer_id": {
+          "target": { "schema": "public", "table": "master_parties" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "CustCode",
+          "predicates": { "party_type": "customer" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "SaleInvCode": "SaleInvCode",
+        "SaleCatCode": "SaleCatCode",
+        "CustCode": "CustCode",
+        "Posted": "Posted",
+        "PostDate": "PostDate",
+        "OriginalDate": "OriginalDate",
+        "PostedBy": "PostedBy",
+        "CustRefNo": "CustRefNo",
+        "PaymentMode": "PaymentMode",
+        "CashReceived": "CashReceived",
+        "AdvanceTax": "AdvanceTax",
+        "AdvanceTaxAmt": "AdvanceTaxAmt"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counter_id": "11111111-1111-4111-8111-111111111111",
+        "kind": "cash-sale",
+        "status": "posted",
+        "price_level": "1",
+        "legacy_source_table": "SaleLedger"
+      },
+      "sourceFilter": "CustCode = 19 AND Posted = 'Y'",
+      "coerce": { "legacy_id": "text", "document_number": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "SaleLedger" },
+      "target": { "schema": "public", "table": "business_documents" },
+      "sourceId": "SaleInvCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "document" },
+      "columns": {
+        "legacy_id": "SaleInvCode",
+        "document_number": "SaleInvCode",
+        "occurred_at": "date",
+        "subtotal": "InvTotal",
+        "discount_amount": "FlatDisc",
+        "misc_amount": "MiscCharges",
+        "tax_amount": "SalesTax",
+        "total_amount": "InvTotal",
+        "paid_amount": "Amt",
+        "balance_amount": "OutstandingAmt"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('SaleLedger:', CAST(SaleInvCode AS varchar(30)))"
+      },
+      "lookups": {
+        "customer_id": {
+          "target": { "schema": "public", "table": "master_parties" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "CustCode",
+          "predicates": { "party_type": "customer" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "SaleInvCode": "SaleInvCode",
+        "SaleCatCode": "SaleCatCode",
+        "CustCode": "CustCode",
+        "Posted": "Posted",
+        "PostDate": "PostDate",
+        "OriginalDate": "OriginalDate",
+        "PostedBy": "PostedBy",
+        "CustRefNo": "CustRefNo",
+        "PaymentMode": "PaymentMode",
+        "AdvanceTax": "AdvanceTax",
+        "AdvanceTaxAmt": "AdvanceTaxAmt"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counter_id": "11111111-1111-4111-8111-111111111111",
+        "kind": "credit-sale",
+        "status": "posted",
+        "price_level": "1",
+        "legacy_source_table": "SaleLedger"
+      },
+      "sourceFilter": "CustCode <> 19 AND Posted = 'Y'",
+      "coerce": { "legacy_id": "text", "document_number": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Saledetail" },
+      "target": { "schema": "public", "table": "business_document_lines" },
+      "sourceId": "RowID",
+      "sourceIdColumns": ["SaleInvcode", "RowID"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "line" },
+      "columns": {
+        "legacy_source_table": "SaleInvcode",
+        "item_legacy_id": "ICode",
+        "item_code": "ICode",
+        "unit_price": "Rate",
+        "batch_number": "Batch",
+        "expiry_date": "Expiry",
+        "unit_cost": "AvgPrice",
+        "gst_rate": "GSTPerc",
+        "advance_tax_rate": "ItemAdvanceTaxPerc"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('Saledetail:', CAST(SaleInvcode AS varchar(30)), ':', CAST(RowID AS varchar(30)))",
+        "line_number": "RowID",
+        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END",
+        "line_gross": "CAST(Rate AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
+        "line_total": "CAST(Rate AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
+        "tax_amount": "CAST(UnitSalesTax AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)"
+      },
+      "lookups": {
+        "document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "SaleInvcode",
+          "predicates": { "legacy_source_table": "SaleLedger" }
+        },
+        "item_id": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "ICode"
+        },
+        "item_name": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "name",
+          "sourceColumn": "ICode"
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "SaleInvcode": "SaleInvcode",
+        "ICode": "ICode",
+        "GCode": "GCode",
+        "PackQty": "PackQty",
+        "LooseQty": "LooseQty",
+        "PackUnits": "PackUnits",
+        "SalePrice": "SalePrice",
+        "Rate": "Rate",
+        "DiscPerc": "DiscPerc",
+        "SalesTax": "SalesTax",
+        "itemflatdisc": "itemflatdisc",
+        "RowID": "RowID",
+        "HSCode": "HSCode",
+        "UOM": "UOM"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "legacy_source_table": "Saledetail"
+      },
+      "derivedColumns": {
+        "legacy_id": ["SaleInvcode", "RowID"]
+      },
+      "coerce": {
+        "legacy_source_table": "text",
+        "item_legacy_id": "text",
+        "item_code": "text",
+        "batch_number": "text",
+        "item_name": "text"
+      },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Purledger" },
+      "target": { "schema": "public", "table": "business_documents" },
+      "sourceId": "PurInvCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "document" },
+      "columns": {
+        "legacy_id": "PurInvCode",
+        "document_number": "PurInvCode",
+        "occurred_at": "Date",
+        "subtotal": "InvTotal",
+        "discount_amount": "FlatDisc",
+        "misc_amount": "MiscCharges",
+        "tax_amount": "SalesTax",
+        "total_amount": "InvTotal",
+        "paid_amount": "Amt",
+        "balance_amount": "OutstandingAmt"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('Purledger:', CAST(PurInvCode AS varchar(30)))"
+      },
+      "lookups": {
+        "supplier_id": {
+          "target": { "schema": "public", "table": "master_parties" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "SuppCode",
+          "predicates": { "party_type": "supplier" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "PurInvCode": "PurInvCode",
+        "PurCatCode": "PurCatCode",
+        "SuppCode": "SuppCode",
+        "Posted": "Posted",
+        "postdate": "postdate",
+        "OriginalDate": "OriginalDate",
+        "PostedBy": "PostedBy",
+        "SuppInvCode": "SuppInvCode",
+        "GRN": "GRN",
+        "AdvanceTax": "AdvanceTax",
+        "AdvanceTaxAmt": "AdvanceTaxAmt",
+        "POCode": "POCode"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counter_id": "11111111-1111-4111-8111-111111111111",
+        "kind": "pack-purchase",
+        "status": "posted",
+        "price_level": "1",
+        "legacy_source_table": "Purledger"
+      },
+      "sourceFilter": "PurCatCode = 2 AND Posted = 'Y'",
+      "coerce": { "legacy_id": "text", "document_number": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Purledger" },
+      "target": { "schema": "public", "table": "business_documents" },
+      "sourceId": "PurInvCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "document" },
+      "columns": {
+        "legacy_id": "PurInvCode",
+        "document_number": "PurInvCode",
+        "occurred_at": "Date",
+        "subtotal": "InvTotal",
+        "discount_amount": "FlatDisc",
+        "misc_amount": "MiscCharges",
+        "tax_amount": "SalesTax",
+        "total_amount": "InvTotal",
+        "paid_amount": "Amt",
+        "balance_amount": "OutstandingAmt"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('Purledger:', CAST(PurInvCode AS varchar(30)))"
+      },
+      "lookups": {
+        "supplier_id": {
+          "target": { "schema": "public", "table": "master_parties" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "SuppCode",
+          "predicates": { "party_type": "supplier" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "PurInvCode": "PurInvCode",
+        "PurCatCode": "PurCatCode",
+        "SuppCode": "SuppCode",
+        "Posted": "Posted",
+        "postdate": "postdate",
+        "PostedBy": "PostedBy",
+        "SuppInvCode": "SuppInvCode",
+        "GRN": "GRN",
+        "POCode": "POCode"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counter_id": "11111111-1111-4111-8111-111111111111",
+        "kind": "opening-purchase",
+        "status": "posted",
+        "price_level": "1",
+        "legacy_source_table": "Purledger"
+      },
+      "sourceFilter": "PurCatCode = 3 AND Posted = 'Y'",
+      "coerce": { "legacy_id": "text", "document_number": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Purdetail" },
+      "target": { "schema": "public", "table": "business_document_lines" },
+      "sourceId": "PurRowId",
+      "sourceIdColumns": ["PurInvCode", "PurRowId"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "line" },
+      "columns": {
+        "item_legacy_id": "ICode",
+        "item_code": "ICode",
+        "unit_price": "rate",
+        "batch_number": "Batch",
+        "expiry_date": "Expiry",
+        "unit_cost": "PurPrice",
+        "gst_rate": "GSTPerc",
+        "advance_tax_rate": "ItemAdvanceTaxPerc"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('Purdetail:', CAST(PurInvCode AS varchar(30)), ':', CAST(PurRowId AS varchar(30)))",
+        "line_number": "PurRowId",
+        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END",
+        "line_gross": "CAST(rate AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
+        "line_total": "CAST(rate AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
+        "tax_amount": "CAST(UnitSalesTax AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)"
+      },
+      "lookups": {
+        "document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "PurInvCode",
+          "predicates": { "legacy_source_table": "Purledger" }
+        },
+        "item_id": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "ICode"
+        },
+        "item_name": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "name",
+          "sourceColumn": "ICode"
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "PurInvCode": "PurInvCode",
+        "ICode": "ICode",
+        "Gcode": "Gcode",
+        "PackQty": "PackQty",
+        "LooseQty": "LooseQty",
+        "PackUnits": "PackUnits",
+        "PurPrice": "PurPrice",
+        "rate": "rate",
+        "DiscPerc": "DiscPerc",
+        "GSTPerc": "GSTPerc",
+        "UnitSalesTax": "UnitSalesTax",
+        "PurRowId": "PurRowId",
+        "PCTCode": "PCTCode",
+        "SalesTaxScheduleCode": "SalesTaxScheduleCode"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "legacy_source_table": "Purdetail"
+      },
+      "derivedColumns": {
+        "legacy_id": ["PurInvCode", "PurRowId"]
+      },
+      "coerce": {
+        "item_legacy_id": "text",
+        "item_code": "text",
+        "batch_number": "text"
+      },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "SRLedger" },
+      "target": { "schema": "public", "table": "business_documents" },
+      "sourceId": "SRInvCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "document" },
+      "columns": {
+        "legacy_id": "SRInvCode",
+        "document_number": "SRInvCode",
+        "occurred_at": "Date",
+        "subtotal": "invtotal",
+        "discount_amount": "FlatDisc",
+        "misc_amount": "MiscCharges",
+        "tax_amount": "SalesTax",
+        "total_amount": "invtotal",
+        "paid_amount": "Amt",
+        "balance_amount": "OutstandingAmt"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('SRLedger:', CAST(SRInvCode AS varchar(30)))"
+      },
+      "lookups": {
+        "customer_id": {
+          "target": { "schema": "public", "table": "master_parties" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "CustCode",
+          "predicates": { "party_type": "customer" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "SRInvCode": "SRInvCode",
+        "SaleInvCode": "SaleInvCode",
+        "SRCatCode": "SRCatCode",
+        "CustCode": "CustCode",
+        "Posted": "Posted",
+        "PostDate": "PostDate",
+        "PostedBy": "PostedBy",
+        "AdvanceTax": "AdvanceTax",
+        "AdvanceTaxAmt": "AdvanceTaxAmt"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counter_id": "11111111-1111-4111-8111-111111111111",
+        "kind": "cash-sale-return",
+        "status": "posted",
+        "price_level": "1",
+        "legacy_source_table": "SRLedger"
+      },
+      "coerce": { "legacy_id": "text", "document_number": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "SRdetail" },
+      "target": { "schema": "public", "table": "business_document_lines" },
+      "sourceId": "RowId",
+      "sourceIdColumns": ["SRInvcode", "RowId"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "line" },
+      "columns": {
+        "item_legacy_id": "Icode",
+        "item_code": "Icode",
+        "unit_price": "SRPrice",
+        "batch_number": "Batch",
+        "expiry_date": "Expiry",
+        "unit_cost": "AvgPrice",
+        "gst_rate": "GSTPerc",
+        "advance_tax_rate": "ItemAdvanceTaxPerc"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('SRdetail:', CAST(SRInvcode AS varchar(30)), ':', CAST(RowId AS varchar(30)))",
+        "line_number": "RowId",
+        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END",
+        "line_gross": "CAST(SRPrice AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
+        "line_total": "CAST(SRPrice AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
+        "tax_amount": "CAST(UnitSalesTax AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)"
+      },
+      "lookups": {
+        "document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "SRInvcode",
+          "predicates": { "legacy_source_table": "SRLedger" }
+        },
+        "item_id": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "Icode"
+        },
+        "item_name": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "name",
+          "sourceColumn": "Icode"
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "SRInvcode": "SRInvcode",
+        "Icode": "Icode",
+        "Gcode": "Gcode",
+        "PackQty": "PackQty",
+        "LooseQty": "LooseQty",
+        "PackUnits": "PackUnits",
+        "SRPrice": "SRPrice",
+        "DiscPerc": "DiscPerc",
+        "SalesTax": "SalesTax",
+        "RowId": "RowId",
+        "SaleRowId": "SaleRowId"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "legacy_source_table": "SRdetail"
+      },
+      "derivedColumns": {
+        "legacy_id": ["SRInvcode", "RowId"]
+      },
+      "coerce": { "item_legacy_id": "text", "item_code": "text", "batch_number": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "PRLedger" },
+      "target": { "schema": "public", "table": "business_documents" },
+      "sourceId": "PRInvCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "document" },
+      "columns": {
+        "legacy_id": "PRInvCode",
+        "document_number": "PRInvCode",
+        "occurred_at": "Date",
+        "subtotal": "invtotal",
+        "discount_amount": "FlatDisc",
+        "misc_amount": "MiscCharges",
+        "tax_amount": "SalesTax",
+        "total_amount": "invtotal",
+        "paid_amount": "Amt",
+        "balance_amount": "OutstandingAmt"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('PRLedger:', CAST(PRInvCode AS varchar(30)))"
+      },
+      "lookups": {
+        "supplier_id": {
+          "target": { "schema": "public", "table": "master_parties" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "SuppCode",
+          "predicates": { "party_type": "supplier" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "PRInvCode": "PRInvCode",
+        "PurInvCode": "PurInvCode",
+        "PRCatCode": "PRCatCode",
+        "SuppCode": "SuppCode",
+        "Posted": "Posted",
+        "PostDate": "PostDate",
+        "PostedBy": "PostedBy"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counter_id": "11111111-1111-4111-8111-111111111111",
+        "kind": "purchase-return",
+        "status": "posted",
+        "price_level": "1",
+        "legacy_source_table": "PRLedger"
+      },
+      "coerce": { "legacy_id": "text", "document_number": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "PRdetail" },
+      "target": { "schema": "public", "table": "business_document_lines" },
+      "sourceId": "PrRowId",
+      "sourceIdColumns": ["PRInvCode", "PrRowId"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "line" },
+      "columns": {
+        "item_legacy_id": "ICode",
+        "item_code": "ICode",
+        "unit_price": "PRPrice",
+        "batch_number": "Batch",
+        "expiry_date": "Expiry",
+        "unit_cost": "AvgPrice",
+        "gst_rate": "GSTPerc"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('PRdetail:', CAST(PRInvCode AS varchar(30)), ':', CAST(PrRowId AS varchar(30)))",
+        "line_number": "PrRowId",
+        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END",
+        "line_gross": "CAST(PRPrice AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
+        "line_total": "CAST(PRPrice AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
+        "tax_amount": "CAST(UnitSalesTax AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)"
+      },
+      "lookups": {
+        "document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "PRInvCode",
+          "predicates": { "legacy_source_table": "PRLedger" }
+        },
+        "item_id": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "ICode"
+        },
+        "item_name": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "name",
+          "sourceColumn": "ICode"
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "PRInvCode": "PRInvCode",
+        "ICode": "ICode",
+        "Gcode": "Gcode",
+        "PackQty": "PackQty",
+        "LooseQty": "LooseQty",
+        "PackUnits": "PackUnits",
+        "PRPrice": "PRPrice",
+        "DiscPerc": "DiscPerc",
+        "UnitSalesTax": "UnitSalesTax",
+        "PrRowId": "PrRowId",
+        "HistoricalBatch": "HistoricalBatch"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "legacy_source_table": "PRdetail"
+      },
+      "derivedColumns": {
+        "legacy_id": ["PRInvCode", "PrRowId"]
+      },
+      "coerce": { "item_legacy_id": "text", "item_code": "text", "batch_number": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    }
+  ]
+}

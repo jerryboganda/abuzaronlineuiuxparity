@@ -48,6 +48,20 @@ go run ./migration/cmd/import -out parity/catalog/migration-import.json
 
 The importer only selects from SQL Server. Each target row is protected by a savepoint; successful rows create/update `legacy_id_mappings`, while failures create `migration_exceptions` and continue. The report contains counts and redacted connection labels, never credentials or source row values. A mapping file is intentionally mandatory because company/site/godown-to-branch semantics cannot be inferred safely from arbitrary legacy schemas.
 
+Both importer and reconciler accept reviewed `-from-table`/`-to-table` ranges
+for bounded waves. Canonical mappings that declare branch or counter scope
+also require explicit `-branch-id`/`-counter-id` overrides when
+`-allow-canonical` is used.
+
+Pass `-promote-normalized` after a compatibility-master wave to refresh that
+tenant's normalized item/party/manufacturer/category/godown/item-supplier
+targets before importing document lines. The operation is tenant-scoped,
+idempotent, and target-only.
+
+`-upsert` is a separate explicit override for a reviewed rerun when existing
+target rows need their payload/legacy IDs refreshed; the default remains
+immutable conflict handling.
+
 ## Phase R/E security-data wave
 
 `maps/phase-r-security-data.json` is the reviewed, source-database-bound
@@ -103,9 +117,14 @@ without pretending that the target has typed parity for every source column.
 generates target UUIDs while preserving legacy IDs in target columns and
 `legacy_id_mappings`.
 
-Import is intentionally refused for `FazalDinPP19DataBaseV2`; the reviewed map
-requires `AbuzarLegacyReference`. Keep both connection URLs in protected
-environment variables:
+By default the importer refuses `FazalDinPP19DataBaseV2`; the reviewed map was
+originally authored against `AbuzarLegacyReference`. A canonical run is an
+explicit, auditable exception: pass `-allow-canonical` **and** a dedicated
+`-tenant-id` (and `-branch-id`/`-counter-id` when the map has those scopes).
+The importer rewrites only declared `tenant_id`/`branch_id`/`counter_id`
+injections, never source values,
+and still performs read-only SQL Server selects. Keep both connection URLs in
+protected environment variables or protected command shells:
 
 ```powershell
 $env:ABUZAR_SOURCE_SQLSERVER_URL = 'sqlserver://...AbuzarLegacyReference...'
@@ -124,3 +143,150 @@ The enterprise map is run the same way by changing `ABUZAR_IMPORT_CONFIG` and
 `-config`. Rerunning a map is idempotent on its reviewed conflict key and does
 not modify other tenants or source data. Evidence from the 2026-08-06 run is
 recorded in `migration/PHASE_E_STATUS_2026-08-06.md`.
+
+## Canonical first-tenant wave (2026-08-06)
+
+The local SQL Server service exposed the protected canonical database through a
+Windows-authenticated, read-only connection. The inspector recorded 763 base
+tables and 10,890 column records in `tmp/canonical-sqlserver-schema.json`.
+The canonical source tables referenced by both reviewed Phase-E maps were
+verified present before import.
+
+The first tenant is isolated from the sandbox and existing demo tenants:
+
+| Scope | Identifier |
+|---|---|
+| Tenant `LEGACY_CANONICAL` | `6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01` |
+| Branch `MAIN` | `6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02` |
+| Counter `COUNTER-1` | `6f25fd3e-5f66-4b4e-a31d-254c9e6b0a03` |
+
+The bounded run used the reviewed maps with explicit canonical opt-in and
+scope overrides:
+
+```powershell
+$source = 'sqlserver://localhost?database=FazalDinPP19DataBaseV2&trusted_connection=yes'
+$target = 'postgres://postgres@127.0.0.1:5432/abuzar_next?sslmode=disable'
+go run ./migration/cmd/import `
+  -source $source -target $target `
+  -config migration/maps/phase-e-enterprise-config.json `
+  -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -promote-normalized `
+  -out parity/catalog/canonical-first-tenant-enterprise-import.json
+
+go run ./migration/cmd/import `
+  -source $source -target $target `
+  -config migration/maps/phase-e-core-masters.json `
+  -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -out parity/catalog/canonical-first-tenant-core-import.json
+```
+
+Canonical reconciliation uses the same explicit guard and target tenant:
+
+```powershell
+go run ./migration/cmd/reconcile `
+  -source $source -target $target `
+  -config migration/maps/phase-e-core-masters.json `
+  -tenant 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -allow-canonical `
+  -out parity/catalog/canonical-first-tenant-core-reconciliation.json
+```
+
+When `-allow-canonical` is supplied, the reconciler also rewrites the reviewed
+sandbox tenant literal in metric target queries to the explicit `-tenant`
+value. This keeps the checked metric file reusable without changing its source
+queries or allowing arbitrary SQL rewriting.
+
+For a branch-scoped historical slice, provide all three operational overrides
+and a reviewed table range, for example `phase-e-historical-documents.json`
+with `-from-table 3 -to-table 5`, `-branch-id`, and `-counter-id`. The current
+canonical evidence includes the two purchase-header mappings, the separate
+purchase-order header mapping, the posted purchase-return header, and its
+detail lines, plus the sale-return header and detail slices. The bounded
+purchase-return line wave uses the focused metric file
+`maps/phase-e-purchase-return-line-reconciliation-metrics.json`, and the
+sale-return line wave uses
+`maps/phase-e-sale-return-line-reconciliation-metrics.json`, so each report
+contains only the relevant header/line count, total, and quantity checks:
+
+```powershell
+go run ./migration/cmd/reconcile `
+  -source $source -target $target `
+  -config migration/maps/phase-e-historical-documents.json `
+  -metrics migration/maps/phase-e-purchase-return-line-reconciliation-metrics.json `
+  -tenant 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -counter-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a03 `
+  -allow-canonical -from-table 9 -to-table 10 `
+  -out parity/catalog/canonical-first-tenant-purchase-return-lines-reconciliation.json
+```
+
+Purchase-order/detail lines, sales, sale returns, stock, and ledger ranges are
+still intentionally not implied by those reports; the purchase-detail line
+range is documented by the dedicated loader below.
+
+The lookup-free canonical `PricePolicyDetail` range has a dedicated bulk
+loader because the generic savepoint importer is intentionally conservative
+for heterogeneous maps:
+
+```powershell
+go run ./migration/cmd/bulkpricepolicy `
+  -source $source -target $target -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -out parity/catalog/canonical-first-tenant-price-policy-import.json
+```
+
+It reads SQL Server with `SELECT` only, copies into a temporary PostgreSQL
+staging table, upserts `price_policy_tiers`, and refreshes the audited
+`legacy_id_mappings` rows without sending any database credentials to clients.
+
+The canonical item tax references use the bounded `bulkitemtax` loader:
+
+```powershell
+go run ./migration/cmd/bulkitemtax `
+  -source $source -target $target -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -out parity/catalog/canonical-first-tenant-item-tax-import.json
+```
+
+It validates every referenced item and tax-rate dependency before copying and
+upserting 30,052 GST plus 30,052 PCT assignments. Its focused reconciliation
+is `parity/catalog/canonical-first-tenant-item-tax-reconciliation.json`.
+
+The large canonical purchase-detail line range uses the set-based
+`bulkpurchaselines` loader:
+
+```powershell
+go run ./migration/cmd/bulkpurchaselines `
+  -source $source -target $target -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -out parity/catalog/canonical-first-tenant-purchase-lines-import.json
+```
+
+It uses a read-only SQL Server cursor, PostgreSQL COPY, and set-based joins to
+the imported purchase headers and items. Non-positive legacy quantities remain
+auditable exceptions; they are never silently changed into positive stock.
+The focused reconciliation is
+`parity/catalog/canonical-first-tenant-purchase-lines-reconciliation.json`.
+
+The two small tax-rate mappings use the generic bounded importer and
+reconciler with `-from-table 0 -to-table 2`; their focused evidence is recorded
+under `parity/catalog/canonical-first-tenant-tax-rates-*`.
+
+The final evidence is in
+`migration/PHASE_E_CANONICAL_STATUS_2026-08-06.md`. This is the first
+canonical master-data wave, not a claim that all 763 legacy tables, documents,
+ledgers, stock/batches, reports, hardware, or pixel-level workflow captures
+are complete.
+
+The reviewed security map (`maps/phase-r-security-data.json`) additionally
+declares `"upsert": true`. This is limited to the representational roles,
+legacy groups, users, memberships, rights, and allow-scope rows because the
+tenancy migration seeds four role shells for every tenant. The upsert refreshes
+legacy IDs/payloads on those shells without importing source passwords; all
+other reviewed historical/master maps remain immutable (`DO NOTHING`) on a
+conflict key.

@@ -123,3 +123,32 @@ test('credit sale requires and submits the selected canonical customer', async (
   expect((payload?.document as Record<string, unknown>).customerId).toBe(customerId);
   expect((payload?.document as Record<string, unknown>).customer).toBeUndefined();
 });
+
+test('closed sale return requires source line identity and submits a canonical command', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/v1/master/godown', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ records: [{ id: godownId, kind: 'godown', code: 'G1', name: 'Godown 1', payload: {}, active: true }] }) }));
+  await page.route('**/v1/items/lookup*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [{ id: itemId, legacyId: 'ITEM-1', code: 'ITEM-1', name: 'Canonical Item', payload: { salePrice: '12.50' }, active: true, aliases: [] }] }) }));
+  await page.route('**/v1/inventory/availability*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ batches: [] }) }));
+  await page.route('**/v1/transactions/preview', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ tenantId: 'tenant-1', branchId: 'branch-1', priceLevel: 1, lines: [], subtotal: '12.50', lineDiscountTotal: '0.00', documentPercentDiscount: '0.00', flatDiscount: '0.00', documentDiscountTotal: '0.00', misc: '0.00', taxableBase: '12.50', taxes: [], totalDiscount: '0.00', total: '12.50' }) }));
+  let payload: Record<string, unknown> | undefined;
+  await page.route('**/v1/documents/cash-return', async (route) => {
+    payload = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ accepted: true, duplicate: false, eventId: '55555555-5555-4555-8555-555555555555', aggregateId: itemId, kind: 'cash-return', action: 'save-and-post', status: 'posted', document: { id: itemId, documentNumber: 'RET-1', version: 1 } }) });
+  });
+  await page.goto('/app/sales?kind=cash-return');
+  await waitForSalesReady(page);
+  await page.getByLabel('Item lookup query').fill('Canonical');
+  await page.getByLabel('Item lookup query').press('Enter');
+  await page.getByRole('button', { name: 'Canonical Item' }).click();
+  await page.getByLabel('Godown').selectOption(godownId);
+  await page.getByLabel('Source document ID').fill('66666666-6666-4666-8666-666666666666');
+  await page.getByRole('button', { name: 'Post sale' }).click();
+  await expect(page.getByRole('alert')).toContainText('source sale line ID');
+  expect(payload).toBeUndefined();
+  await page.getByLabel('Source sale line ID 1').fill('77777777-7777-4777-8777-777777777777');
+  await page.getByRole('button', { name: 'Post sale' }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('posted successfully', { timeout: 7000 });
+  expect(payload?.kind).toBe('cash-return');
+  expect((payload?.document as Record<string, unknown>).sourceDocumentId).toBe('66666666-6666-4666-8666-666666666666');
+  expect(((payload?.document as Record<string, unknown>).lines as Array<Record<string, unknown>>)[0].sourceLineId).toBe('77777777-7777-4777-8777-777777777777');
+});

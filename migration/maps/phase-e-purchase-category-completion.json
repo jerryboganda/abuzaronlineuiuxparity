@@ -1,0 +1,118 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "tables": [
+    {
+      "source": { "schema": "dbo", "table": "Purledger" },
+      "target": { "schema": "public", "table": "business_documents" },
+      "sourceId": "PurInvCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "document" },
+      "columns": {
+        "legacy_id": "PurInvCode",
+        "document_number": "PurInvCode",
+        "occurred_at": "Date",
+        "subtotal": "InvTotal",
+        "discount_amount": "FlatDisc",
+        "misc_amount": "MiscCharges",
+        "tax_amount": "SalesTax",
+        "total_amount": "InvTotal",
+        "paid_amount": "Amt",
+        "balance_amount": "OutstandingAmt"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('Purledger:', CAST(PurInvCode AS varchar(30)))"
+      },
+      "lookups": {
+        "supplier_id": {
+          "target": { "schema": "public", "table": "master_parties" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "SuppCode",
+          "predicates": { "party_type": "supplier" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "PurInvCode": "PurInvCode",
+        "PurCatCode": "PurCatCode",
+        "SuppCode": "SuppCode",
+        "Posted": "Posted",
+        "postdate": "postdate",
+        "PostedBy": "PostedBy",
+        "SuppInvCode": "SuppInvCode",
+        "GRN": "GRN"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counter_id": "11111111-1111-4111-8111-111111111111",
+        "kind": "loose-purchase",
+        "status": "posted",
+        "price_level": "1",
+        "legacy_source_table": "Purledger"
+      },
+      "sourceFilter": "PurCatCode = 8 AND Posted = 'Y'",
+      "coerce": { "legacy_id": "text", "document_number": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Purledger" },
+      "target": { "schema": "public", "table": "business_documents" },
+      "sourceId": "PurInvCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "document" },
+      "columns": {
+        "legacy_id": "PurInvCode",
+        "document_number": "PurInvCode",
+        "occurred_at": "Date",
+        "subtotal": "InvTotal",
+        "discount_amount": "FlatDisc",
+        "misc_amount": "MiscCharges",
+        "tax_amount": "SalesTax",
+        "total_amount": "InvTotal",
+        "paid_amount": "Amt",
+        "balance_amount": "OutstandingAmt"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('Purledger:', CAST(PurInvCode AS varchar(30)))"
+      },
+      "lookups": {
+        "supplier_id": {
+          "target": { "schema": "public", "table": "master_parties" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "SuppCode",
+          "predicates": { "party_type": "supplier" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "PurInvCode": "PurInvCode",
+        "PurCatCode": "PurCatCode",
+        "SuppCode": "SuppCode",
+        "Posted": "Posted",
+        "postdate": "postdate",
+        "PostedBy": "PostedBy",
+        "SuppInvCode": "SuppInvCode",
+        "GRN": "GRN"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counter_id": "11111111-1111-4111-8111-111111111111",
+        "kind": "pack-purchase",
+        "status": "draft",
+        "price_level": "1",
+        "legacy_source_table": "Purledger"
+      },
+      "sourceFilter": "PurCatCode = 2 AND Posted <> 'Y'",
+      "coerce": { "legacy_id": "text", "document_number": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    }
+  ]
+}

@@ -36,15 +36,28 @@ type tableMapping struct {
 	PayloadColumns    map[string]string     `json:"payloadColumns,omitempty"`
 	PayloadTarget     string                `json:"payloadTarget,omitempty"`
 	DerivedColumns    map[string][]string   `json:"derivedColumns,omitempty"`
+	GeneratedColumns  map[string]string     `json:"generatedColumns,omitempty"`
+	SourceExpressions map[string]string     `json:"sourceExpressions,omitempty"`
+	SourceFilter      string                `json:"sourceFilter,omitempty"`
 	Lookups           map[string]lookupSpec `json:"lookups,omitempty"`
 	Inject            map[string]string     `json:"inject,omitempty"`
+	TargetCountJoin   *targetCountJoin      `json:"targetCountJoin,omitempty"`
 	ConflictColumn    []string              `json:"conflictColumns"`
 }
 
 type lookupSpec struct {
-	Target       tableRef `json:"target"`
-	TargetColumn string   `json:"targetColumn"`
-	SourceColumn string   `json:"sourceColumn"`
+	Target       tableRef          `json:"target"`
+	TargetColumn string            `json:"targetColumn"`
+	ValueColumn  string            `json:"valueColumn,omitempty"`
+	SourceColumn string            `json:"sourceColumn"`
+	Predicates   map[string]string `json:"predicates,omitempty"`
+}
+
+type targetCountJoin struct {
+	Table         tableRef          `json:"table"`
+	LocalColumn   string            `json:"localColumn"`
+	ForeignColumn string            `json:"foreignColumn"`
+	Predicates    map[string]string `json:"predicates,omitempty"`
 }
 
 type mappingConfig struct {
@@ -102,6 +115,11 @@ func main() {
 	configPath := flag.String("config", "", "optional declarative mapping configuration")
 	metrics := flag.String("metrics", os.Getenv("ABUZAR_RECONCILE_METRICS"), "optional JSON metric-check configuration")
 	tenant := flag.String("tenant", os.Getenv("ABUZAR_RECONCILE_TENANT_ID"), "optional target tenant UUID used to evaluate PostgreSQL RLS")
+	allowCanonical := flag.Bool("allow-canonical", false, "explicitly allow the protected canonical FazalDinPP19DataBaseV2 source")
+	branchOverride := flag.String("branch-id", "", "optional target branch UUID override for mapping scope")
+	counterOverride := flag.String("counter-id", "", "optional target counter UUID override for mapping scope")
+	fromTable := flag.Int("from-table", 0, "zero-based first mapping table to reconcile")
+	toTable := flag.Int("to-table", -1, "exclusive mapping table limit; -1 reconciles through the end")
 	out := flag.String("out", filepath.Join("parity", "catalog", "migration-reconciliation.json"), "report output path")
 	flag.Parse()
 	if *source == "" || *target == "" {
@@ -150,14 +168,33 @@ func main() {
 			fatal(err.Error())
 		}
 		if strings.TrimSpace(*tenant) == "" {
+			if *allowCanonical {
+				fatal("-tenant is required when -allow-canonical is enabled; canonical reconciliation must use the dedicated target tenant")
+			}
 			*tenant = config.TenantID
 		} else if !strings.EqualFold(strings.TrimSpace(*tenant), strings.TrimSpace(config.TenantID)) {
-			fatal("reconciliation tenant does not match mapping tenantId")
+			if !*allowCanonical {
+				fatal("reconciliation tenant does not match mapping tenantId")
+			}
+			applyMappingScopeOverrides(&config, strings.TrimSpace(*tenant), *branchOverride, *counterOverride)
+		}
+		if *allowCanonical && hasInjectedScope(config, "branch_id") && strings.TrimSpace(*branchOverride) == "" {
+			fatal("-branch-id is required for this canonical mapping because it declares branch_id")
+		}
+		if *allowCanonical && hasInjectedScope(config, "counter_id") && strings.TrimSpace(*counterOverride) == "" {
+			fatal("-counter-id is required for this canonical mapping because it declares counter_id")
+		}
+		if strings.TrimSpace(*branchOverride) != "" || strings.TrimSpace(*counterOverride) != "" {
+			applyMappingScopeOverrides(&config, strings.TrimSpace(*tenant), *branchOverride, *counterOverride)
 		}
 		if strings.TrimSpace(config.SourceDatabase) != "" {
-			if err := validateSourceDatabase(*source, config.SourceDatabase); err != nil {
+			if err := validateSourceDatabase(*source, config.SourceDatabase, *allowCanonical); err != nil {
 				fatal(err.Error())
 			}
+		}
+		if *fromTable < 0 || *fromTable > len(config.Tables) ||
+			(*toTable != -1 && (*toTable < *fromTable || *toTable > len(config.Tables))) {
+			fatal("mapping table range is outside the reviewed configuration")
 		}
 		if strings.TrimSpace(*tenant) != "" {
 			if _, err := targetTx.ExecContext(ctx, `SELECT set_config('app.tenant_id', $1, true)`, strings.TrimSpace(*tenant)); err != nil {
@@ -168,7 +205,11 @@ func main() {
 
 	results := make([]tableResult, 0)
 	if strings.TrimSpace(*configPath) != "" {
-		results = reconcileMappings(ctx, sourceDB, targetTx, config.Tables, strings.TrimSpace(*tenant))
+		endTable := *toTable
+		if endTable == -1 {
+			endTable = len(config.Tables)
+		}
+		results = reconcileMappings(ctx, sourceDB, targetTx, config.Tables[*fromTable:endTable], strings.TrimSpace(*tenant))
 	} else {
 		refs, err := requestedTables(ctx, sourceDB, *tables)
 		if err != nil {
@@ -180,7 +221,11 @@ func main() {
 			results = append(results, reconcileTable(ctx, sourceDB, targetTx, result, nil, ""))
 		}
 	}
-	metricResults, err := runMetrics(ctx, sourceDB, targetTx, *metrics)
+	metricTenant := ""
+	if *allowCanonical {
+		metricTenant = strings.TrimSpace(*tenant)
+	}
+	metricResults, err := runMetrics(ctx, sourceDB, targetTx, *metrics, metricTenant)
 	if err != nil {
 		fatal(err.Error())
 	}
@@ -219,7 +264,11 @@ func reconcileMappings(ctx context.Context, source, target queryer, mappings []t
 }
 
 func reconcileTable(ctx context.Context, source, target queryer, result tableResult, mapping *tableMapping, tenant string) tableResult {
-	sourceCount, err := countSQLServer(ctx, source, tableRef{Schema: result.SourceSchema, Table: result.SourceTable})
+	sourceFilter := ""
+	if mapping != nil {
+		sourceFilter = mapping.SourceFilter
+	}
+	sourceCount, err := countSQLServer(ctx, source, tableRef{Schema: result.SourceSchema, Table: result.SourceTable}, sourceFilter)
 	if err != nil {
 		result.Status = "exception"
 		result.Error = err.Error()
@@ -277,7 +326,7 @@ func readMappingConfig(path string) (mappingConfig, error) {
 	return config, nil
 }
 
-func validateSourceDatabase(rawURL, expected string) error {
+func validateSourceDatabase(rawURL, expected string, allowCanonical bool) error {
 	databaseName := ""
 	if index := strings.Index(rawURL, "?"); index >= 0 {
 		for _, pair := range strings.Split(rawURL[index+1:], "&") {
@@ -291,7 +340,10 @@ func validateSourceDatabase(rawURL, expected string) error {
 		return errors.New("source URL must name a database for a reviewed mapping")
 	}
 	if strings.EqualFold(databaseName, "FazalDinPP19DataBaseV2") {
-		return errors.New("canonical FazalDinPP19DataBaseV2 is not an import/reconciliation mapping source")
+		if !allowCanonical {
+			return errors.New("canonical FazalDinPP19DataBaseV2 is not an import/reconciliation mapping source; pass -allow-canonical with an explicit -tenant")
+		}
+		return nil
 	}
 	if !strings.EqualFold(databaseName, expected) {
 		return fmt.Errorf("source database %q does not match reviewed mapping database", databaseName)
@@ -299,18 +351,82 @@ func validateSourceDatabase(rawURL, expected string) error {
 	return nil
 }
 
+func applyMappingScopeOverrides(config *mappingConfig, tenantID, branchID, counterID string) {
+	config.TenantID = tenantID
+	branchID = strings.TrimSpace(branchID)
+	counterID = strings.TrimSpace(counterID)
+	for index := range config.Tables {
+		inject := config.Tables[index].Inject
+		if inject == nil {
+			continue
+		}
+		if tenantID != "" {
+			if _, present := inject["tenant_id"]; present {
+				inject["tenant_id"] = tenantID
+			}
+		}
+		if branchID != "" {
+			if _, present := inject["branch_id"]; present {
+				inject["branch_id"] = branchID
+			}
+		}
+		if counterID != "" {
+			if _, present := inject["counter_id"]; present {
+				inject["counter_id"] = counterID
+			}
+		}
+		config.Tables[index].Inject = inject
+	}
+}
+
+func hasInjectedScope(config mappingConfig, key string) bool {
+	for _, mapping := range config.Tables {
+		if _, present := mapping.Inject[key]; present {
+			return true
+		}
+	}
+	return false
+}
+
 func countPostgresMapping(ctx context.Context, database queryer, ref tableRef, mapping tableMapping, tenant string) (int64, error) {
-	predicates := []string{"\"tenant_id\" = $1"}
+	predicates := []string{"target.\"tenant_id\" = $1"}
 	args := []any{tenant}
-	if kind, ok := mapping.Inject["kind"]; ok {
-		predicates = append(predicates, "\"kind\" = $2")
-		args = append(args, kind)
+	injectedColumns := make([]string, 0, len(mapping.Inject))
+	for column := range mapping.Inject {
+		if column != "tenant_id" {
+			injectedColumns = append(injectedColumns, column)
+		}
 	}
-	if legacyTable, ok := mapping.Inject["legacy_table"]; ok {
-		predicates = append(predicates, "\"legacy_table\" = $"+strconv.Itoa(len(args)+1))
-		args = append(args, legacyTable)
+	sort.Strings(injectedColumns)
+	for _, column := range injectedColumns {
+		predicates = append(predicates, "target."+quotePostgres(column)+" = $"+strconv.Itoa(len(args)+1))
+		args = append(args, mapping.Inject[column])
 	}
-	query := "SELECT COUNT(*) FROM " + quotePostgres(ref.Schema) + "." + quotePostgres(ref.Table) + " WHERE " + strings.Join(predicates, " AND ")
+	from := quotePostgres(ref.Schema) + "." + quotePostgres(ref.Table) + " AS target"
+	if mapping.TargetCountJoin != nil {
+		join := mapping.TargetCountJoin
+		if strings.TrimSpace(join.Table.Schema) == "" || strings.TrimSpace(join.Table.Table) == "" ||
+			strings.TrimSpace(join.LocalColumn) == "" || strings.TrimSpace(join.ForeignColumn) == "" {
+			return 0, errors.New("targetCountJoin requires table, localColumn, and foreignColumn")
+		}
+		from += " JOIN " + quotePostgres(join.Table.Schema) + "." + quotePostgres(join.Table.Table) + " AS count_join ON count_join." + quotePostgres(join.ForeignColumn) + " = target." + quotePostgres(join.LocalColumn) + " AND count_join.\"tenant_id\" = target.\"tenant_id\""
+		if containsString(injectedColumns, "branch_id") {
+			from += " AND count_join.\"branch_id\" = target.\"branch_id\""
+		}
+		predicateNames := make([]string, 0, len(join.Predicates))
+		for predicate := range join.Predicates {
+			predicateNames = append(predicateNames, predicate)
+		}
+		sort.Strings(predicateNames)
+		for _, predicate := range predicateNames {
+			if strings.TrimSpace(predicate) == "" {
+				return 0, errors.New("targetCountJoin contains an empty predicate")
+			}
+			predicates = append(predicates, "count_join."+quotePostgres(predicate)+" = $"+strconv.Itoa(len(args)+1))
+			args = append(args, join.Predicates[predicate])
+		}
+	}
+	query := "SELECT COUNT(*) FROM " + from + " WHERE " + strings.Join(predicates, " AND ")
 	var count int64
 	if err := database.QueryRowContext(ctx, query, args...).Scan(&count); err != nil {
 		return 0, fmt.Errorf("count target %s.%s: %w", ref.Schema, ref.Table, err)
@@ -318,7 +434,16 @@ func countPostgresMapping(ctx context.Context, database queryer, ref tableRef, m
 	return count, nil
 }
 
-func runMetrics(ctx context.Context, source, target queryer, path string) ([]metricResult, error) {
+func containsString(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+	return false
+}
+
+func runMetrics(ctx context.Context, source, target queryer, path, tenantOverride string) ([]metricResult, error) {
 	if strings.TrimSpace(path) == "" {
 		return nil, nil
 	}
@@ -347,7 +472,8 @@ func runMetrics(ctx context.Context, source, target queryer, path string) ([]met
 			results = append(results, result)
 			continue
 		}
-		targetValue, err := queryMetric(ctx, target, check.TargetQuery)
+		targetQuery := rewriteMetricTenant(check.TargetQuery, tenantOverride)
+		targetValue, err := queryMetric(ctx, target, targetQuery)
 		if err != nil {
 			result.Error = "target metric failed: " + err.Error()
 			results = append(results, result)
@@ -364,6 +490,14 @@ func runMetrics(ctx context.Context, source, target queryer, path string) ([]met
 		results = append(results, result)
 	}
 	return results, nil
+}
+
+func rewriteMetricTenant(query, tenantOverride string) string {
+	tenantOverride = strings.TrimSpace(tenantOverride)
+	if tenantOverride == "" || strings.EqualFold(tenantOverride, "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee") {
+		return query
+	}
+	return strings.ReplaceAll(query, "'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'", "'"+tenantOverride+"'")
 }
 
 type decimalMetric struct {
@@ -449,9 +583,13 @@ func requestedTables(ctx context.Context, database *sql.DB, value string) ([]tab
 	return refs, nil
 }
 
-func countSQLServer(ctx context.Context, database queryer, ref tableRef) (int64, error) {
+func countSQLServer(ctx context.Context, database queryer, ref tableRef, sourceFilter string) (int64, error) {
 	var count int64
-	if err := database.QueryRowContext(ctx, "SELECT COUNT_BIG(*) FROM "+quoteSQLServer(ref.Schema)+"."+quoteSQLServer(ref.Table)).Scan(&count); err != nil {
+	query := "SELECT COUNT_BIG(*) FROM " + quoteSQLServer(ref.Schema) + "." + quoteSQLServer(ref.Table)
+	if strings.TrimSpace(sourceFilter) != "" {
+		query += " WHERE " + sourceFilter
+	}
+	if err := database.QueryRowContext(ctx, query).Scan(&count); err != nil {
 		return 0, fmt.Errorf("count source %s.%s: %w", ref.Schema, ref.Table, err)
 	}
 	return count, nil

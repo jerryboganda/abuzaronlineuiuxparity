@@ -15,6 +15,11 @@ Date: 2026-08-06
   reported without an adapter.
 - Authenticated edge routes cover printing, barcode normalization/lookup, and
   drawer kick. Missing adapters return `503 hardware_adapter_unavailable`.
+- The Tauri desktop bridge now stores explicit edge URL/shared-secret
+  configuration in Windows Credential Manager and exposes native commands for
+  capabilities, sale-slip printing, purchase-label printing, barcode lookup,
+  and cash-drawer kick. The shared secret is never returned by the read
+  command.
 
 ## Automated evidence
 
@@ -34,11 +39,14 @@ go test ./services/edge/...
 go test -v ./services/edge/internal/hardware ./services/edge/internal/syncapi
 go vet ./services/edge/...
 python -c "import yaml; yaml.safe_load(open('docs/edge-openapi.yaml', encoding='utf-8')); print('edge-openapi.yaml: valid YAML')"
+pnpm --filter @abuzar/desktop build
 ```
 
 Observed result: all edge packages passed; verbose hardware and sync API tests
 passed, including shared-secret protection and no-adapter `503` behavior; Go
-vet and the edge OpenAPI YAML validation passed.
+vet and the edge OpenAPI YAML validation passed. The desktop Rust tests passed
+(2 URL/configuration tests), and the Tauri production build produced the NSIS
+and MSI bundles.
 
 ## Acceptance still open
 
@@ -49,3 +57,7 @@ pharmacy-device print comparison against legacy output and scanner-to-line-add
 at POS speed require a real-device run and operator sign-off. These golden
 tests prove deterministic software bytes only; they do not claim legacy byte
 parity or physical success.
+
+The desktop build and command tests prove IPC/configuration and edge error
+plumbing only. They do not claim that a printer, scanner, drawer, or any other
+physical adapter is present.

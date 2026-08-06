@@ -1,0 +1,84 @@
+{
+  "capturedAt": "2026-08-06",
+  "viewport": {
+    "width": 1936,
+    "height": 1048,
+    "deviceScaleFactor": 1
+  },
+  "test": "apps/web/tests/visual-remediation.spec.ts",
+  "surfaces": [
+    "Customer",
+    "Item",
+    "Cash Sale",
+    "Pack Purchase",
+    "Daily Sales Detail",
+    "Preferences",
+    "Groups rights"
+  ],
+  "independentLegacyPair": false,
+  "comparisons": [
+    {
+      "surface": "Customer",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "not-compared",
+      "exception": "No fresh independent legacy capture in this pass."
+    },
+    {
+      "surface": "Item",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "not-compared",
+      "exception": "Existing item raster is 1922x970, not the requested 1936x1048 pair."
+    },
+    {
+      "surface": "Cash Sale",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "not-compared",
+      "exception": "Existing cash-sale raster is 1922x970 and contains captured-state data."
+    },
+    {
+      "surface": "Pack Purchase",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "not-compared",
+      "exception": "Existing pack-purchase raster is 1922x970, not an independent 1936x1048 pair."
+    },
+    {
+      "surface": "Daily Sales Detail",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "not-compared",
+      "exception": "Stored report raster is a captured loading/output state, not a fresh independent pair."
+    },
+    {
+      "surface": "Preferences",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "not-compared",
+      "exception": "Existing preference rasters are 1536x972 and wrong viewport."
+    },
+    {
+      "surface": "Groups rights",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "not-compared",
+      "exception": "No approved Groups-rights raster baseline; legacy error dialog is a documented exception."
+    }
+  ],
+  "missingBaselines": [
+    "Customer at 1936x1048",
+    "Item at 1936x1048",
+    "Cash Sale at 1936x1048",
+    "Pack Purchase at 1936x1048",
+    "Daily Sales Detail ready state at 1936x1048",
+    "Preferences at 1936x1048",
+    "Groups rights without the legacy SQL Agent-era error dialog"
+  ],
+  "exceptions": [
+    "Legacy Preferences probes msdb SysJobs and can show a SQL Agent compatibility error.",
+    "Legacy Manage > Groups can show a DataBase Error Row 0 dialog before the list opens.",
+    "No baseline or zero-diff claim is made by this artifact."
+  ]
+}

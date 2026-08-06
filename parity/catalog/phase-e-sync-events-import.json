@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-08-06T15:40:51.8250705Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleLedger",
+      "targetSchema": "public",
+      "targetTable": "sync_events",
+      "read": 291361,
+      "imported": 291361,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purledger",
+      "targetSchema": "public",
+      "targetTable": "sync_events",
+      "read": 6419,
+      "imported": 6419,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SRLedger",
+      "targetSchema": "public",
+      "targetTable": "sync_events",
+      "read": 30704,
+      "imported": 30704,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PRLedger",
+      "targetSchema": "public",
+      "targetTable": "sync_events",
+      "read": 634,
+      "imported": 634,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurOrderHeader",
+      "targetSchema": "public",
+      "targetTable": "sync_events",
+      "read": 2810,
+      "imported": 2810,
+      "duplicates": 0,
+      "exceptions": 0
+    }
+  ]
+}

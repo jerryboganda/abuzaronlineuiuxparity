@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-08-06T19:15:21.6766961Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PricePolicyDetail",
+      "sourceCount": 30052,
+      "targetSchema": "public",
+      "targetTable": "price_policy_tiers",
+      "targetCount": 30052,
+      "status": "matched"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "price_policy_tier_count",
+      "sourceValue": "30052",
+      "targetValue": "30052",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "price_policy_price_total",
+      "sourceValue": "11568683.1700",
+      "targetValue": "11568683.1700",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-08-06T19:17:33.2677046Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SalesTaxSchedule",
+      "sourceCount": 7,
+      "targetSchema": "public",
+      "targetTable": "tax_rates",
+      "targetCount": 7,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TaxCategory",
+      "sourceCount": 3,
+      "targetSchema": "public",
+      "targetTable": "tax_rates",
+      "targetCount": 3,
+      "status": "matched"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "gst_schedule_count",
+      "sourceValue": "7",
+      "targetValue": "7",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "gst_schedule_rate_total",
+      "sourceValue": "128.00",
+      "targetValue": "128.0000",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    },
+    {
+      "name": "pct_category_count",
+      "sourceValue": "3",
+      "targetValue": "3",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "pct_category_rate_total",
+      "sourceValue": "1.50",
+      "targetValue": "1.5000",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    }
+  ]
+}

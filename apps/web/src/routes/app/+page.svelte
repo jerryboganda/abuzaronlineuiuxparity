@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import type { BranchSummary, ConflictRecord, ReportRow } from '@abuzar/contracts';
   import { AbuzarApi } from '$lib/api';
+  import { localDateString } from '$lib/calendar-date';
 
   let connectionLabel = 'Online';
   let workspaceLabel = 'Abuzar Pharmacy';
@@ -46,7 +47,7 @@
       branchLabel = result.context.branchId ? `Branch ${result.context.branchId.slice(0, 8)}` : 'Tenant scope';
       counterLabel = result.context.counterId ? `Counter ${result.context.counterId.slice(0, 8)}` : 'Counter scope';
       operatorLabel = result.context.displayName;
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localDateString();
       const [conflictResult, salesResult, shiftResult, branchResult] = await Promise.all([
         api.conflicts(),
         api.transactions('sale', today, today),
@@ -89,7 +90,7 @@
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `abuzar-dashboard-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `abuzar-dashboard-${localDateString()}.csv`;
     link.click();
     URL.revokeObjectURL(url);
     dashboardNotice = 'Dashboard export is ready.';

@@ -5,8 +5,10 @@
   import { AbuzarApi } from '$lib/api';
   import LegacyMenuBar from '$lib/LegacyMenuBar.svelte';
   import { defaultReportDefinition, exportHook } from '$lib/report-core';
+  import { formatLegacyTitle } from '$lib/legacy-title';
+  import { localDateString } from '$lib/calendar-date';
 
-  let fromDate = new Date().toISOString().slice(0, 10);
+  let fromDate = localDateString();
   let toDate = fromDate;
   let filter = '';
   let status = 'Select report arguments and retrieve the report.';
@@ -23,6 +25,8 @@
   let format = 'Standard';
   let interactive = false;
   let dialogInteractive = false;
+  let authenticatedUsername = 'ADMIN';
+  let clock = new Date();
   let rows: ReportRow[] = [];
   let definition: ReportDefinition = defaultReportDefinition('daily-sales-detail');
   let sortColumn: keyof ReportRow = 'occurredAt';
@@ -35,6 +39,8 @@
 
   $: kind = $page?.params?.kind ?? 'daily-sales-detail';
   $: legacyPath = $page?.url?.searchParams?.get('legacyPath') ?? '';
+  $: godownId = $page?.url?.searchParams?.get('godownId') ?? '';
+  $: batchNumber = $page?.url?.searchParams?.get('batchNumber') ?? '';
   $: legacyLeaf = String(legacyPath ?? '').split(' > ').at(-1)?.replace(/\t.*$/, '').replace(/&/g, '').trim() ?? '';
   $: if (definition.kind !== kind || (legacyLeaf && definition.title !== legacyLeaf)) {
     definition = defaultReportDefinition(kind, legacyLeaf || undefined, legacyPath);
@@ -48,10 +54,15 @@
   }
 
   onMount(() => {
+    const clockTimer = window.setInterval(() => { clock = new Date(); }, 1000);
+    void api.session().then((result) => {
+      if (result.authenticated && result.context) authenticatedUsername = result.context.username || 'ADMIN';
+    }).catch(() => { /* captured title remains available while the session resolves */ });
     if (kind === 'daily-sales-detail') {
       loading = true;
       window.setTimeout(() => { loading = false; showArguments = true; }, 1800);
     }
+    return () => window.clearInterval(clockTimer);
   });
 
   function addArea() {
@@ -92,7 +103,9 @@
         credit,
         areas: selectedAreas,
         allAreas,
-        legacyPath
+        legacyPath,
+        godownId,
+        batchNumber
       });
       rows = response.rows;
       definition = response.definition;
@@ -168,8 +181,24 @@
     status = 'CSV export is ready.';
   }
 
-  function exportUnavailable(formatName: 'pdf' | 'excel') {
-    status = exportHook(definition, formatName)?.message ?? `${formatName.toUpperCase()} export is not available.`;
+  function exportPdf() {
+    openPreview();
+    status = exportHook(definition, 'pdf')?.message ?? 'PDF print preview is ready.';
+  }
+
+  function exportExcel() {
+    const header = definition.columns.map((column) => column.label);
+    const tableRows = [header, ...rows.map((row) => definition.columns.map((column) => cellValue(row, column)))];
+    const table = tableRows.map((line) => `<tr>${line.map((cell) => `<td>${String(cell ?? '').replace(/[&<>\"]/g, (value) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[value] ?? value))}</td>`).join('')}</tr>`).join('');
+    const workbook = `<!doctype html><html><head><meta charset="utf-8"></head><body><h1>${title}</h1><p>${fromDate} to ${toDate}</p><table>${table}</table></body></html>`;
+    const blob = new Blob([workbook], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${kind}-${fromDate}-${toDate}.xls`;
+    link.click();
+    URL.revokeObjectURL(url);
+    status = exportHook(definition, 'excel')?.message ?? 'Excel export is ready.';
   }
 </script>
 
@@ -177,7 +206,7 @@
 
 <svelte:head><title>WASEELA · ABUZAR V3 · {title}</title></svelte:head>
 <main class:legacy-report-loading-baseline={kind === 'daily-sales-detail' && loading && !interactive} class="legacy-report-page" onpointerdown={enableInteractive} onfocusin={enableInteractive}><section class="legacy-report-window" aria-label={title}>
-  <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>WASEELA   ABUZAR V3 01.01.2025 : ADMIN : [{title}]</h1></header>
+  <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>{formatLegacyTitle(authenticatedUsername, clock)} : [{title}]</h1></header>
   <LegacyMenuBar context="report-sale-detail" windowId={'report-' + kind} windowLabel={title} windowHref={'/app/report/' + kind} />
   <div class="legacy-transaction-toolbar legacy-report-toolbar" role="toolbar" aria-label="Report toolbar">
     <button type="button" aria-label="Save report" onclick={saveLayout} title="Save">▧</button>
@@ -191,8 +220,8 @@
     <button type="button" aria-label="Last report" onclick={() => { if (!serverHasMore) reportPage = pageCount; }} disabled={serverHasMore} title={serverHasMore ? 'The server has not reported the last page' : 'Last'}>▶|</button>
     <button type="button" aria-label="Print report" onclick={printReport} title="Print">▥</button>
     <button type="button" aria-label="Export report" onclick={exportCsv} title="Export CSV">⇩</button>
-    <button type="button" aria-label="Export report as PDF" onclick={() => exportUnavailable('pdf')} disabled={exportHook(definition, 'pdf')?.status !== 'available'} title={exportHook(definition, 'pdf')?.message}>PDF</button>
-    <button type="button" aria-label="Export report as Excel" onclick={() => exportUnavailable('excel')} disabled={exportHook(definition, 'excel')?.status !== 'available'} title={exportHook(definition, 'excel')?.message}>XLS</button>
+    <button type="button" aria-label="Export report as PDF" onclick={exportPdf} disabled={exportHook(definition, 'pdf')?.status !== 'available'} title={exportHook(definition, 'pdf')?.message}>PDF</button>
+    <button type="button" aria-label="Export report as Excel" onclick={exportExcel} disabled={exportHook(definition, 'excel')?.status !== 'available'} title={exportHook(definition, 'excel')?.message}>XLS</button>
     <button type="button" aria-label="Preview report" onclick={openPreview} title="Preview">▣</button>
     <button type="button" aria-label="Refresh report" onclick={() => { void retrieve(); }} title="Refresh">⟳</button>
     <button type="button" aria-label="Report settings" onclick={openFormat} title="Settings">⚙</button>

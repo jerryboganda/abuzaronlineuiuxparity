@@ -190,6 +190,56 @@ func TestSyncEventDeleteGuardMigrationProtectsFinalEvents(t *testing.T) {
 	}
 }
 
+func TestSaleReturnValidationRequiresCanonicalSourceLineAndOpenBatch(t *testing.T) {
+	closed := validDocumentCommand("save-and-post")
+	closed.Kind = "cash-return"
+	closed.Document.Kind = "cash-return"
+	closed.Document.SourceDocumentID = "00000000-0000-0000-0000-000000000010"
+	if err := validateDocumentCommand(closed, closed.Kind); err == nil ||
+		!strings.Contains(err.Error(), "sourceLineId") {
+		t.Fatalf("closed return without source line was accepted: %v", err)
+	}
+
+	closed.Document.Lines[0].SourceLineID = "00000000-0000-0000-0000-000000000011"
+	if err := validateDocumentCommand(closed, closed.Kind); err != nil {
+		t.Fatalf("closed return with canonical source line rejected: %v", err)
+	}
+
+	open := validDocumentCommand("save-and-post")
+	open.Kind = "open-cash-return"
+	open.Document.Kind = "open-cash-return"
+	if err := validateDocumentCommand(open, open.Kind); err == nil ||
+		!strings.Contains(err.Error(), "batchNumber") {
+		t.Fatalf("open return without explicit batch was accepted: %v", err)
+	}
+	open.Document.Lines[0].BatchNumber = "RETURN-001"
+	if err := validateDocumentCommand(open, open.Kind); err != nil {
+		t.Fatalf("open return with explicit batch rejected: %v", err)
+	}
+}
+
+func TestSaleReturnReversalMigrationDefinesSourceAndRLSBoundaries(t *testing.T) {
+	path := filepath.Join("..", "..", "..", "..", "db", "migrations", "025_sale_return_reversal_contract.sql")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read sale return migration: %v", err)
+	}
+	migration := string(data)
+	for _, required := range []string{
+		"'open-cash-return', 'open-credit-return'",
+		"ADD COLUMN IF NOT EXISTS source_line_id",
+		"business_document_reversals",
+		"validate_sale_return_source_025",
+		"validate_sale_return_line_source_025",
+		"FORCE ROW LEVEL SECURITY",
+		"business_document_reversals_branch_tenant_hardening",
+	} {
+		if !strings.Contains(migration, required) {
+			t.Errorf("return contract is missing %q", required)
+		}
+	}
+}
+
 func pointerInt64(value int64) *int64 {
 	return &value
 }

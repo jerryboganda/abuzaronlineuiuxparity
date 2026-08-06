@@ -10,6 +10,107 @@ import (
 	"strings"
 )
 
+type legacyRight struct {
+	RightCode    string `json:"rightCode"`
+	Permission   string `json:"permission,omitempty"`
+	Allowed      bool   `json:"allowed"`
+	LegacyStatus string `json:"legacyStatus,omitempty"`
+	Mapping      string `json:"mapping"`
+}
+
+type legacyScope struct {
+	ScopeKind   string `json:"scopeKind"`
+	ScopeKey    string `json:"scopeKey"`
+	ScopeLabel  string `json:"scopeLabel,omitempty"`
+	Allowed     bool   `json:"allowed"`
+	LegacyTable string `json:"legacyTable,omitempty"`
+}
+
+type accessResponse struct {
+	TenantAdmin  bool                       `json:"tenantAdmin"`
+	Permissions  []string                   `json:"permissions"`
+	LegacyRights []legacyRight              `json:"legacyRights"`
+	Scopes       map[string]map[string]bool `json:"scopes"`
+	ScopeRows    []legacyScope              `json:"scopeRows"`
+	Exceptions   []string                   `json:"exceptions"`
+}
+
+func resolveLegacyRights(rows []legacyRight) []legacyRight {
+	byCode := make(map[string]legacyRight, len(rows))
+	for _, row := range rows {
+		row.RightCode = strings.TrimSpace(row.RightCode)
+		if row.RightCode == "" {
+			continue
+		}
+		key := strings.ToLower(row.RightCode)
+		current, exists := byCode[key]
+		if !exists {
+			current = row
+		} else {
+			// Imported rows may be represented by more than one membership.
+			// An explicit deny always wins; do not hide that fact behind a
+			// normalized role permission.
+			current.Allowed = current.Allowed && row.Allowed
+			if current.Permission == "" {
+				current.Permission = row.Permission
+			}
+			if current.LegacyStatus == "" {
+				current.LegacyStatus = row.LegacyStatus
+			}
+		}
+		if current.Permission != "" {
+			current.Mapping = "explicit"
+		} else {
+			current.Mapping = "ambiguous"
+		}
+		byCode[key] = current
+	}
+	result := make([]legacyRight, 0, len(byCode))
+	for _, row := range byCode {
+		result = append(result, row)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return strings.ToLower(result[i].RightCode) < strings.ToLower(result[j].RightCode)
+	})
+	return result
+}
+
+func resolveLegacyScopes(rows []legacyScope) []legacyScope {
+	byScope := make(map[string]legacyScope, len(rows))
+	for _, row := range rows {
+		row.ScopeKind = strings.ToLower(strings.TrimSpace(row.ScopeKind))
+		row.ScopeKey = strings.TrimSpace(row.ScopeKey)
+		if row.ScopeKind == "" || row.ScopeKey == "" {
+			continue
+		}
+		key := row.ScopeKind + "\x00" + row.ScopeKey
+		current, exists := byScope[key]
+		if !exists {
+			current = row
+		} else {
+			current.Allowed = current.Allowed && row.Allowed
+			if current.ScopeLabel == "" {
+				current.ScopeLabel = row.ScopeLabel
+			}
+			if current.LegacyTable == "" {
+				current.LegacyTable = row.LegacyTable
+			}
+		}
+		byScope[key] = current
+	}
+	result := make([]legacyScope, 0, len(byScope))
+	for _, row := range byScope {
+		result = append(result, row)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].ScopeKind == result[j].ScopeKind {
+			return result[i].ScopeKey < result[j].ScopeKey
+		}
+		return result[i].ScopeKind < result[j].ScopeKind
+	})
+	return result
+}
+
 type roleResponse struct {
 	ID              string   `json:"id"`
 	Code            string   `json:"code"`
@@ -23,6 +124,30 @@ type roleRequest struct {
 	Code        string   `json:"code"`
 	Name        string   `json:"name"`
 	Permissions []string `json:"permissions"`
+}
+
+type roleRightsResponse struct {
+	RoleID       string        `json:"roleId"`
+	Permissions  []string      `json:"permissions"`
+	LegacyRights []legacyRight `json:"legacyRights"`
+	Scopes       []legacyScope `json:"scopes"`
+}
+
+type legacyRightEdit struct {
+	RightCode string `json:"rightCode"`
+	Allowed   bool   `json:"allowed"`
+}
+
+type legacyScopeEdit struct {
+	ScopeKind string `json:"scopeKind"`
+	ScopeKey  string `json:"scopeKey"`
+	Allowed   bool   `json:"allowed"`
+}
+
+type roleRightsRequest struct {
+	Permissions  *[]string          `json:"permissions"`
+	LegacyRights *[]legacyRightEdit `json:"legacyRights"`
+	Scopes       *[]legacyScopeEdit `json:"scopes"`
 }
 
 var supportedRolePermissions = map[string]struct{}{
@@ -63,6 +188,48 @@ func splitPermissionCSV(value string) []string {
 		return []string{}
 	}
 	return permissions
+}
+
+func (s *Server) access(w http.ResponseWriter, r *http.Request) {
+	operator := currentSession(r)
+	if operator == nil {
+		writeProblem(w, http.StatusUnauthorized, "authentication_required", "Authentication required", "Sign in before loading access.")
+		return
+	}
+	tx, err := s.beginScopedTx(r.Context(), operator)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "access_read_failed", "Unable to read access", "The imported access store could not be queried.")
+		return
+	}
+	defer tx.Rollback()
+	scopeRows, err := loadLegacyScopeRows(r.Context(), tx, operator.UserID, operator.TenantID)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "access_read_failed", "Unable to read access", "The imported access store could not be queried.")
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "access_read_failed", "Unable to read access", "The imported access transaction could not be committed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, accessResponse{
+		TenantAdmin:  hasTenantAdminRole(operator.Roles),
+		Permissions:  operator.Permissions,
+		LegacyRights: operator.LegacyRights,
+		Scopes:       operator.Scopes,
+		ScopeRows:    scopeRows,
+		Exceptions:   legacyAccessExceptions(operator.LegacyRights),
+	})
+}
+
+func legacyAccessExceptions(rights []legacyRight) []string {
+	exceptions := make([]string, 0)
+	for _, right := range rights {
+		if right.Mapping == "ambiguous" {
+			exceptions = append(exceptions, right.RightCode)
+		}
+	}
+	sort.Strings(exceptions)
+	return exceptions
 }
 
 type operatorCreateRequest struct {
@@ -115,6 +282,13 @@ func (s *Server) roles(w http.ResponseWriter, r *http.Request) {
 					FROM group_rights g
 					WHERE g.tenant_id = r.tenant_id AND g.role_id = r.id
 					  AND g.allowed AND COALESCE(g.permission, g.right_code) <> ''
+					  AND NOT EXISTS (
+						SELECT 1 FROM group_rights denied
+						WHERE denied.tenant_id = g.tenant_id AND denied.role_id = g.role_id
+						  AND lower(COALESCE(denied.permission, denied.right_code)) =
+						      lower(COALESCE(g.permission, g.right_code))
+						  AND NOT denied.allowed
+					  )
 				) effective
 			), '')
 		FROM roles r
@@ -269,6 +443,225 @@ func (s *Server) updateRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, role)
+}
+
+func (s *Server) roleRights(w http.ResponseWriter, r *http.Request) {
+	operator := currentSession(r)
+	if !s.requirePermission(r, w, operator, "manage.groups") {
+		return
+	}
+	roleID := strings.TrimSpace(r.PathValue("id"))
+	tx, err := s.beginScopedTx(r.Context(), operator)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "database_unavailable", "Database unavailable", "The group access store could not be opened.")
+		return
+	}
+	defer tx.Rollback()
+	var exists bool
+	if err := tx.QueryRowContext(r.Context(), `SELECT EXISTS (SELECT 1 FROM roles WHERE id = $1::uuid AND tenant_id = $2::uuid)`, roleID, operator.TenantID).Scan(&exists); err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "role_rights_read_failed", "Unable to read group access", "The group access store could not be queried.")
+		return
+	}
+	if !exists {
+		writeProblem(w, http.StatusNotFound, "role_not_found", "Group not found", "The group is outside the authenticated tenant scope.")
+		return
+	}
+	result, err := readRoleRights(r.Context(), tx, operator.TenantID, roleID)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "role_rights_read_failed", "Unable to read group access", "The group access response could not be decoded.")
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "role_rights_read_failed", "Unable to read group access", "The group access transaction could not be committed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func readRoleRights(ctx context.Context, database queryerRows, tenantID, roleID string) (roleRightsResponse, error) {
+	result := roleRightsResponse{RoleID: roleID, Permissions: []string{}, LegacyRights: []legacyRight{}, Scopes: []legacyScope{}}
+	rows, err := database.QueryContext(ctx, `
+		SELECT permission
+		FROM (
+			SELECT p.permission
+			FROM role_permissions p
+			WHERE p.tenant_id = $1::uuid AND p.role_id = $2::uuid AND p.allowed
+			  AND NOT EXISTS (
+				SELECT 1 FROM group_rights denied
+				WHERE denied.tenant_id = p.tenant_id AND denied.role_id = p.role_id
+				  AND lower(COALESCE(denied.permission, denied.right_code)) = lower(p.permission)
+				  AND NOT denied.allowed
+			  )
+			UNION
+			SELECT lower(g.permission)
+			FROM group_rights g
+			WHERE g.tenant_id = $1::uuid AND g.role_id = $2::uuid
+			  AND g.allowed AND NULLIF(g.permission, '') IS NOT NULL
+			  AND NOT EXISTS (
+				SELECT 1 FROM group_rights denied
+				WHERE denied.tenant_id = g.tenant_id AND denied.role_id = g.role_id
+				  AND lower(COALESCE(denied.permission, denied.right_code)) = lower(g.permission)
+				  AND NOT denied.allowed
+			  )
+		) effective
+		ORDER BY permission`, tenantID, roleID)
+	if err != nil {
+		return result, err
+	}
+	for rows.Next() {
+		var permission string
+		if err := rows.Scan(&permission); err != nil {
+			rows.Close()
+			return result, err
+		}
+		result.Permissions = append(result.Permissions, permission)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return result, err
+	}
+	rows.Close()
+
+	rightRows, err := database.QueryContext(ctx, `
+		SELECT right_code, COALESCE(permission, ''), allowed, COALESCE(legacy_status, '')
+		FROM group_rights
+		WHERE tenant_id = $1::uuid AND role_id = $2::uuid
+		ORDER BY lower(right_code)`, tenantID, roleID)
+	if err != nil {
+		return result, err
+	}
+	rights := make([]legacyRight, 0)
+	for rightRows.Next() {
+		var right legacyRight
+		if err := rightRows.Scan(&right.RightCode, &right.Permission, &right.Allowed, &right.LegacyStatus); err != nil {
+			rightRows.Close()
+			return result, err
+		}
+		rights = append(rights, right)
+	}
+	if err := rightRows.Err(); err != nil {
+		rightRows.Close()
+		return result, err
+	}
+	rightRows.Close()
+	result.LegacyRights = resolveLegacyRights(rights)
+
+	scopeRows, err := database.QueryContext(ctx, `
+		SELECT scope_kind, scope_key, COALESCE(scope_label, ''), allowed, COALESCE(legacy_table, '')
+		FROM group_allowed_scopes
+		WHERE tenant_id = $1::uuid AND role_id = $2::uuid
+		ORDER BY scope_kind, scope_key`, tenantID, roleID)
+	if err != nil {
+		return result, err
+	}
+	scopes := make([]legacyScope, 0)
+	for scopeRows.Next() {
+		var scope legacyScope
+		if err := scopeRows.Scan(&scope.ScopeKind, &scope.ScopeKey, &scope.ScopeLabel, &scope.Allowed, &scope.LegacyTable); err != nil {
+			scopeRows.Close()
+			return result, err
+		}
+		scopes = append(scopes, scope)
+	}
+	if err := scopeRows.Err(); err != nil {
+		scopeRows.Close()
+		return result, err
+	}
+	scopeRows.Close()
+	result.Scopes = resolveLegacyScopes(scopes)
+	return result, nil
+}
+
+func (s *Server) updateRoleRights(w http.ResponseWriter, r *http.Request) {
+	operator := currentSession(r)
+	if !s.requirePermission(r, w, operator, "manage.groups") {
+		return
+	}
+	roleID := strings.TrimSpace(r.PathValue("id"))
+	var request roleRightsRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 128<<10)).Decode(&request); err != nil {
+		writeProblem(w, http.StatusBadRequest, "invalid_json", "Invalid JSON", "The group access changes could not be parsed.")
+		return
+	}
+	tx, err := s.beginScopedTx(r.Context(), operator)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "database_unavailable", "Database unavailable", "The group access store could not be opened.")
+		return
+	}
+	defer tx.Rollback()
+	var exists bool
+	if err := tx.QueryRowContext(r.Context(), `SELECT EXISTS (SELECT 1 FROM roles WHERE id = $1::uuid AND tenant_id = $2::uuid)`, roleID, operator.TenantID).Scan(&exists); err != nil || !exists {
+		writeProblem(w, http.StatusNotFound, "role_not_found", "Group not found", "The group is outside the authenticated tenant scope.")
+		return
+	}
+	if request.Permissions != nil {
+		permissions, err := normalizeRolePermissions(*request.Permissions)
+		if err != nil {
+			writeProblem(w, http.StatusBadRequest, "invalid_role_permissions", "Invalid group permissions", err.Error())
+			return
+		}
+		if err := replaceRolePermissions(r.Context(), tx, operator.TenantID, roleID, permissions); err != nil {
+			writeProblem(w, http.StatusUnprocessableEntity, "role_permissions_failed", "Group permissions could not be saved", "The normalized permissions could not be stored.")
+			return
+		}
+	}
+	if request.LegacyRights != nil {
+		for _, right := range *request.LegacyRights {
+			if strings.TrimSpace(right.RightCode) == "" {
+				writeProblem(w, http.StatusBadRequest, "invalid_legacy_right", "Invalid legacy right", "Every imported right must have a right code.")
+				return
+			}
+			result, err := tx.ExecContext(r.Context(), `
+				UPDATE group_rights SET allowed = $1, updated_at = now()
+				WHERE tenant_id = $2::uuid AND role_id = $3::uuid AND lower(right_code) = lower($4)`,
+				right.Allowed, operator.TenantID, roleID, strings.TrimSpace(right.RightCode))
+			if err != nil {
+				writeProblem(w, http.StatusUnprocessableEntity, "legacy_right_update_failed", "Legacy right could not be saved", "The imported right store rejected the change.")
+				return
+			}
+			if count, _ := result.RowsAffected(); count != 1 {
+				writeProblem(w, http.StatusNotFound, "legacy_right_not_found", "Legacy right not found", "Only imported rights can be edited.")
+				return
+			}
+		}
+	}
+	if request.Scopes != nil {
+		for _, scope := range *request.Scopes {
+			scope.ScopeKind = strings.ToLower(strings.TrimSpace(scope.ScopeKind))
+			scope.ScopeKey = strings.TrimSpace(scope.ScopeKey)
+			if scope.ScopeKind == "" || scope.ScopeKey == "" {
+				writeProblem(w, http.StatusBadRequest, "invalid_scope", "Invalid access scope", "Every imported scope must have a kind and key.")
+				return
+			}
+			result, err := tx.ExecContext(r.Context(), `
+				UPDATE group_allowed_scopes SET allowed = $1, updated_at = now()
+				WHERE tenant_id = $2::uuid AND role_id = $3::uuid
+				  AND scope_kind = $4 AND scope_key = $5`,
+				scope.Allowed, operator.TenantID, roleID, scope.ScopeKind, scope.ScopeKey)
+			if err != nil {
+				writeProblem(w, http.StatusUnprocessableEntity, "scope_update_failed", "Access scope could not be saved", "The imported scope store rejected the change.")
+				return
+			}
+			if count, _ := result.RowsAffected(); count != 1 {
+				writeProblem(w, http.StatusNotFound, "scope_not_found", "Access scope not found", "Only imported scopes can be edited.")
+				return
+			}
+		}
+	}
+	if err := appendRoleAudit(r, tx, operator, "role.access.updated", roleID, request); err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "audit_write_failed", "Unable to record group access", "The group access audit event could not be stored.")
+		return
+	}
+	result, err := readRoleRights(r.Context(), tx, operator.TenantID, roleID)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "role_rights_read_failed", "Unable to read group access", "The updated group access could not be read.")
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "role_rights_commit_failed", "Group access could not be saved", "The group access transaction could not be committed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 func replaceRolePermissions(ctx context.Context, tx *sql.Tx, tenantID, roleID string, permissions []string) error {
@@ -533,7 +926,7 @@ func (s *Server) updateOperator(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, updated)
 }
 
-func appendRoleAudit(r *http.Request, tx *sql.Tx, operator *sessionContext, action, roleID string, request roleRequest) error {
+func appendRoleAudit(r *http.Request, tx *sql.Tx, operator *sessionContext, action, roleID string, request any) error {
 	payload, err := json.Marshal(request)
 	if err != nil {
 		return err

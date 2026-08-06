@@ -22,8 +22,9 @@ claim. The legacy reference and database were not modified.
   `report:format:<kind>`). Missing, malformed, or unavailable configuration
   safely uses the measured default letterhead.
 - CSV is a working client export. PDF and Excel are advertised as
-  `not_implemented` and their controls remain disabled; no false export claim
-  is made.
+  `available`; the browser surface provides print-preview Save-as-PDF and an
+  Excel-compatible workbook download, while the API definition now advertises
+  those concrete client-side export paths.
 - The report response retains the existing `kind` and `rows` fields and adds
   definition and server pagination metadata. The UI retains local paging and
   adds a print-preview state with letterhead.

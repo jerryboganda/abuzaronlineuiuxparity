@@ -5,25 +5,37 @@
 - The browser legacy shell now builds its menu tree from `parity/catalog/legacy-menu-tree-2026-08-05.json` (275 captured entries, 9 top-level menus), including recursive submenus, command IDs, keyboard shortcuts, and deterministic route metadata.
 - Purchase workflows are available at `/app/purchase/pack`, `/return`, `/opening`, `/loose`, and `/order` with editable legacy-style grids, tenant/branch/counter-scoped events, idempotency, online posting, and offline queue fallback.
 - Cash/credit sales, sale returns, quotations, and refused-sales documents use concrete transaction endpoints. Sale rows also project into the scoped inventory ledger.
+- Quotations and refused-sales now use the idempotent canonical `/v1/documents/{kind}` lifecycle for tenant-scoped numbering, drafts, posting, revisions, and voids; they intentionally skip stock and finance projection.
+- Cash and credit sale returns now use the same canonical lifecycle with a required posted source sale, source-batch restoration, immutable stock-in movement, and finance/party-ledger reversal; posted return voids remain rejected until a separate compensating-reversal workflow is implemented.
 - Customer, supplier, item, manufacturer, category/template master forms persist through `/v1/master/*`; the Users workflow lists, creates, selects, and updates tenant operators with password hashing and validated group, branch, and counter assignments through `/v1/operators`.
 - The remaining captured Basic Data master leaves (customer/supplier categories, promotions/sectors, item class/category/generic data, price/tax/PCT settings, lock reasons, segments, types, templates, and related lists) now retain their own master kind and route-specific title instead of being collapsed into one category bucket.
 - Master List rows are now selectable: the captured Detail/List workflow reloads legacy payload fields into the Detail form, and Save updates the tenant record through `PATCH /v1/master/{kind}/{id}` instead of always creating a duplicate.
 - Item Detail now exposes the legacy supplier sub-grid (Priority, Rate, Disc%, Qty, Bonus, Days) and replaces the tenant-scoped links through `PUT /v1/master/item/{id}/suppliers`; a focused browser regression covers edit and persistence.
 - Manage → Groups now lists, creates, and updates tenant-scoped roles and their validated permission sets through `/v1/roles`, with administrator authorization, RLS-backed storage, and audit events.
 - Every captured report leaf reaches the report argument/retrieve/export surface. Four primary report projections are implemented; other catalogued report kinds use the scoped immutable-event projection until their exact legacy columns are captured.
-- Report workflows now include the legacy retrieval-arguments dialog (areas, date range, cash/credit selection), format selection, print preview, CSV export, and a captured daily-sales-detail loading state.
+- Report workflows now include the legacy retrieval-arguments dialog (areas, date range, cash/credit selection), format selection, print preview, CSV export, browser Save-as-PDF, Excel-compatible workbook export, and a captured daily-sales-detail loading state.
 - Detail/List tabs are live on purchase, sales, and master-data surfaces; sales and purchase list views query persisted tenant/branch-scoped transaction history through `/v1/transactions/{kind}` rather than rendering draft placeholders.
 - Sales and purchase List rows and toolbar Previous/Next actions now load persisted documents back into the Detail form, preserving the legacy navigation workflow instead of only changing a status message.
 - Manage → Cashier Activity Window now reads the scoped shift ledger through `GET /v1/shifts` and renders operator, open/close, status, and cash totals with a live refresh action.
 - The non-legacy workspace dashboard now reads sales history, shifts, and branches from the authenticated API; hardcoded demo metrics/activity were removed and empty-state labels are explicit.
-- Dashboard navigation/export/notifications/context actions and the report toolbar (save layout, sort, paging, refresh, print, CSV export, and format settings) now execute concrete client actions.
+- Dashboard navigation/export/notifications/context actions and the report toolbar (save layout, sort, paging, refresh, print, CSV export, browser PDF, Excel-compatible workbook export, and format settings) now execute concrete client actions.
 - The main-window Minimize/Restore controls now change the rendered shell state; Close still returns to the application entry point.
 - Captured menu shortcuts are now actionable in the live shell; the recorded Ctrl+Alt+M Session Monitor shortcut (and Ctrl+X Exit) route through the same command metadata as menu clicks.
-- Sales and purchase windows now dispatch captured contextual File/Item verbs for New, Save/Post/Save And Post, Print, Previous/Next, and New Item into their live handlers; unsupported contextual verbs remain visibly phase-labelled. The Save And Post accelerator has a focused browser regression.
+- Sales and purchase windows now dispatch captured contextual File/Item verbs for New, Save/Post/Save And Post, Print, Previous/Next, and New Item into their live handlers. Other captured leaves now navigate to a deterministic contextual workbench carrying the legacy path and command id instead of leaving the click inert; their underlying legacy business behavior remains an open parity gate. The Save And Post accelerator has a focused browser regression.
 - Purchase Order now emits the correct `purchase_order` event aggregate when saved, preserving the legacy workflow boundary and avoiding accidental receiving projection.
 - Purchase pack/loose/opening/return/order forms now bind their selected supplier, item, godown, batch, and source-batch identities to the canonical document command contract; Save creates a versioned draft and Post/Save And Post uses the existing draft version, while incomplete compatibility entries retain the legacy event fallback.
-- The captured purchase Lookup action and Ctrl+B automatic batch workflow are live (`AUTO-YYYYMMDD-NNN`), with focused coverage for canonical rejection, draft/post revision state, purchase orders, returns, free-text fail-closed validation, and batch generation.
-- High-frequency contextual purchase/sales commands now have live handlers: list/history navigation, auto batch generation, item sorting, row delete/restore, item/customer/supplier information routes, sale-slip/purchase-label output with branch-edge fallback, change-user/exit, and local offline queue synchronization.
+- The captured purchase Lookup action and Ctrl+B client-convenience batch
+  helper are live (`AUTO-YYYYMMDD-NNN`); this identifier is explicitly not
+  claimed as legacy-format parity. Focused coverage covers canonical
+  rejection, draft/post revision state, purchase orders, returns, free-text
+  fail-closed validation, and the helper.
+- Purchase List now renders canonical `/v1/transactions/pack-purchase` rows and restores the selected invoice into Detail; the focused suite verifies the six purchase workflows end to end.
+- High-frequency contextual purchase/sales commands now have live handlers:
+  list/history navigation, client-convenience batch generation, item sorting,
+  row delete/restore, item/customer/supplier information routes,
+  sale-slip/purchase-label output with branch-edge fallback, change-user/exit,
+  and local offline queue synchronization.
+- Cash/credit sales also apply captured item GST/discount rates and generated batch identifiers to populated lines, while Attach Document(s), Show Document Gallery, and parent-server import commands update the live draft/branch queue.
 - Preferences persist by tenant/category through `/v1/preferences` and retain the captured tab/grid structure.
 - Preferences now load and save tab-specific captured labels/defaults for all 17 categories; Cancel restores the last loaded values and each ellipsis editor focuses its matching field.
 - Schedule and Email preference tabs now switch from the untouched screenshot baseline to their captured form layouts on interaction, with editable controls wired to the same tenant/category persistence path.
@@ -92,7 +104,58 @@ Corrections to earlier claims:
 
 The pricing preview is a validated calculation surface, not proof that all legacy tax tables, batch/expiry rules, stock availability, GL/ledger postings, or every document lifecycle are complete. Those remain acceptance work below.
 
+## Canonical source-data wave - 2026-08-06
+
+The locally available canonical SQL Server database was inspected read-only and
+the reviewed enterprise/config and core-master maps were imported into a new,
+isolated `LEGACY_CANONICAL` tenant. The importer now has an explicit
+`-allow-canonical` guard and requires a dedicated target scope override; the
+default sandbox protection remains fail-closed. The 11-table enterprise wave
+and 7-table core wave reconciled with zero exceptions and exact source/target
+counts. Evidence and reports are recorded in
+`migration/PHASE_E_CANONICAL_STATUS_2026-08-06.md`.
+
+The reviewed operator/rights map is also imported and reconciled for the same
+tenant (13 mappings, 925 rows, 0 exceptions, 13/13 reviewed metrics matched).
+It preserves legacy group IDs, rights, and allow scopes while excluding source password values; see the
+security report pair under `parity/catalog/canonical-first-tenant-security-*`.
+
+The normalized canonical master targets are populated for that tenant, and the
+first bounded document slice (2,810 purchase-order headers) reconciles exactly.
+The complete purchase-header inventory now reconciles 6,419 exact rows, the bounded posted
+purchase-return header slice adds 634, and its 2,481 detail lines now reconcile
+with exact counts and return totals. The sale-return header/detail slices add
+30,704/44,579 exact rows and reconcile their total and quantity metrics.
+The canonical pricing tier map adds 30,052 exact `PricePolicyDetail` rows and
+the full legacy price total. The first tax configuration slice adds the 7 GST
+and 3 PCT rows with exact rate totals.
+The item-tax assignment slice adds 30,052 GST and 30,052 PCT item references;
+both filtered table counts and focused assignment metrics reconcile exactly,
+with zero loader exceptions. Evidence is recorded in
+`parity/catalog/canonical-first-tenant-item-tax-import.json` and
+`parity/catalog/canonical-first-tenant-item-tax-reconciliation.json`.
+The purchase-detail slice adds 113,532 of 113,564 source lines; all 32
+non-positive source quantities are retained as auditable migration exceptions,
+while quantity and line-total metrics reconcile within their declared
+tolerances. Evidence is recorded in
+`parity/catalog/canonical-first-tenant-purchase-lines-import.json` and
+`parity/catalog/canonical-first-tenant-purchase-lines-reconciliation.json`.
+Purchase-order/detail lines, sales, and the remaining
+historical documents/stock/ledger waves are still open and are not represented
+as complete workflows yet.
+
+This materially proves the canonical master-data slice plus bounded purchase
+and return document/line waves. It does not close the remaining legacy tables,
+purchase-order/detail and sales history, ledgers/stock, report/hardware
+acceptance, or exact screen/workflow parity gates.
+
 The legacy catalog is fully reachable, but true 100% functional and pixel parity is not yet proven. The captured interior states cover representative transaction, master, preference, report-loading, maintenance-dialog, and change-user workflows; remaining leaves still need their own legacy screen/workflow capture, exact field rules, report columns, printing/hardware behavior, and screenshot/keyboard acceptance before they can be marked parity-complete. The 186 report leaves currently share a safe scoped event projection where their exact legacy report columns have not been captured. Printer, barcode, cash-drawer, biometric, SMS/email, and complete historical SQL Server migration acceptance are also still open.
+
+- Open Cash Sale Return and Open Credit Sale Return now have distinct canonical document kinds and source-free stock/finance projections; see `docs/PHASE_H_OPEN_SALE_RETURN_EVIDENCE_2026-08-06.md`.
+- Sales Return report/history leaves now read posted source-bound and open return lines from the canonical `business_documents` read model, while retaining deduplicated `sale_return` compatibility events during migration; see the Phase N follow-up evidence.
+- Invoice-summary sales and sales-return leaves now group each document once, summing line quantity while retaining the canonical document amount; multi-line invoices no longer repeat the full total per line. Exact legacy tax/profit/format columns remain open.
+- The direct Purchase Return report route now uses the canonical purchase-return read model with posted document/line authority and compatibility-event de-duplication; the focused PostgreSQL route test passes.
+- Browser business dates now use the local calendar date for dashboard/report defaults and transaction filters. Canonical sale and purchase timestamps are encoded at noon UTC, preventing the previous local-midnight-to-UTC conversion from shifting Pakistan-local transactions into the prior report day. The change is covered by `pnpm --filter @abuzar/web check` and the focused sale-return browser suite.
 
 ## Phase S/T maintenance and manage slice - 2026-08-06
 
@@ -115,3 +178,13 @@ The legacy catalog is fully reachable, but true 100% functional and pixel parity
   false reset, and direct reload includes the last operation status.
 
 Evidence: [`tmp/phase-s-t-maintenance-evidence-2026-08-06.md`](../tmp/phase-s-t-maintenance-evidence-2026-08-06.md).
+
+## Phase W performance and scale hardening — evidence pending full volume
+
+The measured bounded disposable probes, idempotent read indexes, timeout and
+request-observability controls, cold-start result, and unrun eight-hour soak
+setup are recorded in
+[`PHASE_W_PERFORMANCE_EVIDENCE_2026-08-06.md`](PHASE_W_PERFORMANCE_EVIDENCE_2026-08-06.md).
+The fixture loaded 25,000 stock rows and 10,000 GL journals rather than the
+3.2M/1M targets; full-volume p95, document-post `<1s`, and soak acceptance
+remain open.

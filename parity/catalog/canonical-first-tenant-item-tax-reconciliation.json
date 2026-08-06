@@ -1,0 +1,44 @@
+{
+  "generatedAt": "2026-08-06T19:25:36.2315092Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Item",
+      "sourceCount": 30052,
+      "targetSchema": "public",
+      "targetTable": "item_tax_assignments",
+      "targetCount": 30052,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Item",
+      "sourceCount": 30052,
+      "targetSchema": "public",
+      "targetTable": "item_tax_assignments",
+      "targetCount": 30052,
+      "status": "matched"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "item_gst_assignment_count",
+      "sourceValue": "30052",
+      "targetValue": "30052",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "item_pct_assignment_count",
+      "sourceValue": "30052",
+      "targetValue": "30052",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    }
+  ]
+}

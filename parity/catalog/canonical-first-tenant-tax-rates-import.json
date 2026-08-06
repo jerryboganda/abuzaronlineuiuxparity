@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-08-06T19:17:01.2694888Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SalesTaxSchedule",
+      "targetSchema": "public",
+      "targetTable": "tax_rates",
+      "read": 7,
+      "imported": 7,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TaxCategory",
+      "targetSchema": "public",
+      "targetTable": "tax_rates",
+      "read": 3,
+      "imported": 3,
+      "duplicates": 0,
+      "exceptions": 0
+    }
+  ]
+}

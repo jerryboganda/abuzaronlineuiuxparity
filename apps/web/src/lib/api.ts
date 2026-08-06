@@ -23,7 +23,9 @@ import type {
   DocumentKind,
   InventoryBalanceResponse,
   PricingPreviewRequest,
-  PricingPreviewResponse
+  PricingPreviewResponse,
+  AccessResponse,
+  RoleRightsResponse
 } from '@abuzar/contracts';
 
 export class ApiError extends Error {
@@ -97,6 +99,10 @@ export class AbuzarApi {
     return this.request('/v1/session/context', { method: 'POST', body: JSON.stringify({ branchId, counterId }) });
   }
 
+  access(): Promise<AccessResponse> {
+    return this.request('/v1/access');
+  }
+
   tenants(): Promise<{ tenants: TenantSummary[] }> {
     return this.request('/v1/tenants');
   }
@@ -143,7 +149,7 @@ export class AbuzarApi {
     return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/suppliers`);
   }
 
-  report(kind: string, from = '', to = '', filter = '', options: { page?: number; pageSize?: number; cash?: boolean; credit?: boolean; areas?: string[]; allAreas?: boolean; legacyPath?: string } = {}): Promise<ReportResponse> {
+  report(kind: string, from = '', to = '', filter = '', options: { page?: number; pageSize?: number; cash?: boolean; credit?: boolean; areas?: string[]; allAreas?: boolean; legacyPath?: string; godownId?: string; batchNumber?: string } = {}): Promise<ReportResponse> {
     const params = new URLSearchParams({ from, to, filter });
     if (options.page) params.set('page', String(options.page));
     if (options.pageSize) params.set('pageSize', String(options.pageSize));
@@ -152,6 +158,8 @@ export class AbuzarApi {
     if (options.areas?.length) params.set('areas', options.areas.join(','));
     if (options.allAreas !== undefined) params.set('allAreas', String(options.allAreas));
     if (options.legacyPath) params.set('legacyPath', options.legacyPath);
+    if (options.godownId) params.set('godownId', options.godownId);
+    if (options.batchNumber) params.set('batchNumber', options.batchNumber);
     return this.request(`/v1/reports/${encodeURIComponent(kind)}?${params.toString()}`);
   }
 
@@ -185,7 +193,24 @@ export class AbuzarApi {
     return this.request(`/v1/maintenance/${encodeURIComponent(kind)}`);
   }
 
-  preferences(category: string): Promise<{ category: string; items: Array<{ caption: string; value: string; position: number }> }> {
+  preferences(category: string): Promise<{
+    category: string;
+    scope?: { tenantId: string; branchId: string };
+    items: Array<{ caption: string; value: string; position: number }>;
+    registry?: Array<{
+      caption: string;
+      type: string;
+      default: string;
+      value: string;
+      allowed?: string[];
+      minimum?: number;
+      maximum?: number;
+      behavior: string;
+      runtimeStatus: string;
+      position: number;
+    }>;
+    divergences?: Array<{ category: string; status: string; detail: string }>;
+  }> {
     return this.request(`/v1/preferences?category=${encodeURIComponent(category)}`);
   }
 
@@ -263,6 +288,21 @@ export class AbuzarApi {
 
   updateRole(id: string, code: string, name: string, permissions: string[] = []): Promise<RoleSummary> {
     return this.request(`/v1/roles/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ code, name, permissions }) });
+  }
+
+  roleRights(id: string): Promise<RoleRightsResponse> {
+    return this.request(`/v1/roles/${encodeURIComponent(id)}/rights`);
+  }
+
+  updateRoleRights(id: string, request: {
+    permissions?: string[];
+    legacyRights?: Array<{ rightCode: string; allowed: boolean }>;
+    scopes?: Array<{ scopeKind: string; scopeKey: string; allowed: boolean }>;
+  }): Promise<RoleRightsResponse> {
+    return this.request(`/v1/roles/${encodeURIComponent(id)}/rights`, {
+      method: 'PATCH',
+      body: JSON.stringify(request)
+    });
   }
 
   resolveConflict(id: string, status: 'resolved' | 'dismissed', resolution: unknown = {}): Promise<{ id: string; status: string }> {

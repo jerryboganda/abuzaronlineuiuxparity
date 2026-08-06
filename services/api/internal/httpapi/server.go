@@ -11,27 +11,36 @@ import (
 )
 
 type Server struct {
-	database     *sql.DB
-	version      string
-	origins      map[string]struct{}
-	cookieSecure bool
-	sessionTTL   time.Duration
+	database      *sql.DB
+	version       string
+	origins       map[string]struct{}
+	cookieSecure  bool
+	sessionTTL    time.Duration
+	dbTimeout     time.Duration
+	lockTimeout   time.Duration
+	reportTimeout time.Duration
+	metrics       *requestMetrics
 }
 
 func New(database *sql.DB, version, corsOrigins string) http.Handler {
 	server := &Server{
-		database:     database,
-		version:      version,
-		origins:      parseOrigins(corsOrigins),
-		cookieSecure: os.Getenv("ABUZAR_COOKIE_SECURE") == "1" || strings.EqualFold(os.Getenv("ABUZAR_COOKIE_SECURE"), "true"),
-		sessionTTL:   8 * time.Hour,
+		database:      database,
+		version:       version,
+		origins:       parseOrigins(corsOrigins),
+		cookieSecure:  os.Getenv("ABUZAR_COOKIE_SECURE") == "1" || strings.EqualFold(os.Getenv("ABUZAR_COOKIE_SECURE"), "true"),
+		sessionTTL:    8 * time.Hour,
+		dbTimeout:     environmentDuration("ABUZAR_DB_STATEMENT_TIMEOUT_MS", 5000*time.Millisecond),
+		lockTimeout:   environmentDuration("ABUZAR_DB_LOCK_TIMEOUT_MS", 1000*time.Millisecond),
+		reportTimeout: environmentDuration("ABUZAR_REPORT_TIMEOUT_MS", 5000*time.Millisecond),
+		metrics:       newRequestMetrics(),
 	}
-	return server.withCORS(server.routes())
+	return server.withObservability(server.withCORS(server.routes()))
 }
 
 func (s *Server) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/health", s.health)
+	mux.HandleFunc("GET /v1/metrics", s.metricsHandler)
 	mux.HandleFunc("GET /v1/session", s.session)
 	mux.HandleFunc("POST /v1/auth/login", s.login)
 	mux.HandleFunc("POST /v1/auth/logout", s.logout)
@@ -46,6 +55,9 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /v1/roles", s.authenticated(http.HandlerFunc(s.roles)))
 	mux.Handle("POST /v1/roles", s.authenticated(http.HandlerFunc(s.createRole)))
 	mux.Handle("PATCH /v1/roles/{id}", s.authenticated(http.HandlerFunc(s.updateRole)))
+	mux.Handle("GET /v1/roles/{id}/rights", s.authenticated(http.HandlerFunc(s.roleRights)))
+	mux.Handle("PATCH /v1/roles/{id}/rights", s.authenticated(http.HandlerFunc(s.updateRoleRights)))
+	mux.Handle("GET /v1/access", s.authenticated(http.HandlerFunc(s.access)))
 	mux.Handle("GET /v1/items/lookup", s.authenticated(http.HandlerFunc(s.itemLookup)))
 	mux.Handle("GET /v1/master/items/lookup", s.authenticated(http.HandlerFunc(s.itemLookup)))
 	mux.Handle("GET /v1/master/{kind}", s.authenticated(http.HandlerFunc(s.masterRecords)))

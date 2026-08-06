@@ -1,0 +1,385 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "tables": [
+    {
+      "source": { "schema": "dbo", "table": "SaleLedger" },
+      "target": { "schema": "public", "table": "sync_events" },
+      "sourceId": "SaleInvCode",
+      "targetId": "event_id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "event_id": "event", "aggregate_id": "document" },
+      "columns": {
+        "legacy_id": "SaleInvCode",
+        "occurred_at": "date"
+      },
+      "sourceExpressions": {
+        "idempotency_key": "CONCAT('SaleLedger:', CAST(SaleInvCode AS varchar(30)))"
+      },
+      "payloadTarget": "payload",
+      "payloadColumns": {
+        "SaleInvCode": "SaleInvCode",
+        "SaleCatCode": "SaleCatCode",
+        "CustCode": "CustCode",
+        "Posted": "Posted",
+        "PostDate": "PostDate",
+        "InvTotal": "InvTotal",
+        "SalesTax": "SalesTax"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "aggregate": "historical_document",
+        "schema_version": "1",
+        "legacy_source_table": "SaleLedger"
+      },
+      "coerce": { "legacy_id": "text", "idempotency_key": "text" },
+      "conflictColumns": ["tenant_id", "idempotency_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Purledger" },
+      "target": { "schema": "public", "table": "sync_events" },
+      "sourceId": "PurInvCode",
+      "targetId": "event_id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "event_id": "event", "aggregate_id": "document" },
+      "columns": { "legacy_id": "PurInvCode", "occurred_at": "Date" },
+      "sourceExpressions": {
+        "idempotency_key": "CONCAT('Purledger:', CAST(PurInvCode AS varchar(30)))"
+      },
+      "payloadTarget": "payload",
+      "payloadColumns": {
+        "PurInvCode": "PurInvCode",
+        "PurCatCode": "PurCatCode",
+        "SuppCode": "SuppCode",
+        "Posted": "Posted",
+        "postdate": "postdate",
+        "InvTotal": "InvTotal",
+        "SalesTax": "SalesTax"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "aggregate": "historical_document",
+        "schema_version": "1",
+        "legacy_source_table": "Purledger"
+      },
+      "coerce": { "legacy_id": "text", "idempotency_key": "text" },
+      "conflictColumns": ["tenant_id", "idempotency_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "SRLedger" },
+      "target": { "schema": "public", "table": "sync_events" },
+      "sourceId": "SRInvCode",
+      "targetId": "event_id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "event_id": "event", "aggregate_id": "document" },
+      "columns": { "legacy_id": "SRInvCode", "occurred_at": "Date" },
+      "sourceExpressions": {
+        "idempotency_key": "CONCAT('SRLedger:', CAST(SRInvCode AS varchar(30)))"
+      },
+      "payloadTarget": "payload",
+      "payloadColumns": {
+        "SRInvCode": "SRInvCode",
+        "SaleInvCode": "SaleInvCode",
+        "SRCatCode": "SRCatCode",
+        "CustCode": "CustCode",
+        "Posted": "Posted",
+        "PostDate": "PostDate",
+        "invtotal": "invtotal"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "aggregate": "historical_document",
+        "schema_version": "1",
+        "legacy_source_table": "SRLedger"
+      },
+      "coerce": { "legacy_id": "text", "idempotency_key": "text" },
+      "conflictColumns": ["tenant_id", "idempotency_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "PRLedger" },
+      "target": { "schema": "public", "table": "sync_events" },
+      "sourceId": "PRInvCode",
+      "targetId": "event_id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "event_id": "event", "aggregate_id": "document" },
+      "columns": { "legacy_id": "PRInvCode", "occurred_at": "Date" },
+      "sourceExpressions": {
+        "idempotency_key": "CONCAT('PRLedger:', CAST(PRInvCode AS varchar(30)))"
+      },
+      "payloadTarget": "payload",
+      "payloadColumns": {
+        "PRInvCode": "PRInvCode",
+        "PurInvCode": "PurInvCode",
+        "PRCatCode": "PRCatCode",
+        "SuppCode": "SuppCode",
+        "Posted": "Posted",
+        "PostDate": "PostDate",
+        "invtotal": "invtotal"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "aggregate": "historical_document",
+        "schema_version": "1",
+        "legacy_source_table": "PRLedger"
+      },
+      "coerce": { "legacy_id": "text", "idempotency_key": "text" },
+      "conflictColumns": ["tenant_id", "idempotency_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "PurOrderHeader" },
+      "target": { "schema": "public", "table": "sync_events" },
+      "sourceId": "POCode",
+      "targetId": "event_id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "event_id": "event", "aggregate_id": "document" },
+      "columns": { "legacy_id": "POCode", "occurred_at": "Date" },
+      "sourceExpressions": {
+        "idempotency_key": "CONCAT('PurOrderHeader:', CAST(POCode AS varchar(30)))"
+      },
+      "payloadTarget": "payload",
+      "payloadColumns": {
+        "POCode": "POCode",
+        "SuppCode": "SuppCode",
+        "Posted": "Posted",
+        "PostDate": "PostDate",
+        "Amount": "Amount"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "aggregate": "historical_document",
+        "schema_version": "1",
+        "legacy_source_table": "PurOrderHeader"
+      },
+      "coerce": { "legacy_id": "text", "idempotency_key": "text" },
+      "conflictColumns": ["tenant_id", "idempotency_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "StockReport" },
+      "target": { "schema": "public", "table": "historical_stock_snapshots" },
+      "sourceId": "ICode",
+      "sourceIdColumns": ["Date", "GCode", "ICode"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "snapshot" },
+      "columns": {
+        "item_legacy_id": "ICode",
+        "godown_id": "GCode",
+        "as_of": "Date",
+        "quantity": "Stock",
+        "purchase_price": "PurchasePrice",
+        "sale_price": "SalePrice",
+        "average_price": "AvgPrice",
+        "recent_purchase_price": "RecentPurchasePrice",
+        "pack_units": "PackUnits",
+        "source_legacy_id": "ICode"
+      },
+      "lookups": {
+        "item_id": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "ICode"
+        },
+        "godown_id": {
+          "target": { "schema": "public", "table": "master_godowns" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "GCode"
+        }
+      },
+      "derivedColumns": {
+        "legacy_id": ["Date", "GCode", "ICode"]
+      },
+      "payloadTarget": "payload",
+      "payloadColumns": {
+        "Date": "Date",
+        "GCode": "GCode",
+        "ICode": "ICode",
+        "Stock": "Stock",
+        "PurchasePrice": "PurchasePrice",
+        "SalePrice": "SalePrice",
+        "AvgPrice": "AvgPrice",
+        "RecentPurchasePrice": "RecentPurchasePrice",
+        "PackUnits": "PackUnits"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "source_table": "StockReport"
+      },
+      "coerce": { "item_legacy_id": "text", "source_legacy_id": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Purdetail" },
+      "target": { "schema": "public", "table": "stock_batches" },
+      "sourceId": "PurRowId",
+      "sourceIdColumns": ["ICode", "Gcode", "Batch", "Expiry"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "batch" },
+      "columns": {
+        "legacy_id": "Batch",
+        "item_legacy_id": "ICode",
+        "godown_id": "Gcode",
+        "batch_number": "Batch",
+        "expiry_date": "Expiry",
+        "unit_cost": "PurPrice",
+        "source_legacy_id": "PurRowId"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('Purdetail:', CAST(ICode AS varchar(30)), ':', CAST(Gcode AS varchar(30)), ':', Batch, ':', CONVERT(varchar(30), Expiry, 126))"
+      },
+      "lookups": {
+        "item_id": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "ICode"
+        },
+        "godown_id": {
+          "target": { "schema": "public", "table": "master_godowns" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "Gcode"
+        }
+      },
+      "derivedColumns": {
+        "legacy_id": ["ICode", "Gcode", "Batch", "Expiry"]
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "source_table": "Purdetail"
+      },
+      "coerce": { "legacy_id": "text", "item_legacy_id": "text", "batch_number": "text", "source_legacy_id": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Saledetail" },
+      "target": { "schema": "public", "table": "stock_batches" },
+      "sourceId": "RowID",
+      "sourceIdColumns": ["ICode", "GCode", "Batch", "Expiry"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "batch" },
+      "columns": {
+        "legacy_id": "Batch",
+        "item_legacy_id": "ICode",
+        "godown_id": "GCode",
+        "batch_number": "Batch",
+        "expiry_date": "Expiry",
+        "unit_cost": "AvgPrice",
+        "source_legacy_id": "RowID"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('Saledetail:', CAST(ICode AS varchar(30)), ':', CAST(GCode AS varchar(30)), ':', Batch, ':', CONVERT(varchar(30), Expiry, 126))"
+      },
+      "lookups": {
+        "item_id": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id", "valueColumn": "id", "sourceColumn": "ICode"
+        },
+        "godown_id": {
+          "target": { "schema": "public", "table": "master_godowns" },
+          "targetColumn": "legacy_id", "valueColumn": "id", "sourceColumn": "GCode"
+        }
+      },
+      "derivedColumns": {
+        "legacy_id": ["ICode", "GCode", "Batch", "Expiry"]
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "source_table": "Saledetail"
+      },
+      "coerce": { "legacy_id": "text", "item_legacy_id": "text", "batch_number": "text", "source_legacy_id": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "SRdetail" },
+      "target": { "schema": "public", "table": "stock_batches" },
+      "sourceId": "RowId",
+      "sourceIdColumns": ["Icode", "Gcode", "Batch", "Expiry"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "batch" },
+      "columns": {
+        "legacy_id": "Batch",
+        "item_legacy_id": "Icode",
+        "godown_id": "Gcode",
+        "batch_number": "Batch",
+        "expiry_date": "Expiry",
+        "unit_cost": "AvgPrice",
+        "source_legacy_id": "RowId"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('SRdetail:', CAST(Icode AS varchar(30)), ':', CAST(Gcode AS varchar(30)), ':', Batch, ':', CONVERT(varchar(30), Expiry, 126))"
+      },
+      "lookups": {
+        "item_id": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id", "valueColumn": "id", "sourceColumn": "Icode"
+        },
+        "godown_id": {
+          "target": { "schema": "public", "table": "master_godowns" },
+          "targetColumn": "legacy_id", "valueColumn": "id", "sourceColumn": "Gcode"
+        }
+      },
+      "derivedColumns": { "legacy_id": ["Icode", "Gcode", "Batch", "Expiry"] },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "source_table": "SRdetail"
+      },
+      "coerce": { "legacy_id": "text", "item_legacy_id": "text", "batch_number": "text", "source_legacy_id": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "PRdetail" },
+      "target": { "schema": "public", "table": "stock_batches" },
+      "sourceId": "PrRowId",
+      "sourceIdColumns": ["ICode", "Gcode", "Batch", "Expiry"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "batch" },
+      "columns": {
+        "legacy_id": "Batch",
+        "item_legacy_id": "ICode",
+        "godown_id": "Gcode",
+        "batch_number": "Batch",
+        "expiry_date": "Expiry",
+        "unit_cost": "AvgPrice",
+        "source_legacy_id": "PrRowId"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('PRdetail:', CAST(ICode AS varchar(30)), ':', CAST(Gcode AS varchar(30)), ':', Batch, ':', CONVERT(varchar(30), Expiry, 126))"
+      },
+      "lookups": {
+        "item_id": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id", "valueColumn": "id", "sourceColumn": "ICode"
+        },
+        "godown_id": {
+          "target": { "schema": "public", "table": "master_godowns" },
+          "targetColumn": "legacy_id", "valueColumn": "id", "sourceColumn": "Gcode"
+        }
+      },
+      "derivedColumns": { "legacy_id": ["ICode", "Gcode", "Batch", "Expiry"] },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "source_table": "PRdetail"
+      },
+      "coerce": { "legacy_id": "text", "item_legacy_id": "text", "batch_number": "text", "source_legacy_id": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    }
+  ]
+}

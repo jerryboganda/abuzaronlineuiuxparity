@@ -99,6 +99,19 @@ paths:
                 properties:
                   counters: { type: array, items: { $ref: '#/components/schemas/Counter' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/access:
+    get:
+      operationId: currentAccess
+      security: [{ sessionCookie: [] }]
+      description: Effective normalized permissions plus imported legacy rights and scope rows. Unmapped right codes are reported as exceptions and are not claimed as exact command mappings.
+      responses:
+        '200':
+          description: Effective access for the authenticated operator
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /v1/roles:
     get:
       operationId: listRoles
@@ -155,6 +168,41 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+  /v1/roles/{id}/rights:
+    get:
+      operationId: roleRights
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Imported rights and scopes for a tenant group
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleRights' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: updateRoleRights
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleRightsUpdate' }
+      responses:
+        '200':
+          description: Updated imported rights and scopes
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleRights' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /v1/operators:
     get:
       operationId: listOperators
@@ -546,9 +594,12 @@ paths:
     post:
       operationId: commandBusinessDocument
       description: |
-        Commands cash/credit sales and the Phase I purchase families:
+        Commands cash/credit sales, cash/credit sale returns, quotations, refused sales,
+        and the Phase I purchase families:
         pack-purchase, loose-purchase, opening-purchase, purchase-return, and
-        purchase-order. Save, post, save-and-post, and void are idempotent by
+        purchase-order. Sale returns require a posted source sale and restore its
+        source batches before reversing finance projections. Save, post,
+        save-and-post, and void are idempotent by
         commandId/idempotencyKey and use optimistic document revisions.
       security: [{ sessionCookie: [] }]
       parameters:
@@ -802,6 +853,63 @@ components:
         code: { type: string, minLength: 1, maxLength: 80 }
         name: { type: string, minLength: 1, maxLength: 160 }
         permissions: { type: array, uniqueItems: true, items: { type: string } }
+    LegacyRight:
+      type: object
+      required: [rightCode, allowed, mapping]
+      properties:
+        rightCode: { type: string }
+        permission: { type: string }
+        allowed: { type: boolean }
+        legacyStatus: { type: string }
+        mapping: { type: string, enum: [explicit, ambiguous] }
+    LegacyScope:
+      type: object
+      required: [scopeKind, scopeKey, allowed]
+      properties:
+        scopeKind: { type: string }
+        scopeKey: { type: string }
+        scopeLabel: { type: string }
+        allowed: { type: boolean }
+        legacyTable: { type: string }
+    AccessResponse:
+      type: object
+      required: [tenantAdmin, permissions, legacyRights, scopes, scopeRows, exceptions]
+      properties:
+        tenantAdmin: { type: boolean }
+        permissions: { type: array, items: { type: string } }
+        legacyRights: { type: array, items: { $ref: '#/components/schemas/LegacyRight' } }
+        scopes: { type: object, additionalProperties: { type: object, additionalProperties: { type: boolean } } }
+        scopeRows: { type: array, items: { $ref: '#/components/schemas/LegacyScope' } }
+        exceptions: { type: array, items: { type: string } }
+    RoleRights:
+      type: object
+      required: [roleId, permissions, legacyRights, scopes]
+      properties:
+        roleId: { type: string, format: uuid }
+        permissions: { type: array, items: { type: string } }
+        legacyRights: { type: array, items: { $ref: '#/components/schemas/LegacyRight' } }
+        scopes: { type: array, items: { $ref: '#/components/schemas/LegacyScope' } }
+    RoleRightsUpdate:
+      type: object
+      properties:
+        permissions: { type: array, uniqueItems: true, items: { type: string } }
+        legacyRights:
+          type: array
+          items:
+            type: object
+            required: [rightCode, allowed]
+            properties:
+              rightCode: { type: string }
+              allowed: { type: boolean }
+        scopes:
+          type: array
+          items:
+            type: object
+            required: [scopeKind, scopeKey, allowed]
+            properties:
+              scopeKind: { type: string }
+              scopeKey: { type: string }
+              allowed: { type: boolean }
     Operator:
       type: object
       required: [id, username, displayName, active, roles]
@@ -998,7 +1106,8 @@ components:
         revises a draft; post transitions an existing draft to posted;
         save-and-post creates and posts atomically; void is supported for
         drafts and stock/GL-neutral purchase orders. Posted receipts and
-        returns require their stock and finance projections to succeed.
+        source-bound or open sale returns require their stock and finance
+        projections to succeed. Open returns intentionally omit a source invoice.
       required: [commandId, kind, action, idempotencyKey, occurredAt]
       properties:
         commandId: { type: string, format: uuid }
@@ -1027,7 +1136,7 @@ components:
         sourceDocumentId:
           type: string
           format: uuid
-          description: Required when posting a purchase return; must identify a posted purchase in the same tenant and branch.
+          description: Required when posting a source-bound purchase or sale return; open sale returns must omit it and use an explicit godown.
         sourceDocumentNumber: { type: string }
         godownId: { type: string, format: uuid }
         reference: { type: string }
@@ -1048,6 +1157,10 @@ components:
       properties:
         lineNumber: { type: integer, minimum: 1 }
         itemId: { type: string, format: uuid }
+        sourceLineId:
+          type: string
+          format: uuid
+          description: Required on every posted closed cash/credit sale-return line and must belong to sourceDocumentId.
         quantity: { type: string }
         unitPrice: { type: string }
         discountPercent: { type: string }
@@ -1058,7 +1171,7 @@ components:
           items: { $ref: '#/components/schemas/BatchAllocationRequest' }
         batchNumber:
           type: string
-          description: Required when posting pack, loose, or opening purchases. No automatic batch number is generated.
+          description: Required when posting pack, loose, or opening purchases and open sale returns. No automatic batch number is generated.
         expiryDate: { type: string, format: date }
         unitCost:
           type: string
@@ -1099,10 +1212,16 @@ components:
         inclusive: { type: boolean, default: false }
     DocumentKind:
       type: string
-      description: Supported sale and Phase I purchase document families.
+      description: Supported canonical sale, source-bound return, open-return, and Phase I purchase document families.
       enum:
         - cash-sale
         - credit-sale
+        - cash-return
+        - credit-return
+        - open-cash-return
+        - open-credit-return
+        - quotation
+        - refused-sale
         - pack-purchase
         - loose-purchase
         - opening-purchase
@@ -1140,7 +1259,9 @@ components:
         Canonical lifecycle response. Purchase orders are stock/GL-neutral
         even when posted. Pack, loose, and opening purchases post stock-in and
         supplier payable/input-tax projections. Purchase returns post stock-out
-        and payable/input-tax reversal only against a valid source batch.
+        and payable/input-tax reversal only against a valid source batch. Source-
+        bound sale returns restore source allocations; open sale returns receive
+        into an explicit godown without a source invoice.
       required: [id, kind, status, documentNumber, tenantId, branchId, counterId, operatorId, occurredAt, lines, totals, version]
       properties:
         id: { type: string, format: uuid }
@@ -1174,6 +1295,7 @@ components:
         id: { type: string, format: uuid }
         lineNumber: { type: integer }
         itemId: { type: string, format: uuid }
+        sourceLineId: { type: string, format: uuid }
         itemCode: { type: string }
         itemName: { type: string }
         quantity: { type: string }

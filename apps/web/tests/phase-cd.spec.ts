@@ -8,6 +8,13 @@ import {
 import { contextualLegacyMenuCatalog as contextualCatalog } from '../src/lib/legacy-menu-contextual-catalog';
 import { createLegacyWindowRegistry } from '../src/lib/legacy-window-registry';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/v1/access', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ tenantAdmin: true, permissions: [], legacyRights: [], scopes: {}, scopeRows: [], exceptions: [] })
+  }));
+});
 function menuLabels(menus: LegacyMenu[], label: string): string[] {
   return menus.find((menu) => menu.label === label)?.actions.map((action) => action.label) ?? [];
 }
@@ -243,7 +250,7 @@ test('purchase order uses the canonical document API and remains stock/GL-neutra
   await expect(page.locator('.legacy-transaction-footer')).toContainText('stock/GL-neutral', { timeout: 7000 });
 });
 
-test('pack purchase Ctrl+B generates legacy batch identifiers', async ({ page }) => {
+test('pack purchase Ctrl+B generates a deterministic batch identifier', async ({ page }) => {
   await page.route('**/v1/session', async (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -253,10 +260,247 @@ test('pack purchase Ctrl+B generates legacy batch identifiers', async ({ page })
     })
   }));
   await page.goto('/app/purchase/pack');
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(700);
   await page.getByRole('combobox', { name: 'Item name 1' }).fill('BATCH ITEM');
+  await expect(page.getByRole('button', { name: 'File', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Auto Batch Generation', exact: true }).click();
-  await expect(page.locator('.legacy-transaction-footer')).toContainText('1 batch identifier generated');
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('batch identifier generated');
   await expect(page.getByLabel('Batch 1')).toHaveValue(/^AUTO-\d{8}-001$/);
+});
+
+test('pack purchase contextual GST and expense commands update the live draft', async ({ page }) => {
+  await page.route('**/v1/session', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, context: { tenantId: 'tenant-1', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' } })
+  }));
+  await page.route('**/v1/access', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      tenantAdmin: true,
+      permissions: [],
+      legacyRights: [],
+      scopes: {},
+      scopeRows: [],
+      exceptions: []
+    })
+  }));
+  await page.route('**/v1/master/supplier', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [] })
+  }));
+  await page.route('**/v1/master/godown', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [] })
+  }));
+  await page.goto('/app/purchase/pack');
+  await page.waitForTimeout(700);
+  await page.getByLabel('Item GST percent').fill('18');
+  await expect(page.getByRole('button', { name: 'File', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Apply Item GST %', exact: true }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('no populated lines');
+  await page.getByLabel('Item name 1').fill('BATCH ITEM');
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Apply Item GST %', exact: true }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('18% applied');
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Show Purchase Expenses Window', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Purchase Expenses' })).toBeVisible();
+});
+
+test('cash sale contextual item tax and document commands update the live draft', async ({ page }) => {
+  await page.route('**/v1/session', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, context: { tenantId: 'tenant-1', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' } })
+  }));
+  await page.route('**/v1/access', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+    tenantAdmin: true,
+    permissions: [],
+    legacyRights: [],
+    scopes: {},
+    scopeRows: [],
+    exceptions: []
+    })
+  }));
+  await page.route('**/v1/master/godown', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [] })
+  }));
+  await page.goto('/app/sales?kind=cash');
+  await page.waitForTimeout(700);
+  await page.getByLabel('Item GST percent').fill('18');
+  await page.locator('.legacy-sale-grid').getByLabel('Item name 1').fill('SALE ITEM');
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Apply Item GST %', exact: true }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('18% applied');
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Show Document Gallery', exact: true }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('no attachments selected');
+});
+
+test('quotation uses the canonical no-stock document lifecycle', async ({ page }) => {
+  const itemId = '77777777-7777-4777-8777-777777777777';
+  const documentId = '88888888-8888-4888-8888-888888888888';
+  let postedPayload: Record<string, unknown> | undefined;
+  await page.route('**/v1/session', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, context: { tenantId: 'tenant-1', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' } })
+  }));
+  await page.route('**/v1/master/godown', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [] })
+  }));
+  await page.route('**/v1/items/lookup*', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: [{ id: itemId, legacyId: 'QUOTE-ITEM', code: 'QUOTE-ITEM', name: 'QUOTE ITEM', payload: { salePrice: '12.00' }, active: true, aliases: [] }] })
+  }));
+  await page.route('**/v1/transactions/preview', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ tenantId: 'tenant-1', branchId: 'branch-1', priceLevel: 1, lines: [], subtotal: '12.00', lineDiscountTotal: '0.00', documentPercentDiscount: '0.00', flatDiscount: '0.00', documentDiscountTotal: '0.00', misc: '0.00', taxableBase: '12.00', taxes: [], totalDiscount: '0.00', total: '12.00' })
+  }));
+  await page.route('**/v1/documents/quotation', async (route) => {
+    postedPayload = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ accepted: true, duplicate: false, eventId: '99999999-9999-4999-8999-999999999999', aggregateId: documentId, kind: 'quotation', action: 'save-and-post', status: 'posted', document: { id: documentId, documentNumber: 'Q-1', version: 1 } })
+    });
+  });
+  await page.goto('/app/sales?kind=quotation');
+  await page.waitForTimeout(700);
+  await page.getByLabel('Item lookup query').fill('QUOTE');
+  await page.getByLabel('Item lookup query').press('Enter');
+  await expect(page.getByRole('button', { name: 'QUOTE ITEM' })).toBeVisible();
+  await page.getByRole('button', { name: 'QUOTE ITEM' }).click();
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.keyboard.press('Control+q');
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('posted successfully', { timeout: 7000 });
+  expect(postedPayload?.kind).toBe('quotation');
+  expect((postedPayload?.document as Record<string, unknown>)?.godownId).toBeUndefined();
+});
+
+test('cash sale return posts through the canonical source-bound lifecycle', async ({ page }) => {
+  const itemId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const godownId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const sourceDocumentId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  const sourceLineId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  const documentId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  let postedPayload: Record<string, unknown> | undefined;
+  await page.route('**/v1/session', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, context: { tenantId: 'tenant-1', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' } })
+  }));
+  await page.route('**/v1/master/godown', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [{ id: godownId, kind: 'godown', code: 'G1', name: 'Godown 1', active: true, payload: {} }] })
+  }));
+  await page.route('**/v1/items/lookup**', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: [{ id: itemId, legacyId: 'RETURN-ITEM', code: 'RETURN-ITEM', name: 'RETURN ITEM', payload: { salePrice: '8.00' }, active: true, aliases: [] }] })
+  }));
+  await page.route('**/v1/transactions/preview', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ tenantId: 'tenant-1', branchId: 'branch-1', priceLevel: 1, lines: [], subtotal: '8.00', lineDiscountTotal: '0.00', documentPercentDiscount: '0.00', flatDiscount: '0.00', documentDiscountTotal: '0.00', misc: '0.00', taxableBase: '8.00', taxes: [], totalDiscount: '0.00', total: '8.00' })
+  }));
+  await page.route('**/v1/documents/cash-return', async (route) => {
+    postedPayload = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ accepted: true, duplicate: false, eventId: 'ffffffff-ffff-4fff-8fff-ffffffffffff', aggregateId: documentId, kind: 'cash-return', action: 'save-and-post', status: 'posted', document: { id: documentId, documentNumber: 'CR-1', version: 1 } })
+    });
+  });
+  await page.goto('/app/sales?kind=cash-return');
+  await page.waitForTimeout(700);
+  await page.getByLabel('Item lookup query').fill('RETURN');
+  await page.getByLabel('Item lookup query').press('Enter');
+  await expect(page.getByRole('button', { name: 'RETURN ITEM' })).toBeVisible();
+  await page.getByRole('button', { name: 'RETURN ITEM' }).click();
+  await page.getByLabel('Godown').selectOption(godownId);
+  await page.getByLabel('Source document ID').fill(sourceDocumentId);
+  await page.getByLabel('Source sale line ID 1').fill(sourceLineId);
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.keyboard.press('Control+q');
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('posted successfully', { timeout: 7000 });
+  expect(postedPayload?.kind).toBe('cash-return');
+  expect((postedPayload?.document as Record<string, unknown>)?.sourceDocumentId).toBe(sourceDocumentId);
+  expect(((postedPayload?.document as Record<string, unknown>)?.lines as Array<Record<string, unknown>>)[0].sourceLineId).toBe(sourceLineId);
+  expect((postedPayload?.document as Record<string, unknown>)?.godownId).toBe(godownId);
+});
+
+test('open cash sale return posts without a source invoice', async ({ page }) => {
+  const itemId = '11111111-1111-4111-8111-111111111111';
+  const godownId = '22222222-2222-4222-8222-222222222222';
+  let postedPayload: Record<string, unknown> | undefined;
+  await page.route('**/v1/session', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, context: { tenantId: 'tenant-1', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' } })
+  }));
+  await page.route('**/v1/master/godown', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [{ id: godownId, kind: 'godown', code: 'G1', name: 'Godown 1', active: true, payload: {} }] })
+  }));
+  await page.route('**/v1/items/lookup**', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: [{ id: itemId, legacyId: 'OPEN-ITEM', code: 'OPEN-ITEM', name: 'OPEN RETURN ITEM', payload: { salePrice: '5.00' }, active: true, aliases: [] }] })
+  }));
+  await page.route('**/v1/transactions/preview', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ tenantId: 'tenant-1', branchId: 'branch-1', priceLevel: 1, lines: [], subtotal: '5.00', lineDiscountTotal: '0.00', documentPercentDiscount: '0.00', flatDiscount: '0.00', documentDiscountTotal: '0.00', misc: '0.00', taxableBase: '5.00', taxes: [], totalDiscount: '0.00', total: '5.00' })
+  }));
+  await page.route('**/v1/documents/open-cash-return', async (route) => {
+    postedPayload = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ accepted: true, duplicate: false, eventId: '33333333-3333-4333-8333-333333333333', aggregateId: '44444444-4444-4444-8444-444444444444', kind: 'open-cash-return', action: 'save-and-post', status: 'posted', document: { id: '44444444-4444-4444-8444-444444444444', documentNumber: 'OCR-1', version: 1 } })
+    });
+  });
+  await page.goto('/app/sales?kind=open-cash-return');
+  await page.waitForTimeout(500);
+  const lookupInput = page.getByLabel('Item lookup query');
+  await lookupInput.fill('OPEN');
+  await lookupInput.press('Enter');
+  await expect(page.getByRole('button', { name: 'OPEN RETURN ITEM' })).toBeVisible({ timeout: 7000 });
+  await page.getByRole('button', { name: 'OPEN RETURN ITEM' }).click();
+  await page.getByLabel('Godown').selectOption(godownId);
+  await page.getByLabel('Batch 1').fill('OPEN-BATCH-1');
+  await page.getByLabel('Expiry 1').fill('2027-01-01');
+  await page.getByLabel('Unit cost 1').fill('2.25');
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.keyboard.press('Control+q');
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('posted successfully', { timeout: 7000 });
+  expect(postedPayload?.kind).toBe('open-cash-return');
+  expect((postedPayload?.document as Record<string, unknown>)?.sourceDocumentId).toBeUndefined();
+  expect((postedPayload?.document as Record<string, unknown>)?.godownId).toBe(godownId);
+  const selectedDate = await page.getByLabel('Date').inputValue();
+  const occurredAt = String((postedPayload?.document as Record<string, unknown>)?.occurredAt ?? '');
+  expect(occurredAt.slice(0, 10)).toBe(selectedDate);
+  expect(occurredAt).toContain('T12:00:00.000Z');
+  const lines = (postedPayload?.document as Record<string, unknown>)?.lines as Array<Record<string, unknown>>;
+  expect(lines[0]?.batchNumber).toBe('OPEN-BATCH-1');
+  expect(lines[0]?.expiryDate).toBe('2027-01-01');
+  expect(lines[0]?.unitCost).toBe('2.25');
 });

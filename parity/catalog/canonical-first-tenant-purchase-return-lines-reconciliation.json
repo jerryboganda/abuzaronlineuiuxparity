@@ -1,0 +1,51 @@
+{
+  "generatedAt": "2026-08-06T18:15:35.5606886Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PRdetail",
+      "sourceCount": 2481,
+      "targetSchema": "public",
+      "targetTable": "business_document_lines",
+      "targetCount": 2481,
+      "status": "matched"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "purchase_return_header_count",
+      "sourceValue": "634",
+      "targetValue": "634",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_return_line_count",
+      "sourceValue": "2481",
+      "targetValue": "2481",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_return_total",
+      "sourceValue": "3526551.00",
+      "targetValue": "3526551.0000",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_return_line_quantity",
+      "sourceValue": "6648.875999999999940",
+      "targetValue": "6648.8762",
+      "difference": "-0.00020000",
+      "tolerance": 0.01,
+      "status": "matched"
+    }
+  ]
+}

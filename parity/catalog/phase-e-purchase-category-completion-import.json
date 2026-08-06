@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-08-06T16:52:28.9945061Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purledger",
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "read": 22,
+      "imported": 22,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purledger",
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "read": 1,
+      "imported": 1,
+      "duplicates": 0,
+      "exceptions": 0
+    }
+  ]
+}

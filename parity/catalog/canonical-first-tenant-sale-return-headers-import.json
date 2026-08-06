@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-08-06T18:17:24.8069163Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SRLedger",
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "read": 30704,
+      "imported": 30704,
+      "duplicates": 0,
+      "exceptions": 0
+    }
+  ]
+}

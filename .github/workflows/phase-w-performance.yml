@@ -1,0 +1,53 @@
+name: Phase W disposable performance
+
+on:
+  workflow_dispatch:
+    inputs:
+      full_volume:
+        description: "Load the 3.2M/1M synthetic target (expensive)"
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  disposable-probes:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      ABUZAR_PERF_ADMIN_DATABASE_URL: postgres://postgres@127.0.0.1:5432/postgres?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/api/go.mod
+          cache-dependency-path: |
+            go.work.sum
+            services/api/go.sum
+      - name: Run disposable Phase W fixture and probes
+        shell: pwsh
+        run: |
+          $full = [System.Convert]::ToBoolean("${{ inputs.full_volume }}")
+          if ($full) {
+            ./ops/perf/run-phase-w.ps1 -AdminDsn $env:ABUZAR_PERF_ADMIN_DATABASE_URL -FullVolume -Iterations 15
+          } else {
+            ./ops/perf/run-phase-w.ps1 -AdminDsn $env:ABUZAR_PERF_ADMIN_DATABASE_URL -Iterations 5
+          }
+      - name: Upload performance artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-w-performance
+          path: tmp/phase-w-performance-*.json

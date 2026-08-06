@@ -1,0 +1,32 @@
+{
+  "sourceDatabase": "AbuzarLegacyReference",
+  "canonicalDatabaseOpened": false,
+  "deadlockAt": "2026-08-06T23:30:35.950+05:00",
+  "victim": "010_master_normalized.sql master_items backfill",
+  "concurrentWork": "historical business_document_lines import",
+  "handling": [
+    "Confirmed PostgreSQL selected the migration transaction as the deadlock victim.",
+    "Confirmed the importer had no remaining Go process or active transaction before replay.",
+    "Verified no ungranted database locks, invalid indexes, orphan document lines, or orphan stock-batch item references.",
+    "Replayed the ordered migration set after the importer was idle."
+  ],
+  "orderedMigrationReplay": {
+    "files": "001 through 022",
+    "result": "success",
+    "observedCompatibility": "legacy rows require NOT VALID compatibility checks in 014 and 022"
+  },
+  "postReplayCounts": {
+    "master_items": 30052,
+    "master_records_items": 30052,
+    "business_documents": 331928,
+    "business_document_lines": 895015,
+    "openMigrationExceptions": 320865
+  },
+  "finalReconciliations": [
+    "parity/catalog/phase-e-historical-documents-reconciliation-final.json",
+    "parity/catalog/phase-e-historical-orders-reconciliation-final.json",
+    "parity/catalog/phase-e-party-ledger-reconciliation-final.json",
+    "parity/catalog/phase-e-stock-ledger-reconciliation-final.json"
+  ],
+  "complete": false
+}

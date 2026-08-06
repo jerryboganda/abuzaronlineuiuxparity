@@ -6,9 +6,12 @@
     type LegacyMenu,
     type LegacyOpenWindow,
     type LegacyWindowContext,
-    type MenuAction
+    type MenuAction,
+    type MenuAccess,
+    applyMenuAccess
   } from '$lib/legacy-menu';
   import { legacyWindowRegistry } from '$lib/legacy-window-registry';
+  import { AbuzarApi } from '$lib/api';
 
   export let context: LegacyWindowContext = 'base';
   export let windowId = 'main';
@@ -20,13 +23,27 @@
   let openMenu = '';
   let openSubmenu = '';
   let notice = '';
+  let menuAccess: MenuAccess = { tenantAdmin: false, permissions: [], scopes: {}, loaded: false };
+  const api = new AbuzarApi();
 
   $: registryWindows = $legacyWindowRegistry.windows;
-  $: menus = buildLegacyMenusForContext(context, registryWindows);
+  $: menus = applyMenuAccess(buildLegacyMenusForContext(context, registryWindows), menuAccess);
 
   onMount(() => {
     const entry: LegacyOpenWindow = { id: windowId, label: windowLabel, href: windowHref, context };
     legacyWindowRegistry.open(entry);
+    void api.access().then((access) => {
+      menuAccess = {
+        tenantAdmin: access.tenantAdmin,
+        permissions: access.permissions ?? [],
+        scopes: access.scopes ?? {},
+        loaded: true
+      };
+    }).catch(() => {
+      // Keep the menu disabled until the guarded access response is available.
+      menuAccess = { tenantAdmin: false, permissions: [], scopes: {}, loaded: false };
+      notice = 'Access rights are unavailable; commands remain disabled.';
+    });
   });
 
   function setStatus(value: string) {
@@ -43,6 +60,13 @@
   }
 
   function choose(action: MenuAction) {
+    if (action.denied) {
+      notice = action.mappingStatus === 'ambiguous'
+        ? `${action.label} has no unambiguous legacy-right mapping and remains disabled.`
+        : `${action.label} is not allowed for the current operator.`;
+      status = 'Access denied';
+      return;
+    }
     setStatus(action.label);
     openMenu = '';
     openSubmenu = '';
@@ -61,7 +85,15 @@
       return;
     }
     if (action.implementation === 'not_implemented') {
-      notice = `${action.label} is not implemented in this shell slice.`;
+      // Every captured leaf still has a deterministic destination. Navigate to
+      // the contextual workbench instead of leaving the menu click inert; the
+      // workbench preserves the legacy path/command id so the workflow can be
+      // implemented and audited without losing the user's selected command.
+      if (action.href) {
+        window.location.assign(action.href);
+        return;
+      }
+      notice = `${action.label} is not wired to a destination yet.`;
       status = notice;
       return;
     }
@@ -106,7 +138,11 @@
           role="menuitem"
           data-command-id={action.commandId ?? undefined}
           data-legacy-path={action.legacyPath ?? action.label}
+          data-mapping-status={action.mappingStatus ?? undefined}
           aria-haspopup={action.children ? 'menu' : undefined}
+          aria-disabled={action.denied ? 'true' : undefined}
+          disabled={action.denied}
+          title={action.denied ? (action.mappingStatus === 'ambiguous' ? 'No unambiguous legacy-right mapping' : 'Permission denied') : action.mappingStatus === 'ambiguous' ? 'Legacy command mapping is an exception; exact right code not claimed' : undefined}
           aria-expanded={action.children ? (openSubmenu === action.key || openSubmenu.startsWith(`${action.key} > `)) : undefined}
           onmouseenter={() => { setStatus(action.label); if (action.children) openSubmenu = action.key; }}
           onfocus={() => { setStatus(action.label); if (action.children) openSubmenu = action.key; }}

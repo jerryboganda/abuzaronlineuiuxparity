@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-08-06T16:08:59.0228149Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurOrderHeader",
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "read": 2810,
+      "imported": 2810,
+      "duplicates": 0,
+      "exceptions": 0
+    }
+  ]
+}

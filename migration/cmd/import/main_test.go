@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"database/sql"
+	"errors"
+	"testing"
+)
 
 func TestImportConfigRequiresExplicitConflictKey(t *testing.T) {
 	config := importConfig{TenantID: "tenant", Tables: []tableMapping{{
@@ -20,6 +24,17 @@ func TestImportConfigAcceptsTenantBranchInjection(t *testing.T) {
 	}}}
 	if err := config.validate(); err != nil {
 		t.Fatalf("valid mapping rejected: %v", err)
+	}
+}
+
+func TestImportConfigAcceptsReviewedUpsertPolicy(t *testing.T) {
+	config := importConfig{TenantID: "tenant", Upsert: true, Tables: []tableMapping{{
+		Source: tableRef{Schema: "dbo", Table: "groups"}, Target: tableRef{Schema: "public", Table: "roles"},
+		SourceID: "id", TargetID: "id", Columns: map[string]string{"code": "code", "name": "name"},
+		Inject: map[string]string{"tenant_id": "tenant"}, ConflictColumn: []string{"tenant_id", "code"},
+	}}}
+	if err := config.validate(); err != nil {
+		t.Fatalf("reviewed upsert mapping rejected: %v", err)
 	}
 }
 
@@ -55,11 +70,92 @@ func TestIdentifierQuotingEscapesDelimiters(t *testing.T) {
 }
 
 func TestImportSourceRejectsCanonicalDatabase(t *testing.T) {
-	if err := validateImportSource("sqlserver://127.0.0.1?database=FazalDinPP19DataBaseV2", "AbuzarLegacyReference"); err == nil {
+	if err := validateImportSource("sqlserver://127.0.0.1?database=FazalDinPP19DataBaseV2", "AbuzarLegacyReference", false); err == nil {
 		t.Fatal("canonical database was accepted for import")
 	}
-	if err := validateImportSource("sqlserver://127.0.0.1?database=AbuzarLegacyReference", "AbuzarLegacyReference"); err != nil {
+	if err := validateImportSource("sqlserver://127.0.0.1?database=FazalDinPP19DataBaseV2", "AbuzarLegacyReference", true); err != nil {
+		t.Fatalf("explicit canonical opt-in was rejected: %v", err)
+	}
+	if err := validateImportSource("sqlserver://127.0.0.1?database=AbuzarLegacyReference", "AbuzarLegacyReference", false); err != nil {
 		t.Fatalf("sandbox database was rejected: %v", err)
+	}
+}
+
+func TestApplyScopeOverridesRewritesReviewedTenantInjections(t *testing.T) {
+	config := importConfig{
+		TenantID:      "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+		DefaultBranch: "ffffffff-ffff-ffff-ffff-ffffffffffff",
+		Tables: []tableMapping{
+			{Inject: map[string]string{"tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee", "kind": "item"}},
+			{Inject: map[string]string{"tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"}},
+		},
+	}
+	if err := applyScopeOverrides(&config, "11111111-2222-3333-4444-555555555555", "66666666-7777-8888-9999-000000000000", "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"); err != nil {
+		t.Fatalf("apply scope overrides: %v", err)
+	}
+	if config.TenantID != "11111111-2222-3333-4444-555555555555" || config.DefaultBranch != "66666666-7777-8888-9999-000000000000" {
+		t.Fatalf("config scope was not overridden: %+v", config)
+	}
+	if got := config.Tables[0].Inject["tenant_id"]; got != config.TenantID {
+		t.Fatalf("tenant injection = %q, want %q", got, config.TenantID)
+	}
+	if _, present := config.Tables[0].Inject["branch_id"]; present {
+		t.Fatal("branch_id was added to a mapping that did not declare it")
+	}
+}
+
+func TestHasInjectedScopeDetectsOnlyDeclaredScope(t *testing.T) {
+	config := importConfig{Tables: []tableMapping{{Inject: map[string]string{"tenant_id": "tenant", "counter_id": "counter"}}}}
+	if !hasInjectedScope(config, "counter_id") {
+		t.Fatal("declared counter scope was not detected")
+	}
+	if hasInjectedScope(config, "branch_id") {
+		t.Fatal("undeclared branch scope was detected")
+	}
+}
+
+func TestHasInjectedScopeInRangeIgnoresUnselectedTables(t *testing.T) {
+	config := importConfig{Tables: []tableMapping{
+		{Inject: map[string]string{"tenant_id": "tenant", "branch_id": "branch"}},
+		{Inject: map[string]string{"tenant_id": "tenant"}},
+	}}
+	if hasInjectedScopeInRange(config, "branch_id", 1, 2) {
+		t.Fatal("branch scope from an unselected mapping was detected")
+	}
+	if !hasInjectedScopeInRange(config, "branch_id", 0, 1) {
+		t.Fatal("selected branch scope was not detected")
+	}
+}
+
+func TestIsNoRowsAcceptsDriverText(t *testing.T) {
+	if !isNoRows(sql.ErrNoRows) || !isNoRows(errors.New("sql: no rows in result set")) {
+		t.Fatal("driver no-row variants were not recognized")
+	}
+	if isNoRows(errors.New("duplicate row could not be resolved")) {
+		t.Fatal("non-no-row error was misclassified")
+	}
+}
+
+func TestLookupCacheKeyIsStableAcrossPredicateOrder(t *testing.T) {
+	base := lookupSpec{
+		Target:       tableRef{Schema: "public", Table: "master_parties"},
+		TargetColumn: "legacy_id",
+		ValueColumn:  "id",
+		Predicates:   map[string]string{"party_type": "supplier", "active": "true"},
+	}
+	reordered := lookupSpec{
+		Target:       base.Target,
+		TargetColumn: base.TargetColumn,
+		ValueColumn:  base.ValueColumn,
+		Predicates:   map[string]string{"active": "true", "party_type": "supplier"},
+	}
+	first := lookupCacheKey("tenant", base, "42")
+	second := lookupCacheKey("tenant", reordered, "42")
+	if first != second {
+		t.Fatalf("lookup cache key changed with predicate order: %q != %q", first, second)
+	}
+	if first == lookupCacheKey("other-tenant", base, "42") {
+		t.Fatal("lookup cache key ignored tenant scope")
 	}
 }
 
@@ -109,5 +205,55 @@ func TestImportConfigAcceptsDerivedColumnsAndLookups(t *testing.T) {
 	}}}
 	if err := config.validate(); err != nil {
 		t.Fatalf("derived/lookup mapping rejected: %v", err)
+	}
+}
+
+func TestStableUUIDIsRestartSafeAndScoped(t *testing.T) {
+	mapping := tableMapping{
+		Source: tableRef{Schema: "dbo", Table: "Saledetail"},
+	}
+	first := stableUUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee", mapping, "10:2", "line")
+	second := stableUUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee", mapping, "10:2", "line")
+	if first == "" || first != second {
+		t.Fatalf("stable UUID was not deterministic: %q %q", first, second)
+	}
+	if first == stableUUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee", mapping, "10:2", "document") {
+		t.Fatal("generated UUID scopes collided")
+	}
+}
+
+func TestImportConfigAcceptsHistoricalExpressionsAndRangeFeatures(t *testing.T) {
+	config := importConfig{TenantID: "tenant", Tables: []tableMapping{{
+		Source:            tableRef{Schema: "dbo", Table: "Saledetail"},
+		Target:            tableRef{Schema: "public", Table: "business_document_lines"},
+		SourceID:          "RowID",
+		TargetID:          "id",
+		TargetIDGenerated: true,
+		Columns:           map[string]string{"legacy_id": "RowID"},
+		GeneratedColumns:  map[string]string{"id": "line"},
+		SourceExpressions: map[string]string{
+			"legacy_import_key": "CONCAT('Saledetail:', RowID)",
+		},
+		SourceFilter: "RowID > 0",
+		Lookups: map[string]lookupSpec{
+			"document_id": {
+				Target:        tableRef{Schema: "public", Table: "business_documents"},
+				TargetColumn:  "legacy_id",
+				ValueColumn:   "id",
+				SourceColumns: []string{"SaleInvcode", "RowID"},
+			},
+		},
+		Inject:         map[string]string{"tenant_id": "tenant"},
+		ConflictColumn: []string{"tenant_id", "legacy_import_key"},
+	}}}
+	if err := config.validate(); err != nil {
+		t.Fatalf("historical mapping rejected: %v", err)
+	}
+}
+
+func TestCoerceText(t *testing.T) {
+	got, err := coerceValue(int64(42), "text")
+	if err != nil || got != "42" {
+		t.Fatalf("coerce text = %v, %v", got, err)
 	}
 }

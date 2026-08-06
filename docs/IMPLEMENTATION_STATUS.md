@@ -38,11 +38,23 @@ This repository is the isolated first vertical slice of the parity-first rebuild
 - Generic module Search now loads and matches the persisted tenant-scoped record; master and maintenance Cancel actions restore or clear form state rather than only changing a status label.
 - Item Detail includes editable supplier links with priority/rate/discount/quantity/bonus/days fields and persists the complete grid through the scoped item-suppliers endpoint; the focused Playwright regression passes.
 - The shared maintenance/manage surface now selects route-specific field definitions for the remaining catalog leaves and includes those values in the tenant-scoped audit/persistence payload.
-- The contextual menu component accepts a workflow command callback; sales and purchase surfaces now wire captured New/Save/Post/Save-And-Post/Print/navigation/New-Item actions to their existing handlers, with a browser regression for Ctrl+Q Save And Post.
+- The contextual menu component accepts a workflow command callback; sales and purchase surfaces now wire captured New/Save/Post/Save-And-Post/Print/navigation/New-Item actions to their existing handlers. Captured leaves without a handler navigate to a deterministic contextual workbench with the legacy path/command id, so menu clicks are no longer inert while their underlying behavior remains explicitly open.
 - Purchase Order saves now preserve the `purchase_order` aggregate at the client boundary (rather than being misclassified as receiving), with a focused browser regression covering the posted event.
 - Pack, loose, opening, return, and order purchase screens now use the canonical `/v1/documents/{kind}` draft/post lifecycle when the operator selects active supplier, item, and godown identities; draft versioning, idempotency, and server-calculated response state are retained in the form, with compatibility-event fallback kept for incomplete legacy-style entries.
-- Purchase lookup now has an explicit legacy-style Lookup action, automatic `AUTO-YYYYMMDD-NNN` batch generation for populated rows, and independent supplier/godown context loading so a slow or unavailable master list cannot erase a successfully loaded list.
-- Captured transaction-menu commands now execute common purchase/sales verbs for list navigation, first/previous/next/last, item history, batch generation, item sorting, row delete/restore, item/customer/supplier info, print/label output, change-user, and exit. Offline purchase queues expose the same local branch-edge sync action as sales; cash sale posting attempts a branch-edge cash-drawer pulse and falls back safely when no adapter is configured.
+- Purchase lookup now has an explicit legacy-style Lookup action and a
+  deterministic `AUTO-YYYYMMDD-NNN` client-convenience batch helper for
+  populated rows. The identifier is not claimed as legacy-format parity.
+  Supplier/godown context loading is independent so a slow or unavailable
+  master list cannot erase a successfully loaded list.
+- The focused purchase parity suite now covers six browser workflows, including canonical List history loading and restoring a persisted document; the tabs preserve the captured raster baseline until the interaction is committed.
+- Captured transaction-menu commands now execute common purchase/sales verbs
+  for list navigation, first/previous/next/last, item history,
+  client-convenience batch generation, item sorting, row delete/restore,
+  item/customer/supplier info, print/label output, change-user, and exit.
+  Offline purchase queues expose the same local branch-edge sync action as
+  sales; cash sale posting attempts a branch-edge cash-drawer pulse and falls
+  back safely when no adapter is configured.
+- Cash/credit sales now retain line-level discount/GST/batch metadata in the canonical document contract, expose captured item-tax/discount/batch commands, and provide attachment/gallery actions with the same branch-sync path.
 - Transaction toolbar/window glyphs use stable CSS-rendered Unicode symbols instead of mojibake source text, and daily-sales-detail reports now project customer, first-item, and quantity fields from the immutable sale event payload when available.
 - The authored web source passes the mojibake regression gate without a runtime text-repair observer; CSS glyph fallbacks remain scoped to the legacy chrome.
 - Groups exposes the supported synchronization and preference permissions alongside sales, purchasing, reports, master-data, maintenance, and management rights.
@@ -50,13 +62,18 @@ This repository is the isolated first vertical slice of the parity-first rebuild
 - Sale projection replays the supplied pricing request before committing, validates lifecycle status values and inventory quantities, and refuses document-number collisions. Normalized item reads also fall back to the tenant-scoped Phase E item catalog when `master_items` is still empty.
 - Branch/godown stock is exposed through a scoped `GET /v1/inventory/balance` projection backed by `stock_balances`; the sales lookup refreshes the selected row's Stock cell without trusting a browser-supplied balance. Legacy `inventory_movements` is only a labeled fallback for an otherwise-unpopulated normalized scope.
 - Sales item lookup now normalizes legacy imported payload keys (`SalePrice`, `SalePrice1`-`SalePrice10`, `PurchasePrice`, `Manufacturer`, `PackUnits`, and `Location`) into the captured grid fields, so Phase E/master-data records populate the same values as the canonical item workflow.
+- Business-date handling now uses local calendar dates for dashboard/report defaults and transaction filters, with canonical sale and purchase events encoded at noon UTC so the selected date remains stable across the browser/API timezone boundary.
+- Invoice-summary sales and sales-return report leaves now aggregate canonical/compatibility rows once per document, summing quantities and preserving the authoritative document amount instead of repeating a multi-line total.
+- The direct Purchase Return report route now uses the canonical purchase read model instead of a compatibility-only event query, with posted document/line authority and scoped fallback de-duplication.
+- The locally available canonical SQL Server source has a guarded first-tenant import path. The reviewed enterprise/config, core-master, and operator/rights maps were imported into the isolated `LEGACY_CANONICAL` tenant and reconciled 31 mapping entries with 84,372 source rows, 0 duplicates, and 0 exceptions; the full evidence is in `migration/PHASE_E_CANONICAL_STATUS_2026-08-06.md`.
+- The canonical compatibility masters are promoted into normalized item/party/manufacturer/category/godown/item-supplier targets for the isolated tenant, with 30,052 pricing tiers, 7 GST/3 PCT tax-rate rows, and 30,052 GST plus 30,052 PCT item-tax assignments populated and reconciled. Bounded purchase-order (2,810 rows), full purchase-header (6,419 rows), purchase-detail (113,532 imported of 113,564 source rows, with 32 explicit non-positive-quantity exceptions), posted purchase-return-header/detail (634/2,481 rows), and sale-return-header/detail (30,704/44,579 rows) slices are imported/reconciled; purchase-order/detail lines, sales, stock, and remaining historical documents remain explicitly deferred.
 
 ## Gated follow-on waves
 
 - Capture and approve every remaining PowerBuilder screen/state/workflow at the canonical Windows resolution/DPI; the representative captures listed above are measured baselines, while the remaining catalog leaves still require their own approval evidence.
 - Implement each business module and hardware/report integration against those approved baselines.
 - Complete all remaining transaction projections/business modules (the sale projection and conflict review are implemented in this slice).
-- Execute the source SQL Server inventory/import with an operator-supplied protected connection string and reviewed mapping file, then reconcile counts, balances, stock, ledgers, totals, and sequences.
+- Extend the canonical SQL Server inventory/import beyond the first 18 reviewed master/config tables with reviewed document, balance, stock, ledger, total, and sequence mappings; reconcile all remaining tables and business metrics before cutover.
 - Complete load, RLS isolation, offline recovery, printer/barcode/cash-drawer/biometric/SMS/email, and pilot cutover acceptance gates.
 
 No license-key, device-binding, hardware-fingerprint, or duplicate-instance restriction is present in this project.

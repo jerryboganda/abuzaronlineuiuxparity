@@ -1,0 +1,164 @@
+{
+  "generatedAt": "2026-08-06T18:55:21.2493586Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurOrderHeader",
+      "sourceCount": 2810,
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "targetCount": 2810,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurOrderDetail",
+      "sourceCount": 113995,
+      "targetSchema": "public",
+      "targetTable": "business_document_lines",
+      "targetCount": 113812,
+      "status": "mismatched"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "sale_header_count",
+      "sourceValue": "291361",
+      "targetValue": "291361",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "sale_line_count",
+      "sourceValue": "620619",
+      "targetValue": "620615",
+      "difference": "4.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "purchase_header_count",
+      "sourceValue": "6419",
+      "targetValue": "6419",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_line_count",
+      "sourceValue": "113564",
+      "targetValue": "113528",
+      "difference": "36.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "sale_return_header_count",
+      "sourceValue": "30704",
+      "targetValue": "30704",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "sale_return_line_count",
+      "sourceValue": "44579",
+      "targetValue": "44579",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_return_header_count",
+      "sourceValue": "634",
+      "targetValue": "634",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_return_line_count",
+      "sourceValue": "2481",
+      "targetValue": "2481",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "sale_total",
+      "sourceValue": "234003081.00",
+      "targetValue": "234003081.0000",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_total",
+      "sourceValue": "198071256.00",
+      "targetValue": "198071256.0000",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    },
+    {
+      "name": "sale_line_quantity",
+      "sourceValue": "470536.5516668476",
+      "targetValue": "470533.4789",
+      "difference": "3.07276685",
+      "tolerance": 0.01,
+      "status": "mismatched"
+    },
+    {
+      "name": "purchase_line_quantity",
+      "sourceValue": "484849.5896850490",
+      "targetValue": "484824.5895",
+      "difference": "25.00018505",
+      "tolerance": 0.01,
+      "status": "mismatched"
+    },
+    {
+      "name": "stock_report_count",
+      "sourceValue": "3215967",
+      "targetValue": "0",
+      "difference": "3215967.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "virtual_gl_count",
+      "sourceValue": "1021852",
+      "targetValue": "0",
+      "difference": "1021852.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "sale_event_count",
+      "sourceValue": "291361",
+      "targetValue": "291361",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "tax_rate_count",
+      "sourceValue": "7",
+      "targetValue": "7",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "price_policy_tier_count",
+      "sourceValue": "30052",
+      "targetValue": "30052",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    }
+  ]
+}

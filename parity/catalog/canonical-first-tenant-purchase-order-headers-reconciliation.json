@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-08-06T17:51:56.1688334Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurOrderHeader",
+      "sourceCount": 2810,
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "targetCount": 2810,
+      "status": "matched"
+    }
+  ]
+}

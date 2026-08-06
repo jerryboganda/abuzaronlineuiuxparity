@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-08-06T19:22:24.7203501Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Item (GST)",
+      "targetSchema": "public",
+      "targetTable": "item_tax_assignments",
+      "read": 30052,
+      "imported": 30052,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Item (PCT)",
+      "targetSchema": "public",
+      "targetTable": "item_tax_assignments",
+      "read": 30052,
+      "imported": 30052,
+      "duplicates": 0,
+      "exceptions": 0
+    }
+  ]
+}

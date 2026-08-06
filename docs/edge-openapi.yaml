@@ -18,7 +18,12 @@ paths:
     get:
       security: [{ edgeBearer: [] }]
       responses:
-        '200': { description: Explicit branch hardware adapter states }
+        '200':
+          description: Explicit branch hardware adapter states
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HardwareCapabilitiesResponse' }
+        '401': { description: Edge shared secret required }
   /v1/hardware/print/sale-slip:
     post:
       security: [{ edgeBearer: [] }]
@@ -33,7 +38,10 @@ paths:
             application/json: { schema: { $ref: '#/components/schemas/PrintResult' } }
         '400': { description: Invalid print job }
         '401': { description: Edge shared secret required }
-        '503': { description: No printer adapter is configured }
+        '503':
+          description: No printer adapter is configured
+          content:
+            application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } }
   /v1/hardware/print/purchase-labels:
     post:
       security: [{ edgeBearer: [] }]
@@ -48,7 +56,10 @@ paths:
             application/json: { schema: { $ref: '#/components/schemas/PrintResult' } }
         '400': { description: Invalid print job }
         '401': { description: Edge shared secret required }
-        '503': { description: No printer adapter is configured }
+        '503':
+          description: No printer adapter is configured
+          content:
+            application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } }
   /v1/hardware/barcode/normalize:
     post:
       security: [{ edgeBearer: [] }]
@@ -82,7 +93,10 @@ paths:
             application/json: { schema: { $ref: '#/components/schemas/BarcodeItem' } }
         '400': { description: Empty or unsafe barcode input }
         '401': { description: Edge shared secret required }
-        '503': { description: No barcode lookup adapter is configured }
+        '503':
+          description: No barcode lookup adapter is configured
+          content:
+            application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } }
   /v1/hardware/cash-drawer/kick:
     post:
       security: [{ edgeBearer: [] }]
@@ -97,7 +111,10 @@ paths:
                 properties:
                   kicked: { type: boolean, const: true }
         '401': { description: Edge shared secret required }
-        '503': { description: No cash-drawer adapter is configured }
+        '503':
+          description: No cash-drawer adapter is configured
+          content:
+            application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } }
   /v1/transactions/sales:
     post:
       security: [{ edgeBearer: [] }]
@@ -203,6 +220,32 @@ components:
       type: http
       scheme: bearer
   schemas:
+    ProblemDetails:
+      type: object
+      required: [type, title, status, detail, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        detail: { type: string }
+        code: { type: string }
+    HardwareCapability:
+      type: object
+      required: [name, available, provider]
+      properties:
+        name:
+          type: string
+          enum: [thermal_printer, barcode_scanner, cash_drawer, biometric_reader, sms, email]
+        available: { type: boolean }
+        provider: { type: string }
+        reason: { type: string }
+    HardwareCapabilitiesResponse:
+      type: object
+      required: [capabilities]
+      properties:
+        capabilities:
+          type: array
+          items: { $ref: '#/components/schemas/HardwareCapability' }
     SyncEnvelope:
       type: object
       required: [eventId, aggregate, aggregateId, tenantId, branchId, counterId, operatorId, occurredAt, idempotencyKey, schemaVersion, payload]

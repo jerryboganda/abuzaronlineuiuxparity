@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -127,6 +128,8 @@ func TestSessionMonitorIsBranchScopedIntegration(t *testing.T) {
 		t.Fatalf("ping database: %v", err)
 	}
 	suffix := time.Now().UnixNano()
+	currentTokenHash := fmt.Sprintf("maintenance-current-%d", suffix)
+	otherTokenHash := fmt.Sprintf("maintenance-other-%d", suffix)
 	tenantID, branchID, counterID, operatorID := seedDocumentTenant(t, ctx, database, "session-"+formatTestSuffix(suffix))
 	defer database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, tenantID)
 	var otherBranchID, otherCounterID, otherUserID string
@@ -142,12 +145,13 @@ func TestSessionMonitorIsBranchScopedIntegration(t *testing.T) {
 	if _, err := database.ExecContext(ctx, `
 		INSERT INTO sessions (token_hash, user_id, tenant_id, branch_id, counter_id, expires_at)
 		VALUES
-			('maintenance-current-session', $1::uuid, $2::uuid, $3::uuid, $4::uuid, now() + interval '1 hour'),
-			('maintenance-other-session', $5::uuid, $2::uuid, $6::uuid, $7::uuid, now() + interval '1 hour')`,
-		operatorID, tenantID, branchID, counterID, otherUserID, otherBranchID, otherCounterID); err != nil {
+			($1, $2::uuid, $3::uuid, $4::uuid, $5::uuid, now() + interval '1 hour'),
+			($6, $7::uuid, $3::uuid, $8::uuid, $9::uuid, now() + interval '1 hour')`,
+		currentTokenHash, operatorID, tenantID, branchID, counterID,
+		otherTokenHash, otherUserID, otherBranchID, otherCounterID); err != nil {
 		t.Fatalf("seed sessions: %v", err)
 	}
-	operator := &sessionContext{UserID: operatorID, TenantID: tenantID, BranchID: branchID, CounterID: counterID, TokenHash: "maintenance-current-session", Roles: []string{"tenant_admin"}}
+	operator := &sessionContext{UserID: operatorID, TenantID: tenantID, BranchID: branchID, CounterID: counterID, TokenHash: currentTokenHash, Roles: []string{"tenant_admin"}}
 	recorder := httptest.NewRecorder()
 	server := &Server{database: database}
 	server.sessionMonitor(recorder, maintenanceTestRequest(http.MethodGet, "/v1/session-monitor", "", operator))
@@ -169,6 +173,9 @@ func TestSessionMonitorIsBranchScopedIntegration(t *testing.T) {
 
 func maintenanceTestRequest(method, target, body string, operator *sessionContext) *http.Request {
 	request := httptest.NewRequest(method, target, strings.NewReader(body))
+	if kind := strings.TrimPrefix(request.URL.Path, "/v1/maintenance/"); kind != request.URL.Path {
+		request.SetPathValue("kind", strings.Trim(kind, "/"))
+	}
 	return request.WithContext(context.WithValue(request.Context(), sessionContextKey, operator))
 }
 

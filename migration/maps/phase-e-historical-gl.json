@@ -1,0 +1,64 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "tables": [
+    {
+      "source": { "schema": "dbo", "table": "VirtualGl" },
+      "target": { "schema": "public", "table": "historical_gl_entries" },
+      "sourceId": "DocumentCode",
+      "sourceIdColumns": ["DocumentCode", "VRow", "AccCode"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "historical-gl" },
+      "columns": {
+        "document_code": "DocumentCode",
+        "document_type": "DocumentType",
+        "account_code": "AccCode",
+        "alternate_account_code": "AlternateAccCode",
+        "debit_amount": "Debit",
+        "credit_amount": "Credit",
+        "occurred_at": "Date",
+        "user_legacy_id": "UserCode",
+        "invoice_code": "INVOICECODE",
+        "remarks": "Remarks"
+      },
+      "payloadTarget": "payload",
+      "payloadColumns": {
+        "DocumentCode": "DocumentCode",
+        "DocumentType": "DocumentType",
+        "AccCode": "AccCode",
+        "CatCode": "CatCode",
+        "AlternateAccCode": "AlternateAccCode",
+        "Debit": "Debit",
+        "Credit": "Credit",
+        "Date": "Date",
+        "UserCode": "UserCode",
+        "VoucherCode": "VoucherCode",
+        "INVOICECODE": "INVOICECODE",
+        "OUTSTANDINGAMT": "OUTSTANDINGAMT",
+        "BALANCE": "BALANCE",
+        "VRow": "VRow"
+      },
+      "derivedColumns": {
+        "legacy_id": ["DocumentCode", "VRow", "AccCode"]
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff"
+      },
+      "coerce": {
+        "legacy_id": "text",
+        "document_code": "text",
+        "document_type": "text",
+        "account_code": "text",
+        "alternate_account_code": "text",
+        "user_legacy_id": "text",
+        "invoice_code": "text",
+        "remarks": "text"
+      },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_id"]
+    }
+  ]
+}

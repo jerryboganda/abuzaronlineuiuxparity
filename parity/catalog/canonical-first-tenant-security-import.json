@@ -1,0 +1,138 @@
+{
+  "generatedAt": "2026-08-06T17:42:34.7658984Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Groups",
+      "targetSchema": "public",
+      "targetTable": "roles",
+      "read": 4,
+      "imported": 4,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Groups",
+      "targetSchema": "public",
+      "targetTable": "legacy_groups",
+      "read": 4,
+      "imported": 4,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Users",
+      "targetSchema": "public",
+      "targetTable": "users",
+      "read": 9,
+      "imported": 9,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "UserGroups",
+      "targetSchema": "public",
+      "targetTable": "user_memberships",
+      "read": 9,
+      "imported": 9,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupRights",
+      "targetSchema": "public",
+      "targetTable": "group_rights",
+      "read": 726,
+      "imported": 726,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedGodown",
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "read": 33,
+      "imported": 33,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedGroups",
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "read": 0,
+      "imported": 0,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedHeader",
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "read": 35,
+      "imported": 35,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedPrice",
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "read": 54,
+      "imported": 54,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedRecipient",
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "read": 8,
+      "imported": 8,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedServiceCategory",
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "read": 0,
+      "imported": 0,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedStartupRight",
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "read": 0,
+      "imported": 0,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupCashAccount",
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "read": 43,
+      "imported": 43,
+      "duplicates": 0,
+      "exceptions": 0
+    }
+  ]
+}

@@ -1,0 +1,236 @@
+{
+  "generatedAt": "2026-08-06T15:52:40.1023303Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleLedger",
+      "sourceCount": 291359,
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "targetCount": 291359,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleLedger",
+      "sourceCount": 2,
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "targetCount": 2,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Saledetail",
+      "sourceCount": 620619,
+      "targetSchema": "public",
+      "targetTable": "business_document_lines",
+      "targetCount": 527350,
+      "status": "mismatched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purledger",
+      "sourceCount": 6395,
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "targetCount": 6395,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purledger",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "targetCount": 1,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purdetail",
+      "sourceCount": 113564,
+      "targetSchema": "public",
+      "targetTable": "business_document_lines",
+      "targetCount": 15600,
+      "status": "mismatched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SRLedger",
+      "sourceCount": 30704,
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "targetCount": 0,
+      "status": "mismatched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SRdetail",
+      "sourceCount": 44579,
+      "targetSchema": "public",
+      "targetTable": "business_document_lines",
+      "targetCount": 0,
+      "status": "mismatched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PRLedger",
+      "sourceCount": 634,
+      "targetSchema": "public",
+      "targetTable": "business_documents",
+      "targetCount": 0,
+      "status": "mismatched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PRdetail",
+      "sourceCount": 2481,
+      "targetSchema": "public",
+      "targetTable": "business_document_lines",
+      "targetCount": 0,
+      "status": "mismatched"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "sale_header_count",
+      "sourceValue": "291361",
+      "targetValue": "291361",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "sale_line_count",
+      "sourceValue": "620619",
+      "targetValue": "527350",
+      "difference": "93269.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "purchase_header_count",
+      "sourceValue": "6419",
+      "targetValue": "6396",
+      "difference": "23.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "purchase_line_count",
+      "sourceValue": "113564",
+      "targetValue": "15600",
+      "difference": "97964.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "sale_return_header_count",
+      "sourceValue": "30704",
+      "targetValue": "0",
+      "difference": "30704.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "sale_return_line_count",
+      "sourceValue": "44579",
+      "targetValue": "0",
+      "difference": "44579.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "purchase_return_header_count",
+      "sourceValue": "634",
+      "targetValue": "0",
+      "difference": "634.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "purchase_return_line_count",
+      "sourceValue": "2481",
+      "targetValue": "0",
+      "difference": "2481.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "sale_total",
+      "sourceValue": "234003081.00",
+      "targetValue": "234003081.0000",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_total",
+      "sourceValue": "198071256.00",
+      "targetValue": "196987739.0000",
+      "difference": "1083517.00000000",
+      "tolerance": 0.01,
+      "status": "mismatched"
+    },
+    {
+      "name": "sale_line_quantity",
+      "sourceValue": "470536.5516668476",
+      "targetValue": "401461.4927",
+      "difference": "69075.05896685",
+      "tolerance": 0.01,
+      "status": "mismatched"
+    },
+    {
+      "name": "purchase_line_quantity",
+      "sourceValue": "484849.5896850490",
+      "targetValue": "89865.9728",
+      "difference": "394983.61688505",
+      "tolerance": 0.01,
+      "status": "mismatched"
+    },
+    {
+      "name": "stock_report_count",
+      "sourceValue": "3215967",
+      "targetValue": "0",
+      "difference": "3215967.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "virtual_gl_count",
+      "sourceValue": "1021852",
+      "targetValue": "0",
+      "difference": "1021852.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "sale_event_count",
+      "sourceValue": "291361",
+      "targetValue": "291361",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "tax_rate_count",
+      "sourceValue": "7",
+      "targetValue": "7",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "price_policy_tier_count",
+      "sourceValue": "30052",
+      "targetValue": "30052",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    }
+  ]
+}

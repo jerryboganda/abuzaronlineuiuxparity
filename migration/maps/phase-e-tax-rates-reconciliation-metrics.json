@@ -1,0 +1,28 @@
+{
+  "metrics": [
+    {
+      "name": "gst_schedule_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.SalesTaxSchedule",
+      "targetQuery": "SELECT COUNT(*) FROM public.tax_rates WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND tax_kind = 'gst' AND source_table = 'SalesTaxSchedule'",
+      "tolerance": 0
+    },
+    {
+      "name": "gst_schedule_rate_total",
+      "sourceQuery": "SELECT COALESCE(SUM(TaxPerc), 0) FROM dbo.SalesTaxSchedule",
+      "targetQuery": "SELECT COALESCE(SUM(rate), 0) FROM public.tax_rates WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND tax_kind = 'gst' AND source_table = 'SalesTaxSchedule'",
+      "tolerance": 0.01
+    },
+    {
+      "name": "pct_category_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.TaxCategory",
+      "targetQuery": "SELECT COUNT(*) FROM public.tax_rates WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND tax_kind = 'pct' AND source_table = 'TaxCategory'",
+      "tolerance": 0
+    },
+    {
+      "name": "pct_category_rate_total",
+      "sourceQuery": "SELECT COALESCE(SUM(TaxPerc), 0) FROM dbo.TaxCategory",
+      "targetQuery": "SELECT COALESCE(SUM(rate), 0) FROM public.tax_rates WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND tax_kind = 'pct' AND source_table = 'TaxCategory'",
+      "tolerance": 0.01
+    }
+  ]
+}

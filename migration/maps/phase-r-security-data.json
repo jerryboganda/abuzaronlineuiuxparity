@@ -3,6 +3,7 @@
   "sourceDatabase": "AbuzarLegacyReference",
   "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
   "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "upsert": true,
   "tables": [
     {
       "source": { "schema": "dbo", "table": "Groups" },

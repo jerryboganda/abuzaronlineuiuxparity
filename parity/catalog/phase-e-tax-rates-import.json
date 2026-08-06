@@ -1,0 +1,98 @@
+{
+  "generatedAt": "2026-08-06T15:38:22.9488881Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SalesTaxSchedule",
+      "targetSchema": "public",
+      "targetTable": "tax_rates",
+      "read": 7,
+      "imported": 7,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TaxCategory",
+      "targetSchema": "public",
+      "targetTable": "tax_rates",
+      "read": 3,
+      "imported": 3,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PricePolicyDetail",
+      "targetSchema": "public",
+      "targetTable": "price_policy_tiers",
+      "read": 30052,
+      "imported": 30052,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AdditionalTaxRule",
+      "targetSchema": "public",
+      "targetTable": "migration_ambiguous_records",
+      "read": 4,
+      "imported": 4,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ExtraTaxRule",
+      "targetSchema": "public",
+      "targetTable": "migration_ambiguous_records",
+      "read": 4,
+      "imported": 4,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IncomeTaxRule",
+      "targetSchema": "public",
+      "targetTable": "migration_ambiguous_records",
+      "read": 4,
+      "imported": 4,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "UnitSalesTaxRules",
+      "targetSchema": "public",
+      "targetTable": "migration_ambiguous_records",
+      "read": 4,
+      "imported": 4,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Item",
+      "targetSchema": "public",
+      "targetTable": "item_tax_assignments",
+      "read": 30052,
+      "imported": 30052,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Item",
+      "targetSchema": "public",
+      "targetTable": "item_tax_assignments",
+      "read": 30052,
+      "imported": 30052,
+      "duplicates": 0,
+      "exceptions": 0
+    }
+  ]
+}

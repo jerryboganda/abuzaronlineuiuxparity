@@ -46,19 +46,29 @@ Association, Listing → Supplier List, and RePrinting → Purchase.
 |---|---|
 | `gofmt -w services/api/internal/httpapi/reports.go services/api/internal/httpapi/server_test.go` | Passed |
 | `gofmt -d services/api/internal/httpapi/reports.go services/api/internal/httpapi/server_test.go` | Passed |
+| `go test ./services/api/internal/httpapi -run 'Test(PhaseO\|PurchaseReadModel)' -count=1` | Passed |
+| `go test ./services/api/... ./services/edge/... ./migration/...` | Passed; API, edge, and migration packages all green |
 | `pnpm --filter @abuzar/web exec playwright test tests/smoke.spec.ts -g 'purchase detail and summary\|purchase return, supplier'` | Passed: 2 tests |
-| `go test ./services/api/internal/httpapi` | Blocked by existing syntax errors in unowned `documents.go`/`tax.go` |
-| `go test ./services/api/... ./services/edge/... ./migration/...` | Failed in API setup on existing `tax_test.go` syntax error; edge and migration packages shown passing |
-| `pnpm --filter @abuzar/web check` | Failed on existing `LegacyWorkflowSurface.svelte` syntax/undefined-symbol errors |
-| `pnpm --filter @abuzar/web build` | Failed on the same existing `LegacyWorkflowSurface.svelte` syntax error |
-| `pnpm --filter @abuzar/web test` | Failed: 42 passed, 9 failed; the full parallel run had existing runtime failures and one Phase O navigation failure, while the focused Phase O run passed |
+| `pnpm --filter @abuzar/web exec playwright test tests/smoke.spec.ts -g 'report\|Report\|Sale Return\|purchase detail\|purchase return, supplier'` | Passed: 7 report-focused tests |
+| `pnpm --filter @abuzar/web check` | Passed: 0 errors and 0 warnings |
+| `pnpm --filter @abuzar/web build` | Passed: production build completed |
+| `pnpm --filter @abuzar/web test` | 51 passed, 2 failed; both failures were outside Phase O scope (purchase-context/GST and canonical-purchase UI behavior). All Phase O report tests passed in the full run. |
 
 ## Remaining risks
 
-- Go package validation cannot complete until the unrelated syntax errors in
-  the current transaction/tax work are repaired.
 - The canonical read model does not yet provide reconciled legacy tax,
   withholding, profit, graph, disparity, manufacturer, or category
   projections; those fields remain deliberately absent.
 - Exact legacy named-format lists for purchase leaves were not captured, so
   `Standard` is labeled as an application default rather than a legacy claim.
+
+## Canonical purchase-return route follow-up - 2026-08-06
+
+- The direct `/v1/reports/purchase-return` route now uses the same canonical
+  purchase read model as the captured purchase-return leaves. Posted
+  `business_documents`/lines are authoritative, with supplier ledger and
+  stock-ledger values when available; compatibility `return` events remain a
+  de-duplicated migration fallback.
+- Focused PostgreSQL evidence: `go test ./services/api/internal/httpapi -run
+  'TestPurchaseReturnReportUsesCanonicalReadModel' -count=1` passed against the
+  local disposable database.

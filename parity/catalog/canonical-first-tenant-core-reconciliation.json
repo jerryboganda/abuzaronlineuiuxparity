@@ -1,0 +1,71 @@
+{
+  "generatedAt": "2026-08-06T17:37:17.2817621Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Item",
+      "sourceCount": 30052,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 30052,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Customer",
+      "sourceCount": 2,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 2,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Supplier",
+      "sourceCount": 235,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 235,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Manufacturer",
+      "sourceCount": 838,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 838,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Godown",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 1,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PricePolicy",
+      "sourceCount": 30052,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 30052,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemSuppliers",
+      "sourceCount": 22245,
+      "targetSchema": "public",
+      "targetTable": "item_supplier_links",
+      "targetCount": 22245,
+      "status": "matched"
+    }
+  ]
+}

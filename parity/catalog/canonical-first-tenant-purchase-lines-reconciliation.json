@@ -1,0 +1,51 @@
+{
+  "generatedAt": "2026-08-06T19:37:15.300999Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purdetail",
+      "sourceCount": 113564,
+      "targetSchema": "public",
+      "targetTable": "business_document_lines",
+      "targetCount": 113532,
+      "status": "mismatched"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "purchase_line_count",
+      "sourceValue": "113564",
+      "targetValue": "113532",
+      "difference": "32.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "purchase_line_quantity",
+      "sourceValue": "484849.5896851073762837876",
+      "targetValue": "484849.58968511",
+      "difference": "-0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_line_total",
+      "sourceValue": "182490712.362381",
+      "targetValue": "182490712.3624",
+      "difference": "-0.00001898",
+      "tolerance": 0.01,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_line_exception_count",
+      "sourceValue": "32",
+      "targetValue": "32",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    }
+  ]
+}

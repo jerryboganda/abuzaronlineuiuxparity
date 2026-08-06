@@ -1463,7 +1463,30 @@ func (s *Server) beginScopedTx(ctx context.Context, operator *sessionContext) (*
 		tx.Rollback()
 		return nil, err
 	}
+	statementTimeout := s.dbTimeout
+	if statementTimeout <= 0 {
+		statementTimeout = 5 * time.Second
+	}
+	lockTimeout := s.lockTimeout
+	if lockTimeout <= 0 {
+		lockTimeout = time.Second
+	}
+	if err := setConfig("statement_timeout", formatPostgresTimeout(statementTimeout)); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	if err := setConfig("lock_timeout", formatPostgresTimeout(lockTimeout)); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
 	return tx, nil
+}
+
+func formatPostgresTimeout(value time.Duration) string {
+	if value < time.Millisecond {
+		value = time.Millisecond
+	}
+	return fmt.Sprintf("%dms", value.Milliseconds())
 }
 
 func validateEventScope(event syncEvent, operator *sessionContext) error {

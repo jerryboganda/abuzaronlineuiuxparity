@@ -104,10 +104,7 @@ INSERT INTO legacy_groups (
 SELECT r.tenant_id, r.id, r.code, r.name
 FROM roles r
 WHERE r.code IN ('ADMINISTRATOR', 'REMOTE', 'SALES OFFICER', 'SHIFT INCHARGE')
-ON CONFLICT (tenant_id, legacy_group_code) DO UPDATE
-SET role_id = EXCLUDED.role_id,
-    legacy_group_name = EXCLUDED.legacy_group_name,
-    updated_at = now();
+ON CONFLICT DO NOTHING;
 
 -- Bootstrap and future tenant provisioning must receive the same four
 -- representational Groups, without assigning any operator or inventing rights.
@@ -137,10 +134,7 @@ BEGIN
         SELECT NEW.id, r.id, r.code, r.name
         FROM roles r
         WHERE r.tenant_id = NEW.id AND r.code = seeded.code
-        ON CONFLICT (tenant_id, legacy_group_code) DO UPDATE
-        SET role_id = EXCLUDED.role_id,
-            legacy_group_name = EXCLUDED.legacy_group_name,
-            updated_at = now();
+        ON CONFLICT DO NOTHING;
     END LOOP;
     RETURN NEW;
 END;

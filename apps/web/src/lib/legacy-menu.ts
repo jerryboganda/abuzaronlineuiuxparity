@@ -23,6 +23,10 @@ export type MenuAction = {
   phase?: string;
   windowCommand?: 'cascade' | 'tile' | 'layer' | 'arrange' | 'refresh' | 'activate';
   windowId?: string;
+  requiredPermission?: string;
+  requiredScope?: { kind: string; key: string };
+  mappingStatus?: 'unambiguous' | 'ambiguous';
+  denied?: boolean;
 };
 
 export type LegacyMenu = { label: string; actions: MenuAction[] };
@@ -69,6 +73,39 @@ function isNavigable(path: string[]): boolean {
 
 function implementationFor(path: string[]): MenuAction['implementation'] {
   return isNavigable(path) ? 'implemented' : 'not_implemented';
+}
+
+function requirementFor(path: string[], context: LegacyWindowContext): Pick<MenuAction, 'requiredPermission' | 'requiredScope' | 'mappingStatus'> {
+  const top = path[0];
+  const leaf = path[path.length - 1];
+  if (top === 'Sales') return { requiredPermission: 'sales.read', mappingStatus: 'unambiguous' };
+  if (top === 'Purchase') return { requiredPermission: 'purchases.read', mappingStatus: 'unambiguous' };
+  if (top === 'Reports') return {
+    requiredPermission: 'reports.read',
+    requiredScope: { kind: 'report', key: slug(leaf) },
+    mappingStatus: 'unambiguous'
+  };
+  if (top === 'Basic Data') return { requiredPermission: 'master.read', mappingStatus: 'unambiguous' };
+  if (top === 'Maintenance') return {
+    requiredPermission: leaf === 'Preferences' ? 'preferences.read' : 'maintenance.write',
+    mappingStatus: 'unambiguous'
+  };
+  if (top === 'Manage' && leaf === 'Users') return { requiredPermission: 'manage.users', mappingStatus: 'unambiguous' };
+  if (top === 'Manage' && leaf === 'Groups') return { requiredPermission: 'manage.groups', mappingStatus: 'unambiguous' };
+  if (top === 'File') {
+    const writeCommands = ['Save', 'Post', 'Save And Post', 'Populate Items', 'Auto Batch Generation',
+      'Apply Item GST %', 'Apply Item Discount %', 'Print Purchase Labels'];
+    if (writeCommands.includes(leaf)) {
+      const permission = context === 'pack-purchase' ? 'purchases.write'
+        : context === 'cash-sale' ? 'sales.write'
+        : context === 'item-master' ? 'master.write'
+        : context === 'manage-groups' ? 'manage.groups'
+        : undefined;
+      return permission ? { requiredPermission: permission, mappingStatus: 'unambiguous' } : { mappingStatus: 'ambiguous' };
+    }
+    return { mappingStatus: 'ambiguous' };
+  }
+  return { mappingStatus: 'ambiguous' };
 }
 
 export function hrefFor(path: string[], commandId: number): string | undefined {
@@ -166,7 +203,7 @@ function cleanActions(actions: MenuAction[]): MenuAction[] {
   });
 }
 
-export function buildLegacyMenus(items: LegacyMenuCatalogItem[] = legacyMenuCatalog, windows: LegacyOpenWindow[] = []): LegacyMenu[] {
+export function buildLegacyMenus(items: LegacyMenuCatalogItem[] = legacyMenuCatalog, windows: LegacyOpenWindow[] = [], context: LegacyWindowContext = 'base'): LegacyMenu[] {
   const menus: LegacyMenu[] = [];
   for (const item of items) {
     const rawSegments = normalizeCatalogPath(item.path).split(' > ');
@@ -195,6 +232,7 @@ export function buildLegacyMenus(items: LegacyMenuCatalogItem[] = legacyMenuCata
         action.commandId = item.commandId;
         action.href = hrefFor(path, item.commandId);
         action.implementation = implementationFor(path);
+        Object.assign(action, requirementFor(path, context));
         if (action.implementation === 'not_implemented') action.phase = path[0] === 'File' ? 'H' : 'F';
         if (shortcut) action.shortcut = shortcut;
       }
@@ -212,9 +250,39 @@ export function buildLegacyMenus(items: LegacyMenuCatalogItem[] = legacyMenuCata
 }
 
 export function buildLegacyMenusForContext(context: LegacyWindowContext, windows: LegacyOpenWindow[] = []): LegacyMenu[] {
-  if (context === 'base') return buildLegacyMenus(legacyMenuCatalog, windows);
+  if (context === 'base') return buildLegacyMenus(legacyMenuCatalog, windows, context);
   const captured = contextualMenus.contexts.find((entry) => entry.windowType === context);
-  return buildLegacyMenus(captured?.items ?? legacyMenuCatalog, windows);
+  return buildLegacyMenus(captured?.items ?? legacyMenuCatalog, windows, context);
+}
+
+export type MenuAccess = {
+  tenantAdmin: boolean;
+  permissions: string[];
+  scopes: Record<string, Record<string, boolean>>;
+  loaded: boolean;
+};
+
+export function applyMenuAccess(menus: LegacyMenu[], access: MenuAccess): LegacyMenu[] {
+  const allowed = (action: MenuAction): boolean => {
+    if (!action.requiredPermission) return action.mappingStatus !== 'ambiguous' || access.loaded;
+    if (access.tenantAdmin) return true;
+    if (!access.permissions.some((permission) => permission.toLowerCase() === action.requiredPermission?.toLowerCase())) return false;
+    if (action.requiredScope) {
+      const entries = access.scopes[action.requiredScope.kind];
+      if (entries && Object.keys(entries).length > 0 && !entries['*'] && !entries[action.requiredScope.key]) return false;
+    }
+    return true;
+  };
+  const visit = (actions: MenuAction[]): MenuAction[] => actions.map((action) => {
+    const children = action.children ? visit(action.children) : undefined;
+    const gated = !action.separator && !allowed(action);
+    return {
+      ...action,
+      ...(children ? { children } : {}),
+      ...(gated ? { denied: true } : {})
+    };
+  });
+  return menus.map((menu) => ({ ...menu, actions: visit(menu.actions) }));
 }
 
 export function findShortcutAction(menus: LegacyMenu[], shortcut: string): MenuAction | undefined {

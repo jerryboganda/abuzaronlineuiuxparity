@@ -79,8 +79,14 @@ type reportSpec struct {
 	title              string
 	aggregateCondition string
 	salesReadModel     bool
+	salesMode          string
 	purchaseReadModel  bool
 	purchaseMode       string
+	stockReadModel     bool
+	stockMode          string
+	financeMode        string
+	adminKind          string
+	compatibilityOnly  bool
 }
 
 const (
@@ -123,7 +129,12 @@ var phaseNReportRegistry = func() map[string]reportSpec {
 		}
 		add(report.kind, report.title, condition)
 		if condition == reportSaleAggregate {
-			registry[report.kind] = reportSpec{title: report.title, aggregateCondition: condition, salesReadModel: true}
+			mode := ""
+			switch report.kind {
+			case "sale-summary", "sale-summary-inv-wise", "sale-summary-invoice-wise":
+				mode = "invoice-summary"
+			}
+			registry[report.kind] = reportSpec{title: report.title, aggregateCondition: condition, salesReadModel: true, salesMode: mode}
 		}
 	}
 	for _, report := range []struct {
@@ -135,7 +146,16 @@ var phaseNReportRegistry = func() map[string]reportSpec {
 		{"sales-return-summary-inv-wise", "Sales Return Summary Inv.wise"},
 		{"sales-return-detail-inv-wise", "Sales Return Detail Inv.wise"},
 	} {
-		add(report.kind, report.title, reportSaleReturnAggregate)
+		mode := ""
+		if report.kind == "sales-return-summary" || report.kind == "sales-return-summary-inv-wise" {
+			mode = "invoice-summary"
+		}
+		registry[report.kind] = reportSpec{
+			title:              report.title,
+			aggregateCondition: reportSaleReturnAggregate,
+			salesReadModel:     true,
+			salesMode:          mode,
+		}
 	}
 
 	// Sales Reports. These are intentionally event-level views until captured
@@ -260,11 +280,205 @@ var phaseOReportRegistry = func() map[string]reportSpec {
 	return registry
 }()
 
+// phasePReportRegistry contains the captured Stock Reports leaves. These
+// reports read normalized stock_ledger/stock_balances rows only; compatibility
+// inventory movements are not silently mixed into this wave.
+var phasePReportRegistry = func() map[string]reportSpec {
+	registry := make(map[string]reportSpec)
+	add := func(kind, title, mode string) {
+		registry[kind] = reportSpec{
+			title:              title,
+			aggregateCondition: "se.aggregate = 'inventory'",
+			stockReadModel:     true,
+			stockMode:          mode,
+		}
+	}
+	for _, report := range []struct {
+		kind  string
+		title string
+		mode  string
+	}{
+		{"stock-in-hand-manufacturer-wise", "Manufacturer wise", "balance"},
+		{"stock-in-hand-category-wise", "Category wise", "balance"},
+		{"stock-in-hand-others", "Others", "balance"},
+		{"stock-in-hand-class-wise", "Class Wise", "balance"},
+		{"stock-in-hand-batch-priority-wise", "Batch, Priority Wise", "balance"},
+		{"stock-in-hand-back-date", "Back Date", "balance"},
+		{"stock-in-hand-manufacturer-wise-format2", "Manufacturer Wise (Format2)", "balance"},
+		{"stock-in-hand-supplier-manufacturer-association", "Supplier Manufacturer Association", "balance"},
+		{"stock-in-hand-stock-quantity-format", "Stock Quantity Format", "balance"},
+		{"stock-in-hand-stock-in-hand-audit-purpose", "Stock in Hand - Audit Purpose", "balance"},
+		{"stock-in-hand-batch-priority-wise-audit-purposes", "Batch, Priority Wise - Audit Purposes", "balance"},
+		{"expiry-report", "Expiry Report", "expiry"},
+		{"reorder-level-report", "Reorder Level Report", "balance"},
+		{"stock-register", "Stock Register", "movement"},
+		{"item-stock-register-summary", "Item Stock Register Summary", "summary"},
+		{"stock-register-for-narcotics", "Stock Register(For Narcotics)", "movement"},
+		{"stock-and-sales", "Stock and Sales", "balance"},
+		{"optimum-level-report", "Optimum Level Report", "balance"},
+		{"item-activity", "Item Activity", "movement"},
+		{"stock-register-narcotics-format2", "Stock Register(Narcotics Format2)", "movement"},
+		{"expiry-report-class-wise", "Expiry Report(Class Wise)", "expiry"},
+		{"minimum-level-report", "Minimum Level Report", "balance"},
+		{"reorder-optimum-level-report", "Reorder/Optimum Level Report", "balance"},
+		{"daily-stock-in-out", "Daily Stock IN/OUT", "movement"},
+		{"stock-in-out-date-wise", "Stock IN/OUT(Date Wise)", "movement"},
+		{"stock-management-report", "Stock Management Report", "summary"},
+		{"norcotics-stock-register-generic-type-wise", "Norcotics Stock Register-Generic Type Wise", "movement"},
+	} {
+		add(report.kind, report.title, report.mode)
+	}
+	return registry
+}()
+
+// phaseQReportRegistry closes the remaining mapped report leaves without
+// pretending that an absent historical projection exists. Financial leaves
+// read immutable posted journals, party entries, voucher rows, or document tax
+// snapshots. Remaining administrative/reprint leaves use an explicitly named
+// normalized or compatibility projection.
+var phaseQReportRegistry = func() map[string]reportSpec {
+	registry := make(map[string]reportSpec)
+	add := func(kind, title string, spec reportSpec) {
+		spec.title = title
+		registry[kind] = spec
+	}
+	adjustments := []struct {
+		kind  string
+		title string
+	}{
+		{"adjustment-adjustment-summary", "Adjustment Summary"},
+		{"adjustment-adjustment-detail", "Adjustment Detail"},
+		{"adjustment-adjustment-summary-inv-wise", "Adjustment Summary Inv. Wise"},
+		{"adjustment-adjustment-detail-inv-wise", "Adjustment Detail Inv. wise"},
+		{"adjustment-adjustment-summary-detail", "Adjustment Summary/Detail"},
+		{"adjustment-item-wise-adjustment-summary", "Item Wise Adjustment Summary"},
+	}
+	for _, report := range adjustments {
+		add(report.kind, report.title, reportSpec{
+			stockReadModel: true,
+			stockMode:      "adjustment",
+		})
+	}
+	for _, report := range []struct {
+		kind  string
+		title string
+	}{
+		{"quotation-detail", "Detail"},
+		{"quotation-summary", "Summary"},
+		{"header-wise-transaction-summary", "Header Wise Transaction Summary"},
+	} {
+		condition := "se.aggregate IN ('sale', 'sale_return', 'receiving', 'return', 'quotation', 'purchase_order', 'inventory')"
+		if strings.HasPrefix(report.kind, "quotation-") {
+			condition = "se.aggregate = 'quotation'"
+		}
+		add(report.kind, report.title, reportSpec{aggregateCondition: condition, compatibilityOnly: true})
+	}
+	add("accounts-reports-ledger-reports-accounts-ledger", "Accounts Ledger", reportSpec{
+		financeMode: "gl",
+	})
+	add("trial-balance", "Trial Balance", reportSpec{
+		financeMode: "trial-balance",
+	})
+	add("voucher-register", "Voucher Register", reportSpec{
+		financeMode: "voucher",
+	})
+	for _, report := range []struct {
+		kind      string
+		title     string
+		adminKind string
+	}{
+		{"listing-supplier-list", "Supplier List", "supplier"},
+		{"listing-items-list", "Items List", "item"},
+		{"listing-manufacturer-list", "Manufacturer List", "manufacturer"},
+		{"listing-group-rights-list", "Group Rights List", "roles"},
+		{"listing-item-list-class-wise", "Item List Class Wise", "item_class"},
+		{"listing-groupwise-user-list", "GroupWise User List", "users"},
+		{"listing-sale-person-scope-manufacturer-sub-area-wise-sales-person-conflict", "Manufacturer/Sub Area Wise Sales Person Conflict", "users"},
+	} {
+		add(report.kind, report.title, reportSpec{adminKind: report.adminKind})
+	}
+	for _, report := range []struct {
+		kind  string
+		title string
+		mode  string
+	}{
+		{"reprinting-sale", "Sale", "sales"},
+		{"reprinting-purchase", "Purchase", "purchases"},
+		{"reprinting-sale-with-summary-reports", "Sale (with summary reports)", "sales"},
+		{"reprinting-sale-format-2", "Sale Format(2)", "sales"},
+		{"reprinting-sale-format-3", "Sale Format(3)", "sales"},
+		{"reprinting-sale-format-4", "Sale Format(4)", "sales"},
+		{"reprinting-sale-with-header-wise-summaries", "Sale (with header wise summaries)", "sales"},
+		{"reprinting-selected-sales-and-summaries", "Selected Sales and Summaries", "sales"},
+	} {
+		spec := reportSpec{compatibilityOnly: true, aggregateCondition: reportSaleAggregate}
+		if report.mode == "sales" {
+			spec.salesReadModel = true
+		} else {
+			spec.purchaseReadModel = true
+			spec.purchaseMode = "summary"
+			spec.aggregateCondition = "se.aggregate = 'receiving'"
+		}
+		add(report.kind, report.title, spec)
+	}
+	add("item-reports-deleted-sale-items-log", "Deleted Sale Items Log", reportSpec{
+		aggregateCondition: "se.aggregate IN ('sale', 'sale_return')",
+		compatibilityOnly:  true,
+	})
+	return registry
+}()
+
+// These captured leaves already live in the N/O registries but have a
+// normalized financial source available in the Q wave. Keeping the override
+// separate avoids changing the N/O coverage accounting.
+var phaseQFinancialOverrides = map[string]string{
+	"customer-sales-lp-ledger": "party-customer",
+	"customer-sales-customer-category-wise-sales-output-sales-tax-report": "tax-output",
+	"customer-sales-customer-ntn-wise-sales-tax-report":                   "tax-output",
+	"customer-sales-customer-wise-advance-tax":                            "tax-advance",
+	"sales-tax-report":                              "tax-output",
+	"supplier-wise-advance-income-tax":              "tax-advance",
+	"supplier-category-wise-input-sales-tax-report": "tax-input",
+	"withholding-tax-deduction":                     "tax-withholding",
+	"user-wise-net-cash":                            "gl-cash",
+}
+
+// The report route also accepts stable direct links for the financial views.
+// They are aliases, not additional legacy leaves, and make the normalized
+// projections available to the report client without inventing menu entries.
+var phaseQReportAliases = map[string]reportSpec{
+	"gl-journal":         {title: "GL Journal", financeMode: "gl"},
+	"trial-balance":      {title: "Trial Balance", financeMode: "trial-balance"},
+	"customer-statement": {title: "Customer Statement", financeMode: "party-customer"},
+	"supplier-statement": {title: "Supplier Statement", financeMode: "party-supplier"},
+	"receivables-aging":  {title: "Receivables Aging", financeMode: "aging-receivable"},
+	"payables-aging":     {title: "Payables Aging", financeMode: "aging-payable"},
+	"tax-register":       {title: "Tax Register", financeMode: "tax-output"},
+	"voucher-register":   {title: "Voucher Register", financeMode: "voucher"},
+}
+
 func reportSpecForKey(kind string) (reportSpec, bool) {
+	if spec, ok := phaseQReportRegistry[kind]; ok {
+		return spec, true
+	}
+	if spec, ok := phaseQReportAliases[kind]; ok {
+		return spec, true
+	}
 	if spec, ok := phaseOReportRegistry[kind]; ok {
+		if mode, promoted := phaseQFinancialOverrides[kind]; promoted {
+			spec.financeMode = mode
+		}
+		return spec, true
+	}
+	if spec, ok := phasePReportRegistry[kind]; ok {
 		return spec, true
 	}
 	spec, ok := phaseNReportRegistry[kind]
+	if ok {
+		if mode, promoted := phaseQFinancialOverrides[kind]; promoted {
+			spec.financeMode = mode
+		}
+	}
 	return spec, ok
 }
 
@@ -292,6 +506,178 @@ func reportEventLedgerColumns() []reportColumn {
 		{Key: "item", Label: "Item (first payload line)", DataType: "text", Sortable: true},
 		{Key: "quantity", Label: "Quantity (payload)", DataType: "number", Sortable: true},
 		{Key: "amount", Label: "Amount (payload)", DataType: "currency", Sortable: true},
+	}
+}
+
+func stockReportColumns(mode string) []reportColumn {
+	if mode == "adjustment" {
+		return []reportColumn{
+			{Key: "document", Label: "Adjustment", DataType: "text", Sortable: true},
+			{Key: "occurredAt", Label: "Date", DataType: "date", Sortable: true},
+			{Key: "party", Label: "Direction", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Item", DataType: "text", Sortable: true},
+			{Key: "quantity", Label: "Quantity", DataType: "number", Sortable: true},
+			{Key: "amount", Label: "Unit Cost", DataType: "currency", Sortable: true},
+		}
+	}
+	if mode == "movement" {
+		return []reportColumn{
+			{Key: "document", Label: "Movement", DataType: "text", Sortable: true},
+			{Key: "occurredAt", Label: "Date", DataType: "date", Sortable: true},
+			{Key: "party", Label: "Direction", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Item", DataType: "text", Sortable: true},
+			{Key: "quantity", Label: "Quantity", DataType: "number", Sortable: true},
+			{Key: "amount", Label: "Unit Cost", DataType: "currency", Sortable: true},
+		}
+	}
+	if mode == "valuation" {
+		return []reportColumn{
+			{Key: "document", Label: "Batch", DataType: "text", Sortable: true},
+			{Key: "occurredAt", Label: "As Of", DataType: "date", Sortable: true},
+			{Key: "party", Label: "Godown", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Item", DataType: "text", Sortable: true},
+			{Key: "quantity", Label: "On Hand", DataType: "number", Sortable: true},
+			{Key: "amount", Label: "Normalized Valuation", DataType: "currency", Sortable: true},
+		}
+	}
+	return []reportColumn{
+		{Key: "document", Label: "Batch", DataType: "text", Sortable: true},
+		{Key: "occurredAt", Label: "Expiry/Updated", DataType: "date", Sortable: true},
+		{Key: "party", Label: "Godown", DataType: "text", Sortable: true},
+		{Key: "item", Label: "Item", DataType: "text", Sortable: true},
+		{Key: "quantity", Label: "On Hand", DataType: "number", Sortable: true},
+		{Key: "amount", Label: "Unit Cost", DataType: "currency", Sortable: true},
+	}
+}
+
+func financeReportColumns(mode string) []reportColumn {
+	switch mode {
+	case "gl", "gl-cash":
+		return []reportColumn{
+			{Key: "document", Label: "Journal", DataType: "text", Sortable: true},
+			{Key: "occurredAt", Label: "Posted", DataType: "date", Sortable: true},
+			{Key: "party", Label: "Account", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Memo", DataType: "text", Sortable: true},
+			{Key: "quantity", Label: "Debit", DataType: "currency", Sortable: true},
+			{Key: "amount", Label: "Credit", DataType: "currency", Sortable: true},
+		}
+	case "trial-balance":
+		return []reportColumn{
+			{Key: "document", Label: "Account", DataType: "text", Sortable: true},
+			{Key: "occurredAt", Label: "As Of", DataType: "date", Sortable: true},
+			{Key: "party", Label: "Category", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Account Name", DataType: "text", Sortable: true},
+			{Key: "quantity", Label: "Debit", DataType: "currency", Sortable: true},
+			{Key: "amount", Label: "Credit", DataType: "currency", Sortable: true},
+		}
+	case "party-customer", "party-supplier":
+		return []reportColumn{
+			{Key: "document", Label: "Document", DataType: "text", Sortable: true},
+			{Key: "occurredAt", Label: "Date", DataType: "date", Sortable: true},
+			{Key: "party", Label: "Customer/Supplier", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Description", DataType: "text", Sortable: true},
+			{Key: "quantity", Label: "Debit", DataType: "currency", Sortable: true},
+			{Key: "amount", Label: "Credit", DataType: "currency", Sortable: true},
+		}
+	case "aging-receivable", "aging-payable":
+		return []reportColumn{
+			{Key: "document", Label: "Party", DataType: "text", Sortable: true},
+			{Key: "occurredAt", Label: "As Of", DataType: "date", Sortable: true},
+			{Key: "party", Label: "Party Type", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Aging Status", DataType: "text", Sortable: true},
+			{Key: "quantity", Label: "Debit Total", DataType: "currency", Sortable: true},
+			{Key: "amount", Label: "Credit Total", DataType: "currency", Sortable: true},
+		}
+	case "tax-output", "tax-input", "tax-advance", "tax-withholding":
+		return []reportColumn{
+			{Key: "document", Label: "Document", DataType: "text", Sortable: true},
+			{Key: "occurredAt", Label: "Date", DataType: "date", Sortable: true},
+			{Key: "party", Label: "Customer/Supplier", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Item / Tax Snapshot", DataType: "text", Sortable: true},
+			{Key: "quantity", Label: "Taxable Base", DataType: "currency", Sortable: true},
+			{Key: "amount", Label: "Tax Amount", DataType: "currency", Sortable: true},
+		}
+	case "voucher":
+		return []reportColumn{
+			{Key: "document", Label: "Voucher", DataType: "text", Sortable: true},
+			{Key: "occurredAt", Label: "Created", DataType: "date", Sortable: true},
+			{Key: "party", Label: "Category", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Description", DataType: "text", Sortable: true},
+			{Key: "quantity", Label: "Amount", DataType: "currency", Sortable: true},
+			{Key: "amount", Label: "Status", DataType: "text", Sortable: true},
+		}
+	}
+	return reportColumns()
+}
+
+func financeProjectionNote(mode string) string {
+	switch mode {
+	case "gl", "gl-cash":
+		return "Posted-only gl_journals and gl_lines joined to the tenant chart of accounts; no draft, void, or legacy VirtualGl rows are inferred."
+	case "trial-balance":
+		return "Posted-only gl_journals/gl_lines aggregated by account and scoped to tenant, branch, and date; opening or imported historical balances are not included."
+	case "party-customer":
+		return "Posted-only customer party_ledger_entries with running balances where recorded; payment allocation and legacy customer statement columns not present in the source are omitted."
+	case "party-supplier":
+		return "Posted-only supplier party_ledger_entries with running balances where recorded; payment allocation and legacy supplier statement columns not present in the source are omitted."
+	case "aging-receivable", "aging-payable":
+		return "Unaged outstanding party-ledger totals only. No due_date, payment allocation, or invoice aging-bucket prerequisite exists in the normalized source, so bucket values are not fabricated."
+	case "tax-output":
+		return "Posted business-document line tax snapshots (tax_amount, rates, and taxable line totals) for sales; values are not recomputed from current configuration."
+	case "tax-input":
+		return "Posted business-document line tax snapshots (tax_amount, rates, and taxable line totals) for purchases; values are not recomputed from current configuration."
+	case "tax-advance":
+		return "Posted line tax snapshots with an advance-tax rate; rows are omitted when the posted snapshot has no advance-tax evidence."
+	case "tax-withholding":
+		return "No normalized withholding-tax snapshot or posting source exists. Withholding amount, rate, certificate, and party allocation prerequisites are absent; no values are returned."
+	case "voucher":
+		return "Posted voucher_entries scoped to tenant and branch. Voucher-to-GL line posting is not assumed when no linked journal exists."
+	default:
+		return ""
+	}
+}
+
+func reportAdminColumns(kind string) []reportColumn {
+	if kind == "users" {
+		return []reportColumn{
+			{Key: "document", Label: "User", DataType: "text", Sortable: true},
+			{Key: "occurredAt", Label: "Created", DataType: "date", Sortable: true},
+			{Key: "party", Label: "Username", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Display Name", DataType: "text", Sortable: true},
+			{Key: "quantity", Label: "Active", DataType: "text", Sortable: true},
+			{Key: "amount", Label: "Group", DataType: "text", Sortable: true},
+		}
+	}
+	if kind == "roles" {
+		return []reportColumn{
+			{Key: "document", Label: "Group", DataType: "text", Sortable: true},
+			{Key: "occurredAt", Label: "Permission", DataType: "text", Sortable: true},
+			{Key: "party", Label: "Name", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Right", DataType: "text", Sortable: true},
+			{Key: "quantity", Label: "Allowed", DataType: "text", Sortable: true},
+			{Key: "amount", Label: "Source", DataType: "text", Sortable: true},
+		}
+	}
+	return []reportColumn{
+		{Key: "document", Label: "Code", DataType: "text", Sortable: true},
+		{Key: "occurredAt", Label: "Updated", DataType: "date", Sortable: true},
+		{Key: "party", Label: "Kind", DataType: "text", Sortable: true},
+		{Key: "item", Label: "Name", DataType: "text", Sortable: true},
+		{Key: "quantity", Label: "Active", DataType: "text", Sortable: true},
+		{Key: "amount", Label: "Legacy ID", DataType: "text", Sortable: true},
+	}
+}
+
+func stockProjectionNote(mode string) string {
+	switch mode {
+	case "movement":
+		return "Normalized posted stock_ledger movement projection joined to batch, item, and godown metadata; compatibility inventory_movements and unreconciled legacy grouping are not included."
+	case "expiry":
+		return "Normalized posted stock_balances grouped by stock batch expiry; expired and future batches are shown from typed expiry_date, while legacy class/group calculations are not implemented."
+	case "valuation":
+		return "Normalized valuation is on_hand multiplied by stock_batches.unit_cost; legacy FIFO/average valuation and exact historical valuation are not reconciled."
+	default:
+		return "Normalized posted stock_balances projection joined to stock batches, items, and godowns; legacy manufacturer/category/class/reorder/narcotics groupings and exact valuation are not implemented."
 	}
 }
 
@@ -333,6 +719,13 @@ func reportTitle(kind string) string {
 	}
 }
 
+func salesProjectionModeNote(mode string) string {
+	if mode == "invoice-summary" {
+		return "canonical and compatibility rows are grouped once per invoice with summed quantity and authoritative document amount; legacy tax, profit, and format-specific columns remain open"
+	}
+	return "captured legacy grouping and calculated numeric fields are not implemented"
+}
+
 func reportDefinitionForKey(kind, registryKey string) reportDefinition {
 	dailySaleDetail := kind == "daily-sales-detail"
 	spec, explicitEventProjection := reportSpecForKey(registryKey)
@@ -342,6 +735,12 @@ func reportDefinitionForKey(kind, registryKey string) reportDefinition {
 		formatNames = []string{"Standard"}
 	}
 	if spec.purchaseReadModel {
+		formatNames = []string{"Standard"}
+	}
+	if spec.stockReadModel {
+		formatNames = []string{"Standard"}
+	}
+	if spec.financeMode != "" || spec.adminKind != "" {
 		formatNames = []string{"Standard"}
 	}
 	if dailySaleDetail {
@@ -362,19 +761,66 @@ func reportDefinitionForKey(kind, registryKey string) reportDefinition {
 	projectionNote := "Generic event-ledger fallback; exact legacy projection is not implemented."
 	columns := reportColumns()
 	retrievalScope := "tenant and branch scoped"
+	if spec.financeMode != "" {
+		projectionStatus = "real"
+		projectionNote = financeProjectionNote(spec.financeMode)
+		columns = financeReportColumns(spec.financeMode)
+		retrievalScope = "tenant, branch, posted-only, date, text, and normalized " + spec.financeMode + " projection"
+		if spec.financeMode == "tax-withholding" {
+			projectionStatus = "generic-fallback"
+		}
+	}
+	if spec.adminKind != "" {
+		projectionStatus = "real"
+		columns = reportAdminColumns(spec.adminKind)
+		projectionNote = "Tenant-scoped administrative projection; branch scope is applied where the source table carries a branch assignment. Legacy-only fields not present in the normalized tables are omitted."
+		retrievalScope = "tenant, branch assignment where available, date, text, and normalized administrative records"
+	}
 	if explicitEventProjection {
 		projectionStatus = "event-ledger"
 		projectionNote = "Scoped immutable event-ledger view; captured legacy grouping and calculated numeric fields are not implemented."
 		columns = reportEventLedgerColumns()
 		retrievalScope = "tenant, branch, date, text, and immutable " + spec.aggregateCondition
 		if spec.salesReadModel {
-			projectionNote = "Scoped union of canonical cash/credit business_documents and compatibility sale events; captured legacy grouping and calculated numeric fields are not implemented."
-			retrievalScope = "tenant, branch, date, text, canonical sales documents, and compatibility sale events"
+			if spec.aggregateCondition == reportSaleReturnAggregate {
+				projectionNote = "Canonical posted cash/credit/open sale-return business_documents and lines with compatibility sale_return events; " + salesProjectionModeNote(spec.salesMode)
+				retrievalScope = "tenant, branch, date, text, canonical sale-return documents/lines, and compatibility sale_return events"
+			} else {
+				projectionNote = "Scoped union of canonical cash/credit business_documents and compatibility sale events; " + salesProjectionModeNote(spec.salesMode)
+				retrievalScope = "tenant, branch, date, text, canonical sales documents, and compatibility sale events"
+			}
 		}
 		if spec.purchaseReadModel {
 			projectionNote = "Canonical posted purchase business_documents/lines with supplier party ledger and stock ledger values when available; posted compatibility events are included only when no canonical document matches. Legacy grouping and unreconciled tax, profit, graph, and disparity calculations are not implemented."
 			retrievalScope = "tenant, branch, date, text, supplier, canonical purchase documents/lines, stock ledger, supplier party ledger, and posted compatibility events"
 			columns = reportColumns()
+		}
+		if spec.stockReadModel {
+			projectionStatus = "real"
+			columns = stockReportColumns(spec.stockMode)
+			projectionNote = stockProjectionNote(spec.stockMode)
+			retrievalScope = "tenant, branch, date, text, godown, batch, posted stock_ledger, and normalized stock_balances"
+		}
+		if spec.financeMode != "" {
+			projectionStatus = "real"
+			projectionNote = financeProjectionNote(spec.financeMode)
+			columns = financeReportColumns(spec.financeMode)
+			retrievalScope = "tenant, branch, posted-only, date, text, and normalized " + spec.financeMode + " projection"
+			if spec.financeMode == "tax-withholding" {
+				projectionStatus = "generic-fallback"
+			}
+		}
+		if spec.adminKind != "" {
+			projectionStatus = "real"
+			columns = reportAdminColumns(spec.adminKind)
+			projectionNote = "Tenant-scoped administrative projection; branch scope is applied where the source table carries a branch assignment. Legacy-only fields not present in the normalized tables are omitted."
+			retrievalScope = "tenant, branch assignment where available, date, text, and normalized administrative records"
+		}
+		if spec.compatibilityOnly && spec.financeMode == "" && spec.adminKind == "" &&
+			!spec.stockReadModel && !spec.purchaseReadModel && !spec.salesReadModel {
+			projectionStatus = "event-ledger"
+			projectionNote = "Explicit compatibility fallback over posted sync_events; no normalized canonical projection exists for this legacy leaf, so missing legacy calculations and columns are not inferred."
+			retrievalScope = "tenant, branch, posted-only compatibility events, date, and text"
 		}
 	}
 	if concreteProjection {
@@ -421,8 +867,8 @@ func reportDefinitionForKey(kind, registryKey string) reportDefinition {
 		},
 		Exports: []reportExportHook{
 			{Format: "csv", Status: "available", Label: "CSV", Message: "CSV export is available."},
-			{Format: "pdf", Status: "not_implemented", Label: "PDF", Message: "PDF export is not implemented yet."},
-			{Format: "excel", Status: "not_implemented", Label: "Excel", Message: "Excel export is not implemented yet."},
+			{Format: "pdf", Status: "available", Label: "PDF", Message: "PDF export uses the print-preview letterhead and browser Save as PDF."},
+			{Format: "excel", Status: "available", Label: "Excel", Message: "Excel-compatible workbook download is available."},
 		},
 	}
 }
@@ -450,7 +896,8 @@ func reportRegistryKey(kind, legacyPath string) string {
 			segments = segments[1:]
 		}
 	} else if len(segments) > 0 && (segments[0] == "Sales Reports" ||
-		segments[0] == "Purchase Reports" || segments[0] == "Purchase Return Reports") {
+		segments[0] == "Purchase Reports" || segments[0] == "Purchase Return Reports" ||
+		segments[0] == "Stock Reports") {
 		segments = segments[1:]
 	}
 	var builder strings.Builder
@@ -521,11 +968,38 @@ func applyReportFormatNames(definition *reportDefinition, names []string) {
 // double-counting a document during a mixed rollout.
 func salesReadModelQuery(aggregateCondition, pagination string) string {
 	eventCondition := "se.aggregate = 'sale'"
+	canonicalReturnUnion := ""
 	if aggregateCondition == reportSaleOrReturn {
 		eventCondition = "se.aggregate IN ('sale', 'sale_return')"
+		canonicalReturnUnion = `
+
+			UNION ALL
+
+			SELECT bd.document_number,
+			       bd.occurred_at,
+			       COALESCE(mp.name,
+			                CASE WHEN bd.kind IN ('cash-return', 'open-cash-return',
+			                                       'cash-sale-return', 'open-sale-return')
+			                     THEN 'CASH' ELSE '' END),
+			       COALESCE(bl.item_name, ''),
+			       COALESCE(bl.quantity::text, ''),
+			       bd.total_amount::text
+			FROM business_documents bd
+			LEFT JOIN master_parties mp
+			  ON mp.tenant_id = bd.tenant_id AND mp.id = bd.customer_id
+			 AND mp.party_type = 'customer'
+			LEFT JOIN business_document_lines bl
+			  ON bl.tenant_id = bd.tenant_id AND bl.branch_id = bd.branch_id
+			 AND bl.document_id = bd.id
+			WHERE bd.tenant_id = $1::uuid AND bd.branch_id = $2::uuid
+			  AND bd.kind IN ('cash-return', 'credit-return',
+			                  'open-cash-return', 'open-credit-return',
+			                  'cash-sale-return', 'credit-sale-return',
+			                  'open-sale-return')
+			  AND bd.status = 'posted'`
 	}
 	return `
-		WITH sales_read_model AS (
+	WITH sales_read_model AS (
 			SELECT bd.document_number AS document,
 			       bd.occurred_at,
 			       COALESCE(mp.name, CASE WHEN bd.kind = 'cash-sale' THEN 'CASH' ELSE '' END) AS party,
@@ -542,6 +1016,7 @@ func salesReadModelQuery(aggregateCondition, pagination string) string {
 			WHERE bd.tenant_id = $1::uuid AND bd.branch_id = $2::uuid
 			  AND bd.kind IN ('cash-sale', 'credit-sale')
 			  AND bd.status = 'posted'
+		` + canonicalReturnUnion + `
 
 			UNION ALL
 
@@ -593,11 +1068,104 @@ func salesReadModelQuery(aggregateCondition, pagination string) string {
 		)
 		SELECT document, occurred_at::text, party, item, quantity, amount
 		FROM sales_read_model
-		WHERE occurred_at::date BETWEEN $3::date AND $4::date
+		WHERE occurred_at >= $3::date
+		  AND occurred_at < ($4::date + INTERVAL '1 day')
 		  AND ($5 = '' OR document ILIKE '%' || $5 || '%'
 		       OR party ILIKE '%' || $5 || '%'
 		       OR item ILIKE '%' || $5 || '%')
 		ORDER BY occurred_at DESC, document, item ` + pagination
+}
+
+// salesReadModelQueryMode keeps the detailed projection as the compatibility
+// default while allowing captured invoice-summary leaves to aggregate each
+// document once. The underlying read model is still the authority for
+// document identity, date scope, and compatibility de-duplication.
+func salesReadModelQueryMode(aggregateCondition, mode, pagination string) string {
+	if mode != "invoice-summary" {
+		return salesReadModelQuery(aggregateCondition, pagination)
+	}
+	return invoiceSummaryReadModelQuery(salesReadModelQuery(aggregateCondition, ""), pagination)
+}
+
+func invoiceSummaryReadModelQuery(baseQuery, pagination string) string {
+	return `
+	WITH invoice_rows AS (` + baseQuery + `)
+	SELECT document,
+	       MAX(occurred_at)::text,
+	       MAX(party),
+	       '',
+	       COALESCE(SUM(CASE WHEN quantity ~ '^-?[0-9]+(\.[0-9]+)?$' THEN quantity::numeric ELSE 0 END), 0)::text,
+	       COALESCE(MAX(CASE WHEN amount ~ '^-?[0-9]+(\.[0-9]+)?$' THEN amount::numeric ELSE 0 END), 0)::text
+	FROM invoice_rows
+	GROUP BY document
+	ORDER BY MAX(occurred_at) DESC, document ` + pagination
+}
+
+// saleReturnReadModelQuery is the posted sale-return counterpart to
+// salesReadModelQuery. Source-bound and open returns are both canonical
+// business documents; compatibility sale_return events remain visible only
+// when no canonical document with the same identity exists.
+func saleReturnReadModelQuery(pagination string) string {
+	return `
+	WITH sale_return_read_model AS (
+		SELECT bd.document_number AS document,
+		       bd.occurred_at,
+		       COALESCE(mp.name,
+		                CASE WHEN bd.kind IN ('cash-return', 'open-cash-return',
+		                                       'cash-sale-return', 'open-sale-return')
+		                     THEN 'CASH' ELSE '' END) AS party,
+		       COALESCE(bl.item_name, '') AS item,
+		       COALESCE(bl.quantity::text, '') AS quantity,
+		       bd.total_amount::text AS amount
+		FROM business_documents bd
+		LEFT JOIN master_parties mp
+		  ON mp.tenant_id = bd.tenant_id AND mp.id = bd.customer_id
+		 AND mp.party_type = 'customer'
+		LEFT JOIN business_document_lines bl
+		  ON bl.tenant_id = bd.tenant_id AND bl.branch_id = bd.branch_id
+		 AND bl.document_id = bd.id
+		WHERE bd.tenant_id = $1::uuid AND bd.branch_id = $2::uuid
+		  AND bd.kind IN ('cash-return', 'credit-return',
+		                  'open-cash-return', 'open-credit-return',
+		                  'cash-sale-return', 'credit-sale-return',
+		                  'open-sale-return')
+		  AND bd.status = 'posted'
+
+		UNION ALL
+
+		SELECT COALESCE(NULLIF(se.payload->>'documentNumber', ''), se.aggregate_id::text),
+		       se.occurred_at,
+		       COALESCE(se.payload->>'customerName', se.payload->>'customer', 'CASH'),
+		       COALESCE(se.payload->>'itemName', se.payload->'rows'->0->>'itemName', ''),
+		       COALESCE(se.payload->>'quantity', se.payload->'rows'->0->>'quantity', ''),
+		       COALESCE(se.payload->>'totalAmount', se.payload->>'amount', '')
+		FROM sync_events se
+		WHERE se.tenant_id = $1::uuid AND se.branch_id = $2::uuid
+		  AND se.aggregate IN ('sale_return', 'sale-return')
+		  AND COALESCE(NULLIF(se.payload->>'status', ''), 'posted') = 'posted'
+		  AND NOT EXISTS (
+			SELECT 1
+			FROM business_documents bd
+			WHERE bd.tenant_id = se.tenant_id AND bd.branch_id = se.branch_id
+			  AND (bd.id = se.aggregate_id
+			       OR bd.document_number = se.payload->>'documentNumber')
+		  )
+	)
+	SELECT document, occurred_at::text, party, item, quantity, amount
+	FROM sale_return_read_model
+	WHERE occurred_at >= $3::date
+	  AND occurred_at < ($4::date + INTERVAL '1 day')
+	  AND ($5 = '' OR document ILIKE '%' || $5 || '%'
+	       OR party ILIKE '%' || $5 || '%'
+	       OR item ILIKE '%' || $5 || '%')
+	ORDER BY occurred_at DESC, document, item ` + pagination
+}
+
+func saleReturnReadModelQueryMode(mode, pagination string) string {
+	if mode != "invoice-summary" {
+		return saleReturnReadModelQuery(pagination)
+	}
+	return invoiceSummaryReadModelQuery(saleReturnReadModelQuery(""), pagination)
 }
 
 // purchaseReadModelQuery is the shared purchase report/history projection.
@@ -624,7 +1192,7 @@ func purchaseReadModelQuery(aggregateCondition, mode, pagination string) string 
 		itemExpression = "l.item_name"
 		quantityExpression = "COALESCE(stock.stock_quantity, l.quantity)"
 		amountExpression = "l.line_total"
-		groupBy += ", l.line_number, l.item_name, l.line_total, stock.stock_quantity"
+		groupBy += ", l.line_number, l.item_name, l.line_total, l.quantity, stock.stock_quantity"
 	}
 	return `
 		WITH canonical_purchase AS (
@@ -703,11 +1271,358 @@ func purchaseReadModelQuery(aggregateCondition, mode, pagination string) string 
 		)
 		SELECT document, occurred_at::text, party, item, quantity, amount
 		FROM canonical_purchase
-		WHERE occurred_at::date BETWEEN $3::date AND $4::date
+		WHERE occurred_at >= $3::date
+		  AND occurred_at < ($4::date + INTERVAL '1 day')
 		  AND ($5 = '' OR document ILIKE '%' || $5 || '%'
 		       OR party ILIKE '%' || $5 || '%'
 		       OR item ILIKE '%' || $5 || '%')
 		ORDER BY occurred_at DESC, document, item ` + pagination
+}
+
+// stockReadModelQuery keeps Phase P on the normalized stock authority. Ledger
+// rows are joined to their immutable source events so draft/void compatibility
+// payloads cannot enter a report. Balance reports use the rebuildable
+// stock_balances cache, but require a posted ledger row for the batch.
+func stockReadModelQuery(mode, pagination string) string {
+	if mode == "movement" {
+		return `
+			WITH posted_stock_ledger AS (
+				SELECT l.id::text AS movement_id, l.occurred_at, l.direction,
+				       l.quantity, l.adjustment_sign, l.unit_cost,
+				       b.item_legacy_id, b.batch_number,
+				       COALESCE(g.name, '') AS godown,
+				       COALESCE(i.name, '') AS item_name
+				FROM stock_ledger l
+				JOIN sync_events se
+				  ON se.tenant_id = l.tenant_id AND se.event_id = l.source_event_id
+				JOIN stock_batches b
+				  ON b.tenant_id = l.tenant_id AND b.branch_id = l.branch_id
+				 AND b.id = l.batch_id
+				LEFT JOIN master_godowns g
+				  ON g.tenant_id = b.tenant_id AND g.id = b.godown_id
+				LEFT JOIN master_items i
+				  ON i.tenant_id = b.tenant_id AND i.id = b.item_id
+				WHERE l.tenant_id = $1::uuid AND l.branch_id = $2::uuid
+				  AND COALESCE(NULLIF(se.payload->>'status', ''), 'posted') = 'posted'
+				  AND ($6 = '' OR b.godown_id = $6::uuid)
+				  AND ($7 = '' OR b.batch_number ILIKE '%' || $7 || '%')
+			)
+			SELECT movement_id, occurred_at::text, direction,
+			       COALESCE(NULLIF(item_name, ''), item_legacy_id),
+			       (CASE
+					WHEN direction = 'out' THEN -quantity
+					WHEN direction = 'adjustment' THEN quantity * adjustment_sign
+					ELSE quantity
+				END)::text,
+			       unit_cost::text
+			FROM posted_stock_ledger
+			WHERE occurred_at >= $3::date
+			  AND occurred_at < ($4::date + INTERVAL '1 day')
+			  AND ($5 = '' OR movement_id ILIKE '%' || $5 || '%'
+			       OR item_legacy_id ILIKE '%' || $5 || '%'
+			       OR item_name ILIKE '%' || $5 || '%'
+			       OR godown ILIKE '%' || $5 || '%'
+			       OR batch_number ILIKE '%' || $5 || '%')
+			ORDER BY occurred_at DESC, movement_id
+			` + pagination
+	}
+	if mode == "adjustment" {
+		return `
+			SELECT l.id::text, l.occurred_at::text, l.direction,
+			       COALESCE(NULLIF(i.name, ''), b.item_legacy_id),
+			       (l.quantity * l.adjustment_sign)::text, l.unit_cost::text
+			FROM stock_ledger l
+			JOIN sync_events se
+			  ON se.tenant_id = l.tenant_id AND se.event_id = l.source_event_id
+			JOIN stock_batches b
+			  ON b.tenant_id = l.tenant_id AND b.branch_id = l.branch_id AND b.id = l.batch_id
+			LEFT JOIN master_items i
+			  ON i.tenant_id = b.tenant_id AND i.id = b.item_id
+			WHERE l.tenant_id = $1::uuid AND l.branch_id = $2::uuid
+			  AND l.direction = 'adjustment'
+			  AND COALESCE(NULLIF(se.payload->>'status', ''), 'posted') = 'posted'
+			  AND l.occurred_at >= $3::date
+			  AND l.occurred_at < ($4::date + INTERVAL '1 day')
+			  AND ($5 = '' OR l.id::text ILIKE '%' || $5 || '%'
+			       OR b.item_legacy_id ILIKE '%' || $5 || '%'
+			       OR COALESCE(i.name, '') ILIKE '%' || $5 || '%')
+			ORDER BY l.occurred_at DESC, l.id
+			` + pagination
+	}
+
+	valuation := "unit_cost"
+	if mode == "valuation" {
+		valuation = "on_hand * unit_cost"
+	}
+	expiryFilter := "updated_at >= $3::date AND updated_at < ($4::date + INTERVAL '1 day')"
+	if mode == "expiry" {
+		expiryFilter = "expiry_date IS NOT NULL AND expiry_date BETWEEN $3::date AND $4::date"
+	}
+	return `
+		SELECT b.batch_number,
+		       COALESCE(b.expiry_date::text, sb.updated_at::text),
+		       COALESCE(g.name, ''),
+		       COALESCE(NULLIF(i.name, ''), sb.item_legacy_id),
+		       sb.on_hand::text,
+		       (` + valuation + `)::text
+		FROM stock_balances sb
+		JOIN stock_batches b
+		  ON b.tenant_id = sb.tenant_id AND b.branch_id = sb.branch_id
+		 AND b.id = sb.batch_id
+		LEFT JOIN master_godowns g
+		  ON g.tenant_id = b.tenant_id AND g.id = b.godown_id
+		LEFT JOIN master_items i
+		  ON i.tenant_id = b.tenant_id AND i.id = b.item_id
+		WHERE sb.tenant_id = $1::uuid AND sb.branch_id = $2::uuid
+		  AND sb.on_hand <> 0
+		  AND ` + expiryFilter + `
+		  AND ($5 = '' OR b.batch_number ILIKE '%' || $5 || '%'
+		       OR sb.item_legacy_id ILIKE '%' || $5 || '%'
+		       OR i.name ILIKE '%' || $5 || '%'
+		       OR g.name ILIKE '%' || $5 || '%')
+		  AND ($6 = '' OR b.godown_id = $6::uuid)
+		  AND ($7 = '' OR b.batch_number ILIKE '%' || $7 || '%')
+		  AND EXISTS (
+			SELECT 1
+			FROM stock_ledger l
+			JOIN sync_events se
+			  ON se.tenant_id = l.tenant_id AND se.event_id = l.source_event_id
+			WHERE l.tenant_id = sb.tenant_id AND l.branch_id = sb.branch_id
+			  AND l.batch_id = sb.batch_id
+			  AND COALESCE(NULLIF(se.payload->>'status', ''), 'posted') = 'posted'
+		  )
+		ORDER BY sb.updated_at DESC, b.batch_number, sb.batch_id
+		` + pagination
+}
+
+func financeReadModelQuery(mode, pagination string) string {
+	switch mode {
+	case "gl", "gl-cash":
+		accountFilter := ""
+		if mode == "gl-cash" {
+			accountFilter = "AND a.system_key = 'cash'"
+		}
+		return `
+			SELECT j.id::text, j.posted_at::text, a.code || ' - ' || a.name,
+			       l.memo, l.debit_amount::text, l.credit_amount::text
+			FROM gl_journals j
+			JOIN gl_lines l
+			  ON l.tenant_id = j.tenant_id AND l.branch_id = j.branch_id
+			 AND l.journal_id = j.id
+			JOIN finance_accounts a
+			  ON a.tenant_id = l.tenant_id AND a.id = l.account_id
+			WHERE j.tenant_id = $1::uuid AND j.branch_id = $2::uuid
+			  AND j.status = 'posted'
+			  ` + accountFilter + `
+			  AND j.posted_at >= $3::date
+			  AND j.posted_at < ($4::date + INTERVAL '1 day')
+			  AND ($5 = '' OR j.id::text ILIKE '%' || $5 || '%'
+			       OR a.code ILIKE '%' || $5 || '%'
+			       OR a.name ILIKE '%' || $5 || '%'
+			       OR l.memo ILIKE '%' || $5 || '%')
+			ORDER BY j.posted_at DESC, j.id, l.line_number
+			` + pagination
+	case "trial-balance":
+		return `
+			SELECT a.code, MAX(j.posted_at)::text, c.name, a.name,
+			       COALESCE(SUM(l.debit_amount), 0)::text,
+			       COALESCE(SUM(l.credit_amount), 0)::text
+			FROM gl_journals j
+			JOIN gl_lines l
+			  ON l.tenant_id = j.tenant_id AND l.branch_id = j.branch_id
+			 AND l.journal_id = j.id
+			JOIN finance_accounts a
+			  ON a.tenant_id = l.tenant_id AND a.id = l.account_id
+			JOIN finance_account_categories c
+			  ON c.tenant_id = a.tenant_id AND c.code = a.category_code
+			WHERE j.tenant_id = $1::uuid AND j.branch_id = $2::uuid
+			  AND j.status = 'posted'
+			  AND j.posted_at >= $3::date
+			  AND j.posted_at < ($4::date + INTERVAL '1 day')
+			  AND ($5 = '' OR a.code ILIKE '%' || $5 || '%'
+			       OR a.name ILIKE '%' || $5 || '%'
+			       OR c.name ILIKE '%' || $5 || '%')
+			GROUP BY a.code, c.name, a.name
+			ORDER BY a.code
+			` + pagination
+	case "party-customer", "party-supplier":
+		partyKind := "customer"
+		if mode == "party-supplier" {
+			partyKind = "supplier"
+		}
+		return `
+			SELECT ple.source_document_id::text, ple.occurred_at::text,
+			       COALESCE(mp.name, ''), ple.description,
+			       ple.debit_amount::text, ple.credit_amount::text
+			FROM party_ledger_entries ple
+			LEFT JOIN master_parties mp
+			  ON mp.tenant_id = ple.tenant_id AND mp.id = ple.party_id
+			 AND mp.party_type = '` + partyKind + `'
+			WHERE ple.tenant_id = $1::uuid AND ple.branch_id = $2::uuid
+			  AND ple.counterparty_kind = '` + partyKind + `'
+			  AND ple.occurred_at >= $3::date
+			  AND ple.occurred_at < ($4::date + INTERVAL '1 day')
+			  AND ($5 = '' OR ple.source_document_id::text ILIKE '%' || $5 || '%'
+			       OR COALESCE(mp.name, '') ILIKE '%' || $5 || '%'
+			       OR ple.description ILIKE '%' || $5 || '%')
+			ORDER BY ple.occurred_at, ple.id
+			` + pagination
+	case "aging-receivable", "aging-payable":
+		partyKind := "customer"
+		if mode == "aging-payable" {
+			partyKind = "supplier"
+		}
+		return `
+			SELECT ple.party_id::text, MAX(ple.occurred_at)::text,
+			       COALESCE(mp.name, ''), 'UNAGED - due date unavailable',
+			       COALESCE(SUM(ple.debit_amount), 0)::text,
+			       COALESCE(SUM(ple.credit_amount), 0)::text
+			FROM party_ledger_entries ple
+			LEFT JOIN master_parties mp
+			  ON mp.tenant_id = ple.tenant_id AND mp.id = ple.party_id
+			 AND mp.party_type = '` + partyKind + `'
+			WHERE ple.tenant_id = $1::uuid AND ple.branch_id = $2::uuid
+			  AND ple.counterparty_kind = '` + partyKind + `'
+			  AND ple.occurred_at >= $3::date
+			  AND ple.occurred_at < ($4::date + INTERVAL '1 day')
+			  AND ($5 = '' OR COALESCE(mp.name, '') ILIKE '%' || $5 || '%'
+			       OR ple.party_id::text ILIKE '%' || $5 || '%')
+			GROUP BY ple.party_id, mp.name
+			HAVING SUM(ple.debit_amount - ple.credit_amount) <> 0
+			ORDER BY mp.name, ple.party_id
+			` + pagination
+	case "tax-output", "tax-input", "tax-advance":
+		kindFilter := "'cash-sale', 'credit-sale'"
+		if mode == "tax-input" {
+			kindFilter = "'pack-purchase', 'loose-purchase', 'opening-purchase', 'purchase-return'"
+		}
+		advanceFilter := ""
+		if mode == "tax-advance" {
+			advanceFilter = "AND l.advance_tax_rate > 0"
+		}
+		return `
+			SELECT d.document_number, d.occurred_at::text,
+			       COALESCE(mp.name, ''), l.item_name,
+			       l.line_total::text, l.tax_amount::text
+			FROM business_documents d
+			JOIN business_document_lines l
+			  ON l.tenant_id = d.tenant_id AND l.branch_id = d.branch_id
+			 AND l.document_id = d.id
+			LEFT JOIN master_parties mp
+			  ON mp.tenant_id = d.tenant_id
+			 AND mp.id = CASE WHEN d.kind IN ('cash-sale', 'credit-sale')
+			                  THEN d.customer_id ELSE d.supplier_id END
+			WHERE d.tenant_id = $1::uuid AND d.branch_id = $2::uuid
+			  AND d.status = 'posted' AND d.kind IN (` + kindFilter + `)
+			  AND l.tax_amount > 0 ` + advanceFilter + `
+			  AND d.occurred_at >= $3::date
+			  AND d.occurred_at < ($4::date + INTERVAL '1 day')
+			  AND ($5 = '' OR d.document_number ILIKE '%' || $5 || '%'
+			       OR COALESCE(mp.name, '') ILIKE '%' || $5 || '%'
+			       OR l.item_name ILIKE '%' || $5 || '%')
+			ORDER BY d.occurred_at DESC, d.document_number, l.line_number
+			` + pagination
+	case "tax-withholding":
+		return `
+			SELECT ''::text, ''::text, ''::text, ''::text, ''::text, ''::text
+			WHERE false
+			` + pagination
+	case "voucher":
+		return `
+			SELECT ve.id::text, ve.created_at::text, vc.name, ve.description,
+			       ve.amount::text, ve.status
+			FROM voucher_entries ve
+			JOIN voucher_categories vc
+			  ON vc.tenant_id = ve.tenant_id AND vc.code = ve.category_code
+			WHERE ve.tenant_id = $1::uuid AND ve.branch_id = $2::uuid
+			  AND ve.status = 'posted'
+			  AND ve.created_at >= $3::date
+			  AND ve.created_at < ($4::date + INTERVAL '1 day')
+			  AND ($5 = '' OR ve.id::text ILIKE '%' || $5 || '%'
+			       OR vc.name ILIKE '%' || $5 || '%'
+			       OR ve.description ILIKE '%' || $5 || '%')
+			ORDER BY ve.created_at DESC, ve.id
+			` + pagination
+	}
+	return ""
+}
+
+func adminReadModelQuery(kind, pagination string) string {
+	switch kind {
+	case "users":
+		return `
+			SELECT u.id::text, u.created_at::text, u.username, u.display_name,
+			       CASE WHEN u.active THEN 'true' ELSE 'false' END,
+			       COALESCE(string_agg(r.name, ', ' ORDER BY r.name), '')
+			FROM users u
+			LEFT JOIN user_memberships um
+			  ON um.tenant_id = u.tenant_id AND um.user_id = u.id
+			LEFT JOIN roles r
+			  ON r.tenant_id = um.tenant_id AND r.id = um.role_id
+			LEFT JOIN user_branch_assignments uba
+			  ON uba.tenant_id = u.tenant_id AND uba.user_id = u.id
+			WHERE u.tenant_id = $1::uuid
+			  AND (uba.branch_id = $2::uuid OR uba.branch_id IS NULL)
+			  AND u.created_at >= $3::date
+			  AND u.created_at < ($4::date + INTERVAL '1 day')
+			  AND ($5 = '' OR u.username ILIKE '%' || $5 || '%'
+			       OR u.display_name ILIKE '%' || $5 || '%')
+			GROUP BY u.id, u.created_at, u.username, u.display_name, u.active
+			ORDER BY u.created_at DESC, u.id
+			` + pagination
+	case "roles":
+		return `
+			SELECT r.id::text, COALESCE(rp.permission, ''), r.name, r.code,
+			       CASE WHEN COALESCE(rp.allowed, true) THEN 'true' ELSE 'false' END,
+			       'normalized role_permissions'
+			FROM roles r
+			LEFT JOIN role_permissions rp
+			  ON rp.tenant_id = r.tenant_id AND rp.role_id = r.id
+			WHERE r.tenant_id = $1::uuid
+			  AND $3::date <= $4::date
+			  AND ($5 = '' OR r.code ILIKE '%' || $5 || '%'
+			       OR r.name ILIKE '%' || $5 || '%'
+			       OR COALESCE(rp.permission, '') ILIKE '%' || $5 || '%')
+			ORDER BY r.code, rp.permission
+			` + pagination
+	default:
+		kind = strings.ReplaceAll(kind, "'", "''")
+		return `
+			SELECT COALESCE(mr.code, ''), mr.updated_at::text, mr.kind, mr.name,
+			       CASE WHEN mr.active THEN 'true' ELSE 'false' END,
+			       COALESCE(mr.legacy_id, '')
+			FROM master_records mr
+			WHERE mr.tenant_id = $1::uuid AND mr.kind = '` + kind + `'
+			  AND mr.updated_at >= $3::date
+			  AND mr.updated_at < ($4::date + INTERVAL '1 day')
+			  AND ($5 = '' OR mr.code ILIKE '%' || $5 || '%'
+			       OR mr.name ILIKE '%' || $5 || '%'
+			       OR COALESCE(mr.legacy_id, '') ILIKE '%' || $5 || '%')
+			ORDER BY mr.updated_at DESC, mr.code
+			` + pagination
+	}
+}
+
+func compatibilityReportQuery(aggregateCondition, pagination string) string {
+	return `
+		SELECT se.event_id::text, se.occurred_at::text,
+		       COALESCE(se.payload->>'customerName', se.payload->>'customer',
+		                se.payload->>'supplierName', se.payload->>'supplier', se.aggregate),
+		       COALESCE(se.payload->>'itemName', se.payload->'rows'->0->>'itemName',
+		                se.payload->>'documentNumber', ''),
+		       COALESCE(se.payload->>'quantity', se.payload->'rows'->0->>'quantity', ''),
+		       COALESCE(se.payload->>'totalAmount', se.payload->>'amount', '')
+		FROM sync_events se
+		WHERE se.tenant_id = $1::uuid AND se.branch_id = $2::uuid
+		  AND COALESCE(NULLIF(se.payload->>'status', ''), 'posted') = 'posted'
+		  AND se.occurred_at >= $3::date
+		  AND se.occurred_at < ($4::date + INTERVAL '1 day')
+		  AND ` + aggregateCondition + `
+		  AND ($5 = '' OR se.aggregate ILIKE '%' || $5 || '%'
+		       OR se.event_id::text ILIKE '%' || $5 || '%'
+		       OR se.payload::text ILIKE '%' || $5 || '%')
+		ORDER BY se.occurred_at DESC, se.event_id
+		` + pagination
 }
 
 func (s *Server) loadReportDefinition(ctx context.Context, operator *sessionContext, kind, legacyPath string) reportDefinition {
@@ -798,8 +1713,14 @@ func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 	}
 	legacyPath := strings.TrimSpace(r.URL.Query().Get("legacyPath"))
 	registryKey := reportRegistryKey(kind, legacyPath)
-	definition := s.loadReportDefinition(r.Context(), operator, kind, legacyPath)
-	tx, err := s.beginScopedTx(r.Context(), operator)
+	reportTimeout := s.reportTimeout
+	if reportTimeout <= 0 {
+		reportTimeout = 5 * time.Second
+	}
+	reportCtx, cancel := context.WithTimeout(r.Context(), reportTimeout)
+	defer cancel()
+	definition := s.loadReportDefinition(reportCtx, operator, kind, legacyPath)
+	tx, err := s.beginScopedTx(reportCtx, operator)
 	if err != nil {
 		writeProblem(w, http.StatusServiceUnavailable, "database_unavailable", "Database unavailable", "The report store could not be opened.")
 		return
@@ -808,7 +1729,7 @@ func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 	filter := strings.TrimSpace(r.URL.Query().Get("filter"))
 	rows := make([]reportRow, 0, pageSize+1)
 	appendRows := func(query string, args ...any) error {
-		result, queryErr := tx.QueryContext(r.Context(), query, args...)
+		result, queryErr := tx.QueryContext(reportCtx, query, args...)
 		if queryErr != nil {
 			return queryErr
 		}
@@ -847,7 +1768,8 @@ func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 				  ON b.tenant_id = l.tenant_id AND b.branch_id = l.branch_id AND b.id = l.batch_id
 				WHERE l.tenant_id = $1::uuid AND l.branch_id = $2::uuid
 				  AND ($8 = '' OR b.godown_id = $8::uuid)
-				  AND l.occurred_at::date BETWEEN $3::date AND $4::date
+				  AND l.occurred_at >= $3::date
+				  AND l.occurred_at < ($4::date + INTERVAL '1 day')
 				  AND ($5 = '' OR b.item_legacy_id ILIKE '%' || $5 || '%')
 
 				UNION ALL
@@ -858,7 +1780,8 @@ func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 				JOIN sync_events se
 				  ON se.tenant_id = im.tenant_id AND se.event_id = im.source_event_id
 				WHERE im.tenant_id = $1::uuid AND im.branch_id = $2::uuid
-				  AND im.occurred_at::date BETWEEN $3::date AND $4::date
+				  AND im.occurred_at >= $3::date
+				  AND im.occurred_at < ($4::date + INTERVAL '1 day')
 				  AND ($5 = '' OR im.item_legacy_id ILIKE '%' || $5 || '%')
 				  AND ($8 = '' OR EXISTS (
 					SELECT 1
@@ -886,7 +1809,7 @@ func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "purchase-return":
-		query = `SELECT event_id::text, occurred_at::text, COALESCE(payload->>'supplierName', payload->>'supplier', ''), COALESCE(payload->>'invoiceNumber', payload->>'documentNumber', ''), COALESCE(payload->>'quantity', payload->'rows'->0->>'quantity', ''), COALESCE(payload->>'totalAmount', payload->>'amount', '') FROM sync_events WHERE tenant_id = $1::uuid AND ($2 = '' OR branch_id::text = $2) AND aggregate = 'return' AND COALESCE(NULLIF(payload->>'status', ''), 'posted') = 'posted' AND occurred_at::date BETWEEN $3::date AND $4::date AND ($5 = '' OR payload::text ILIKE '%' || $5 || '%' OR event_id::text ILIKE '%' || $5 || '%') ORDER BY occurred_at DESC LIMIT $6 OFFSET $7`
+		query = purchaseReadModelQuery("se.aggregate = 'return'", "detail", "LIMIT $6 OFFSET $7")
 		if err = appendRows(query, operator.TenantID, operator.BranchID, from, to, filter, pageSize+1, (page-1)*pageSize); err != nil {
 			writeProblem(w, http.StatusServiceUnavailable, "report_read_failed", "Unable to read report", "The purchase-return report query failed.")
 			return
@@ -898,7 +1821,21 @@ func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 		// catch-all event stream. Payload fields preserve the legacy party/item/
 		// quantity/amount values when a workflow supplied them.
 		aggregateCondition := reportAggregateCondition(registryKey)
-		if spec, ok := reportSpecForKey(registryKey); ok && spec.purchaseReadModel {
+		if spec, ok := reportSpecForKey(registryKey); ok && spec.stockReadModel {
+			godownID := strings.TrimSpace(r.URL.Query().Get("godownId"))
+			if godownID != "" && !documentUUIDPattern.MatchString(godownID) {
+				writeProblem(w, http.StatusBadRequest, "invalid_godown", "Invalid godown", "The godownId must be a UUID.")
+				return
+			}
+			batchNumber := strings.TrimSpace(r.URL.Query().Get("batchNumber"))
+			query = stockReadModelQuery(spec.stockMode, "LIMIT $8 OFFSET $9")
+			if err = appendRows(query, operator.TenantID, operator.BranchID, from, to, filter, godownID, batchNumber, pageSize+1, (page-1)*pageSize); err != nil {
+				writeProblem(w, http.StatusServiceUnavailable, "report_read_failed", "Unable to read report", "The normalized stock report query failed.")
+				return
+			}
+			break
+		}
+		if spec, ok := reportSpecForKey(registryKey); ok && spec.purchaseReadModel && spec.financeMode == "" {
 			query = purchaseReadModelQuery(spec.aggregateCondition, spec.purchaseMode, "LIMIT $6 OFFSET $7")
 			if err = appendRows(query, operator.TenantID, operator.BranchID, from, to, filter, pageSize+1, (page-1)*pageSize); err != nil {
 				writeProblem(w, http.StatusServiceUnavailable, "report_read_failed", "Unable to read report", "The purchase report query failed.")
@@ -906,10 +1843,38 @@ func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 			}
 			break
 		}
-		if spec, ok := reportSpecForKey(registryKey); ok && spec.salesReadModel {
-			query = salesReadModelQuery(spec.aggregateCondition, "LIMIT $6 OFFSET $7")
+		if spec, ok := reportSpecForKey(registryKey); ok && spec.salesReadModel && spec.financeMode == "" {
+			if spec.aggregateCondition == reportSaleReturnAggregate {
+				query = saleReturnReadModelQueryMode(spec.salesMode, "LIMIT $6 OFFSET $7")
+			} else {
+				query = salesReadModelQueryMode(spec.aggregateCondition, spec.salesMode, "LIMIT $6 OFFSET $7")
+			}
 			if err = appendRows(query, operator.TenantID, operator.BranchID, from, to, filter, pageSize+1, (page-1)*pageSize); err != nil {
 				writeProblem(w, http.StatusServiceUnavailable, "report_read_failed", "Unable to read report", "The sales report query failed.")
+				return
+			}
+			break
+		}
+		if spec, ok := reportSpecForKey(registryKey); ok && spec.financeMode != "" {
+			query = financeReadModelQuery(spec.financeMode, "LIMIT $6 OFFSET $7")
+			if err = appendRows(query, operator.TenantID, operator.BranchID, from, to, filter, pageSize+1, (page-1)*pageSize); err != nil {
+				writeProblem(w, http.StatusServiceUnavailable, "report_read_failed", "Unable to read report", "The normalized financial report query failed.")
+				return
+			}
+			break
+		}
+		if spec, ok := reportSpecForKey(registryKey); ok && spec.adminKind != "" {
+			query = adminReadModelQuery(spec.adminKind, "LIMIT $6 OFFSET $7")
+			if err = appendRows(query, operator.TenantID, operator.BranchID, from, to, filter, pageSize+1, (page-1)*pageSize); err != nil {
+				writeProblem(w, http.StatusServiceUnavailable, "report_read_failed", "Unable to read report", "The normalized administrative report query failed.")
+				return
+			}
+			break
+		}
+		if spec, ok := reportSpecForKey(registryKey); ok && spec.compatibilityOnly {
+			query = compatibilityReportQuery(spec.aggregateCondition, "LIMIT $6 OFFSET $7")
+			if err = appendRows(query, operator.TenantID, operator.BranchID, from, to, filter, pageSize+1, (page-1)*pageSize); err != nil {
+				writeProblem(w, http.StatusServiceUnavailable, "report_read_failed", "Unable to read report", "The labeled compatibility report query failed.")
 				return
 			}
 			break
@@ -921,7 +1886,8 @@ func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 			COALESCE(se.payload->>'totalAmount', se.payload->>'amount', '')
 			FROM sync_events se
 			WHERE se.tenant_id = $1::uuid AND ($2 = '' OR se.branch_id::text = $2)
-			AND se.occurred_at::date BETWEEN $3::date AND $4::date
+			AND se.occurred_at >= $3::date
+			AND se.occurred_at < ($4::date + INTERVAL '1 day')
 			AND ` + aggregateCondition + `
 			AND ($5 = '' OR se.aggregate ILIKE '%' || $5 || '%' OR se.event_id::text ILIKE '%' || $5 || '%' OR se.payload::text ILIKE '%' || $5 || '%')
 			ORDER BY se.occurred_at DESC LIMIT $6 OFFSET $7`

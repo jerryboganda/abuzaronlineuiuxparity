@@ -21,10 +21,12 @@ legacy report parity, and the legacy application/database were not modified.
   document identities. Draft and void/voided canonical or compatibility rows
   are excluded; reports and history expose posted sales only.
 - Phase N sale definitions use that same canonical-plus-compatibility sale
-  union. Sales-return definitions continue to use the immutable
-  `sale_return` compatibility aggregate because the document API does not yet
-  emit canonical return documents; sale-and-return definitions explicitly
-  union both sources.
+  union. Sales-return definitions now use the canonical posted
+  `business_documents`/`business_document_lines` return read model for
+  source-bound and open returns, and retain immutable `sale_return`
+  compatibility events only when no canonical document with the same
+  identity exists. Sale-and-return definitions still use their combined
+  compatibility filter until their exact legacy grouping is captured.
 - Event-level definitions expose only payload-backed values. Their
   `projectionStatus` is `event-ledger` and their note explicitly says that
   captured legacy grouping and calculated numeric fields are not implemented.
@@ -65,3 +67,25 @@ remains explicitly generic until its legacy identity/output is captured.
   `DATABASE_URL` and passed against the local disposable database when its URL
   was supplied explicitly. The default environment did not provide that
   variable.
+
+## Canonical sale-return read-model follow-up - 2026-08-06
+
+- `sales-return-detail`, `sales-return-summary`, `sales-return-summary-inv-wise`,
+  and `sales-return-detail-inv-wise` now select posted canonical return
+  documents (including open cash/credit returns) and their lines. A
+  compatibility `sale_return` event is retained only when its document identity
+  is not already represented canonically.
+- Focused evidence: `go test ./services/api/internal/httpapi -run
+  'TestSaleReturnReadModel|TestSalesReportDefinitions|TestReadModelsExposeCanonicalSaleReturns'
+  -count=1` passed against the local PostgreSQL database.
+
+## Invoice-summary read-model follow-up - 2026-08-06
+
+- `sale-summary`, `sale-summary-inv-wise`, `sale-summary-invoice-wise`,
+  `sales-return-summary`, and `sales-return-summary-inv-wise` now group the
+  canonical/compatibility read model once per invoice. Quantity is summed from
+  line rows and the authoritative document amount is retained, so a multi-line
+  invoice is not displayed as repeated full totals.
+- Focused evidence: `go test ./services/api/internal/httpapi -run
+  'TestInvoiceSummaryReadModelsGroupRowsOncePerDocument|TestInvoiceSummaryReportGroupsCanonicalLines'
+  -count=1` passed with the local PostgreSQL cluster.

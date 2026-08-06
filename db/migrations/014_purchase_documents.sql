@@ -36,18 +36,20 @@ ALTER TABLE business_documents
 ALTER TABLE business_documents
     ADD CONSTRAINT business_documents_kind_check CHECK (kind IN (
         'cash-sale', 'credit-sale',
+        'quotation', 'refused-sale',
         'pack-purchase', 'loose-purchase', 'opening-purchase',
         'purchase-return', 'purchase-order'
-    ));
+    )) NOT VALID;
 
 ALTER TABLE command_receipts
     DROP CONSTRAINT IF EXISTS command_receipts_kind_check;
 ALTER TABLE command_receipts
     ADD CONSTRAINT command_receipts_kind_check CHECK (kind IN (
         'cash-sale', 'credit-sale',
+        'quotation', 'refused-sale',
         'pack-purchase', 'loose-purchase', 'opening-purchase',
         'purchase-return', 'purchase-order'
-    ));
+    )) NOT VALID;
 
 ALTER TABLE business_document_lines
     ADD COLUMN IF NOT EXISTS batch_number text NOT NULL DEFAULT '',
@@ -119,14 +121,14 @@ ALTER TABLE party_ledger_entries
     DROP CONSTRAINT IF EXISTS party_ledger_entries_check1;
 ALTER TABLE party_ledger_entries
     ADD CONSTRAINT party_ledger_entries_counterparty_kind_check
-        CHECK (counterparty_kind IN ('customer', 'supplier', 'cash')),
+        CHECK (counterparty_kind IN ('customer', 'supplier', 'cash')) NOT VALID,
     ADD CONSTRAINT party_ledger_entries_entry_kind_check
-        CHECK (entry_kind IN ('sale', 'purchase', 'purchase-return', 'voucher')),
+        CHECK (entry_kind IN ('sale', 'purchase', 'purchase-return', 'voucher')) NOT VALID,
     ADD CONSTRAINT party_ledger_entries_party_check
         CHECK (
             (counterparty_kind IN ('customer', 'supplier') AND party_id IS NOT NULL)
             OR counterparty_kind = 'cash'
-        );
+        ) NOT VALID;
 
 CREATE INDEX IF NOT EXISTS idx_business_documents_supplier
     ON business_documents (tenant_id, branch_id, supplier_id, occurred_at DESC);

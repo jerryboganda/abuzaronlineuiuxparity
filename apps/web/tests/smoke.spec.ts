@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/v1/access', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ tenantAdmin: true, permissions: [], legacyRights: [], scopes: {}, scopeRows: [], exceptions: [] })
+  }));
+});
+
 test('landing page exposes the parity workspace entrypoint', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByTestId('landing-page')).toBeVisible();
@@ -73,8 +81,9 @@ test('sales List tab renders persisted transaction history rows', async ({ page 
     body: JSON.stringify({ kind: 'sale', rows: [{ document: 'QA-100', occurredAt: '2026-08-05', party: 'CASH', item: 'QA ITEM', quantity: '2', amount: '42.00' }] })
   }));
   await page.goto('/app/sales?kind=cash');
-  await page.waitForTimeout(400);
-  await page.locator('.legacy-transaction-tabs button').nth(1).click({ force: true });
+  await page.waitForTimeout(700);
+  await page.getByTestId('sales-list-tab').click({ force: true });
+  await expect(page.getByTestId('sales-list-tab')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.legacy-sale-list')).toBeVisible();
   await expect(page.getByText('QA-100')).toBeVisible();
   await expect(page.getByText('QA ITEM')).toBeVisible();
@@ -98,7 +107,7 @@ test('captured nested report menu reaches a concrete report workflow', async ({ 
   await expect(page.getByRole('heading', { name: 'Sale detail', exact: true })).toBeVisible();
 });
 
-test('Daily Sale Detail retrieves through the report definition and opens print preview', async ({ page }) => {
+test('Daily Sale Detail retrieves through the report definition and exports preview/workbook output', async ({ page }) => {
   await page.route('**/v1/reports/daily-sales-detail*', async (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -125,8 +134,8 @@ test('Daily Sale Detail retrieves through the report definition and opens print 
         letterhead: { name: 'Configured Pharmacy', line2: 'NRY Pacific', line3: "Franchise Fazal Din's", phone: '0300 1234567', fax: '', source: 'database' },
         exports: [
           { format: 'csv', status: 'available', label: 'CSV', message: 'CSV export is available.' },
-          { format: 'pdf', status: 'not_implemented', label: 'PDF', message: 'PDF export is not implemented yet.' },
-          { format: 'excel', status: 'not_implemented', label: 'Excel', message: 'Excel export is not implemented yet.' }
+          { format: 'pdf', status: 'available', label: 'PDF', message: 'PDF export uses the print-preview letterhead and browser Save as PDF.' },
+          { format: 'excel', status: 'available', label: 'Excel', message: 'Excel-compatible workbook download is available.' }
         ]
       }
     })
@@ -135,13 +144,17 @@ test('Daily Sale Detail retrieves through the report definition and opens print 
   await expect(page.getByRole('dialog', { name: 'Specify Retrieval Arguements' })).toBeVisible({ timeout: 4000 });
   await page.getByRole('dialog', { name: 'Specify Retrieval Arguements' }).getByRole('button', { name: 'Ok' }).evaluate((element) => (element as HTMLButtonElement).click());
   await expect(page.getByText('INV-100')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Export report as PDF' })).toBeDisabled();
-  await page.getByRole('button', { name: 'Preview report' }).click();
+  await expect(page.getByRole('button', { name: 'Export report as PDF' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Export report as PDF' }).click();
   await expect(page.getByRole('dialog', { name: 'Print preview' })).toBeVisible();
   await expect(page.getByText('Configured Pharmacy')).toBeVisible();
+  await page.getByRole('button', { name: 'Close print preview' }).click();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export report as Excel' }).click();
+  await expect((await download).suggestedFilename()).toMatch(/daily-sales-detail-.*\.xls$/);
 });
 
-test('fallback report identifies its projection and keeps unavailable exports disabled', async ({ page }) => {
+test('fallback report identifies its projection and keeps workbook exports available', async ({ page }) => {
   await page.route('**/v1/reports/unclassified-captured-report*', async (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -162,8 +175,8 @@ test('fallback report identifies its projection and keeps unavailable exports di
         letterhead: { name: "Fazal Din's Pharma Plus", line2: 'NRY Pacific', line3: "Franchise Fazal Din's", phone: '055 3252501', fax: '', source: 'default' },
         exports: [
           { format: 'csv', status: 'available', label: 'CSV', message: 'CSV export is available.' },
-          { format: 'pdf', status: 'not_implemented', label: 'PDF', message: 'PDF export is not implemented yet.' },
-          { format: 'excel', status: 'not_implemented', label: 'Excel', message: 'Excel export is not implemented yet.' }
+          { format: 'pdf', status: 'available', label: 'PDF', message: 'PDF export uses the print-preview letterhead and browser Save as PDF.' },
+          { format: 'excel', status: 'available', label: 'Excel', message: 'Excel-compatible workbook download is available.' }
         ]
       }
     })
@@ -171,7 +184,7 @@ test('fallback report identifies its projection and keeps unavailable exports di
   await page.goto('/app/report/unclassified-captured-report');
   await page.getByRole('button', { name: 'Retrieve', exact: true }).click();
   await expect(page.getByText('Generic event-ledger fallback; exact legacy projection is not implemented.')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Export report as Excel' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Export report as Excel' })).toBeEnabled();
 });
 
 test('Sales Return detail uses the scoped sale-return projection', async ({ page }) => {
@@ -202,8 +215,8 @@ test('Sales Return detail uses the scoped sale-return projection', async ({ page
         letterhead: { name: "Fazal Din's Pharma Plus", line2: 'NRY Pacific', line3: "Franchise Fazal Din's", phone: '055 3252501', fax: '', source: 'default' },
         exports: [
           { format: 'csv', status: 'available', label: 'CSV', message: 'CSV export is available.' },
-          { format: 'pdf', status: 'not_implemented', label: 'PDF', message: 'PDF export is not implemented yet.' },
-          { format: 'excel', status: 'not_implemented', label: 'Excel', message: 'Excel export is not implemented yet.' }
+          { format: 'pdf', status: 'available', label: 'PDF', message: 'PDF export uses the print-preview letterhead and browser Save as PDF.' },
+          { format: 'excel', status: 'available', label: 'Excel', message: 'Excel-compatible workbook download is available.' }
         ]
       }
     })
@@ -237,8 +250,8 @@ test('Sales Return fallback renders the optional API projection note', async ({ 
         letterhead: { name: "Fazal Din's Pharma Plus", line2: 'NRY Pacific', line3: "Franchise Fazal Din's", phone: '055 3252501', fax: '', source: 'default' },
         exports: [
           { format: 'csv', status: 'available', label: 'CSV', message: 'CSV export is available.' },
-          { format: 'pdf', status: 'not_implemented', label: 'PDF', message: 'PDF export is not implemented yet.' },
-          { format: 'excel', status: 'not_implemented', label: 'Excel', message: 'Excel export is not implemented yet.' }
+          { format: 'pdf', status: 'available', label: 'PDF', message: 'PDF export uses the print-preview letterhead and browser Save as PDF.' },
+          { format: 'excel', status: 'available', label: 'Excel', message: 'Excel-compatible workbook download is available.' }
         ]
       }
     })
@@ -275,8 +288,8 @@ function purchaseReportDefinition(kind: string, title: string) {
     letterhead: { name: "Fazal Din's Pharma Plus", line2: 'NRY Pacific', line3: "Franchise Fazal Din's", phone: '055 3252501', fax: '', source: 'default' },
     exports: [
       { format: 'csv', status: 'available', label: 'CSV', message: 'CSV export is available.' },
-      { format: 'pdf', status: 'not_implemented', label: 'PDF', message: 'PDF export is not implemented yet.' },
-      { format: 'excel', status: 'not_implemented', label: 'Excel', message: 'Excel export is not implemented yet.' }
+          { format: 'pdf', status: 'available', label: 'PDF', message: 'PDF export uses the print-preview letterhead and browser Save as PDF.' },
+          { format: 'excel', status: 'available', label: 'Excel', message: 'Excel-compatible workbook download is available.' }
     ]
   };
 }
@@ -345,6 +358,97 @@ test('purchase return, supplier, and purchase-order report leaves retain mapped 
     await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
     await expect(page.getByText('PUR-RET-100')).toBeVisible();
   }
+});
+
+function stockReportDefinition(kind: string, title: string, movement = false) {
+  return {
+    kind,
+    title,
+    projectionStatus: 'real',
+    projectionNote: movement
+      ? 'Normalized posted stock_ledger movement projection joined to batch, item, and godown metadata; compatibility inventory_movements and unreconciled legacy grouping are not included.'
+      : 'Normalized posted stock_balances projection joined to stock batches, items, and godowns; legacy manufacturer/category/class/reorder/narcotics groupings and exact valuation are not implemented.',
+    columns: movement
+      ? [
+          { key: 'document', label: 'Movement', dataType: 'text', sortable: true },
+          { key: 'occurredAt', label: 'Date', dataType: 'date', sortable: true },
+          { key: 'party', label: 'Direction', dataType: 'text', sortable: true },
+          { key: 'item', label: 'Item', dataType: 'text', sortable: true },
+          { key: 'quantity', label: 'Quantity', dataType: 'number', sortable: true },
+          { key: 'amount', label: 'Unit Cost', dataType: 'currency', sortable: true }
+        ]
+      : [
+          { key: 'document', label: 'Batch', dataType: 'text', sortable: true },
+          { key: 'occurredAt', label: 'Expiry/Updated', dataType: 'date', sortable: true },
+          { key: 'party', label: 'Godown', dataType: 'text', sortable: true },
+          { key: 'item', label: 'Item', dataType: 'text', sortable: true },
+          { key: 'quantity', label: 'On Hand', dataType: 'number', sortable: true },
+          { key: 'amount', label: 'Unit Cost', dataType: 'currency', sortable: true }
+        ],
+    formats: [{ id: 'standard', name: 'Standard', source: 'default' }],
+    retrieval: {
+      title: 'Specify Retrieval Arguements',
+      areas: ['DEFAULT AREA', 'ALL AREAS'],
+      supportsCashCredit: false,
+      supportsDateRange: true,
+      supportsTextFilter: true,
+      scope: 'tenant, branch, date, text, godown, batch, posted stock_ledger, and normalized stock_balances'
+    },
+    letterhead: { name: "Fazal Din's Pharma Plus", line2: 'NRY Pacific', line3: "Franchise Fazal Din's", phone: '055 3252501', fax: '', source: 'default' },
+    exports: [
+      { format: 'csv', status: 'available', label: 'CSV', message: 'CSV export is available.' },
+      { format: 'pdf', status: 'available', label: 'PDF', message: 'PDF export uses the print-preview letterhead and browser Save as PDF.' },
+      { format: 'excel', status: 'available', label: 'Excel', message: 'Excel-compatible workbook download is available.' }
+    ]
+  };
+}
+
+test('stock, expiry, godown, and batch report leaves use normalized stock metadata', async ({ page }) => {
+  const requestedFilters: string[] = [];
+  const requestedGodowns: string[] = [];
+  const requestedBatches: string[] = [];
+  await page.route('**/v1/reports/*', async (route) => {
+    const requestURL = new URL(route.request().url());
+    requestedFilters.push(requestURL.searchParams.get('filter') ?? '');
+    requestedGodowns.push(requestURL.searchParams.get('godownId') ?? '');
+    requestedBatches.push(requestURL.searchParams.get('batchNumber') ?? '');
+    const kind = requestURL.pathname.split('/').pop() ?? 'stock-in-hand-batch-priority-wise';
+    const movement = kind === 'daily-stock-in-out';
+    const title = kind === 'expiry-report' ? 'Expiry Report' : kind === 'daily-stock-in-out' ? 'Daily Stock IN/OUT' : 'Batch, Priority Wise';
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        kind,
+        rows: [{ document: 'B-001', occurredAt: '2030-01-01', party: 'GODOWN1', item: 'CANONICAL ITEM', quantity: movement ? '2' : '7', amount: '4.00' }],
+        page: 1,
+        pageSize: 50,
+        hasMore: false,
+        definition: stockReportDefinition(kind, title, movement)
+      })
+    });
+  });
+  for (const [path, legacyPath, title] of [
+    ['stock-in-hand-batch-priority-wise', 'Reports > Stock Reports > Stock In hand > Batch, Priority Wise', 'Batch, Priority Wise'],
+    ['expiry-report', 'Reports > Stock Reports > Expiry Report', 'Expiry Report'],
+    ['daily-stock-in-out', 'Reports > Stock Reports > Daily Stock IN/OUT', 'Daily Stock IN/OUT']
+  ] as const) {
+    const scope = path === 'stock-in-hand-batch-priority-wise'
+      ? '&godownId=33333333-3333-4333-8333-333333333333&batchNumber=B-001'
+      : '';
+    await page.goto(`/app/report/${path}?legacyPath=${encodeURIComponent(legacyPath)}${scope}`);
+    await page.waitForTimeout(1500);
+    if (path === 'stock-in-hand-batch-priority-wise') {
+      await page.getByLabel('Filter:').fill('B-001');
+    }
+    await page.getByRole('button', { name: 'Refresh report' }).click({ force: true });
+    await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+    await expect(page.getByText('GODOWN1')).toBeVisible();
+    await expect(page.getByText(/Normalized posted stock_/)).toBeVisible();
+  }
+  expect(requestedFilters).toContain('B-001');
+  expect(requestedGodowns).toContain('33333333-3333-4333-8333-333333333333');
+  expect(requestedBatches).toContain('B-001');
 });
 
 test('parity workflow surfaces are reachable for transactions, master data, reports, and maintenance', async ({ page }) => {

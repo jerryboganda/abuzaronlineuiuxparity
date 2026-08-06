@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-08-06T17:37:14.9711509Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CompanyHeader",
+      "sourceCount": 0,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 0,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ConfigSetting",
+      "sourceCount": 9,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 9,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Preferences",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 1,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Area",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 1,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemCategory",
+      "sourceCount": 7,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 7,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerCategory",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 1,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemGroup",
+      "sourceCount": 0,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 0,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerGroup",
+      "sourceCount": 0,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 0,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GodownGroup",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 1,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SupplierCategory",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 1,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ManufacturerCategory",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 1,
+      "status": "matched"
+    }
+  ]
+}

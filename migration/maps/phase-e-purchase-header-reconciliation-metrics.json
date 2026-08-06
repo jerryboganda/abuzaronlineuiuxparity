@@ -1,0 +1,16 @@
+{
+  "metrics": [
+    {
+      "name": "purchase_header_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Purledger",
+      "targetQuery": "SELECT COUNT(*) FROM public.business_documents WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'Purledger'",
+      "tolerance": 0
+    },
+    {
+      "name": "purchase_total",
+      "sourceQuery": "SELECT COALESCE(SUM(InvTotal), 0) FROM dbo.Purledger",
+      "targetQuery": "SELECT COALESCE(SUM(total_amount), 0) FROM public.business_documents WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'Purledger'",
+      "tolerance": 0.01
+    }
+  ]
+}

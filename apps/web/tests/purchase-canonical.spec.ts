@@ -1,5 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/v1/access', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ tenantAdmin: true, permissions: [], legacyRights: [], scopes: {}, scopeRows: [], exceptions: [] })
+  }));
+});
+
 const itemId = '11111111-1111-4111-8111-111111111111';
 const supplierId = '22222222-2222-4222-8222-222222222222';
 const godownId = '33333333-3333-4333-8333-333333333333';
@@ -46,7 +54,10 @@ function accepted(kind: string, action: string, status: 'draft' | 'posted' | 'vo
 
 async function fillReceipt(page: Page) {
   await page.getByRole('combobox', { name: 'Quick search 1' }).fill('ITEM-1');
-  await page.getByRole('button', { name: 'Lookup item 1' }).click();
+  const lookupButton = page.getByRole('button', { name: 'Lookup item 1' });
+  await expect(lookupButton).toBeVisible({ timeout: 10_000 });
+  await expect(lookupButton).toBeEnabled();
+  await lookupButton.click({ force: true });
   await expect(page.getByRole('combobox', { name: 'Item name 1' })).toHaveValue('CANONICAL ITEM');
   await page.getByLabel('Supplier').fill('SUPPLIER 1');
   await page.getByLabel('Godown 1').fill('GODOWN 1');
@@ -60,8 +71,11 @@ test('supported purchases never fall back or show success after canonical failur
   let transactionsCalled = false;
   page.on('request', (request) => { if (request.url().includes('/v1/transactions/')) transactionsCalled = true; });
   await page.route('**/v1/documents/pack-purchase', (route) => route.fulfill({ status: 422, contentType: 'application/problem+json', body: JSON.stringify({ detail: 'canonical rejected' }) }));
+  const supplierLoad = page.waitForResponse('**/v1/master/supplier');
   await page.goto('/app/purchase/pack');
-  await page.waitForTimeout(500);
+  await supplierLoad;
+  await expect(page.getByLabel('Supplier')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('button', { name: 'Save document' })).toBeEnabled();
   await fillReceipt(page);
   await page.getByRole('button', { name: 'Save document' }).click();
   await expect(page.locator('.legacy-transaction-footer')).toContainText('canonical rejected', { timeout: 7000 });
@@ -174,7 +188,7 @@ test('purchase List loads scoped canonical history and restores a document', asy
     });
   });
   await page.goto('/app/purchase/pack');
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(700);
   await page.getByTestId('purchase-list-tab').click({ force: true });
   await expect(page.getByTestId('purchase-list-tab')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.legacy-purchase-list')).toContainText('PUR-000001');

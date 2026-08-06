@@ -1,0 +1,118 @@
+{
+  "generatedAt": "2026-08-06T17:57:57.2792027Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CompanyHeader",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 0,
+      "imported": 0,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ConfigSetting",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 9,
+      "imported": 9,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Preferences",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 1,
+      "imported": 1,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Area",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 1,
+      "imported": 1,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemCategory",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 7,
+      "imported": 7,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerCategory",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 1,
+      "imported": 1,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemGroup",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 0,
+      "imported": 0,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerGroup",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 0,
+      "imported": 0,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GodownGroup",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 1,
+      "imported": 1,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SupplierCategory",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 1,
+      "imported": 1,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ManufacturerCategory",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 1,
+      "imported": 1,
+      "duplicates": 0,
+      "exceptions": 0
+    }
+  ]
+}

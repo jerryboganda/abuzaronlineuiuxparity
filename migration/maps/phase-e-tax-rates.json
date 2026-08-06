@@ -1,0 +1,255 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "tables": [
+    {
+      "source": { "schema": "dbo", "table": "SalesTaxSchedule" },
+      "target": { "schema": "public", "table": "tax_rates" },
+      "sourceId": "SalesTaxScheduleCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": {
+        "tax_kind": "SalesTaxScheduleCode",
+        "code": "SalesTaxScheduleCode",
+        "name": "Name",
+        "rate": "TaxPerc",
+        "effective_from": "SalesTaxScheduleCode",
+        "source_legacy_id": "SalesTaxScheduleCode"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "tax_kind": "gst",
+        "effective_from": "2000-01-01",
+        "source_table": "SalesTaxSchedule"
+      },
+      "coerce": { "code": "text", "source_legacy_id": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "tax_kind", "code"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "TaxCategory" },
+      "target": { "schema": "public", "table": "tax_rates" },
+      "sourceId": "TaxCategoryCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": {
+        "code": "TaxCategoryCode",
+        "name": "Name",
+        "rate": "TaxPerc",
+        "source_legacy_id": "TaxCategoryCode"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "tax_kind": "pct",
+        "effective_from": "2000-01-01",
+        "source_table": "TaxCategory"
+      },
+      "coerce": { "code": "text", "source_legacy_id": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "tax_kind", "code"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "PricePolicyDetail" },
+      "target": { "schema": "public", "table": "price_policy_tiers" },
+      "sourceId": "PricePolicyCode",
+      "sourceIdColumns": ["PricePolicyCode", "QtyLimit", "ExpiryDate"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": {
+        "legacy_policy_id": "PricePolicyCode",
+        "quantity_limit": "QtyLimit",
+        "price": "Price",
+        "expiry_date": "ExpiryDate",
+        "flat_discount": "ItemFlatDisc",
+        "discount_percent": "DiscPerc",
+        "source_legacy_id": "PricePolicyCode"
+      },
+      "payloadTarget": "payload",
+      "payloadColumns": {
+        "PricePolicyCode": "PricePolicyCode",
+        "QtyLimit": "QtyLimit",
+        "Price": "Price",
+        "ExpiryDate": "ExpiryDate",
+        "ItemFlatDisc": "ItemFlatDisc",
+        "DiscPerc": "DiscPerc"
+      },
+      "derivedColumns": {
+        "legacy_id": ["PricePolicyCode", "QtyLimit", "ExpiryDate"]
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "source_table": "PricePolicyDetail"
+      },
+      "coerce": {
+        "legacy_id": "text",
+        "legacy_policy_id": "text",
+        "source_legacy_id": "text"
+      },
+      "conflictColumns": ["tenant_id", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "AdditionalTaxRule" },
+      "target": { "schema": "public", "table": "migration_ambiguous_records" },
+      "sourceId": "AdditionalTaxRuleCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "AdditionalTaxRuleCode" },
+      "payloadTarget": "payload",
+      "payloadColumns": {
+        "AdditionalTaxRuleCode": "AdditionalTaxRuleCode",
+        "Name": "Name",
+        "ShortName": "ShortName"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "source_schema": "dbo",
+        "source_table": "AdditionalTaxRule",
+        "reason_code": "tax_rule_has_no_numeric_rate"
+      },
+      "coerce": { "legacy_id": "text" },
+      "conflictColumns": ["tenant_id", "source_schema", "source_table", "legacy_id", "reason_code"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "ExtraTaxRule" },
+      "target": { "schema": "public", "table": "migration_ambiguous_records" },
+      "sourceId": "ExtraTaxRuleCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "ExtraTaxRuleCode" },
+      "payloadTarget": "payload",
+      "payloadColumns": {
+        "ExtraTaxRuleCode": "ExtraTaxRuleCode",
+        "Name": "Name",
+        "ShortName": "ShortName"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "source_schema": "dbo",
+        "source_table": "ExtraTaxRule",
+        "reason_code": "tax_rule_has_no_numeric_rate"
+      },
+      "coerce": { "legacy_id": "text" },
+      "conflictColumns": ["tenant_id", "source_schema", "source_table", "legacy_id", "reason_code"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "IncomeTaxRule" },
+      "target": { "schema": "public", "table": "migration_ambiguous_records" },
+      "sourceId": "IncomeTaxRuleCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "IncomeTaxRuleCode" },
+      "payloadTarget": "payload",
+      "payloadColumns": {
+        "IncomeTaxRuleCode": "IncomeTaxRuleCode",
+        "Name": "Name",
+        "ShortName": "ShortName"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "source_schema": "dbo",
+        "source_table": "IncomeTaxRule",
+        "reason_code": "tax_rule_has_no_numeric_rate"
+      },
+      "coerce": { "legacy_id": "text" },
+      "conflictColumns": ["tenant_id", "source_schema", "source_table", "legacy_id", "reason_code"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "UnitSalesTaxRules" },
+      "target": { "schema": "public", "table": "migration_ambiguous_records" },
+      "sourceId": "RuleCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "RuleCode" },
+      "payloadTarget": "payload",
+      "payloadColumns": {
+        "RuleCode": "RuleCode",
+        "Name": "Name",
+        "ShortName": "ShortName"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "source_schema": "dbo",
+        "source_table": "UnitSalesTaxRules",
+        "reason_code": "tax_rule_has_no_numeric_rate"
+      },
+      "coerce": { "legacy_id": "text" },
+      "conflictColumns": ["tenant_id", "source_schema", "source_table", "legacy_id", "reason_code"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Item" },
+      "target": { "schema": "public", "table": "item_tax_assignments" },
+      "sourceId": "ICode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": {
+        "item_id": "ICode",
+        "source_legacy_id": "ICode"
+      },
+      "lookups": {
+        "item_id": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id", "valueColumn": "id", "sourceColumn": "ICode"
+        },
+        "tax_rate_id": {
+          "target": { "schema": "public", "table": "tax_rates" },
+          "targetColumn": "code", "valueColumn": "id",
+          "sourceColumn": "SalesTaxScheduleCode", "predicates": { "tax_kind": "gst" }
+        }
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "effective_from": "2000-01-01",
+        "source_table": "Item"
+      },
+      "targetCountJoin": {
+        "table": { "schema": "public", "table": "tax_rates" },
+        "localColumn": "tax_rate_id",
+        "foreignColumn": "id",
+        "predicates": { "tax_kind": "gst" }
+      },
+      "sourceFilter": "SalesTaxScheduleCode IS NOT NULL",
+      "coerce": { "source_legacy_id": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "item_id", "tax_rate_id", "effective_from"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Item" },
+      "target": { "schema": "public", "table": "item_tax_assignments" },
+      "sourceId": "ICode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": {
+        "item_id": "ICode",
+        "source_legacy_id": "ICode"
+      },
+      "lookups": {
+        "item_id": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id", "valueColumn": "id", "sourceColumn": "ICode"
+        },
+        "tax_rate_id": {
+          "target": { "schema": "public", "table": "tax_rates" },
+          "targetColumn": "code", "valueColumn": "id",
+          "sourceColumn": "PCTCode", "predicates": { "tax_kind": "pct" }
+        }
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "effective_from": "2000-01-01",
+        "source_table": "Item"
+      },
+      "targetCountJoin": {
+        "table": { "schema": "public", "table": "tax_rates" },
+        "localColumn": "tax_rate_id",
+        "foreignColumn": "id",
+        "predicates": { "tax_kind": "pct" }
+      },
+      "sourceFilter": "PCTCode IS NOT NULL",
+      "coerce": { "source_legacy_id": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "item_id", "tax_rate_id", "effective_from"]
+    }
+  ]
+}

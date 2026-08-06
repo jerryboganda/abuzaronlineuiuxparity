@@ -22,17 +22,18 @@ type contextKey string
 const sessionContextKey contextKey = "abuzar.session"
 
 type sessionContext struct {
-	TokenHash   string                     `json:"-"`
-	UserID      string                     `json:"operatorId"`
-	Username    string                     `json:"username"`
-	DisplayName string                     `json:"displayName"`
-	TenantID    string                     `json:"tenantId"`
-	TenantCode  string                     `json:"tenantCode"`
-	BranchID    string                     `json:"branchId,omitempty"`
-	CounterID   string                     `json:"counterId,omitempty"`
-	Roles       []string                   `json:"roles"`
-	Permissions []string                   `json:"permissions"`
-	Scopes      map[string]map[string]bool `json:"scopes,omitempty"`
+	TokenHash    string                     `json:"-"`
+	UserID       string                     `json:"operatorId"`
+	Username     string                     `json:"username"`
+	DisplayName  string                     `json:"displayName"`
+	TenantID     string                     `json:"tenantId"`
+	TenantCode   string                     `json:"tenantCode"`
+	BranchID     string                     `json:"branchId,omitempty"`
+	CounterID    string                     `json:"counterId,omitempty"`
+	Roles        []string                   `json:"roles"`
+	Permissions  []string                   `json:"permissions"`
+	Scopes       map[string]map[string]bool `json:"scopes,omitempty"`
+	LegacyRights []legacyRight              `json:"-"`
 }
 
 type loginRequest struct {
@@ -329,9 +330,12 @@ func loadOperatorAccess(ctx context.Context, database queryerRows, operator *ses
 			WHERE m.user_id = $1::uuid AND m.tenant_id = $2::uuid
 			  AND NOT EXISTS (
 				SELECT 1
-				FROM group_rights denied
-				WHERE denied.tenant_id = m.tenant_id
-				  AND denied.role_id = m.role_id
+				FROM user_memberships denied_membership
+				JOIN group_rights denied
+				  ON denied.tenant_id = denied_membership.tenant_id
+				 AND denied.role_id = denied_membership.role_id
+				WHERE denied_membership.user_id = m.user_id
+				  AND denied_membership.tenant_id = m.tenant_id
 				  AND lower(COALESCE(denied.permission, denied.right_code)) = lower(p.permission)
 				  AND NOT denied.allowed
 			  )
@@ -342,6 +346,18 @@ func loadOperatorAccess(ctx context.Context, database queryerRows, operator *ses
 			  ON g.role_id = m.role_id AND g.tenant_id = m.tenant_id
 			WHERE m.user_id = $1::uuid AND m.tenant_id = $2::uuid
 			  AND g.allowed AND COALESCE(g.permission, g.right_code) <> ''
+			  AND NOT EXISTS (
+				SELECT 1
+				FROM user_memberships denied_membership
+				JOIN group_rights denied
+				  ON denied.tenant_id = denied_membership.tenant_id
+				 AND denied.role_id = denied_membership.role_id
+				WHERE denied_membership.user_id = m.user_id
+				  AND denied_membership.tenant_id = m.tenant_id
+				  AND lower(COALESCE(denied.permission, denied.right_code)) =
+				      lower(COALESCE(g.permission, g.right_code))
+				  AND NOT denied.allowed
+			  )
 		) effective
 		ORDER BY effective.permission`
 	rows, err := database.QueryContext(ctx, effectivePermissions, operator.UserID, operator.TenantID)
@@ -364,7 +380,7 @@ func loadOperatorAccess(ctx context.Context, database queryerRows, operator *ses
 
 	operator.Scopes = make(map[string]map[string]bool)
 	scopeRows, err := database.QueryContext(ctx, `
-		SELECT g.scope_kind, g.scope_key, bool_or(g.allowed)
+		SELECT g.scope_kind, g.scope_key, bool_and(g.allowed)
 		FROM user_memberships m
 		JOIN group_allowed_scopes g
 		  ON g.role_id = m.role_id AND g.tenant_id = m.tenant_id
@@ -392,12 +408,71 @@ func loadOperatorAccess(ctx context.Context, database queryerRows, operator *ses
 		return err
 	}
 	scopeRows.Close()
+	rightRows, err := database.QueryContext(ctx, `
+		SELECT g.right_code, COALESCE(g.permission, ''), g.allowed,
+		       COALESCE(g.legacy_status, '')
+		FROM user_memberships m
+		JOIN group_rights g
+		  ON g.role_id = m.role_id AND g.tenant_id = m.tenant_id
+		WHERE m.user_id = $1::uuid AND m.tenant_id = $2::uuid
+		ORDER BY lower(g.right_code)
+	`, operator.UserID, operator.TenantID)
+	if err != nil {
+		return err
+	}
+	imported := make([]legacyRight, 0)
+	for rightRows.Next() {
+		var right legacyRight
+		if err := rightRows.Scan(&right.RightCode, &right.Permission, &right.Allowed, &right.LegacyStatus); err != nil {
+			rightRows.Close()
+			return err
+		}
+		imported = append(imported, right)
+	}
+	if err := rightRows.Err(); err != nil {
+		rightRows.Close()
+		return err
+	}
+	rightRows.Close()
+	operator.LegacyRights = resolveLegacyRights(imported)
 	return nil
+}
+
+func loadLegacyScopeRows(ctx context.Context, database queryerRows, userID, tenantID string) ([]legacyScope, error) {
+	rows, err := database.QueryContext(ctx, `
+		SELECT g.scope_kind, g.scope_key, COALESCE(g.scope_label, ''),
+		       bool_and(g.allowed), COALESCE(g.legacy_table, '')
+		FROM user_memberships m
+		JOIN group_allowed_scopes g
+		  ON g.role_id = m.role_id AND g.tenant_id = m.tenant_id
+		WHERE m.user_id = $1::uuid AND m.tenant_id = $2::uuid
+		GROUP BY g.scope_kind, g.scope_key, g.scope_label, g.legacy_table
+		ORDER BY g.scope_kind, g.scope_key
+	`, userID, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make([]legacyScope, 0)
+	for rows.Next() {
+		var scope legacyScope
+		if err := rows.Scan(&scope.ScopeKind, &scope.ScopeKey, &scope.ScopeLabel, &scope.Allowed, &scope.LegacyTable); err != nil {
+			return nil, err
+		}
+		result = append(result, scope)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return resolveLegacyScopes(result), nil
 }
 
 func scopeAllowed(operator *sessionContext, kind, key string) bool {
 	if operator == nil {
 		return false
+	}
+	if hasTenantAdminRole(operator.Roles) {
+		return true
 	}
 	entries, scoped := operator.Scopes[strings.ToLower(strings.TrimSpace(kind))]
 	if !scoped || len(entries) == 0 {

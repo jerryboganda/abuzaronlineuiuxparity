@@ -1,0 +1,52 @@
+{
+  "database": "abuzar_next",
+  "sourceDatabaseOpened": false,
+  "orderedFileRange": "001-026",
+  "migrationFileCount": 27,
+  "runs": [
+    {
+      "run": 1,
+      "result": "success",
+      "observedOutput": "Applied 27 migrations."
+    },
+    {
+      "run": 2,
+      "result": "failed",
+      "failure": "024_preferences_branch_scope.sql",
+      "reason": "constraint tenant_preferences_branch_fk already exists"
+    },
+    {
+      "run": 3,
+      "result": "success",
+      "observedOutput": "Applied 27 migrations."
+    }
+  ],
+  "compatibilityHardening": [
+    {
+      "migration": "014_purchase_documents.sql",
+      "change": "party-ledger compatibility CHECK constraints use NOT VALID; its document-kind check is replaced by later validated return-kind migrations",
+      "writeSemantics": "new party-ledger writes are checked; existing legacy party-ledger rows are not retroactively validated"
+    },
+    {
+      "migration": "022_sale_return_lifecycle.sql",
+      "change": "document-kind compatibility check uses NOT VALID and is replaced by later validated 023/025 checks",
+      "writeSemantics": "the final document-kind check is validated; no permanent relaxation remains"
+    },
+    {
+      "migration": "023_open_sale_return_lifecycle.sql",
+      "change": "no compatibility relaxation was required",
+      "writeSemantics": "kind CHECK constraints were validated successfully"
+    },
+    {
+      "migration": "025_sale_return_reversal_contract.sql",
+      "change": "no compatibility relaxation was required",
+      "writeSemantics": "kind/source CHECK constraints and reversal triggers were validated successfully"
+    },
+    {
+      "migration": "024_preferences_branch_scope.sql",
+      "change": "branch foreign-key creation is guarded by pg_constraint existence",
+      "writeSemantics": "no validation relaxation; the existing foreign key remains enforced"
+    }
+  ],
+  "complete": true
+}

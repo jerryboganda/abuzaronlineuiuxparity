@@ -1,0 +1,134 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "tables": [
+    {
+      "source": { "schema": "dbo", "table": "PurOrderHeader" },
+      "target": { "schema": "public", "table": "business_documents" },
+      "sourceId": "POCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "document" },
+      "columns": {
+        "legacy_id": "POCode",
+        "document_number": "POCode",
+        "occurred_at": "Date",
+        "subtotal": "Amount",
+        "discount_amount": "FlatDisc",
+        "misc_amount": "MiscCharges",
+        "total_amount": "Amount"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('PurOrderHeader:', CAST(POCode AS varchar(30)))"
+      },
+      "lookups": {
+        "supplier_id": {
+          "target": { "schema": "public", "table": "master_parties" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "SuppCode",
+          "predicates": { "party_type": "supplier" }
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "POCode": "POCode",
+        "SuppCode": "SuppCode",
+        "ManfCode": "ManfCode",
+        "Posted": "Posted",
+        "PostDate": "PostDate",
+        "RequiredDate": "RequiredDate",
+        "PurOrderCatCode": "PurOrderCatCode",
+        "SupplierReference": "SupplierReference",
+        "DeliveryLocation": "DeliveryLocation",
+        "UsageLocation": "UsageLocation",
+        "PurOrderTerms1": "PurOrderTerms1",
+        "PurOrderTerms2": "PurOrderTerms2",
+        "PurOrderTerms3": "PurOrderTerms3"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "counter_id": "11111111-1111-4111-8111-111111111111",
+        "kind": "purchase-order",
+        "status": "posted",
+        "price_level": "1",
+        "legacy_source_table": "PurOrderHeader"
+      },
+      "coerce": { "legacy_id": "text", "document_number": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "PurOrderDetail" },
+      "target": { "schema": "public", "table": "business_document_lines" },
+      "sourceId": "PORowId",
+      "sourceIdColumns": ["POCode", "PORowId"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "line" },
+      "columns": {
+        "item_legacy_id": "ICode",
+        "item_code": "ICode",
+        "unit_price": "Rate",
+        "batch_number": "Batch",
+        "expiry_date": "Expiry",
+        "unit_cost": "PurPrice",
+        "gst_rate": "GSTPerc"
+      },
+      "sourceExpressions": {
+        "legacy_import_key": "CONCAT('PurOrderDetail:', CAST(POCode AS varchar(30)), ':', CAST(PORowId AS varchar(30)))",
+        "line_number": "PORowId",
+        "quantity": "CAST(Qty AS decimal(19,4))",
+        "line_gross": "CAST(Rate AS decimal(19,4)) * CAST(Qty AS decimal(19,4))",
+        "line_total": "CAST(Rate AS decimal(19,4)) * CAST(Qty AS decimal(19,4))"
+      },
+      "lookups": {
+        "document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "POCode",
+          "predicates": { "legacy_source_table": "PurOrderHeader" }
+        },
+        "item_id": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "ICode"
+        },
+        "item_name": {
+          "target": { "schema": "public", "table": "master_items" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "name",
+          "sourceColumn": "ICode"
+        }
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "POCode": "POCode",
+        "ICode": "ICode",
+        "Batch": "Batch",
+        "Expiry": "Expiry",
+        "Qty": "Qty",
+        "Rate": "Rate",
+        "DiscPerc": "DiscPerc",
+        "BonusQty": "BonusQty",
+        "Stock": "Stock",
+        "ReceiptQty": "ReceiptQty",
+        "Remarks": "Remarks"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "legacy_source_table": "PurOrderDetail"
+      },
+      "derivedColumns": {
+        "legacy_id": ["POCode", "PORowId"]
+      },
+      "coerce": { "item_legacy_id": "text", "item_code": "text", "batch_number": "text" },
+      "conflictColumns": ["tenant_id", "branch_id", "legacy_import_key"]
+    }
+  ]
+}

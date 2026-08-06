@@ -2,7 +2,7 @@
 
 ## Scope
 
-This is the first posted cash/credit-sale finance slice. It is not a claim of
+This is the first posted cash/credit-sale and supplier-purchase finance slice. It is not a claim of
 historical financial parity or completion of the Phase K plan.
 
 ## Implemented
@@ -26,8 +26,7 @@ historical financial parity or completion of the Phase K plan.
   `reports.read` boundary. Posted document responses include a finance
   summary only when a journal and ledger entry actually exist.
 - Existing document and compatibility transaction routes were preserved.
-  Purchases/payables have no posting implementation; voucher tables are
-  explicit placeholders only.
+  Posted pack/loose/opening purchases and purchase returns now create balanced supplier payable/input-tax projections; voucher tables remain placeholders.
 
 ## Verification
 
@@ -50,7 +49,7 @@ historical financial parity or completion of the Phase K plan.
 - Legacy `VirtualGl` has not been migrated or reconciled against the new GL;
   historical opening balances are intentionally absent.
 - Legacy `SaleLedger` and `Purledger` have not been migrated or reconciled.
-  Supplier/payables posting is not implemented.
+  Supplier/payables posting is implemented for new canonical documents; historical balances remain open.
 - Tax source tables, legacy tax ordering/rates, tax registers, returns,
   reversals, and credit-limit behavior remain open Phase L/H/K work.
 - Voucher posting, cash-book semantics, historical account mapping, and

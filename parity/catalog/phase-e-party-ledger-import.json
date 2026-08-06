@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-08-06T18:58:25.5882894Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleLedger",
+      "targetSchema": "public",
+      "targetTable": "party_ledger_entries",
+      "read": 291359,
+      "imported": 0,
+      "duplicates": 0,
+      "exceptions": 291359
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleLedger",
+      "targetSchema": "public",
+      "targetTable": "party_ledger_entries",
+      "read": 2,
+      "imported": 0,
+      "duplicates": 0,
+      "exceptions": 2
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SRLedger",
+      "targetSchema": "public",
+      "targetTable": "party_ledger_entries",
+      "read": 30704,
+      "imported": 0,
+      "duplicates": 0,
+      "exceptions": 30704
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purledger",
+      "targetSchema": "public",
+      "targetTable": "party_ledger_entries",
+      "read": 6418,
+      "imported": 0,
+      "duplicates": 0,
+      "exceptions": 6418
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PRLedger",
+      "targetSchema": "public",
+      "targetTable": "party_ledger_entries",
+      "read": 634,
+      "imported": 0,
+      "duplicates": 0,
+      "exceptions": 634
+    }
+  ]
+}

@@ -3,6 +3,17 @@
   import { AbuzarApi, ApiError } from '$lib/api';
 
   type PreferenceRow = { caption: string; value: string; section?: boolean };
+  type PreferenceMeta = {
+    caption: string;
+    type: string;
+    default: string;
+    value: string;
+    allowed?: string[];
+    minimum?: number;
+    maximum?: number;
+    behavior: string;
+    runtimeStatus: string;
+  };
   const section = (caption: string): PreferenceRow => ({ caption, value: '', section: true });
   const item = (caption: string, value: string): PreferenceRow => ({ caption, value });
   const tabs = ['General', 'Sale', 'Sale Return', 'Purchase', 'Purchase Return', 'Report', 'BasicData', 'Quotation', 'Schedule', 'Adjustment', 'Purchase Order', 'Others', 'Point of Sale', 'Cashier Job Activity', 'Email', 'SMS', 'Dashboard'];
@@ -125,7 +136,10 @@
   let message = '';
   let error = '';
   let busy = false;
+  let loading = false;
   let interactive = false;
+  let metadata: PreferenceMeta[] = [];
+  let divergences: Array<{ category: string; status: string; detail: string }> = [];
   let values = general.map((row) => row.value);
   let originalValues = [...values];
   let activeRows: PreferenceRow[] = general;
@@ -158,25 +172,61 @@
 
   async function loadCategory(category: string) {
     error = '';
+    loading = true;
     try {
       const result = await api.preferences(category);
       if (category !== activeTab) return;
       const rows = preferencesByTab[category] ?? [];
-      values = rows.map((row) => result.items.find((preference) => preference.caption === row.caption)?.value ?? row.value);
+      metadata = result.registry ?? [];
+      divergences = result.divergences ?? [];
+      values = rows.map((row) => {
+        const stored = result.items.find((preference) => preference.caption === row.caption);
+        if (stored) return stored.value;
+        return row.value;
+      });
       originalValues = [...values];
     } catch (cause) {
-      if (!(cause instanceof ApiError && cause.status === 401)) error = 'Preferences could not be loaded; local defaults remain available.';
+      if (cause instanceof ApiError && cause.status === 403) error = cause.message;
+      else if (!(cause instanceof ApiError && cause.status === 401)) error = 'Preferences could not be loaded; local defaults remain available.';
+    } finally {
+      loading = false;
     }
   }
 
+  function metaFor(row: PreferenceRow): PreferenceMeta | undefined {
+    return metadata.find((field) => field.caption === row.caption);
+  }
+
+  function validateValues(): string {
+    for (const [index, row] of activeRows.entries()) {
+      if (row.section) continue;
+      const meta = metaFor(row);
+      const value = values[index] ?? '';
+      if (!meta) continue;
+      if (meta.type === 'boolean' && value !== 'Yes' && value !== 'No') return `${row.caption} must be Yes or No.`;
+      if (meta.type === 'enum' && meta.allowed && !meta.allowed.includes(value)) return `${row.caption} has an unsupported value.`;
+      if (meta.type === 'integer') {
+        const number = Number(value);
+        if (!Number.isInteger(number) || number < (meta.minimum ?? 0) || number > (meta.maximum ?? 1000000)) return `${row.caption} must be a valid whole number.`;
+      }
+      if (meta.type === 'decimal' && (!Number.isFinite(Number(value)) || Number(value) < (meta.minimum ?? 0))) return `${row.caption} must be a valid decimal.`;
+    }
+    return '';
+  }
+
   async function save() {
+    const validationError = validateValues();
+    if (validationError) {
+      error = validationError;
+      return;
+    }
     busy = true;
     message = '';
     error = '';
     try {
       await api.savePreferences(activeTab, activeRows.flatMap((row, index) => row.section ? [] : [{ caption: row.caption, value: values[index] ?? '', position: index }]));
       originalValues = [...values];
-      message = `${activeTab} preferences saved for the current tenant.`;
+      message = `${activeTab} preferences saved for the current branch.`;
     } catch (cause) {
       error = cause instanceof Error ? cause.message : 'Preferences could not be saved.';
     } finally {
@@ -207,10 +257,11 @@
 <svelte:window onkeydown={enableInteractive} />
 
 <svelte:head><title>WASEELA - ABUZAR V3 - Preferences</title></svelte:head>
-<main class={`legacy-preferences-page ${baselineClass}`} onpointerdown={enableInteractive} onfocusin={enableInteractive}><section class="legacy-preferences-window" aria-label="Preferences">
+<main class={`legacy-preferences-page ${baselineClass}`} onpointerdown={enableInteractive} onfocusin={enableInteractive}><section class="legacy-preferences-window" aria-label="Preferences" aria-busy={loading}>
   <header class="legacy-preferences-titlebar"><a href="/app/legacy" aria-label="Back to main window">&larr;</a><h1>Preferences</h1></header>
-  <nav class="legacy-preferences-tabs" aria-label="Preference categories">{#each tabs as tab}<button type="button" class:active={activeTab === tab} onclick={() => selectTab(tab)}>{tab}</button>{/each}</nav>
+  <div class="legacy-preferences-tabs" role="tablist" aria-label="Preference categories">{#each tabs as tab}<button type="button" role="tab" class:active={activeTab === tab} aria-selected={activeTab === tab} onclick={() => selectTab(tab)}>{tab}</button>{/each}</div>
   <div class="legacy-preferences-body">
+    <span class="sr-only" data-preference-registry-count={metadata.length}></span>
     {#if activeTab === 'Schedule'}
       <div class="legacy-preferences-schedule-form" aria-label="Schedule preferences">
         <fieldset><legend>Auto Database Backup Schedule</legend><label><input type="checkbox" checked={values[1] === 'Yes'} onchange={(event) => setValue(1, event.currentTarget.checked ? 'Yes' : 'No')} />Activate</label><label>Once At:<input value={values[2]} oninput={(event) => setValue(2, event.currentTarget.value)} /></label><label>Hr:<input value={values[3]} oninput={(event) => setValue(3, event.currentTarget.value)} /></label><label>Min:<input value={values[4]} oninput={(event) => setValue(4, event.currentTarget.value)} /></label><label>Sec:<input value={values[5]} oninput={(event) => setValue(5, event.currentTarget.value)} /></label><label>Every:<input value={values[6]} oninput={(event) => setValue(6, event.currentTarget.value)} /></label></fieldset>
@@ -225,12 +276,30 @@
         <label>SMTP Server:<input value={values[0]} oninput={(event) => setValue(0, event.currentTarget.value)} /></label><label>SMTP Port:<input value={values[1]} oninput={(event) => setValue(1, event.currentTarget.value)} /></label><label>From/Sender Name:<input value={values[2]} oninput={(event) => setValue(2, event.currentTarget.value)} /></label><label>Email User ID:<input value={values[3]} oninput={(event) => setValue(3, event.currentTarget.value)} /></label><label>Email Password:<input type="password" value={values[4]} oninput={(event) => setValue(4, event.currentTarget.value)} /></label><label class="legacy-preferences-checkbox"><input type="checkbox" checked={values[5] === 'Yes'} onchange={(event) => setValue(5, event.currentTarget.checked ? 'Yes' : 'No')} />SMTP Server Requires Authentication (User/Password)</label><label>SMTP Encryption Type:<select value={values[6]} onchange={(event) => setValue(6, event.currentTarget.value)}><option>None</option><option>SSL</option><option>TLS</option></select></label><label>Email Subject:<input value={values[7]} oninput={(event) => setValue(7, event.currentTarget.value)} /></label><label>Email Body:<input value={values[8]} oninput={(event) => setValue(8, event.currentTarget.value)} /></label>
       </div>
     {:else}
-      <table><thead><tr><th>Sr. #</th><th>Preference Caption</th><th>Preference Value</th><th></th></tr></thead><tbody>
+      {#key metadata.length}
+      <table><thead><tr><th scope="col">Sr. #</th><th scope="col">Preference Caption</th><th scope="col">Preference Value</th><th scope="col"><span class="sr-only">Edit</span></th></tr></thead><tbody>
         {#each activeRows as row, index}
-          {#if row.section}<tr class="section"><td colspan="4">{row.caption}</td></tr>{:else}<tr><td>{displayNumber(index)}</td><td>{row.caption}</td><td><input id={inputId(activeTab, index)} bind:value={values[index]} aria-label={row.caption} /></td><td><button type="button" aria-label={`Edit ${row.caption}`} onclick={() => edit(row, index)}>...</button></td></tr>{/if}
+          {#if row.section}<tr class="section"><td colspan="4">{row.caption}</td></tr>{:else}
+            {@const meta = metaFor(row)}
+            <tr>
+              <td>{displayNumber(index)}</td><td id={`${inputId(activeTab, index)}-caption`}>{row.caption}</td>
+              <td>
+                {#if meta?.type === 'boolean'}
+                  <select id={inputId(activeTab, index)} value={values[index]} aria-labelledby={`${inputId(activeTab, index)}-caption`} onchange={(event) => setValue(index, event.currentTarget.value)}><option value="Yes">Yes</option><option value="No">No</option></select>
+                {:else if meta?.type === 'enum'}
+                  <select id={inputId(activeTab, index)} value={values[index]} aria-labelledby={`${inputId(activeTab, index)}-caption`} onchange={(event) => setValue(index, event.currentTarget.value)}>{#each meta.allowed ?? [] as allowed}<option value={allowed}>{allowed}</option>{/each}</select>
+                {:else}
+                  <input id={inputId(activeTab, index)} type={meta?.type === 'secret' ? 'password' : 'text'} value={values[index]} aria-labelledby={`${inputId(activeTab, index)}-caption`} oninput={(event) => setValue(index, event.currentTarget.value)} />
+                {/if}
+              </td>
+              <td><button type="button" title={`Edit ${row.caption}`} aria-label={`Edit ${row.caption}`} onclick={() => edit(row, index)}>...</button></td>
+            </tr>
+          {/if}
         {/each}
       </tbody></table>
+      {/key}
     {/if}
   </div>
-  <footer class="legacy-preferences-footer"><button type="button" onclick={save} disabled={busy}>Save</button><button type="button" onclick={cancel}>Cancel</button>{#if error}<span class="legacy-preferences-error" role="alert">{error}</span>{:else}<span role="status">{message}</span>{/if}</footer>
+  {#if divergences.length && activeTab === 'Schedule'}<p class="legacy-preferences-divergence" role="note">{divergences.find((entry) => entry.category === activeTab)?.detail}</p>{/if}
+  <footer class="legacy-preferences-footer"><button type="button" onclick={save} disabled={busy || loading}>Save</button><button type="button" onclick={cancel} disabled={busy}>Cancel</button>{#if error}<span class="legacy-preferences-error" role="alert">{error}</span>{:else}<span role="status">{message}</span>{/if}</footer>
 </section></main>

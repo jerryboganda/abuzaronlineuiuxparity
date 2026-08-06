@@ -324,6 +324,412 @@ func projectPurchaseReturnStock(ctx context.Context, tx *sql.Tx, operator *sessi
 	return nil
 }
 
+// projectPostedSaleReturnStock restores the exact batches allocated by a
+// posted cash/credit sale. Closed returns are source-bound and cannot exceed
+// the unreturned quantity of their source line. The movement and allocation
+// rows are written in the same transaction as the document command.
+func projectPostedSaleReturnStock(ctx context.Context, tx *sql.Tx, operator *sessionContext, draft *documentDraftRequest, document documentResponse, eventID string) error {
+	if draft == nil {
+		return errors.New("posted sale return requires a document payload")
+	}
+	if !isSaleReturnDocumentKind(document.Kind) {
+		return fmt.Errorf("stock restoration is not implemented for %s", document.Kind)
+	}
+	if strings.TrimSpace(draft.GodownID) == "" || !documentUUIDPattern.MatchString(strings.TrimSpace(draft.GodownID)) {
+		return errors.New("godownId is required when posting a sale return")
+	}
+	sourceID := strings.TrimSpace(draft.SourceDocumentID)
+	if !documentUUIDPattern.MatchString(sourceID) {
+		return errors.New("sale-return requires a valid sourceDocumentId")
+	}
+	var sourceCustomer, sourceKind, sourceStatus string
+	if err := tx.QueryRowContext(ctx, `
+			SELECT COALESCE(customer_id::text, ''), kind, status
+			FROM business_documents
+			WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND id = $3::uuid
+		`, operator.TenantID, operator.BranchID, sourceID).Scan(&sourceCustomer, &sourceKind, &sourceStatus); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("sale-return source document was not found in the authenticated tenant and branch")
+		}
+		return err
+	}
+	if sourceStatus != "posted" || !isStockAndFinanceSaleKind(sourceKind) {
+		return errors.New("sale-return source must be a posted cash or credit sale")
+	}
+	if document.Kind == "credit-return" && strings.TrimSpace(document.CustomerID) != sourceCustomer {
+		return errors.New("credit-return customer does not match the source sale")
+	}
+	var alreadyProjected bool
+	if err := tx.QueryRowContext(ctx, `
+			SELECT EXISTS (
+				SELECT 1 FROM stock_ledger
+				WHERE tenant_id = $1::uuid AND branch_id = $2::uuid
+				  AND source_document_id = $3::uuid AND direction = 'in'
+			)
+		`, operator.TenantID, operator.BranchID, document.ID).Scan(&alreadyProjected); err != nil {
+		return err
+	}
+	if alreadyProjected {
+		return nil
+	}
+	if len(draft.Lines) != len(document.Lines) {
+		return errors.New("document lines changed before sale-return stock restoration")
+	}
+	occurredAt, err := time.Parse(time.RFC3339, draft.OccurredAt)
+	if err != nil {
+		return errors.New("document occurredAt must be RFC3339")
+	}
+	for index, line := range draft.Lines {
+		quantity, err := parseStockQuantity(line.Quantity)
+		if err != nil {
+			return fmt.Errorf("line %d quantity: %w", index+1, err)
+		}
+		sourceLineID := strings.TrimSpace(line.SourceLineID)
+		if !documentUUIDPattern.MatchString(sourceLineID) {
+			return fmt.Errorf("line %d requires a valid sourceLineId", index+1)
+		}
+		var sourceQuantity, sourceItemID string
+		if err := tx.QueryRowContext(ctx, `
+				SELECT quantity::text, item_id::text
+				FROM business_document_lines
+				WHERE tenant_id = $1::uuid AND document_id = $2::uuid AND id = $3::uuid
+				FOR UPDATE
+			`, operator.TenantID, sourceID, sourceLineID).Scan(&sourceQuantity, &sourceItemID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("line %d source sale line was not found", index+1)
+			}
+			return err
+		}
+		if sourceItemID != document.Lines[index].ItemID {
+			return fmt.Errorf("line %d source sale line item does not match the return item", index+1)
+		}
+		var priorReturns string
+		if err := tx.QueryRowContext(ctx, `
+				SELECT COALESCE(SUM(l.quantity), 0)::text
+				FROM business_documents d
+				JOIN business_document_lines l
+				  ON l.tenant_id = d.tenant_id AND l.document_id = d.id
+				WHERE d.tenant_id = $1::uuid AND d.branch_id = $2::uuid
+				  AND d.kind IN ('cash-return', 'credit-return') AND d.status = 'posted'
+				  AND d.source_document_id = $3::uuid AND l.source_line_id = $4::uuid
+				  AND d.id <> $5::uuid
+			`, operator.TenantID, operator.BranchID, sourceID, sourceLineID, document.ID).Scan(&priorReturns); err != nil {
+			return err
+		}
+		sourceQty, ok := new(big.Rat).SetString(sourceQuantity)
+		if !ok {
+			return fmt.Errorf("line %d source quantity is invalid", index+1)
+		}
+		priorQty, ok := new(big.Rat).SetString(priorReturns)
+		if !ok {
+			return fmt.Errorf("line %d prior return quantity is invalid", index+1)
+		}
+		remaining := new(big.Rat).Sub(sourceQty, priorQty)
+		if quantity.Cmp(remaining) > 0 {
+			return fmt.Errorf("line %d exceeds the unreturned source quantity (requested %s, source %s, already returned %s)", index+1, formatStockQuantity(quantity), formatStockQuantity(remaining), formatStockQuantity(priorQty))
+		}
+		choices, err := saleReturnStockChoices(ctx, tx, operator, sourceID, sourceLineID, document.Lines[index].ItemID, draft.GodownID, line.Allocations, quantity, occurredAt)
+		if err != nil {
+			return fmt.Errorf("line %d: %w", index+1, err)
+		}
+		allocated := new(big.Rat)
+		for allocationIndex, choice := range choices {
+			qty := formatStockQuantity(choice.quantity)
+			result, err := tx.ExecContext(ctx, `
+					UPDATE stock_balances SET on_hand = on_hand + $4::numeric, updated_at = now()
+					WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND batch_id = $3::uuid
+				`, operator.TenantID, operator.BranchID, choice.batch.ID, qty)
+			if err != nil {
+				return err
+			}
+			if affected, affectedErr := result.RowsAffected(); affectedErr != nil {
+				return affectedErr
+			} else if affected != 1 {
+				return fmt.Errorf("return batch %s has no stock balance", choice.batch.BatchNumber)
+			}
+			var movementID string
+			if err := tx.QueryRowContext(ctx, `
+					INSERT INTO stock_ledger
+						(tenant_id, branch_id, batch_id, source_event_id, source_document_id,
+						 source_document_line_id, source_line_key, direction, adjustment_sign, quantity, unit_cost, occurred_at)
+					VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid, $7,
+						'in', 1, $8::numeric, $9::numeric, $10::timestamptz)
+					RETURNING id::text
+				`, operator.TenantID, operator.BranchID, choice.batch.ID, eventID, document.ID, document.Lines[index].ID,
+				fmt.Sprintf("sale-return-line-%d-%d", document.Lines[index].LineNumber, allocationIndex), qty, choice.batch.UnitCost, document.OccurredAt).Scan(&movementID); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, `
+					INSERT INTO stock_allocations
+						(tenant_id, branch_id, document_id, document_line_id, batch_id, movement_id, quantity, unit_cost)
+					VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid, $7::numeric, $8::numeric)
+				`, operator.TenantID, operator.BranchID, document.ID, document.Lines[index].ID, choice.batch.ID, movementID, qty, choice.batch.UnitCost); err != nil {
+				return err
+			}
+			allocated.Add(allocated, choice.quantity)
+		}
+		if allocated.Cmp(quantity) != 0 {
+			return fmt.Errorf("line %d batch allocations total %s but line quantity is %s", index+1, formatStockQuantity(allocated), formatStockQuantity(quantity))
+		}
+	}
+	return nil
+}
+
+// projectPostedOpenSaleReturnStock handles the legacy Open Sale Return leaves.
+// Unlike a source-bound return, an open return has no originating invoice. The
+// operator supplies the godown and optional batch; an omitted batch is given a
+// deterministic document-scoped batch so the stock and GL projections remain
+// auditable and idempotent.
+func projectPostedOpenSaleReturnStock(ctx context.Context, tx *sql.Tx, operator *sessionContext, draft *documentDraftRequest, document documentResponse, eventID string) error {
+	if draft == nil || !isOpenSaleReturnDocumentKind(document.Kind) {
+		return errors.New("posted open sale return requires a document payload")
+	}
+	if strings.TrimSpace(draft.GodownID) == "" || !documentUUIDPattern.MatchString(strings.TrimSpace(draft.GodownID)) {
+		return errors.New("godownId is required when posting an open sale return")
+	}
+	var godownExists bool
+	if err := tx.QueryRowContext(ctx, `
+		SELECT EXISTS (SELECT 1 FROM master_godowns WHERE tenant_id = $1::uuid AND id = $2::uuid AND active)
+	`, operator.TenantID, draft.GodownID).Scan(&godownExists); err != nil {
+		return err
+	}
+	if !godownExists {
+		return errors.New("godownId is not an active canonical godown in the authenticated tenant")
+	}
+	var alreadyProjected bool
+	if err := tx.QueryRowContext(ctx, `
+		SELECT EXISTS (SELECT 1 FROM stock_ledger WHERE tenant_id = $1::uuid AND branch_id = $2::uuid
+			AND source_document_id = $3::uuid AND direction = 'in')
+	`, operator.TenantID, operator.BranchID, document.ID).Scan(&alreadyProjected); err != nil {
+		return err
+	}
+	if alreadyProjected {
+		return nil
+	}
+	if len(draft.Lines) != len(document.Lines) {
+		return errors.New("document lines changed before open sale-return stock projection")
+	}
+	occurredAt, err := time.Parse(time.RFC3339, draft.OccurredAt)
+	if err != nil {
+		return errors.New("document occurredAt must be RFC3339")
+	}
+	for index, line := range draft.Lines {
+		quantity, err := parseStockQuantity(line.Quantity)
+		if err != nil {
+			return fmt.Errorf("line %d quantity: %w", index+1, err)
+		}
+		batchNumber := strings.TrimSpace(line.BatchNumber)
+		if batchNumber == "" {
+			batchNumber = fmt.Sprintf("OPEN-RETURN-%s-%03d", document.DocumentNumber, document.Lines[index].LineNumber)
+		}
+		expiry := strings.TrimSpace(line.ExpiryDate)
+		if expiry != "" {
+			expiryDate, parseErr := time.Parse("2006-01-02", expiry)
+			if parseErr != nil || expiryDate.Before(occurredAt.UTC().Truncate(24*time.Hour)) {
+				return fmt.Errorf("line %d expiryDate is invalid or expired for the document date", index+1)
+			}
+		}
+		unitCost := strings.TrimSpace(line.UnitCost)
+		if unitCost == "" {
+			unitCost = strings.TrimSpace(line.UnitPrice)
+		}
+		cost, err := parseMoney(unitCost)
+		if err != nil || cost < 0 {
+			return fmt.Errorf("line %d unit cost is required and must be non-negative", index+1)
+		}
+		if err := assertOpenReturnBatchIdentity(ctx, tx, operator, document.Lines[index].ItemID,
+			draft.GodownID, batchNumber, expiry); err != nil {
+			return fmt.Errorf("line %d: %w", index+1, err)
+		}
+		batchID, _, err := lockOrCreatePurchaseBatch(ctx, tx, operator, document.Lines[index].ItemID,
+			document.Lines[index].ItemLegacyID, draft.GodownID, batchNumber, expiry, formatMoney(cost), occurredAt)
+		if err != nil {
+			return fmt.Errorf("line %d: %w", index+1, err)
+		}
+		qty := formatStockQuantity(quantity)
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE stock_batches SET unit_cost = $4::numeric
+			WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND id = $3::uuid
+		`, operator.TenantID, operator.BranchID, batchID, formatMoney(cost)); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO stock_balances (tenant_id, branch_id, batch_id, item_id, item_legacy_id, godown_id, on_hand)
+			VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6::uuid, $7::numeric)
+			ON CONFLICT (tenant_id, branch_id, batch_id) DO UPDATE
+			SET on_hand = stock_balances.on_hand + EXCLUDED.on_hand, updated_at = now()
+		`, operator.TenantID, operator.BranchID, batchID, document.Lines[index].ItemID,
+			document.Lines[index].ItemLegacyID, draft.GodownID, qty); err != nil {
+			return err
+		}
+		var movementID string
+		if err := tx.QueryRowContext(ctx, `
+			INSERT INTO stock_ledger
+				(tenant_id, branch_id, batch_id, source_event_id, source_document_id,
+				 source_document_line_id, source_line_key, direction, adjustment_sign, quantity, unit_cost, occurred_at)
+			VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid, $7,
+				'in', 1, $8::numeric, $9::numeric, $10::timestamptz)
+			RETURNING id::text
+		`, operator.TenantID, operator.BranchID, batchID, eventID, document.ID, document.Lines[index].ID,
+			fmt.Sprintf("open-sale-return-line-%d", document.Lines[index].LineNumber), qty, formatMoney(cost), document.OccurredAt).Scan(&movementID); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO stock_allocations
+				(tenant_id, branch_id, document_id, document_line_id, batch_id, movement_id, quantity, unit_cost)
+			VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid, $7::numeric, $8::numeric)
+		`, operator.TenantID, operator.BranchID, document.ID, document.Lines[index].ID, batchID, movementID, qty, formatMoney(cost)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func assertOpenReturnBatchIdentity(ctx context.Context, tx *sql.Tx, operator *sessionContext,
+	itemID, godownID, batchNumber, expiry string) error {
+	var count int
+	if err := tx.QueryRowContext(ctx, `
+			SELECT count(*)
+			FROM stock_batches
+			WHERE tenant_id = $1::uuid AND branch_id = $2::uuid
+			  AND item_id = $3::uuid AND godown_id = $4::uuid
+			  AND batch_number = $5
+		`, operator.TenantID, operator.BranchID, itemID, godownID, batchNumber).Scan(&count); err != nil {
+		return err
+	}
+	if count > 1 && expiry == "" {
+		return errors.New("batch identity is ambiguous; provide expiryDate")
+	}
+	if count == 1 && expiry == "" {
+		var existingExpiry sql.NullString
+		if err := tx.QueryRowContext(ctx, `
+				SELECT expiry_date::text
+				FROM stock_batches
+				WHERE tenant_id = $1::uuid AND branch_id = $2::uuid
+				  AND item_id = $3::uuid AND godown_id = $4::uuid
+				  AND batch_number = $5
+			`, operator.TenantID, operator.BranchID, itemID, godownID, batchNumber).Scan(&existingExpiry); err != nil {
+			return err
+		}
+		if existingExpiry.Valid && existingExpiry.String != "" {
+			return errors.New("batch identity requires expiryDate")
+		}
+	}
+	return nil
+}
+
+func saleReturnStockChoices(ctx context.Context, tx *sql.Tx, operator *sessionContext, sourceDocumentID, sourceLineID, itemID, godownID string, allocations []documentAllocationRequest, requested *big.Rat, occurredAt time.Time) ([]stockAllocationChoice, error) {
+	if len(allocations) > 0 {
+		choices, err := resolveStockChoices(ctx, tx, operator, itemID, godownID, allocations, occurredAt)
+		if err != nil {
+			return nil, err
+		}
+		allocated := new(big.Rat)
+		for _, choice := range choices {
+			var sourceAllocation bool
+			if err := tx.QueryRowContext(ctx, `
+					SELECT EXISTS (
+						SELECT 1 FROM stock_allocations
+						WHERE tenant_id = $1::uuid AND branch_id = $2::uuid
+						  AND document_id = $3::uuid AND document_line_id = $4::uuid AND batch_id = $5::uuid
+					)
+				`, operator.TenantID, operator.BranchID, sourceDocumentID, sourceLineID, choice.batch.ID).Scan(&sourceAllocation); err != nil {
+				return nil, err
+			}
+			if !sourceAllocation {
+				return nil, errors.New("allocation batch was not used by the source sale")
+			}
+			var remainingText string
+			if err := tx.QueryRowContext(ctx, `
+					SELECT (a.quantity - COALESCE(SUM(ra.quantity), 0))::text
+					FROM stock_allocations a
+					LEFT JOIN business_document_lines rl
+					  ON rl.tenant_id = a.tenant_id AND rl.source_line_id = a.document_line_id
+					LEFT JOIN business_documents rd
+					  ON rd.tenant_id = rl.tenant_id AND rd.id = rl.document_id
+					 AND rd.branch_id = a.branch_id AND rd.source_document_id = $3::uuid
+					 AND rd.kind IN ('cash-return', 'credit-return') AND rd.status = 'posted'
+					LEFT JOIN stock_allocations ra
+					  ON ra.tenant_id = rd.tenant_id AND ra.branch_id = rd.branch_id
+					 AND ra.document_line_id = rl.id AND ra.batch_id = a.batch_id
+					WHERE a.tenant_id = $1::uuid AND a.branch_id = $2::uuid
+					  AND a.document_id = $3::uuid AND a.document_line_id = $4::uuid
+					  AND a.batch_id = $5::uuid
+					GROUP BY a.quantity
+				`, operator.TenantID, operator.BranchID, sourceDocumentID, sourceLineID, choice.batch.ID).Scan(&remainingText); err != nil {
+				return nil, err
+			}
+			remaining, ok := new(big.Rat).SetString(remainingText)
+			if !ok || remaining.Sign() <= 0 {
+				return nil, errors.New("source batch has already been fully returned")
+			}
+			if choice.quantity.Cmp(remaining) > 0 {
+				return nil, fmt.Errorf("batch %s exceeds its unreturned source allocation", choice.batch.BatchNumber)
+			}
+			allocated.Add(allocated, choice.quantity)
+		}
+		if allocated.Cmp(requested) != 0 {
+			return nil, fmt.Errorf("batch allocations total %s but line quantity is %s", formatStockQuantity(allocated), formatStockQuantity(requested))
+		}
+		return choices, nil
+	}
+	rows, err := tx.QueryContext(ctx, `
+			SELECT b.id::text, b.batch_number, COALESCE(b.expiry_date::text, ''), b.unit_cost::text,
+			       (a.quantity - COALESCE(SUM(ra.quantity), 0))::text
+			FROM stock_allocations a
+			JOIN stock_batches b
+			  ON b.tenant_id = a.tenant_id AND b.branch_id = a.branch_id AND b.id = a.batch_id
+			LEFT JOIN business_document_lines rl
+			  ON rl.tenant_id = a.tenant_id AND rl.source_line_id = a.document_line_id
+			LEFT JOIN business_documents rd
+			  ON rd.tenant_id = rl.tenant_id AND rd.id = rl.document_id
+			 AND rd.branch_id = a.branch_id AND rd.source_document_id = $3::uuid
+			 AND rd.kind IN ('cash-return', 'credit-return') AND rd.status = 'posted'
+			LEFT JOIN stock_allocations ra
+			  ON ra.tenant_id = rd.tenant_id AND ra.branch_id = rd.branch_id
+			 AND ra.document_line_id = rl.id AND ra.batch_id = a.batch_id
+			WHERE a.tenant_id = $1::uuid AND a.branch_id = $2::uuid
+			  AND a.document_id = $3::uuid AND a.document_line_id = $4::uuid AND b.item_id = $5::uuid AND b.godown_id = $6::uuid
+			  AND NOT b.locked AND (b.expiry_date IS NULL OR b.expiry_date >= $7::date)
+			GROUP BY a.id, a.quantity, b.id, b.batch_number, b.expiry_date, b.unit_cost
+			HAVING a.quantity - COALESCE(SUM(ra.quantity), 0) > 0
+			ORDER BY COALESCE(b.expiry_date, DATE '9999-12-31'), b.batch_number, b.id
+		`, operator.TenantID, operator.BranchID, sourceDocumentID, sourceLineID, itemID, godownID, occurredAt.Format("2006-01-02"))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	remaining := new(big.Rat).Set(requested)
+	result := make([]stockAllocationChoice, 0)
+	for rows.Next() {
+		var id, number, unitCost, sourceAllocated string
+		var expiry sql.NullString
+		if err := rows.Scan(&id, &number, &expiry, &unitCost, &sourceAllocated); err != nil {
+			return nil, err
+		}
+		available, ok := new(big.Rat).SetString(sourceAllocated)
+		if !ok || available.Sign() <= 0 {
+			continue
+		}
+		take := new(big.Rat).Set(available)
+		if take.Cmp(remaining) > 0 {
+			take.Set(remaining)
+		}
+		result = append(result, stockAllocationChoice{batch: stockBatchRow{ID: id, BatchNumber: number, ExpiryDate: expiry, UnitCost: unitCost}, quantity: take})
+		remaining.Sub(remaining, take)
+		if remaining.Sign() == 0 {
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if remaining.Sign() != 0 {
+		return nil, errors.New("source sale has no matching batch allocation for the requested return")
+	}
+	return result, nil
+}
+
 func mustParseTime(value string) time.Time {
 	parsed, _ := time.Parse(time.RFC3339, value)
 	return parsed

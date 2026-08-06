@@ -6,6 +6,7 @@
   import LegacyMenuBar from '$lib/LegacyMenuBar.svelte';
   import type { MenuAction } from '$lib/legacy-menu';
   import { formatLegacyTitle } from '$lib/legacy-title';
+  import { localDateAtNoonUtc, localDateString } from '$lib/calendar-date';
 
   type PurchaseRow = {
     quickSearch: string;
@@ -22,6 +23,8 @@
     batchSalePrice: string;
     quantity: string;
     purchasePrice: string;
+    discountPercent: string;
+    gstRate: string;
     sourceBatchId: string;
     total: string;
   };
@@ -37,7 +40,7 @@
   let orderCode = '';
   let sourceDocumentId = '';
   let sourceDocumentNumber = '';
-  let transactionDate = new Date().toISOString().slice(0, 10);
+  let transactionDate = localDateString();
   let remarks = '';
   let itemRecords: ItemLookupResult[] = [];
   let supplierRecords: MasterRecord[] = [];
@@ -64,6 +67,12 @@
   let canonicalCommandSignature = '';
   let canonicalCommandId = '';
   let canonicalIdempotencyKey = '';
+  let itemGstRate = '';
+  let itemDiscountRate = '';
+  let miscAmount = '0';
+  let showExpenses = false;
+  let attachmentInput: HTMLInputElement | null = null;
+  let attachments: Array<{ name: string; size: number }> = [];
 
   $: kind = $page?.params?.kind ?? 'pack';
   $: title = titles[kind] ?? 'Purchase';
@@ -108,7 +117,7 @@
 
   function autoGenerateBatches() {
     error = '';
-    const dateToken = transactionDate.replace(/[^0-9]/g, '').slice(0, 8) || new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const dateToken = transactionDate.replace(/[^0-9]/g, '').slice(0, 8) || localDateString().replace(/-/g, '');
     let sequence = 0;
     rows = rows.map((row) => {
       if (!row.itemName.trim() && !row.quickSearch.trim()) return row;
@@ -130,9 +139,17 @@
     window.print();
   }
 
+  function onAttachmentsSelected(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    attachments = Array.from(input.files ?? []).map((file) => ({ name: file.name, size: file.size }));
+    message = attachments.length ? `${attachments.length} document${attachments.length === 1 ? '' : 's'} attached to this draft.` : 'No documents selected.';
+  }
+
   $: if (activeTab === 'list' && historyKind && transactionDate) void loadHistory();
 
-  function enableInteractive() {
+  function enableInteractive(event?: Event) {
+    const target = event?.target;
+    if (target instanceof Element && target.closest('.legacy-transaction-tabs')) return;
     interactive = true;
   }
 
@@ -161,6 +178,59 @@
         return true;
       case 'Print Purchase Labels':
         void printPurchaseLabels();
+        return true;
+      case 'Populate Items':
+        activeTab = 'detail';
+        message = 'Populate Items: choose synchronized item identities in the grid before posting.';
+        return true;
+      case 'Populate Sales Order':
+      case 'Populate Pending Due Item(s)':
+      case 'Populate Purchase Invoice':
+      case 'Populate Purchase Return Invoice':
+      case 'Populate From Sale Template':
+      case 'Fetch Purchase Invoice From Other Sources':
+        activeTab = 'list';
+        void loadHistory();
+        message = `${action.label}: persisted purchase history is ready for selection.`;
+        return true;
+      case 'Import Parent Server Selected Transactions':
+        void flushQueue();
+        message = 'Import Parent Server Selected Transactions: branch sync requested.';
+        return true;
+      case 'Show Purchase Expenses Window':
+        showExpenses = true;
+        return true;
+      case 'Attach Document(s)':
+        attachmentInput?.click();
+        return true;
+      case 'Show Document Gallery':
+        message = attachments.length ? `Document Gallery: ${attachments.length} attachment${attachments.length === 1 ? '' : 's'} selected.` : 'Document Gallery: no attachments selected.';
+        return true;
+      case 'Apply Item GST %':
+        if (!itemGstRate.trim()) {
+          message = 'Apply Item GST %: enter a rate in the transaction adjustments first.';
+          return true;
+        }
+        let gstApplied = 0;
+        rows = rows.map((row) => {
+          if (!row.itemName.trim() && !row.quickSearch.trim()) return row;
+          gstApplied += 1;
+          return { ...row, gstRate: itemGstRate.trim() };
+        });
+        message = gstApplied ? `Apply Item GST %: ${itemGstRate.trim()}% applied to populated lines.` : 'Apply Item GST %: no populated lines to update.';
+        return true;
+      case 'Apply Item Discount %':
+        if (!itemDiscountRate.trim()) {
+          message = 'Apply Item Discount %: enter a rate in the transaction adjustments first.';
+          return true;
+        }
+        let discountApplied = 0;
+        rows = rows.map((row) => {
+          if (!row.itemName.trim() && !row.quickSearch.trim()) return row;
+          discountApplied += 1;
+          return { ...row, discountPercent: itemDiscountRate.trim() };
+        });
+        message = discountApplied ? `Apply Item Discount %: ${itemDiscountRate.trim()}% applied to populated lines.` : 'Apply Item Discount %: no populated lines to update.';
         return true;
       case 'First':
         void navigateHistoryTo(0);
@@ -218,7 +288,7 @@
   }
 
   function blankRow(): PurchaseRow {
-    return { quickSearch: '', itemLegacyId: '', itemName: '', packUnits: '', packing: '', location: '', godown: '', batch: '', mfgDate: '', expiry: '', batchSalePrice: '', quantity: '1', purchasePrice: '', sourceBatchId: '', total: '0.00' };
+    return { quickSearch: '', itemLegacyId: '', itemName: '', packUnits: '', packing: '', location: '', godown: '', batch: '', mfgDate: '', expiry: '', batchSalePrice: '', quantity: '1', purchasePrice: '', discountPercent: '', gstRate: '', sourceBatchId: '', total: '0.00' };
   }
 
   async function lookupItems(value: string): Promise<ItemLookupResult[]> {
@@ -352,7 +422,7 @@
       branchId: session.branchId,
       counterId: session.counterId,
       operatorId: session.operatorId,
-      occurredAt: new Date(`${transactionDate}T00:00:00`).toISOString(),
+      occurredAt: localDateAtNoonUtc(transactionDate),
       idempotencyKey: `${kind}:${invoiceNumber || eventId}`,
       schemaVersion: 1,
       payload: { kind, invoiceNumber, supplier, supplierInvoice, orderCode, remarks, rows, status: 'posted' }
@@ -390,13 +460,15 @@
   function canonicalPurchaseCommand(action: 'save' | 'post' | 'save-and-post'): DocumentCommandForKind<PurchaseDocumentKind> {
     const documentKind = purchaseDocumentKind();
     const lineRows = canonicalPurchaseValidation(action);
-    const occurredAt = new Date(`${transactionDate}T00:00:00`).toISOString();
+    const occurredAt = localDateAtNoonUtc(transactionDate);
     const lines = lineRows.map((row, index) => ({
       lineNumber: index + 1,
       itemId: row.itemId as string,
       quantity: row.quantity || '0',
       unitPrice: row.purchasePrice || '0',
       unitCost: documentKind === 'purchase-order' ? (row.purchasePrice || '0') : row.purchasePrice || '0',
+      ...(row.discountPercent.trim() ? { discountPercent: row.discountPercent.trim() } : {}),
+      ...(row.gstRate.trim() ? { gstRate: row.gstRate.trim() } : {}),
       ...(documentKind === 'purchase-return' ? {
         allocations: [{ batchId: row.sourceBatchId, batchNumber: row.batch, quantity: row.quantity }]
       } : {}),
@@ -427,9 +499,9 @@
         lines,
         priceLevel: 1,
         flatDiscountAmount: '0',
-        miscAmount: '0',
+        miscAmount: miscAmount || '0',
         documentDiscountPercent: '0',
-        pricing: { priceLevel: 1, flatDiscountAmount: '0', miscAmount: '0', documentDiscountPercent: '0' }
+        pricing: { priceLevel: 1, flatDiscountAmount: '0', miscAmount: miscAmount || '0', documentDiscountPercent: '0' }
       }
     };
     return businessDocumentVersion > 0 ? { ...base, expectedVersion: businessDocumentVersion } as DocumentCommandForKind<PurchaseDocumentKind> : base as DocumentCommandForKind<PurchaseDocumentKind>;
@@ -467,7 +539,7 @@
       kind: purchaseDocumentKind(),
       action: 'void',
       idempotencyKey: canonicalIdempotencyKey,
-      occurredAt: new Date(`${transactionDate}T00:00:00`).toISOString(),
+      occurredAt: localDateAtNoonUtc(transactionDate),
       expectedVersion: businessDocumentVersion,
       documentId: businessDocumentId,
       reason: 'Voided from purchase workflow'
@@ -603,7 +675,7 @@
       <button type="button" aria-label="Next document" onclick={() => { void navigateHistory(1); }} title="Next">▶</button>
       <span class="legacy-toolbar-caption">{online ? 'Online' : 'Offline'} · {title}</span>
     </div>
-    <div class="legacy-transaction-tabs"><button aria-label="Detail" aria-pressed={activeTab === 'detail'} class:active={activeTab === 'detail'} type="button" onpointerdown={() => { interactive = true; activeTab = 'detail'; }} onclick={() => { activeTab = 'detail'; }}>▦ Detail</button><button data-testid="purchase-list-tab" aria-label="List" aria-pressed={activeTab === 'list'} class:active={activeTab === 'list'} type="button" onpointerdown={() => { interactive = true; activeTab = 'list'; void loadHistory(); }} onclick={() => { activeTab = 'list'; void loadHistory(); }}>▦ List</button></div>
+    <div class="legacy-transaction-tabs"><button aria-label="Detail" aria-pressed={activeTab === 'detail'} class:active={activeTab === 'detail'} type="button" onclick={() => { interactive = true; activeTab = 'detail'; }}>▦ Detail</button><button data-testid="purchase-list-tab" aria-label="List" aria-pressed={activeTab === 'list'} class:active={activeTab === 'list'} type="button" onclick={() => { interactive = true; activeTab = 'list'; void loadHistory(); }}>▦ List</button></div>
     <div class="legacy-transaction-detail">
       <div class="legacy-transaction-fields">
         <label>Invoice No:<input bind:value={invoiceNumber} /></label>
@@ -648,6 +720,12 @@
       <datalist id="purchase-supplier-options">{#each supplierRecords as record}<option value={record.name}>{record.code}</option>{/each}</datalist>
       <datalist id="purchase-godown-options">{#each godownRecords as record}<option value={record.name}>{record.code}</option>{/each}</datalist>
       <button class="legacy-add-row" type="button" onclick={addRow}>Add item row</button>
+      <div class="legacy-purchase-adjustments" aria-label="Purchase adjustments">
+        <label>Item GST %<input aria-label="Item GST percent" bind:value={itemGstRate} /></label>
+        <label>Item Discount %<input aria-label="Item discount percent" bind:value={itemDiscountRate} /></label>
+        <label>Misc (+)<input aria-label="Purchase expenses" bind:value={miscAmount} /></label>
+        <button type="button" onclick={() => { showExpenses = true; }}>Purchase Expenses</button>
+      </div>
       <div class="legacy-transaction-totals"><span>{rows.length}</span><span>0</span><span>0.00</span><span>0.00</span><strong>Grand Total: {grandTotal}</strong></div>
       {#if activeTab === 'list'}<div class="legacy-purchase-list"><table><thead><tr><th>Invoice</th><th>Date</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Total</th></tr></thead><tbody>
         {#if historyBusy}<tr><td colspan="6">Loading transaction history...</td></tr>
@@ -655,6 +733,8 @@
         {:else}{#each history as row}<tr><td><button type="button" onclick={() => applyHistoryRow(row)}>{row.document || ''}</button></td><td>{row.occurredAt || ''}</td><td>{row.party || ''}</td><td>{row.item || ''}</td><td>{row.quantity || ''}</td><td>{row.amount || ''}</td></tr>{/each}{/if}
       </tbody></table></div>{/if}
     </div>
+    <input class="legacy-hidden-file-input" type="file" multiple bind:this={attachmentInput} onchange={onAttachmentsSelected} aria-label="Attach purchase documents" />
+    {#if showExpenses}<div class="legacy-dialog-backdrop" role="presentation"><div class="legacy-simple-dialog" role="dialog" aria-modal="true" aria-label="Purchase Expenses"><h2>Purchase Expenses</h2><label>Misc (+)<input aria-label="Purchase expenses dialog value" bind:value={miscAmount} /></label><p>Expenses are carried into the canonical document pricing snapshot.</p><div><button type="button" onclick={() => { showExpenses = false; }}>Ok</button><button type="button" onclick={() => { showExpenses = false; }}>Cancel</button></div></div></div>{/if}
     <div class="legacy-transaction-footer">
       {#if error}<span class="error" role="alert">{error}</span>{:else if message}<span role="status">{message}</span>{:else}<span>Ready</span>{/if}
       <button type="button" class="legacy-sync-button" onclick={flushQueue} disabled={busy || pending === 0}>Sync queue ({pending})</button>

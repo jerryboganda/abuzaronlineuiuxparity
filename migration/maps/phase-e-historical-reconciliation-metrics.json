@@ -1,0 +1,106 @@
+{
+  "metrics": [
+    {
+      "name": "sale_header_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.SaleLedger",
+      "targetQuery": "SELECT COUNT(*) FROM public.business_documents WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'SaleLedger'",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_line_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Saledetail",
+      "targetQuery": "SELECT COUNT(*) FROM public.business_document_lines WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'Saledetail'",
+      "tolerance": 0
+    },
+    {
+      "name": "purchase_header_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Purledger",
+      "targetQuery": "SELECT COUNT(*) FROM public.business_documents WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'Purledger'",
+      "tolerance": 0
+    },
+    {
+      "name": "purchase_line_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Purdetail",
+      "targetQuery": "SELECT COUNT(*) FROM public.business_document_lines WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'Purdetail'",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_return_header_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.SRLedger",
+      "targetQuery": "SELECT COUNT(*) FROM public.business_documents WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'SRLedger'",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_return_line_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.SRdetail",
+      "targetQuery": "SELECT COUNT(*) FROM public.business_document_lines WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'SRdetail'",
+      "tolerance": 0
+    },
+    {
+      "name": "purchase_return_header_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.PRLedger",
+      "targetQuery": "SELECT COUNT(*) FROM public.business_documents WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'PRLedger'",
+      "tolerance": 0
+    },
+    {
+      "name": "purchase_return_line_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.PRdetail",
+      "targetQuery": "SELECT COUNT(*) FROM public.business_document_lines WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'PRdetail'",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_total",
+      "sourceQuery": "SELECT COALESCE(SUM(InvTotal), 0) FROM dbo.SaleLedger",
+      "targetQuery": "SELECT COALESCE(SUM(total_amount), 0) FROM public.business_documents WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'SaleLedger'",
+      "tolerance": 0.01
+    },
+    {
+      "name": "purchase_total",
+      "sourceQuery": "SELECT COALESCE(SUM(InvTotal), 0) FROM dbo.Purledger",
+      "targetQuery": "SELECT COALESCE(SUM(total_amount), 0) FROM public.business_documents WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'Purledger'",
+      "tolerance": 0.01
+    },
+    {
+      "name": "sale_line_quantity",
+      "sourceQuery": "SELECT COALESCE(SUM(CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END), 0) FROM dbo.Saledetail",
+      "targetQuery": "SELECT COALESCE(SUM(quantity), 0) FROM public.business_document_lines WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'Saledetail'",
+      "tolerance": 0.01
+    },
+    {
+      "name": "purchase_line_quantity",
+      "sourceQuery": "SELECT COALESCE(SUM(CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END), 0) FROM dbo.Purdetail",
+      "targetQuery": "SELECT COALESCE(SUM(quantity), 0) FROM public.business_document_lines WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'Purdetail'",
+      "tolerance": 0.01
+    },
+    {
+      "name": "stock_report_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.StockReport",
+      "targetQuery": "SELECT COUNT(*) FROM public.historical_stock_snapshots WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'",
+      "tolerance": 0
+    },
+    {
+      "name": "virtual_gl_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.VirtualGl",
+      "targetQuery": "SELECT COUNT(*) FROM public.historical_gl_entries WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_event_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.SaleLedger",
+      "targetQuery": "SELECT COUNT(*) FROM public.sync_events WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'SaleLedger'",
+      "tolerance": 0
+    },
+    {
+      "name": "tax_rate_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.SalesTaxSchedule",
+      "targetQuery": "SELECT COUNT(*) FROM public.tax_rates WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND source_table = 'SalesTaxSchedule'",
+      "tolerance": 0
+    },
+    {
+      "name": "price_policy_tier_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.PricePolicyDetail",
+      "targetQuery": "SELECT COUNT(*) FROM public.price_policy_tiers WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'",
+      "tolerance": 0
+    }
+  ]
+}

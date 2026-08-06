@@ -54,5 +54,23 @@ Current order:
 20. `019_security_data_import_adaptation.sql` — reviewed legacy security
     identifiers/payload columns and the composite-key scope kinds required by
     the isolated Groups/Users/GroupRights/GroupAllowed* import wave.
-19. `018_tax_configuration.sql` — tenant/branch-scoped GST, PCT, and advance
-    tax rates plus effective-dated item/party assignments and forced RLS.
+21. `020_historical_migration_wave.sql` — historical document, stock, finance,
+    and pricing import targets with retained source identity.
+22. `021_scale_read_indexes.sql` — measured, tenant/branch-scoped read indexes
+    for canonical stock, report, GL, and party-ledger paths. The Phase W
+    disposable harness captures plans and timings; this does not claim full
+    volume acceptance.
+23. `022_sale_return_lifecycle.sql` — sale-return entry-kind support and
+    source-scoped indexes for stock/finance reversal.
+24. `023_open_sale_return_lifecycle.sql` — distinct open-cash/open-credit return
+    kinds and scoped query index.
+25. `024_preferences_branch_scope.sql` — branch-scoped preference writes and
+    tenant-default fallback.
+26. `025_sale_return_reversal_contract.sql` — canonical return-kind checks,
+    source sale/line identity, reversal uniqueness, and restrictive RLS.
+
+The historical `020` wave contains a counter fixture whose parent tenant and
+branch are expected from the reviewed importer/bootstrap environment. The
+Phase W disposable harness creates those parent rows only in its throwaway
+database before applying `020`; it does not alter the historical migration or
+seed those rows in an application database.

@@ -39,6 +39,9 @@ var maintenanceIntegrityTables = []string{
 }
 
 func maintenancePermission(kind string) string {
+	if kind == "manage-cashier-job" {
+		return "sales.read"
+	}
 	if strings.HasPrefix(kind, "manage-") {
 		return "manage.users"
 	}
@@ -197,6 +200,19 @@ func (s *Server) handleIntegrityCheck(w http.ResponseWriter, r *http.Request, op
 		}
 		checks = append(checks, maintenanceCheck{Table: table, Rows: count, Status: "ok"})
 	}
+	branchStatus := "ok"
+	var branchRows int64
+	if operator.BranchID == "" {
+		branchStatus = "not_configured"
+	} else if err := tx.QueryRowContext(r.Context(), `
+		SELECT count(*) FROM branches WHERE tenant_id = $1::uuid AND id = $2::uuid AND active
+	`, operator.TenantID, operator.BranchID).Scan(&branchRows); err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "integrity_check_failed", "Integrity check failed", "The current branch scope could not be checked.")
+		return
+	} else if branchRows != 1 {
+		branchStatus = "failed"
+	}
+	checks = append(checks, maintenanceCheck{Table: "current_branch", Rows: branchRows, Status: branchStatus})
 	status := "completed"
 	message := "Application-scope integrity checks completed. Physical PostgreSQL checks were not run by the API."
 	auditPayload := copyMaintenancePayload(payload)

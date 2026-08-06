@@ -1,0 +1,16 @@
+{
+  "metrics": [
+    {
+      "name": "price_policy_tier_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.PricePolicyDetail",
+      "targetQuery": "SELECT COUNT(*) FROM public.price_policy_tiers WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND source_table = 'PricePolicyDetail'",
+      "tolerance": 0
+    },
+    {
+      "name": "price_policy_price_total",
+      "sourceQuery": "SELECT COALESCE(SUM(Price), 0) FROM dbo.PricePolicyDetail",
+      "targetQuery": "SELECT COALESCE(SUM(price), 0) FROM public.price_policy_tiers WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND source_table = 'PricePolicyDetail'",
+      "tolerance": 0.01
+    }
+  ]
+}

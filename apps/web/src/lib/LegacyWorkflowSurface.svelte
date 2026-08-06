@@ -1,8 +1,9 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
-  import type { RoleSummary, SessionResponse, SyncEnvelope } from '@abuzar/contracts';
+  import type { LegacyRight, LegacyScope, RoleSummary, SessionResponse, SyncEnvelope } from '@abuzar/contracts';
   import { AbuzarApi, ApiError, OfflineQueue, newEventId } from '$lib/api';
+  import { formatLegacyTitle } from '$lib/legacy-title';
 
   export let section: 'maintenance' | 'manage';
 
@@ -96,6 +97,7 @@
     ]
   };
   let session: SessionResponse['context'] = null;
+  let clock = new Date();
   let reference = '';
   let notes = '';
   let itemName = '';
@@ -117,6 +119,9 @@
   let roleCode = '';
   let roleName = '';
   let rolePermissions: string[] = [];
+  let legacyRights: LegacyRight[] = [];
+  let roleScopes: LegacyScope[] = [];
+  let rightsLoaded = false;
   let selectedRoleId = '';
   let shiftRows: Array<{ id: string; branchId: string; counterId: string; operatorId: string; openedAt: string; closedAt?: string; status: string; openingAmount: string; closingAmount?: string }> = [];
   let sessionRows: Array<{ userId: string; username: string; displayName: string; branchId: string; counterId: string; createdAt: string; lastSeenAt: string; expiresAt: string; current: boolean }> = [];
@@ -174,6 +179,7 @@
   }
 
   onMount(() => {
+    const clockTimer = window.setInterval(() => { clock = new Date(); }, 1000);
     online = navigator.onLine;
     const update = () => (online = navigator.onLine);
     window.addEventListener('online', update);
@@ -183,7 +189,7 @@
     if (isSessionMonitor) void loadSessionMonitor();
     if (!isGroups && !isSessionMonitor && kind !== 'change-password') void loadWorkflowState();
     void api.session().then((result) => { if (result.authenticated) session = result.context; }).catch(() => { /* offline workflow remains visible */ });
-    return () => { window.removeEventListener('online', update); window.removeEventListener('offline', update); };
+    return () => { window.clearInterval(clockTimer); window.removeEventListener('online', update); window.removeEventListener('offline', update); };
   });
 
   async function loadWorkflowState() {
@@ -239,14 +245,41 @@
     roleCode = role.code;
     roleName = role.name;
     rolePermissions = [...(role.permissions ?? [])];
+    legacyRights = [];
+    roleScopes = [];
+    rightsLoaded = false;
     message = `${role.name} selected.`;
     error = '';
+    void loadRoleRights(role.id);
+  }
+
+  async function loadRoleRights(roleId: string) {
+    try {
+      const rights = await api.roleRights(roleId);
+      legacyRights = rights.legacyRights ?? [];
+      roleScopes = rights.scopes ?? [];
+      rolePermissions = rights.permissions ?? rolePermissions;
+      rightsLoaded = true;
+    } catch (cause) {
+      rightsLoaded = false;
+      if (!(cause instanceof ApiError && cause.status === 401)) {
+        error = cause instanceof ApiError ? cause.problem?.detail ?? cause.message : 'Imported group rights could not be loaded.';
+      }
+    }
   }
 
   function togglePermission(code: string, checked: boolean) {
     rolePermissions = checked
       ? [...new Set([...rolePermissions, code])]
       : rolePermissions.filter((permission) => permission !== code);
+  }
+
+  function toggleLegacyRight(rightCode: string, checked: boolean) {
+    legacyRights = legacyRights.map((right) => right.rightCode === rightCode ? { ...right, allowed: checked } : right);
+  }
+
+  function toggleRoleScope(scopeKind: string, scopeKey: string, checked: boolean) {
+    roleScopes = roleScopes.map((scope) => scope.scopeKind === scopeKind && scope.scopeKey === scopeKey ? { ...scope, allowed: checked } : scope);
   }
 
   async function saveRole() {
@@ -259,6 +292,13 @@
       const saved = updating
         ? await api.updateRole(selectedRoleId, roleCode.trim(), roleName.trim(), rolePermissions)
         : await api.createRole(roleCode.trim(), roleName.trim(), rolePermissions);
+      if (updating && rightsLoaded) {
+        await api.updateRoleRights(saved.id, {
+          permissions: rolePermissions,
+          legacyRights: legacyRights.map((right) => ({ rightCode: right.rightCode, allowed: right.allowed })),
+          scopes: roleScopes.map((scope) => ({ scopeKind: scope.scopeKind, scopeKey: scope.scopeKey, allowed: scope.allowed }))
+        });
+      }
       roles = updating ? roles.map((role) => role.id === saved.id ? { ...role, ...saved } : role) : [...roles, saved];
       selectedRoleId = saved.id;
       message = `${saved.name} ${updating ? 'saved' : 'created'} successfully.`;
@@ -274,6 +314,9 @@
     roleCode = '';
     roleName = '';
     rolePermissions = [];
+    legacyRights = [];
+    roleScopes = [];
+    rightsLoaded = false;
     message = 'New group ready.';
     error = '';
   }
@@ -410,7 +453,7 @@
     </section>
   {:else if isGroups}
     <section class="legacy-workflow-window" aria-label="Groups">
-      <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>WASEELA   ABUZAR V3 01.01.2025 : ADMIN : [Groups]</h1></header>
+      <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>{formatLegacyTitle(session?.username, clock)} : [Groups]</h1></header>
       <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Groups toolbar">
         <button type="button" aria-label="New group" onclick={newRole} title="New">△</button>
         <button type="button" aria-label="Save group" onclick={saveRole} disabled={busy} title="Save">▣</button>
@@ -429,6 +472,41 @@
               {/each}
             </div>
           </fieldset>
+          {#if selectedRoleId}
+            <fieldset class="legacy-permission-fieldset" aria-label="Imported legacy rights">
+              <legend>Imported legacy rights {rightsLoaded ? '' : '(loading)'}</legend>
+              {#if rightsLoaded && legacyRights.length}
+                <div class="legacy-rights-matrix">
+                  {#each legacyRights as right}
+                    <label class="legacy-permission-option">
+                      <input type="checkbox" checked={right.allowed} onchange={(event) => toggleLegacyRight(right.rightCode, (event.currentTarget as HTMLInputElement).checked)} />
+                      <span>{right.rightCode} {right.permission ? `(${right.permission})` : '(ambiguous mapping)'}</span>
+                    </label>
+                  {/each}
+                </div>
+                {#if legacyRights.some((right) => right.mapping === 'ambiguous')}
+                  <p class="legacy-access-exception">Ambiguous legacy right codes are shown for audit but are not claimed as exact command mappings.</p>
+                {/if}
+              {:else if rightsLoaded}
+                <p>No imported legacy right rows are available for this group.</p>
+              {:else}
+                <p>Imported rights are unavailable; no legacy rights will be changed.</p>
+              {/if}
+            </fieldset>
+            {#if rightsLoaded && roleScopes.length}
+              <fieldset class="legacy-permission-fieldset" aria-label="Imported access scopes">
+                <legend>Branch / godown / price / report scopes</legend>
+                <div class="legacy-rights-matrix">
+                  {#each roleScopes as scope}
+                    <label class="legacy-permission-option">
+                      <input type="checkbox" checked={scope.allowed} onchange={(event) => toggleRoleScope(scope.scopeKind, scope.scopeKey, (event.currentTarget as HTMLInputElement).checked)} />
+                      <span>{scope.scopeKind}: {scope.scopeLabel || scope.scopeKey}</span>
+                    </label>
+                  {/each}
+                </div>
+              </fieldset>
+            {/if}
+          {/if}
           <div class="legacy-master-actions"><button type="button" onclick={saveRole} disabled={busy}>Save</button><button type="button" onclick={newRole}>Cancel</button></div>
         </form>
         <div class="legacy-workflow-help legacy-role-list"><h2>Groups</h2>
@@ -439,21 +517,21 @@
     </section>
   {:else if isCashierActivity}
     <section class="legacy-workflow-window" aria-label="Cashier Activity Window">
-      <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>WASEELA   ABUZAR V3 01.01.2025 : ADMIN : [Cashier Activity Window]</h1></header>
+      <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>{formatLegacyTitle(session?.username, clock)} : [Cashier Activity Window]</h1></header>
       <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Cashier activity toolbar"><button type="button" aria-label="Refresh cashier activity" onclick={loadShiftActivity}>⟳</button><span class="legacy-toolbar-separator"></span><span class="legacy-toolbar-caption">{online ? 'Online' : 'Offline'} · Cashier Activity</span></div>
       <div class="legacy-workflow-body"><div class="legacy-workflow-help"><h2>Cashier Activity Window</h2>{#if shiftRows.length === 0}<p>No cashier shifts are recorded for the current branch and counter.</p>{:else}<table><thead><tr><th>Shift</th><th>Operator</th><th>Opened</th><th>Closed</th><th>Status</th><th>Opening</th><th>Closing</th></tr></thead><tbody>{#each shiftRows as shift}<tr><td>{shift.id}</td><td>{shift.operatorId}</td><td>{shift.openedAt}</td><td>{shift.closedAt || '—'}</td><td>{shift.status}</td><td>{shift.openingAmount}</td><td>{shift.closingAmount || '—'}</td></tr>{/each}</tbody></table>{/if}</div></div>
       <footer class="legacy-transaction-footer">{#if error}<span class="error" role="alert">{error}</span>{:else}<span role="status">{message || 'Ready'}</span>{/if}<a href="/app/legacy">Back to main window</a></footer>
     </section>
   {:else if isSessionMonitor}
     <section class="legacy-workflow-window" aria-label="Session Monitor">
-      <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>WASEELA   ABUZAR V3 01.01.2025 : ADMIN : [Session Monitor]</h1></header>
+      <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>{formatLegacyTitle(session?.username, clock)} : [Session Monitor]</h1></header>
       <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Session monitor toolbar"><button type="button" aria-label="Refresh sessions" onclick={loadSessionMonitor}>⟳</button><span class="legacy-toolbar-separator"></span><span class="legacy-toolbar-caption">{online ? 'Online' : 'Offline'} · Branch scoped</span></div>
       <div class="legacy-workflow-body"><div class="legacy-workflow-help"><h2>Session Monitor</h2>{#if sessionRows.length === 0}<p>No active sessions are recorded for the current branch.</p>{:else}<table><thead><tr><th>User</th><th>Name</th><th>Branch</th><th>Counter</th><th>Last seen</th><th>Current</th></tr></thead><tbody>{#each sessionRows as activeSession}<tr><td>{activeSession.username}</td><td>{activeSession.displayName}</td><td>{activeSession.branchId}</td><td>{activeSession.counterId || '—'}</td><td>{activeSession.lastSeenAt}</td><td>{activeSession.current ? 'Yes' : 'No'}</td></tr>{/each}</tbody></table>{/if}</div></div>
       <footer class="legacy-transaction-footer">{#if error}<span class="error" role="alert">{error}</span>{:else}<span role="status">{message || 'Ready'}</span>{/if}<a href="/app/legacy">Back to main window</a></footer>
     </section>
   {:else}
   <section class="legacy-workflow-window" aria-label={title}>
-    <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>WASEELA   ABUZAR V3 01.01.2025 : ADMIN : [{title}]</h1></header>
+    <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>{formatLegacyTitle(session?.username, clock)} : [{title}]</h1></header>
     <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Workflow toolbar">
       <button type="button" aria-label="New workflow" onclick={() => { reference = ''; notes = ''; itemName = ''; quantity = '1'; extraValues = Object.fromEntries(workflowFields.map((field) => [field.key, field.value ?? ''])); message = 'New workflow ready.'; error = ''; }} title="New">△</button>
       <button type="button" aria-label="Save workflow" onclick={run} disabled={busy} title="Save">▣</button>

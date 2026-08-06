@@ -37,7 +37,13 @@ Severity scale: S0 = product cannot replace legacy at all; S1 = daily pharmacy o
 
 **New (measured):** `abuzar_next` has 22 tables; `master_records` = 0 rows, `legacy_id_mappings` = 0 rows, `sales_documents` = 4 (test docs), `inventory_movements` = 3.
 
-**Migration workbench:** `migration/cmd/{inspect,import,reconcile}` exist and are well designed (read-only source, declarative mapping files, reconciliation report), but `migration/maps/` contains only an example metrics file — **no mapping file was ever authored and no import was ever run**.
+**Migration workbench (at the time of the live audit):**
+`migration/cmd/{inspect,import,reconcile}` existed and were well designed
+(read-only source, declarative mapping files, reconciliation report), but the
+canonical source import had not yet been authorized. The follow-on canonical
+wave is recorded separately in
+`migration/PHASE_E_CANONICAL_STATUS_2026-08-06.md`; it does not retroactively
+change the audit observations below.
 
 **Impact:** every screen in the new app is empty; nothing can be functionally compared, tested, or accepted. This is the first domino for all other gaps.
 
@@ -148,8 +154,15 @@ The reference itself misbehaves on the modern SQL Server host; parity must docum
 
 The audit above remains the baseline gap catalogue, but several statuses changed after the Phase E and transaction-core follow-on work:
 
-- Canonical SQL Server import is still deliberately open. A sandbox/reference import now exists as `docs/PHASE_E_STATUS_2026-08-06.md` (18 reviewed table mappings, 83,425 core rows, 0 current exceptions); it must not be presented as the canonical tenant migration.
-- The local database is no longer empty: the sandbox evidence and local counts include 61,202 `master_records` and 83,447 `legacy_id_mappings`. Historical documents, ledgers, stock/batch data, and canonical reconciliation remain open.
+- The canonical SQL Server import is now partially executed: the isolated first
+  tenant has the reviewed 11-table enterprise/config and 7-table core-master
+  wave, with 83,447 rows and exact count reconciliation. The evidence is
+  `migration/PHASE_E_CANONICAL_STATUS_2026-08-06.md`; it must not be presented
+  as the complete canonical tenant migration.
+- The local database includes the sandbox/reference data and the new isolated
+  canonical first-tenant master/config slice. Historical documents, ledgers,
+  stock/batch data, full report fields, and canonical business reconciliation
+  remain open.
 - Rights are now represented by tenant-scoped roles, permission sets, group editing, and API enforcement (`009_legacy_security_rights.sql`); granular legacy allow-tables and complete menu gating still require parity capture.
 - Pricing is now a deterministic authenticated preview and sale-post validation for exact-decimal tiers, discounts, supplier schemes, Misc, and GST/PCT/advance-tax ordering. Stock availability, batch/expiry, valuation, GL, and ledger projections remain open.
 - The detached local supervisors and exact localhost Playwright URL resolve the earlier dev-runtime teardown issue; the 24-hour soak is still open.

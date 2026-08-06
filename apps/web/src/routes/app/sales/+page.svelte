@@ -6,8 +6,9 @@
   import LegacyMenuBar from '$lib/LegacyMenuBar.svelte';
   import type { MenuAction } from '$lib/legacy-menu';
   import { formatLegacyTitle } from '$lib/legacy-title';
+  import { localDateAtNoonUtc, localDateString } from '$lib/calendar-date';
 
-  type SaleRow = { itemId?: string; itemLegacyId?: string; itemName: string; stock: string; stockError?: string; availabilityLoaded: boolean; purchasePrice: string; salePrice: string; manufacturer: string; pieces: string; location: string; quantity: string; total: string };
+  type SaleRow = { itemId?: string; itemLegacyId?: string; sourceLineId?: string; itemName: string; stock: string; stockError?: string; availabilityLoaded: boolean; purchasePrice: string; salePrice: string; manufacturer: string; pieces: string; location: string; quantity: string; discountPercent: string; gstRate: string; batchNumber: string; expiryDate: string; unitCost: string; total: string };
   type LookupItem = ItemLookupResult & { stock: string; purchasePrice: string; salePrice: string; manufacturer: string; pieces: string; location: string };
   const api = new AbuzarApi();
   const queue = new OfflineQueue();
@@ -20,11 +21,13 @@
   let customers: MasterRecord[] = [];
   let godowns: MasterRecord[] = [];
   let godownId = '';
+  let sourceDocumentId = '';
+  let sourceDocumentNumber = '';
   let lookupQuery = '';
   let lookupBusy = false;
   let reference = '';
   let salePriceMode = 'Sale Price 1';
-  let transactionDate = new Date().toISOString().slice(0, 10);
+  let transactionDate = localDateString();
   let remarks = '';
   let busy = false;
   let message = '';
@@ -38,6 +41,10 @@
   let documentDiscountPercent = '0.00';
   let flatDiscountAmount = '0.00';
   let miscAmount = '1.00';
+  let itemGstRate = '';
+  let itemDiscountRate = '';
+  let attachmentInput: HTMLInputElement | null = null;
+  let attachments: Array<{ name: string; size: number }> = [];
   let pricingPreview: PricingPreviewResponse | null = null;
   let pricingBusy = false;
   let pricingError = '';
@@ -124,9 +131,17 @@
     }
   }
 
+  function onAttachmentsSelected(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    attachments = Array.from(input.files ?? []).map((file) => ({ name: file.name, size: file.size }));
+    message = attachments.length ? `${attachments.length} document${attachments.length === 1 ? '' : 's'} attached to this ${workflowTitle.toLowerCase()} draft.` : 'No documents selected.';
+  }
+
   $: if (activeTab === 'list' && transactionDate) void loadHistory();
 
-  function enableInteractive() {
+  function enableInteractive(event?: Event) {
+    const target = event?.target;
+    if (target instanceof Element && target.closest('.legacy-transaction-tabs')) return;
     interactive = true;
   }
 
@@ -143,6 +158,8 @@
         businessDocumentVersion = 0;
         customerId = '';
         godownId = '';
+        sourceDocumentId = '';
+        sourceDocumentNumber = '';
         pricingPreview = null;
         message = 'New sale ready.';
         return true;
@@ -188,6 +205,55 @@
         if (!rows.some((row) => row.itemName.trim()) && availableLookupItems[0]) void chooseLookupItem(availableLookupItems[0]);
         message = availableLookupItems.length ? 'Item lookup populated from active canonical items.' : 'Search for an active canonical item before adding a line.';
         return true;
+      case 'Auto Batch Generation': {
+        const dateToken = transactionDate.replace(/[^0-9]/g, '').slice(0, 8) || localDateString().replace(/-/g, '');
+        let sequence = 0;
+        rows = rows.map((row) => {
+          if (!row.itemName.trim()) return row;
+          sequence += 1;
+          return row.batchNumber.trim() ? row : { ...row, batchNumber: `AUTO-SALE-${dateToken}-${String(sequence).padStart(3, '0')}` };
+        });
+        message = sequence ? `Auto Batch Generation: ${sequence} batch identifier${sequence === 1 ? '' : 's'} generated.` : 'Select at least one item before generating batch identifiers.';
+        return true;
+      }
+      case 'Apply Item GST %': {
+        if (!itemGstRate.trim()) {
+          message = 'Apply Item GST %: enter a rate in the transaction adjustments first.';
+          return true;
+        }
+        let applied = 0;
+        rows = rows.map((row) => {
+          if (!row.itemName.trim()) return row;
+          applied += 1;
+          return { ...row, gstRate: itemGstRate.trim() };
+        });
+        message = applied ? `Apply Item GST %: ${itemGstRate.trim()}% applied to populated lines.` : 'Apply Item GST %: no populated lines to update.';
+        return true;
+      }
+      case 'Apply Item Discount %': {
+        if (!itemDiscountRate.trim()) {
+          message = 'Apply Item Discount %: enter a rate in the transaction adjustments first.';
+          return true;
+        }
+        let applied = 0;
+        rows = rows.map((row) => {
+          if (!row.itemName.trim()) return row;
+          applied += 1;
+          return { ...row, discountPercent: itemDiscountRate.trim() };
+        });
+        message = applied ? `Apply Item Discount %: ${itemDiscountRate.trim()}% applied to populated lines.` : 'Apply Item Discount %: no populated lines to update.';
+        return true;
+      }
+      case 'Attach Document(s)':
+        attachmentInput?.click();
+        return true;
+      case 'Show Document Gallery':
+        message = attachments.length ? `Document Gallery: ${attachments.length} attachment${attachments.length === 1 ? '' : 's'} selected.` : 'Document Gallery: no attachments selected.';
+        return true;
+      case 'Import Parent Server Selected Transactions':
+        void flushQueue();
+        message = 'Import Parent Server Selected Transactions: branch sync requested.';
+        return true;
       case 'Sort Items':
         rows = [...rows].sort((left, right) => left.itemName.localeCompare(right.itemName));
         message = 'Items sorted by name.';
@@ -221,7 +287,7 @@
     }
   }
 
-  function blankRow(): SaleRow { return { itemName: '', stock: '', availabilityLoaded: false, purchasePrice: '', salePrice: '', manufacturer: '', pieces: '', location: '', quantity: '1', total: '0.00' }; }
+  function blankRow(): SaleRow { return { itemName: '', stock: '', availabilityLoaded: false, purchasePrice: '', salePrice: '', manufacturer: '', pieces: '', location: '', quantity: '1', discountPercent: '', gstRate: '', batchNumber: '', expiryDate: '', unitCost: '', total: '0.00' }; }
   function addRow() { rows = [...rows, blankRow()]; }
   function removeRow(index: number) { rows = rows.filter((_, rowIndex) => rowIndex !== index); if (!rows.length) rows = [blankRow()]; }
   function updateRow(index: number, key: keyof SaleRow, value: string) {
@@ -302,7 +368,8 @@
         return {
           id: row.itemId || `${row.itemName.trim()}#${index + 1}`,
           quantity: row.quantity.trim() || '0',
-          prices: Array.from({ length: priceLevel }, () => unitPrice)
+          prices: Array.from({ length: priceLevel }, () => unitPrice),
+          ...(row.discountPercent.trim() ? { itemDiscountPercent: row.discountPercent.trim() } : {})
         };
       }),
       documentDiscountPercent: documentDiscountPercent || '0',
@@ -351,7 +418,7 @@
         pending = (await queue.pending()).length;
         const godownResult = await api.masterRecords('godown');
         godowns = godownResult.records.filter((record) => record.active);
-        if (kind === 'credit') {
+        if (kind === 'credit' || kind === 'credit-return' || kind === 'open-credit-return') {
           const customerResult = await api.masterRecords('customer');
           customers = customerResult.records.filter((record) => record.active);
         }
@@ -363,12 +430,18 @@
   function makeEvent(calculated?: PricingPreviewResponse | null, status: 'draft' | 'posted' | 'voided' = 'posted'): SyncEnvelope {
     if (!session?.tenantId || !session.branchId || !session.counterId || !session.operatorId) throw new Error('Select a branch and counter before posting a sale.');
     const eventId = newEventId();
-    return { eventId, aggregate, aggregateId: eventId, tenantId: session.tenantId, branchId: session.branchId, counterId: session.counterId, operatorId: session.operatorId, occurredAt: new Date(`${transactionDate}T00:00:00`).toISOString(), idempotencyKey: `${aggregate}:${documentNumber || eventId}:${status}`, schemaVersion: 1, payload: { documentNumber, customer, reference, salePriceMode, remarks, rows, totalAmount: calculated?.total ?? effectiveTotal, pricing: calculated, pricingRequest: calculated ? pricingRequest() : null, status } };
+    return { eventId, aggregate, aggregateId: eventId, tenantId: session.tenantId, branchId: session.branchId, counterId: session.counterId, operatorId: session.operatorId, occurredAt: localDateAtNoonUtc(transactionDate), idempotencyKey: `${aggregate}:${documentNumber || eventId}:${status}`, schemaVersion: 1, payload: { documentNumber, customer, reference, salePriceMode, remarks, rows, totalAmount: calculated?.total ?? effectiveTotal, pricing: calculated, pricingRequest: calculated ? pricingRequest() : null, status } };
   }
 
-  function businessDocumentKind(): 'cash-sale' | 'credit-sale' | undefined {
+  function businessDocumentKind(): 'cash-sale' | 'credit-sale' | 'cash-return' | 'credit-return' | 'open-cash-return' | 'open-credit-return' | 'quotation' | 'refused-sale' | undefined {
     if (kind === 'cash') return 'cash-sale';
     if (kind === 'credit') return 'credit-sale';
+    if (kind === 'cash-return') return 'cash-return';
+    if (kind === 'credit-return') return 'credit-return';
+    if (kind === 'open-cash-return') return 'open-cash-return';
+    if (kind === 'open-credit-return') return 'open-credit-return';
+    if (kind === 'quotation') return 'quotation';
+    if (kind === 'refused') return 'refused-sale';
     return undefined;
   }
 
@@ -377,12 +450,20 @@
   let canonicalIdempotencyKey = '';
 
   function canonicalValidation(action: 'save' | 'post' | 'save-and-post') {
+    const documentKind = businessDocumentKind();
+    const returnKind = documentKind === 'cash-return' || documentKind === 'credit-return';
+    const openReturnKind = documentKind === 'open-cash-return' || documentKind === 'open-credit-return';
+    const anyReturnKind = returnKind || openReturnKind;
+    const stockBearing = documentKind === 'cash-sale' || documentKind === 'credit-sale' || anyReturnKind;
+    const requiresAvailability = documentKind === 'cash-sale' || documentKind === 'credit-sale';
     const lineRows = rows.filter((row) => row.itemName.trim() || row.itemId);
     if (!lineRows.length) throw new Error('Enter at least one item selected from the active canonical item lookup.');
     if (lineRows.some((row) => !row.itemId || !row.itemLegacyId)) throw new Error('Select an active canonical item from lookup for every sale line.');
-    if (!godownId || !godowns.some((godown) => godown.id === godownId && godown.active)) throw new Error('Select an active godown before saving or posting the sale.');
-    if (kind === 'credit' && (!customerId || !customers.some((party) => party.id === customerId && party.active))) throw new Error('Select an active canonical customer for a credit sale.');
-    if (action !== 'save') {
+    if (stockBearing && (!godownId || !godowns.some((godown) => godown.id === godownId && godown.active))) throw new Error('Select an active godown before saving or posting the sale.');
+    if ((kind === 'credit' || kind === 'credit-return' || kind === 'open-credit-return') && (!customerId || !customers.some((party) => party.id === customerId && party.active))) throw new Error(kind === 'credit-return' || kind === 'open-credit-return' ? 'Select an active canonical customer for a sale return.' : 'Select an active canonical customer for a credit sale.');
+    if (returnKind && action !== 'save' && !sourceDocumentId.trim()) throw new Error('Enter the canonical source sale document ID before posting a sale return.');
+    if (returnKind && action !== 'save' && lineRows.some((row) => !row.sourceLineId?.trim())) throw new Error('Enter the canonical source sale line ID for every posted sale return line.');
+    if (requiresAvailability && action !== 'save') {
       for (const row of lineRows) {
         if (!row.availabilityLoaded) throw new Error(`Stock availability is not loaded for ${row.itemName}. Select a godown and refresh availability.`);
         if (Number(row.quantity) > Number(row.stock)) throw new Error(`Insufficient available stock for ${row.itemName}.`);
@@ -391,16 +472,21 @@
     return lineRows;
   }
 
-  function businessDocumentCommand(action: 'save' | 'post' | 'save-and-post'): DocumentCommandForKind<'cash-sale' | 'credit-sale'> {
+  function businessDocumentCommand(action: 'save' | 'post' | 'save-and-post'): DocumentCommandForKind<'cash-sale' | 'credit-sale' | 'cash-return' | 'credit-return' | 'open-cash-return' | 'open-credit-return' | 'quotation' | 'refused-sale'> {
     const documentKind = businessDocumentKind();
-    if (!documentKind) throw new Error('Only cash and credit sales use the canonical document lifecycle.');
+    if (!documentKind) throw new Error('This sales route is not available in the canonical document lifecycle.');
     const lineRows = canonicalValidation(action);
     const lines = lineRows.map((row, index) => ({
       lineNumber: index + 1,
       itemId: row.itemId as string,
+      ...(row.sourceLineId?.trim() ? { sourceLineId: row.sourceLineId.trim() } : {}),
       quantity: row.quantity || '0',
       unitPrice: (row.salePrice || '0').replace(/,/g, ''),
-      discountPercent: '0'
+      discountPercent: row.discountPercent || '0',
+      ...(row.gstRate.trim() ? { gstRate: row.gstRate.trim() } : {}),
+      ...(row.batchNumber.trim() ? { batchNumber: row.batchNumber.trim() } : {}),
+      ...(row.expiryDate.trim() ? { expiryDate: row.expiryDate.trim() } : {}),
+      ...(row.unitCost.trim() ? { unitCost: row.unitCost.trim() } : {})
     }));
     const signature = JSON.stringify({
       documentKind,
@@ -409,6 +495,8 @@
       version: businessDocumentVersion,
       documentNumber,
       occurredAt: transactionDate,
+      sourceDocumentId,
+      sourceDocumentNumber,
       godownId,
       customerId,
       reference,
@@ -429,14 +517,15 @@
       kind: documentKind,
       action,
       idempotencyKey: canonicalIdempotencyKey,
-      occurredAt: new Date(`${transactionDate}T00:00:00`).toISOString(),
+      occurredAt: localDateAtNoonUtc(transactionDate),
       document: {
         ...(businessDocumentId ? { id: businessDocumentId } : {}),
         kind: documentKind,
         documentNumber,
-        occurredAt: new Date(`${transactionDate}T00:00:00`).toISOString(),
-        ...(documentKind === 'credit-sale' ? { customerId } : {}),
-        godownId,
+        occurredAt: localDateAtNoonUtc(transactionDate),
+        ...(documentKind === 'credit-sale' || documentKind === 'credit-return' || documentKind === 'open-credit-return' ? { customerId } : {}),
+        ...(documentKind === 'cash-sale' || documentKind === 'credit-sale' || documentKind === 'cash-return' || documentKind === 'credit-return' || documentKind === 'open-cash-return' || documentKind === 'open-credit-return' ? { godownId } : {}),
+        ...(documentKind === 'cash-return' || documentKind === 'credit-return' ? { sourceDocumentId, sourceDocumentNumber } : {}),
         reference,
         remarks,
         lines,
@@ -447,13 +536,13 @@
         pricing: { priceLevel: selectedPriceLevel(), documentDiscountPercent, flatDiscountAmount, miscAmount }
       }
     };
-    return businessDocumentVersion > 0 ? { ...base, expectedVersion: businessDocumentVersion } as DocumentCommandForKind<'cash-sale' | 'credit-sale'> : base as DocumentCommandForKind<'cash-sale' | 'credit-sale'>;
+    return businessDocumentVersion > 0 ? { ...base, expectedVersion: businessDocumentVersion } as DocumentCommandForKind<'cash-sale' | 'credit-sale' | 'cash-return' | 'credit-return' | 'open-cash-return' | 'open-credit-return' | 'quotation' | 'refused-sale'> : base as DocumentCommandForKind<'cash-sale' | 'credit-sale' | 'cash-return' | 'credit-return' | 'open-cash-return' | 'open-credit-return' | 'quotation' | 'refused-sale'>;
   }
 
   async function submitBusinessDocument(action: 'save' | 'post' | 'save-and-post') {
     const documentKind = businessDocumentKind();
     const command = businessDocumentCommand(action);
-    if (!documentKind) throw new Error('Canonical cash/credit sale kind is unavailable.');
+    if (!documentKind) throw new Error('Canonical sales document kind is unavailable.');
     const response = await api.documentCommand(documentKind, command);
     if (!response.accepted) throw new Error(response.errors.map((item) => item.message).join('; ') || 'The canonical document command was rejected.');
     if (action === 'save' && response.status !== 'draft') throw new Error(`Canonical save returned status ${response.status}; it was not saved as a draft.`);
@@ -476,12 +565,12 @@
       canonicalCommandId = newEventId();
       canonicalIdempotencyKey = `canonical:${documentKind}:void:${businessDocumentId}:${businessDocumentVersion}`;
     }
-    const command: DocumentCommandForKind<'cash-sale' | 'credit-sale'> = {
+    const command: DocumentCommandForKind<'cash-sale' | 'credit-sale' | 'cash-return' | 'credit-return' | 'open-cash-return' | 'open-credit-return' | 'quotation' | 'refused-sale'> = {
       commandId: canonicalCommandId,
       kind: documentKind,
       action: 'void',
       idempotencyKey: canonicalIdempotencyKey,
-      occurredAt: new Date(`${transactionDate}T00:00:00`).toISOString(),
+      occurredAt: localDateAtNoonUtc(transactionDate),
       expectedVersion: businessDocumentVersion,
       documentId: businessDocumentId,
       reason: 'Voided from sales workflow'
@@ -558,12 +647,13 @@
       <span class="legacy-toolbar-separator"></span><button type="button" aria-label="Previous sale" onclick={() => { void navigateHistory(-1); }} title="Previous">◀</button><button type="button" aria-label="Next sale" onclick={() => { void navigateHistory(1); }} title="Next">▶</button>
       <span class="legacy-toolbar-caption">{online ? 'Online' : 'Offline'} · {workflowTitle}</span>
     </div>
-    <div class="legacy-transaction-tabs"><button class:active={activeTab === 'detail'} type="button" onclick={() => { activeTab = 'detail'; }}>▦ Detail</button><button class:active={activeTab === 'list'} type="button" onclick={() => { activeTab = 'list'; }}>▦ List</button></div>
+    <div class="legacy-transaction-tabs"><button aria-label="Detail" aria-pressed={activeTab === 'detail'} class:active={activeTab === 'detail'} type="button" onclick={() => { interactive = true; activeTab = 'detail'; }}>▦ Detail</button><button data-testid="sales-list-tab" aria-label="List" aria-pressed={activeTab === 'list'} class:active={activeTab === 'list'} type="button" onclick={() => { interactive = true; activeTab = 'list'; void loadHistory(); }}>▦ List</button></div>
     <div class="legacy-transaction-detail">
       <div class="legacy-sale-fields">
         <label>Inv. No:<input bind:value={documentNumber} /></label><label>Date:<input type="date" bind:value={transactionDate} /></label>
         <label>User:<input value={session?.username ?? ''} readonly /></label><label>Godown:<select aria-label="Godown" bind:value={godownId} onchange={() => void refreshAllAvailability()}><option value="">Select active godown</option>{#each godowns as godown}<option value={godown.id}>{godown.name}</option>{/each}</select></label>
-        <label>Alias Name:<input aria-label="Item lookup query" bind:value={lookupQuery} oninput={(event) => void searchItems((event.currentTarget as HTMLInputElement).value)} onkeydown={(event) => { if (event.key === 'Enter') void searchItems((event.currentTarget as HTMLInputElement).value); }} /></label><label>Customer:{#if kind === 'credit'}<select aria-label="Customer" bind:value={customerId} onchange={() => { const selected = customers.find((party) => party.id === customerId); customer = selected?.name ?? ''; }}><option value="">Select active customer</option>{#each customers as party}<option value={party.id}>{party.name}</option>{/each}</select>{:else}<input bind:value={customer} readonly />{/if}</label>
+        <label>Alias Name:<input aria-label="Item lookup query" bind:value={lookupQuery} oninput={(event) => void searchItems((event.currentTarget as HTMLInputElement).value)} onkeydown={(event) => { if (event.key === 'Enter') void searchItems((event.currentTarget as HTMLInputElement).value); }} /></label><label>Customer:{#if kind === 'credit' || kind === 'credit-return' || kind === 'open-credit-return'}<select aria-label="Customer" bind:value={customerId} onchange={() => { const selected = customers.find((party) => party.id === customerId); customer = selected?.name ?? ''; }}><option value="">Select active customer</option>{#each customers as party}<option value={party.id}>{party.name}</option>{/each}</select>{:else}<input bind:value={customer} readonly />{/if}</label>
+        {#if kind === 'cash-return' || kind === 'credit-return'}<label>Source Inv. ID:<input aria-label="Source document ID" bind:value={sourceDocumentId} /></label><label>Source Inv. No.:<input aria-label="Source document number" bind:value={sourceDocumentNumber} /></label>{/if}
         <label>Ref.:<input bind:value={reference} /></label><label>Remarks:<input bind:value={remarks} /></label>
         <label>SalePrice:#<select bind:value={salePriceMode}><option>Sale Price 1</option><option>Sale Price 2</option><option>Sale Price 3</option></select></label>
       </div>
@@ -572,8 +662,8 @@
           {#if lookupBusy}<tr><td colspan="7">Looking up active canonical items…</td></tr>{:else if availableLookupItems.length === 0}<tr><td colspan="7">Search by item name, alias, barcode, or code. No demo items are available.</td></tr>{:else}{#each availableLookupItems as item}<tr><td><button type="button" onclick={() => chooseLookupItem(item)}>{item.name}</button></td><td>{item.stock || 'Select godown'}</td><td>{item.purchasePrice}</td><td>{item.salePrice}</td><td>{item.manufacturer}</td><td>{item.pieces}</td><td>{item.location}</td></tr>{/each}{/if}
         </tbody></table>
       </div>
-      <div class="legacy-sale-grid-wrap"><table class="legacy-sale-grid"><thead><tr><th>No.</th><th>Item Name</th><th>Stock</th><th>Purchase Price</th><th>Sale Price</th><th>Manufacturer</th><th>P/Pcs.</th><th>Location</th><th>Qty</th><th>Total</th><th></th></tr></thead><tbody>
-        {#each rows as row, index}<tr><td>{index + 1}</td><td><input aria-label={`Item name ${index + 1}`} value={row.itemName} readonly={Boolean(row.itemId)} oninput={(event) => updateRow(index, 'itemName', event.currentTarget.value)} /></td><td>{row.stock}{#if row.stockError}<small class="error">{row.stockError}</small>{/if}</td><td>{row.purchasePrice}</td><td><input value={row.salePrice} oninput={(event) => updateRow(index, 'salePrice', event.currentTarget.value)} /></td><td>{row.manufacturer}</td><td>{row.pieces}</td><td>{row.location}</td><td><input value={row.quantity} oninput={(event) => updateRow(index, 'quantity', event.currentTarget.value)} /></td><td>{row.total}</td><td><button type="button" aria-label={`Remove row ${index + 1}`} onclick={() => removeRow(index)}>×</button></td></tr>{/each}
+      <div class="legacy-sale-grid-wrap"><table class="legacy-sale-grid"><thead><tr><th>No.</th><th>Item Name</th>{#if kind === 'cash-return' || kind === 'credit-return'}<th>Source Sale Line ID</th>{/if}{#if kind === 'open-cash-return' || kind === 'open-credit-return'}<th>Batch</th><th>Expiry</th><th>Unit Cost</th>{/if}<th>Stock</th><th>Purchase Price</th><th>Sale Price</th><th>Manufacturer</th><th>P/Pcs.</th><th>Location</th><th>Qty</th><th>Total</th><th></th></tr></thead><tbody>
+        {#each rows as row, index}<tr><td>{index + 1}</td><td><input aria-label={`Item name ${index + 1}`} value={row.itemName} readonly={Boolean(row.itemId)} oninput={(event) => updateRow(index, 'itemName', event.currentTarget.value)} /></td>{#if kind === 'cash-return' || kind === 'credit-return'}<td><input aria-label={`Source sale line ID ${index + 1}`} value={row.sourceLineId ?? ''} oninput={(event) => updateRow(index, 'sourceLineId', event.currentTarget.value)} /></td>{/if}{#if kind === 'open-cash-return' || kind === 'open-credit-return'}<td><input aria-label={`Batch ${index + 1}`} value={row.batchNumber} oninput={(event) => updateRow(index, 'batchNumber', event.currentTarget.value)} /></td><td><input aria-label={`Expiry ${index + 1}`} type="date" value={row.expiryDate} oninput={(event) => updateRow(index, 'expiryDate', event.currentTarget.value)} /></td><td><input aria-label={`Unit cost ${index + 1}`} value={row.unitCost} oninput={(event) => updateRow(index, 'unitCost', event.currentTarget.value)} /></td>{/if}<td>{row.stock}{#if row.stockError}<small class="error">{row.stockError}</small>{/if}</td><td>{row.purchasePrice}</td><td><input value={row.salePrice} oninput={(event) => updateRow(index, 'salePrice', event.currentTarget.value)} /></td><td>{row.manufacturer}</td><td>{row.pieces}</td><td>{row.location}</td><td><input value={row.quantity} oninput={(event) => updateRow(index, 'quantity', event.currentTarget.value)} /></td><td>{row.total}</td><td><button type="button" aria-label={`Remove row ${index + 1}`} onclick={() => removeRow(index)}>×</button></td></tr>{/each}
       </tbody></table></div>
       <div class="legacy-sale-lines"><table><thead><tr><th>No.</th><th>Item Name</th></tr></thead><tbody>{#each rows as row, index}<tr><td>{index + 1}</td><td><input aria-label={`Item name ${index + 1}`} value={row.itemName} oninput={(event) => updateRow(index, 'itemName', event.currentTarget.value)} /></td></tr>{/each}</tbody></table></div>
       {#if activeTab === 'list'}<div class="legacy-sale-list"><table><thead><tr><th>Document</th><th>Date</th><th>Customer</th><th>Item</th><th>Qty</th><th>Total</th></tr></thead><tbody>
@@ -582,6 +672,13 @@
         {:else}{#each history as row}<tr><td><button type="button" onclick={() => applyHistoryRow(row)}>{row.document || ''}</button></td><td>{row.occurredAt || ''}</td><td>{row.party || ''}</td><td>{row.item || ''}</td><td>{row.quantity || ''}</td><td>{row.amount || ''}</td></tr>{/each}{/if}
       </tbody></table></div>{/if}
       <button class="legacy-add-row" type="button" onclick={addRow}>Add item row</button>
+      <div class="legacy-purchase-adjustments legacy-sale-adjustments" aria-label="Sale adjustments">
+        <label>Item GST %<input aria-label="Item GST percent" bind:value={itemGstRate} /></label>
+        <label>Item Discount %<input aria-label="Item discount percent" bind:value={itemDiscountRate} /></label>
+        <button type="button" onclick={() => attachmentInput?.click()}>Attach Document(s)</button>
+        <button type="button" onclick={() => { message = attachments.length ? `Document Gallery: ${attachments.length} attachment${attachments.length === 1 ? '' : 's'} selected.` : 'Document Gallery: no attachments selected.'; }}>Document Gallery</button>
+      </div>
+      <input class="legacy-hidden-file-input" type="file" multiple bind:this={attachmentInput} onchange={onAttachmentsSelected} aria-label="Attach sale documents" />
       <div class="legacy-sale-total-line"><strong>Total:</strong><span>{rows.length}</span><span>{totalAmount}</span></div>
       <div class="legacy-sale-bottom">
         <label class="sale-bottom-disc-percent">Disc(%):<input aria-label="Discount percent" bind:value={documentDiscountPercent} oninput={queuePricingPreview} /></label>

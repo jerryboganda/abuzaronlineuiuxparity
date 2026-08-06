@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-08-06T19:14:47.9172753Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PricePolicyDetail",
+      "targetSchema": "public",
+      "targetTable": "price_policy_tiers",
+      "read": 30052,
+      "imported": 25352,
+      "duplicates": 4700,
+      "exceptions": 0
+    }
+  ]
+}

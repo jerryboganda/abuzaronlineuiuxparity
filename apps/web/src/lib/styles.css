@@ -296,6 +296,19 @@ h1, h2, p { margin-top: 0; }
 .legacy-transaction-grid td > button { border: 0; background: transparent; color: transparent; font-size: 0; }
 .legacy-transaction-grid td > button::after { color: #a00; content: "\00D7"; font: 14px/18px Tahoma, Arial, sans-serif; }
 .legacy-add-row { margin: 7px 0 0 4px; padding: 2px 10px; border: 1px solid #888; background: #eee; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-purchase-adjustments { display: flex; align-items: center; gap: 8px; margin: 6px 0 0 4px; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-purchase-adjustments label { display: inline-flex; align-items: center; gap: 4px; }
+.legacy-purchase-adjustments input { width: 58px; height: 18px; box-sizing: border-box; border: 1px solid #aaa; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-purchase-adjustments button { padding: 2px 8px; border: 1px solid #888; background: #eee; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-hidden-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.legacy-dialog-backdrop { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgb(0 0 0 / 22%); }
+.legacy-simple-dialog { min-width: 340px; padding: 14px; border: 1px solid #777; background: #eee; box-shadow: 2px 2px 10px rgb(0 0 0 / 28%); font: 12px Tahoma, Arial, sans-serif; }
+.legacy-simple-dialog h2 { margin: 0 0 12px; font-size: 14px; font-weight: 400; }
+.legacy-simple-dialog label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.legacy-simple-dialog input { width: 100px; height: 20px; border: 1px solid #999; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-simple-dialog p { margin: 12px 0; }
+.legacy-simple-dialog > div { display: flex; justify-content: flex-end; gap: 8px; }
+.legacy-simple-dialog button { min-width: 70px; padding: 3px 10px; border: 1px solid #888; background: #eee; font: 12px Tahoma, Arial, sans-serif; }
 .legacy-transaction-totals { display: flex; justify-content: flex-end; gap: 55px; padding: 8px 180px 0 0; font: 12px Tahoma, Arial, sans-serif; }
 .legacy-transaction-totals strong { margin-left: 30px; font-weight: 400; }
 .legacy-purchase-list { display: none; }
@@ -746,8 +759,11 @@ h1, h2, p { margin-top: 0; }
 .legacy-preferences-body td:nth-child(2) { width: 280px; }
 .legacy-preferences-body td:nth-child(3) { width: 250px; }
 .legacy-preferences-body input { width: 100%; box-sizing: border-box; border: 0; background: transparent; color: #000; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-preferences-body select { width: 100%; box-sizing: border-box; border: 0; background: transparent; color: #000; font: 12px Tahoma, Arial, sans-serif; }
 .legacy-preferences-body td:last-child { width: 24px; padding: 0; }
 .legacy-preferences-body td:last-child button { width: 22px; height: 17px; padding: 0; border: 1px solid #aaa; background: #eee; }
+.legacy-preferences-body input:focus, .legacy-preferences-body select:focus, .legacy-preferences-body td:last-child button:focus-visible,
+.legacy-preferences-tabs button:focus-visible, .legacy-preferences-footer button:focus-visible { outline: 2px solid #005fcc; outline-offset: -1px; }
 .legacy-preferences-body tr.section td { background: #800000; color: #fff; font-weight: 700; }
 .legacy-preferences-schedule-form { display: grid; gap: 7px; width: 610px; padding: 4px 7px; font: 12px Tahoma, Arial, sans-serif; }
 .legacy-preferences-schedule-form fieldset { display: flex; align-items: center; gap: 7px; min-height: 42px; margin: 0; padding: 4px 7px 6px; border: 1px solid #bbb; background: #f4f4f4; }
@@ -764,6 +780,8 @@ h1, h2, p { margin-top: 0; }
 .legacy-preferences-footer button { min-width: 80px; padding: 3px 12px; border: 1px solid #888; background: #eee; font: 12px Tahoma, Arial, sans-serif; }
 .legacy-preferences-footer [role='status'] { margin-left: 10px; }
 .legacy-preferences-error { margin-left: 10px; color: #a00000; }
+.legacy-preferences-divergence { width: 590px; margin: 4px 7px; padding: 4px 6px; border: 1px solid #c99; background: #fff7f7; color: #700; font: 11px Tahoma, Arial, sans-serif; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .context-page { min-height: 100vh; display: grid; place-items: center; background: #aaa; color: #000; font-family: Tahoma, Arial, sans-serif; }
 .context-window { width: min(520px, calc(100vw - 32px)); border: 1px solid #777; background: #eee; box-shadow: 3px 4px 10px rgba(0, 0, 0, .22); }
 .context-titlebar { display: flex; align-items: center; gap: 7px; height: 29px; padding: 0 8px; border-bottom: 1px solid #aaa; background: #f3f3f3; }
@@ -795,6 +813,18 @@ h1, h2, p { margin-top: 0; }
 .legacy-workflow-help table { width: 100%; border-collapse: collapse; }
 .legacy-workflow-help th, .legacy-workflow-help td { padding: 3px 5px; border: 1px solid #aaa; text-align: left; }
 .legacy-workflow-help th { background: #eee; font-weight: 400; }
+.legacy-role-list { min-width: 0; overflow: auto; }
+.legacy-role-list h2 { margin-bottom: 8px; }
+.legacy-role-list table { table-layout: fixed; }
+.legacy-role-list th, .legacy-role-list td { height: 22px; vertical-align: middle; }
+.legacy-role-list th:nth-child(1), .legacy-role-list td:nth-child(1) { width: 24%; }
+.legacy-role-list th:nth-child(2), .legacy-role-list td:nth-child(2) { width: 30%; }
+.legacy-role-list th:nth-child(3), .legacy-role-list td:nth-child(3),
+.legacy-role-list th:nth-child(4), .legacy-role-list td:nth-child(4) { width: 23%; }
+.legacy-role-list td button { padding: 0; border: 0; background: transparent; color: #004b8d; font: inherit; text-decoration: underline; text-align: left; }
+.legacy-rights-matrix { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; max-height: 245px; overflow: auto; padding: 4px; border: 1px solid #ccc; background: #fff; }
+.legacy-rights-matrix .legacy-permission-option { overflow: hidden; text-overflow: ellipsis; }
+.legacy-access-exception { margin: 7px 0 0; color: #8a5a00; }
 .legacy-captured-dialog-canvas { min-height: 100vh; display: grid; place-items: center; background: #aaa; }
 .legacy-captured-dialog { position: relative; box-sizing: border-box; color: #000; font: 12px Tahoma, Arial, sans-serif; overflow: hidden; }
 .legacy-captured-dialog h2 { position: absolute; top: 0; left: 0; right: 0; height: 25px; box-sizing: border-box; margin: 0; padding: 5px 7px 0; background: #f3f3f3; border-bottom: 1px solid #aaa; font: 12px Tahoma, Arial, sans-serif; font-weight: 400; }
@@ -992,4 +1022,194 @@ tbody tr:last-child td { border-bottom: 0; }
   }
   .legacy-report-loading-baseline .legacy-report-window { min-width: 0; background: transparent !important; border: 0 !important; }
   .legacy-report-loading-baseline .legacy-report-window > * { opacity: 0; }
+}
+
+/*
+ * Live acceptance viewport
+ *
+ * The captured workflow substrates above belong to the old 1922x970 and
+ * 1536x972 audits.  They are intentionally left intact for those historical
+ * comparisons, but must never participate in the 1936x1048 live pass.  At the
+ * acceptance viewport the document is a real, bounded MDI child: no raster
+ * background, no opacity veil, and no page growth past the browser frame.
+ */
+@media (width: 1936px) and (height: 1048px) {
+  .legacy-transaction-page,
+  .legacy-master-page,
+  .legacy-report-page,
+  .legacy-preferences-page,
+  .legacy-workflow-page {
+    width: 100vw;
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .legacy-transaction-window,
+  .legacy-master-window,
+  .legacy-report-window,
+  .legacy-preferences-window,
+  .legacy-workflow-window {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* The native parent owns the document-window list/status strip in this
+   * full-window capture.  Keep the controls mounted for keyboard access, but
+   * don't add a second chrome row to the live child surface. */
+  .legacy-transaction-page .legacy-mdi-tabs,
+  .legacy-transaction-page .legacy-contextual-status,
+  .legacy-master-page .legacy-mdi-tabs,
+  .legacy-master-page .legacy-contextual-status,
+  .legacy-report-page .legacy-mdi-tabs,
+  .legacy-report-page .legacy-contextual-status {
+    display: none;
+  }
+
+  .legacy-transaction-window,
+  .legacy-master-window,
+  .legacy-report-window,
+  .legacy-workflow-window {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .legacy-transaction-window > .legacy-transaction-titlebar,
+  .legacy-master-window > .legacy-transaction-titlebar,
+  .legacy-report-window > .legacy-transaction-titlebar,
+  .legacy-workflow-window > .legacy-transaction-titlebar {
+    flex: 0 0 29px;
+  }
+
+  .legacy-transaction-window > .legacy-menu-bar,
+  .legacy-master-window > .legacy-menu-bar,
+  .legacy-report-window > .legacy-menu-bar {
+    flex: 0 0 18px;
+  }
+
+  .legacy-transaction-window > .legacy-transaction-toolbar,
+  .legacy-master-window > .legacy-transaction-toolbar,
+  .legacy-report-window > .legacy-transaction-toolbar,
+  .legacy-workflow-window > .legacy-transaction-toolbar {
+    flex: 0 0 28px;
+  }
+
+  .legacy-transaction-window > .legacy-transaction-tabs {
+    flex: 0 0 26px;
+  }
+
+  .legacy-transaction-window > .legacy-transaction-detail,
+  .legacy-master-window > .legacy-master-body,
+  .legacy-report-window > .legacy-report-body,
+  .legacy-workflow-window > .legacy-workflow-body {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: auto;
+  }
+
+  .legacy-transaction-window > .legacy-transaction-footer,
+  .legacy-master-window > .legacy-transaction-footer,
+  .legacy-report-window > .legacy-transaction-footer,
+  .legacy-workflow-window > .legacy-transaction-footer {
+    flex: 0 0 20px;
+  }
+
+  .legacy-transaction-detail {
+    min-height: 0;
+  }
+
+  .legacy-transaction-grid-wrap,
+  .legacy-sale-grid-wrap {
+    max-height: calc(100vh - 330px);
+  }
+
+  .legacy-sale-lookup {
+    max-height: calc(100vh - 330px);
+  }
+
+  .legacy-master-body,
+  .legacy-report-body,
+  .legacy-workflow-body {
+    min-height: 0;
+  }
+
+  .legacy-report-body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .legacy-report-grid-wrap {
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+
+  .legacy-preferences-window {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .legacy-preferences-body {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: auto;
+  }
+
+  /* Explicitly opt every old baseline class back into the semantic DOM at
+   * this viewport.  This is a guard against a future broad selector making a
+   * captured substrate win over a live control. */
+  .legacy-pack-purchase-baseline,
+  .legacy-sales-cash-baseline,
+  .legacy-master-customer-baseline,
+  .legacy-master-supplier-baseline,
+  .legacy-master-item-baseline,
+  .legacy-master-user-baseline,
+  .legacy-report-loading-baseline,
+  .legacy-preferences-general-baseline,
+  .legacy-preferences-sale-baseline,
+  .legacy-preferences-sale-return-baseline,
+  .legacy-preferences-purchase-baseline,
+  .legacy-preferences-purchase-return-baseline,
+  .legacy-preferences-report-baseline,
+  .legacy-preferences-basicdata-baseline,
+  .legacy-preferences-quotation-baseline,
+  .legacy-preferences-schedule-baseline,
+  .legacy-preferences-adjustment-baseline,
+  .legacy-preferences-purchase-order-baseline,
+  .legacy-preferences-others-baseline,
+  .legacy-preferences-point-of-sale-baseline,
+  .legacy-preferences-cashier-job-activity-baseline,
+  .legacy-preferences-email-baseline,
+  .legacy-preferences-sms-baseline,
+  .legacy-preferences-dashboard-baseline {
+    background-image: none !important;
+  }
+
+  .legacy-pack-purchase-baseline > .legacy-transaction-window > *,
+  .legacy-sales-cash-baseline > .legacy-transaction-window > *,
+  .legacy-master-customer-baseline > .legacy-master-window > *,
+  .legacy-master-supplier-baseline > .legacy-master-window > *,
+  .legacy-master-item-baseline > .legacy-master-window > *,
+  .legacy-master-user-baseline > .legacy-master-window > *,
+  .legacy-report-loading-baseline > .legacy-report-window > *,
+  .legacy-preferences-general-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-sale-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-sale-return-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-purchase-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-purchase-return-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-report-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-basicdata-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-quotation-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-schedule-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-adjustment-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-purchase-order-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-others-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-point-of-sale-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-cashier-job-activity-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-email-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-sms-baseline > .legacy-preferences-window > *,
+  .legacy-preferences-dashboard-baseline > .legacy-preferences-window > * {
+    opacity: 1 !important;
+  }
 }

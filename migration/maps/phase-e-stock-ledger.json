@@ -1,0 +1,193 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "tables": [
+    {
+      "source": { "schema": "dbo", "table": "Saledetail" },
+      "target": { "schema": "public", "table": "stock_ledger" },
+      "sourceId": "RowID",
+      "sourceIdColumns": ["SaleInvcode", "RowID"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "ledger" },
+      "columns": {
+        "source_line_key": "RowID",
+        "unit_cost": "AvgPrice"
+      },
+      "sourceExpressions": {
+        "occurred_at": "(SELECT [date] FROM [dbo].[SaleLedger] h WHERE h.[SaleInvCode] = [SaleInvcode])",
+        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END"
+      },
+      "lookups": {
+        "batch_id": {
+          "target": { "schema": "public", "table": "stock_batches" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumns": ["ICode", "GCode", "Batch", "Expiry"]
+        },
+        "source_event_id": {
+          "target": { "schema": "public", "table": "sync_events" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "event_id",
+          "sourceColumn": "SaleInvcode",
+          "predicates": { "legacy_source_table": "SaleLedger" }
+        },
+        "source_document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "SaleInvcode",
+          "predicates": { "legacy_source_table": "SaleLedger" }
+        }
+      },
+      "derivedColumns": {
+        "source_line_key": ["SaleInvcode", "RowID"]
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "direction": "out",
+        "adjustment_sign": "1"
+      },
+      "coerce": { "source_line_key": "text" },
+      "conflictColumns": ["tenant_id", "source_event_id", "source_line_key", "batch_id", "direction"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Purdetail" },
+      "target": { "schema": "public", "table": "stock_ledger" },
+      "sourceId": "PurRowId",
+      "sourceIdColumns": ["PurInvCode", "PurRowId"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "ledger" },
+      "columns": { "source_line_key": "PurRowId", "unit_cost": "PurPrice" },
+      "sourceExpressions": {
+        "occurred_at": "(SELECT [Date] FROM [dbo].[Purledger] h WHERE h.[PurInvCode] = [PurInvCode])",
+        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END"
+      },
+      "lookups": {
+        "batch_id": {
+          "target": { "schema": "public", "table": "stock_batches" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumns": ["ICode", "Gcode", "Batch", "Expiry"]
+        },
+        "source_event_id": {
+          "target": { "schema": "public", "table": "sync_events" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "event_id",
+          "sourceColumn": "PurInvCode",
+          "predicates": { "legacy_source_table": "Purledger" }
+        },
+        "source_document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "PurInvCode",
+          "predicates": { "legacy_source_table": "Purledger" }
+        }
+      },
+      "derivedColumns": { "source_line_key": ["PurInvCode", "PurRowId"] },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "direction": "in",
+        "adjustment_sign": "1"
+      },
+      "coerce": { "source_line_key": "text" },
+      "conflictColumns": ["tenant_id", "source_event_id", "source_line_key", "batch_id", "direction"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "SRdetail" },
+      "target": { "schema": "public", "table": "stock_ledger" },
+      "sourceId": "RowId",
+      "sourceIdColumns": ["SRInvcode", "RowId"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "ledger" },
+      "columns": { "source_line_key": "RowId", "unit_cost": "AvgPrice" },
+      "sourceExpressions": {
+        "occurred_at": "(SELECT [Date] FROM [dbo].[SRLedger] h WHERE h.[SRInvCode] = [SRInvcode])",
+        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END"
+      },
+      "lookups": {
+        "batch_id": {
+          "target": { "schema": "public", "table": "stock_batches" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumns": ["Icode", "Gcode", "Batch", "Expiry"]
+        },
+        "source_event_id": {
+          "target": { "schema": "public", "table": "sync_events" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "event_id",
+          "sourceColumn": "SRInvcode",
+          "predicates": { "legacy_source_table": "SRLedger" }
+        },
+        "source_document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "SRInvcode",
+          "predicates": { "legacy_source_table": "SRLedger" }
+        }
+      },
+      "derivedColumns": { "source_line_key": ["SRInvcode", "RowId"] },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "direction": "in",
+        "adjustment_sign": "1"
+      },
+      "coerce": { "source_line_key": "text" },
+      "conflictColumns": ["tenant_id", "source_event_id", "source_line_key", "batch_id", "direction"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "PRdetail" },
+      "target": { "schema": "public", "table": "stock_ledger" },
+      "sourceId": "PrRowId",
+      "sourceIdColumns": ["PRInvCode", "PrRowId"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "generatedColumns": { "id": "ledger" },
+      "columns": { "source_line_key": "PrRowId", "unit_cost": "AvgPrice" },
+      "sourceExpressions": {
+        "occurred_at": "(SELECT [Date] FROM [dbo].[PRLedger] h WHERE h.[PRInvCode] = [PRInvCode])",
+        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END"
+      },
+      "lookups": {
+        "batch_id": {
+          "target": { "schema": "public", "table": "stock_batches" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumns": ["ICode", "Gcode", "Batch", "Expiry"]
+        },
+        "source_event_id": {
+          "target": { "schema": "public", "table": "sync_events" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "event_id",
+          "sourceColumn": "PRInvCode",
+          "predicates": { "legacy_source_table": "PRLedger" }
+        },
+        "source_document_id": {
+          "target": { "schema": "public", "table": "business_documents" },
+          "targetColumn": "legacy_id",
+          "valueColumn": "id",
+          "sourceColumn": "PRInvCode",
+          "predicates": { "legacy_source_table": "PRLedger" }
+        }
+      },
+      "derivedColumns": { "source_line_key": ["PRInvCode", "PrRowId"] },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "branch_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "direction": "out",
+        "adjustment_sign": "1"
+      },
+      "coerce": { "source_line_key": "text" },
+      "conflictColumns": ["tenant_id", "source_event_id", "source_line_key", "batch_id", "direction"]
+    }
+  ]
+}
