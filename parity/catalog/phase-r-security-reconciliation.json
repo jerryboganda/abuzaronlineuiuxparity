@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-08-06T02:21:35.4638754Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Groups",
+      "sourceCount": 4,
+      "targetSchema": "public",
+      "targetTable": "roles",
+      "targetCount": 4,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Groups",
+      "sourceCount": 4,
+      "targetSchema": "public",
+      "targetTable": "legacy_groups",
+      "targetCount": 4,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Users",
+      "sourceCount": 9,
+      "targetSchema": "public",
+      "targetTable": "users",
+      "targetCount": 9,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "UserGroups",
+      "sourceCount": 9,
+      "targetSchema": "public",
+      "targetTable": "user_memberships",
+      "targetCount": 9,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupRights",
+      "sourceCount": 726,
+      "targetSchema": "public",
+      "targetTable": "group_rights",
+      "targetCount": 726,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedGodown",
+      "sourceCount": 33,
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "targetCount": 33,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedGroups",
+      "sourceCount": 0,
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "targetCount": 0,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedHeader",
+      "sourceCount": 35,
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "targetCount": 35,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedPrice",
+      "sourceCount": 54,
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "targetCount": 54,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedRecipient",
+      "sourceCount": 8,
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "targetCount": 8,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedServiceCategory",
+      "sourceCount": 0,
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "targetCount": 0,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedStartupRight",
+      "sourceCount": 0,
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "targetCount": 0,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupCashAccount",
+      "sourceCount": 43,
+      "targetSchema": "public",
+      "targetTable": "group_allowed_scopes",
+      "targetCount": 43,
+      "status": "matched"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "groups_count",
+      "sourceValue": "4",
+      "targetValue": "4",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "users_count",
+      "sourceValue": "9",
+      "targetValue": "9",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "user_group_memberships_count",
+      "sourceValue": "9",
+      "targetValue": "9",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "group_rights_count",
+      "sourceValue": "726",
+      "targetValue": "726",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "group_rights_allowed_count",
+      "sourceValue": "726",
+      "targetValue": "726",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "group_allowed_godown_count",
+      "sourceValue": "33",
+      "targetValue": "33",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "group_allowed_groups_count",
+      "sourceValue": "0",
+      "targetValue": "0",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "group_allowed_header_count",
+      "sourceValue": "35",
+      "targetValue": "35",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "group_allowed_price_count",
+      "sourceValue": "54",
+      "targetValue": "54",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "group_allowed_recipient_count",
+      "sourceValue": "8",
+      "targetValue": "8",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "group_allowed_service_category_count",
+      "sourceValue": "0",
+      "targetValue": "0",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "group_allowed_startup_right_count",
+      "sourceValue": "0",
+      "targetValue": "0",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "group_cash_account_count",
+      "sourceValue": "43",
+      "targetValue": "43",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    }
+  ]
+}

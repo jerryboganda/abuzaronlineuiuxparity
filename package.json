@@ -1,0 +1,16 @@
+{
+  "name": "abuzar-next",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "dev:web": "pnpm --filter @abuzar/web dev",
+    "check:web": "pnpm --filter @abuzar/web check",
+    "build:web": "pnpm --filter @abuzar/web build",
+    "test:web": "pnpm --filter @abuzar/web test",
+    "dev:api": "go run ./services/api/cmd/server",
+    "dev:edge": "go run ./services/edge/cmd/edge",
+    "test:go": "go test ./services/api/... ./services/edge/... ./migration/...",
+    "format:go": "gofmt -w services/api services/edge migration"
+  }
+}

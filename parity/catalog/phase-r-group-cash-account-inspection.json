@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-08-06",
+  "sourceDatabase": "AbuzarLegacyReference",
+  "sourceTable": "dbo.GroupCashAccount",
+  "decision": "unambiguous_and_approved_for_import",
+  "columns": [
+    { "name": "GroupCode", "ordinal": 1, "dataType": "smallint", "nullable": false },
+    { "name": "ModuleID", "ordinal": 2, "dataType": "smallint", "nullable": false },
+    { "name": "CashAccCode", "ordinal": 3, "dataType": "smallint", "nullable": false },
+    { "name": "RowID", "ordinal": 4, "dataType": "int", "nullable": false }
+  ],
+  "rowCount": 43,
+  "distinctRowIdCount": 43,
+  "distinctCompositeIdCount": 43,
+  "nullKeyRowCount": 0,
+  "targetScopeKind": "cash_account",
+  "compositeLegacyId": ["GroupCode", "ModuleID", "CashAccCode", "RowID"],
+  "payloadColumns": ["GroupCode", "ModuleID", "CashAccCode", "RowID"]
+}

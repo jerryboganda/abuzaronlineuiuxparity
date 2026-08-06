@@ -1,0 +1,163 @@
+import { expect, test, type Page } from '@playwright/test';
+
+const itemId = '11111111-1111-4111-8111-111111111111';
+const supplierId = '22222222-2222-4222-8222-222222222222';
+const godownId = '33333333-3333-4333-8333-333333333333';
+const documentId = '44444444-4444-4444-8444-444444444444';
+const batchId = '55555555-5555-4555-8555-555555555555';
+
+async function mockCanonicalContext(page: Page, items = true) {
+  await page.route('**/v1/session', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, context: { tenantId: 'tenant-1', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' } })
+  }));
+  await page.route('**/v1/items/lookup*', (route) => {
+    return route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: items ? [{ id: itemId, legacyId: 'ITEM-1', code: 'ITEM-1', name: 'CANONICAL ITEM', active: true, payload: {}, aliases: [] }] : [] })
+    });
+  });
+  await page.route('**/v1/master/supplier', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [{ id: supplierId, legacyId: 'SUP-1', code: 'SUP-1', name: 'SUPPLIER 1', active: true, payload: {} }] })
+  }));
+  await page.route('**/v1/master/godown', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [{ id: godownId, legacyId: 'G-1', code: 'G-1', name: 'GODOWN 1', active: true, payload: {} }] })
+  }));
+}
+
+function accepted(kind: string, action: string, status: 'draft' | 'posted' | 'void') {
+  return {
+    accepted: true,
+    duplicate: false,
+    eventId: batchId,
+    aggregateId: documentId,
+    kind,
+    action,
+    status,
+    document: { id: documentId, kind, documentNumber: 'PUR-000001', status, version: status === 'draft' ? 1 : 2 }
+  };
+}
+
+async function fillReceipt(page: Page) {
+  await page.getByRole('combobox', { name: 'Quick search 1' }).fill('ITEM-1');
+  await page.getByRole('button', { name: 'Lookup item 1' }).click();
+  await expect(page.getByRole('combobox', { name: 'Item name 1' })).toHaveValue('CANONICAL ITEM');
+  await page.getByLabel('Supplier').fill('SUPPLIER 1');
+  await page.getByLabel('Godown 1').fill('GODOWN 1');
+  await page.getByLabel('Batch 1').fill('PUR-001');
+  await page.getByLabel('Expiry 1').fill('2027-08-06');
+  await page.getByLabel('Purchase price 1').fill('4.00');
+}
+
+test('supported purchases never fall back or show success after canonical failure', async ({ page }) => {
+  await mockCanonicalContext(page);
+  let transactionsCalled = false;
+  page.on('request', (request) => { if (request.url().includes('/v1/transactions/')) transactionsCalled = true; });
+  await page.route('**/v1/documents/pack-purchase', (route) => route.fulfill({ status: 422, contentType: 'application/problem+json', body: JSON.stringify({ detail: 'canonical rejected' }) }));
+  await page.goto('/app/purchase/pack');
+  await page.waitForTimeout(500);
+  await fillReceipt(page);
+  await page.getByRole('button', { name: 'Save document' }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('canonical rejected', { timeout: 7000 });
+  await expect(page.locator('.legacy-transaction-footer')).not.toContainText('successfully');
+  expect(transactionsCalled).toBe(false);
+});
+
+test('receipt sends canonical item, supplier, godown, batch, expiry, cost, and revision state', async ({ page }) => {
+  await mockCanonicalContext(page);
+  const commands: Array<Record<string, any>> = [];
+  await page.route('**/v1/documents/pack-purchase', async (route) => {
+    const command = route.request().postDataJSON() as Record<string, any>;
+    commands.push(command);
+    await route.fulfill({ status: command.action === 'save' ? 201 : 200, contentType: 'application/json', body: JSON.stringify(accepted('pack-purchase', command.action, command.action === 'save' ? 'draft' : 'posted')) });
+  });
+  await page.goto('/app/purchase/pack');
+  await page.waitForTimeout(500);
+  await fillReceipt(page);
+  await page.getByRole('button', { name: 'Save document' }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('saved as draft', { timeout: 7000 });
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Post', exact: true }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('posted successfully', { timeout: 7000 });
+  expect(commands.map((command) => command.action)).toEqual(['save', 'post']);
+  expect(commands[1].expectedVersion).toBe(1);
+  expect(commands[1].document.supplierId).toBe(supplierId);
+  expect(commands[1].document.godownId).toBe(godownId);
+  expect(commands[1].document.lines[0]).toMatchObject({
+    itemId,
+    batchNumber: 'PUR-001',
+    expiryDate: '2027-08-06',
+    unitCost: '4.00'
+  });
+  expect(commands[1].commandId).toBeTruthy();
+  expect(commands[1].idempotencyKey).toBeTruthy();
+});
+
+test('free-text item rows fail closed without a canonical item identity', async ({ page }) => {
+  await mockCanonicalContext(page, false);
+  let commandCalled = false;
+  await page.route('**/v1/documents/pack-purchase', (route) => {
+    commandCalled = true;
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(accepted('pack-purchase', 'save', 'draft')) });
+  });
+  await page.goto('/app/purchase/pack');
+  await page.waitForTimeout(500);
+  await page.getByRole('combobox', { name: 'Item name 1' }).fill('FREE TEXT ONLY');
+  await page.getByRole('button', { name: 'Lookup item 1' }).click();
+  await page.getByLabel('Supplier').fill('SUPPLIER 1');
+  await page.getByLabel('Godown 1').fill('GODOWN 1');
+  await page.getByRole('button', { name: 'Save document' }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('active canonical item', { timeout: 7000 });
+  expect(commandCalled).toBe(false);
+});
+
+test('purchase orders use the canonical stock/GL-neutral document response', async ({ page }) => {
+  await mockCanonicalContext(page);
+  let transactionsCalled = false;
+  page.on('request', (request) => { if (request.url().includes('/v1/transactions/')) transactionsCalled = true; });
+  await page.route('**/v1/documents/purchase-order', async (route) => {
+    const command = route.request().postDataJSON() as Record<string, any>;
+    await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(accepted('purchase-order', command.action, 'draft')) });
+  });
+  await page.goto('/app/purchase/order');
+  await page.waitForTimeout(500);
+  await page.getByRole('combobox', { name: 'Quick search 1' }).fill('ITEM-1');
+  await page.getByRole('button', { name: 'Lookup item 1' }).click();
+  await expect(page.getByRole('combobox', { name: 'Item name 1' })).toHaveValue('CANONICAL ITEM');
+  await page.getByLabel('Supplier').fill('SUPPLIER 1');
+  await page.getByLabel('Purchase price 1').fill('4.00');
+  await page.getByRole('button', { name: 'Save document' }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('stock/GL-neutral', { timeout: 7000 });
+  expect(transactionsCalled).toBe(false);
+});
+
+test('purchase returns require source document and explicit source batch allocation', async ({ page }) => {
+  await mockCanonicalContext(page);
+  let command: Record<string, any> | undefined;
+  await page.route('**/v1/documents/purchase-return', async (route) => {
+    command = route.request().postDataJSON() as Record<string, any>;
+    await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(accepted('purchase-return', command.action, 'draft')) });
+  });
+  await page.goto('/app/purchase/return');
+  await page.waitForTimeout(500);
+  await page.getByRole('combobox', { name: 'Quick search 1' }).fill('ITEM-1');
+  await page.getByRole('button', { name: 'Lookup item 1' }).click();
+  await expect(page.getByRole('combobox', { name: 'Item name 1' })).toHaveValue('CANONICAL ITEM');
+  await page.getByLabel('Supplier').fill('SUPPLIER 1');
+  await page.getByLabel('Godown 1').fill('GODOWN 1');
+  await page.getByLabel('Batch 1').fill('SOURCE-BATCH');
+  await page.getByRole('button', { name: 'Save document' }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('source purchase document UUID', { timeout: 7000 });
+  await page.getByLabel('Source document ID').fill(documentId);
+  await page.getByLabel('Source batch ID 1').fill(batchId);
+  await page.getByRole('button', { name: 'Save document' }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('saved as draft', { timeout: 7000 });
+  expect(command?.document.sourceDocumentId).toBe(documentId);
+  expect(command?.document.lines[0].allocations).toEqual([{ batchId, batchNumber: 'SOURCE-BATCH', quantity: '1' }]);
+});

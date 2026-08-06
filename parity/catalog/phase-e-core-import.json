@@ -1,0 +1,78 @@
+{
+  "generatedAt": "2026-08-05T21:12:46.4697645Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Item",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 30052,
+      "imported": 30052,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Customer",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 2,
+      "imported": 2,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Supplier",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 235,
+      "imported": 235,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Manufacturer",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 838,
+      "imported": 838,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Godown",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 1,
+      "imported": 1,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PricePolicy",
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "read": 30052,
+      "imported": 30052,
+      "duplicates": 0,
+      "exceptions": 0
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemSuppliers",
+      "targetSchema": "public",
+      "targetTable": "item_supplier_links",
+      "read": 22245,
+      "imported": 22245,
+      "duplicates": 0,
+      "exceptions": 0
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-05",
+  "reference": {
+    "executable": "D:/ABUZAR/V2_AbuzarSoftware/Application/abuzar.exe",
+    "workingDirectory": "D:/ABUZAR/V2_AbuzarSoftware/Application",
+    "sha256": "71551D444F3DE0046148F7BC523B874407F9889249B2D41845B57AB4A52CF56C",
+    "legacyFilesModified": false
+  },
+  "display": {
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "systemDpi": 96,
+    "scalePercent": 100,
+    "captureMethod": "Win32 PrintWindow"
+  },
+  "states": [
+    {
+      "id": "login-empty",
+      "title": "Login",
+      "windowBounds": { "left": 787, "top": 413, "width": 350, "height": 263 },
+      "capture": "../captures/legacy/login-window.png",
+      "sha256": "3E6BEF4BE837465F6D9463C3BE3EF8588A9DD11936FDB1A977D12747D278B27E",
+      "notes": "Native PowerBuilder login window; User Name, Password, OK, and Cancel controls visible."
+    },
+    {
+      "id": "login-invalid-user",
+      "title": "User Validation",
+      "windowBounds": { "left": 764, "top": 466, "width": 398, "height": 149 },
+      "capture": "../captures/legacy/user-validation-dialog.png",
+      "sha256": "475002E1E030748CFE5D15801A27699B3BB4BC65BEA2FE328690C752C92936F2",
+      "notes": "Invalid-user validation dialog captured after a non-existent username was submitted. No credentials are stored."
+    },
+    {
+      "id": "login-database-problem",
+      "title": "Database Problem",
+      "windowBounds": { "left": 764, "top": 466, "width": 398, "height": 149 },
+      "capture": "../captures/legacy/database-problem.png",
+      "sha256": "D9145442B21C910485F12174CD5B3F8BD5BADBB30583DEF51F729F7B67E0A1E4",
+      "notes": "Valid application-user submission reached the legacy startup database-problem dialog; the main application window did not open."
+    }
+  ],
+  "workflowEvidence": {
+    "launch": "passed",
+    "loginWindow": "passed",
+    "invalidUserValidation": "passed",
+    "databaseConnectivityFromReadOnlyProbe": "passed",
+    "legacyMainWindow": "blocked-by-database-problem-dialog",
+    "fullMenuAndWorkflowWalk": "not-captured"
+  },
+  "readOnlyDiagnostics": {
+    "sqlServerService": "running",
+    "configuredLocalDatabaseProbe": "passed",
+    "relevantTableCounts": {
+      "license": 0,
+      "clientInstance": 1,
+      "crsClientInstance": 0,
+      "userAuthenticationInfo": 1
+    },
+    "interpretation": "The legacy startup reaches its database-problem dialog even though the local SQL Server endpoint is reachable. The empty legacy License table is a strong candidate for the application startup check, but no write or security bypass was performed."
+  },
+  "safety": {
+    "legacyApplicationDirectoryWritten": false,
+    "databaseMutated": false,
+    "secretsCopied": false,
+    "customerDataCopied": false
+  }
+}

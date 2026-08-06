@@ -1,0 +1,279 @@
+openapi: 3.1.0
+info:
+  title: Abuzar Next Branch Edge API
+  version: 0.1.0
+  description: Local branch service for immutable offline events and synchronization.
+paths:
+  /v1/health:
+    get:
+      security: []
+      responses:
+        '200': { description: Edge health }
+  /v1/sync/status:
+    get:
+      security: [{ edgeBearer: [] }]
+      responses:
+        '200': { description: Pending local queue and central cursor }
+  /v1/hardware/capabilities:
+    get:
+      security: [{ edgeBearer: [] }]
+      responses:
+        '200': { description: Explicit branch hardware adapter states }
+  /v1/hardware/print/sale-slip:
+    post:
+      security: [{ edgeBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/SaleSlip' } }
+      responses:
+        '202':
+          description: ESC/POS job accepted by the configured printer
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/PrintResult' } }
+        '400': { description: Invalid print job }
+        '401': { description: Edge shared secret required }
+        '503': { description: No printer adapter is configured }
+  /v1/hardware/print/purchase-labels:
+    post:
+      security: [{ edgeBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/PurchaseLabelBatch' } }
+      responses:
+        '202':
+          description: ESC/POS job accepted by the configured printer
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/PrintResult' } }
+        '400': { description: Invalid print job }
+        '401': { description: Edge shared secret required }
+        '503': { description: No printer adapter is configured }
+  /v1/hardware/barcode/normalize:
+    post:
+      security: [{ edgeBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/BarcodeInput' } }
+      responses:
+        '200':
+          description: Normalized scanner input
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [barcode]
+                properties:
+                  barcode: { type: string }
+        '400': { description: Empty or unsafe barcode input }
+        '401': { description: Edge shared secret required }
+  /v1/hardware/barcode/lookup:
+    post:
+      security: [{ edgeBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/BarcodeInput' } }
+      responses:
+        '200':
+          description: Item resolved by the configured lookup adapter
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/BarcodeItem' } }
+        '400': { description: Empty or unsafe barcode input }
+        '401': { description: Edge shared secret required }
+        '503': { description: No barcode lookup adapter is configured }
+  /v1/hardware/cash-drawer/kick:
+    post:
+      security: [{ edgeBearer: [] }]
+      responses:
+        '202':
+          description: Kick accepted by the configured cash-drawer adapter
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [kicked]
+                properties:
+                  kicked: { type: boolean, const: true }
+        '401': { description: Edge shared secret required }
+        '503': { description: No cash-drawer adapter is configured }
+  /v1/transactions/sales:
+    post:
+      security: [{ edgeBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/SyncEnvelope' } }
+      responses:
+        '202': { description: Accepted or deduplicated }
+        '401': { description: Edge shared secret required }
+  /v1/transactions/returns:
+    post:
+      security: [{ edgeBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/SyncEnvelope' } }
+      responses:
+        '202': { description: Accepted or deduplicated }
+        '401': { description: Edge shared secret required }
+  /v1/transactions/receiving:
+    post:
+      security: [{ edgeBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/SyncEnvelope' } }
+      responses:
+        '202': { description: Accepted or deduplicated }
+        '401': { description: Edge shared secret required }
+  /v1/transactions/inventory:
+    post:
+      security: [{ edgeBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/SyncEnvelope' } }
+      responses:
+        '202': { description: Accepted or deduplicated }
+        '401': { description: Edge shared secret required }
+  /v1/shifts/open:
+    post:
+      security: [{ edgeBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/SyncEnvelope' } }
+      responses:
+        '202': { description: Shift-open event accepted or deduplicated }
+        '401': { description: Edge shared secret required }
+  /v1/shifts/{id}/close:
+    post:
+      security: [{ edgeBearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/SyncEnvelope' } }
+      responses:
+        '202': { description: Shift-close event accepted or deduplicated }
+        '401': { description: Edge shared secret required }
+  /v1/sync/push:
+    post:
+      security: [{ edgeBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events]
+              properties:
+                events: { type: array, maxItems: 500, items: { $ref: '#/components/schemas/SyncEnvelope' } }
+      responses:
+        '202': { description: Events accepted and deduplicated }
+        '401': { description: Edge shared secret required }
+  /v1/sync/pull:
+    get:
+      security: [{ edgeBearer: [] }]
+      parameters:
+        - { name: cursor, in: query, schema: { type: integer, format: int64, minimum: 0 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500 } }
+      responses:
+        '200': { description: Local event page }
+  /v1/sync/ack:
+    post:
+      security: [{ edgeBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cursor]
+              properties:
+                cursor: { type: integer, format: int64, minimum: 0 }
+      responses:
+        '202': { description: Local outgoing cursor acknowledged }
+components:
+  securitySchemes:
+    edgeBearer:
+      type: http
+      scheme: bearer
+  schemas:
+    SyncEnvelope:
+      type: object
+      required: [eventId, aggregate, aggregateId, tenantId, branchId, counterId, operatorId, occurredAt, idempotencyKey, schemaVersion, payload]
+      properties:
+        eventId: { type: string }
+        aggregate: { type: string }
+        aggregateId: { type: string }
+        tenantId: { type: string }
+        branchId: { type: string }
+        counterId: { type: string }
+        operatorId: { type: string }
+        occurredAt: { type: string, format: date-time }
+        idempotencyKey: { type: string }
+        schemaVersion: { type: integer, minimum: 1 }
+        payload: { type: object, additionalProperties: true }
+    SaleSlip:
+      type: object
+      required: [invoiceNumber, total]
+      properties:
+        header: { type: string }
+        store: { type: string }
+        invoiceNumber: { type: string }
+        date: { type: string }
+        customer: { type: string }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [itemName]
+            properties:
+              itemName: { type: string }
+              quantity: { type: string }
+              total: { type: string }
+        subtotal: { type: string }
+        discount: { type: string }
+        tax: { type: string }
+        total: { type: string }
+        footer: { type: string }
+    PurchaseLabelBatch:
+      type: object
+      required: [labels]
+      properties:
+        cutAfter: { type: boolean, default: false }
+        labels:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [itemName]
+            properties:
+              itemName: { type: string }
+              batch: { type: string }
+              expiry: { type: string }
+              mrp: { type: string }
+              quantity: { type: string }
+    BarcodeInput:
+      type: object
+      required: [raw]
+      properties:
+        raw: { type: string }
+    BarcodeItem:
+      type: object
+      required: [code, itemId, name]
+      properties:
+        code: { type: string }
+        itemId: { type: string }
+        name: { type: string }
+    PrintResult:
+      type: object
+      required: [printed, bytes, provider]
+      properties:
+        printed: { type: boolean, const: true }
+        bytes: { type: integer, minimum: 1 }
+        provider: { type: string }

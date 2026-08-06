@@ -1,0 +1,57 @@
+name: PostgreSQL app-role RLS
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  postgres-rls:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: abuzar_next
+          POSTGRES_USER: postgres
+          # This is an isolated disposable CI service. No password is stored
+          # in the repository; production uses protected DSN configuration.
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d abuzar_next"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      ABUZAR_ADMIN_DATABASE_URL: postgres://postgres@127.0.0.1:5432/abuzar_next?sslmode=disable
+      ABUZAR_APP_DATABASE_URL: postgres://abuzar_app_ci@127.0.0.1:5432/abuzar_next?sslmode=disable
+      ABUZAR_APP_ROLE: abuzar_app_ci
+      ABUZAR_RLS_PROBE_REQUIRED: "1"
+      ABUZAR_RLS_TENANT_A_ID: 10000000-0000-0000-0000-000000000001
+      ABUZAR_RLS_TENANT_B_ID: 10000000-0000-0000-0000-000000000002
+      ABUZAR_RLS_BRANCH_A_ID: 10000000-0000-0000-0000-000000000101
+      ABUZAR_RLS_BRANCH_B_ID: 10000000-0000-0000-0000-000000000102
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/api/go.mod
+          cache-dependency-path: |
+            go.work.sum
+            services/api/go.sum
+      - name: Apply migrations as schema owner
+        run: bash ./ops/postgres/apply-migrations.sh
+      - name: Provision app role and grants as schema owner
+        run: bash ./ops/postgres/provision-app-role.sh
+      - name: Seed privileged disposable fixture
+        run: psql "$ABUZAR_ADMIN_DATABASE_URL" --set ON_ERROR_STOP=1 --file ops/postgres/rls-fixture.sql
+      - name: Run app-role RLS probe
+        run: go test ./services/api/internal/rlsprobe -run '^TestApplicationRoleRLSProbe$' -count=1 -v
+      - name: Run unaffected Go packages
+        env:
+          # Existing integration fixtures use DATABASE_URL for owner setup.
+          # Keep it unset here so they skip rather than run with the app role.
+          DATABASE_URL: ""
+        run: go test ./services/api/cmd/... ./services/api/internal/db ./services/edge/... ./migration/...

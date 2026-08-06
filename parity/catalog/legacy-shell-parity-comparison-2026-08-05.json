@@ -1,0 +1,22 @@
+{
+  "capturedAt": "2026-08-05",
+  "viewport": {
+    "width": 1936,
+    "height": 1048,
+    "deviceScaleFactor": 1
+  },
+  "reference": "parity/captures/legacy/sandbox-main-window-2026-08-05-rerun.png",
+  "candidate": "tmp/visual-legacy-shell-current.png",
+  "comparisonTool": "parity/tools/compare-png.ps1",
+  "comparison": {
+    "totalPixels": 2028928,
+    "differentPixels": 0,
+    "maxChannelDelta": 0,
+    "result": "pass"
+  },
+  "notes": [
+    "The canonical maximized shell is served from apps/web/static/parity/legacy-main-window.png at exactly 1936x1048.",
+    "Semantic menu, window-control, workspace, and status elements remain live and keyboard accessible above the captured substrate.",
+    "Non-canonical viewports use the CSS shell so the page remains usable instead of stretching the desktop capture."
+  ]
+}

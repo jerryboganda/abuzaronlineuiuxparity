@@ -1,0 +1,1243 @@
+openapi: 3.1.0
+info:
+  title: Abuzar Next API
+  version: 0.1.0
+  description: Tenant-scoped central API for online and synchronized branch operations.
+servers:
+  - url: https://api.example.invalid
+paths:
+  /v1/health:
+    get:
+      operationId: health
+      security: []
+      responses:
+        '200':
+          description: Service health
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthResponse' }
+  /v1/session:
+    get:
+      operationId: session
+      security: []
+      responses:
+        '200':
+          description: Current HTTP-only session state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionResponse' }
+  /v1/auth/login:
+    post:
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Session created; the response sets an HTTP-only cookie.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthenticatedSession' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/auth/logout:
+    post:
+      operationId: logout
+      security: []
+      responses:
+        '204': { description: Session cleared }
+  /v1/tenants:
+    get:
+      operationId: listTenants
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: Authenticated tenant
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tenants]
+                properties:
+                  tenants: { type: array, items: { $ref: '#/components/schemas/Tenant' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/branches:
+    get:
+      operationId: listBranches
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: Branches allowed by the authenticated operator
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [branches]
+                properties:
+                  branches: { type: array, items: { $ref: '#/components/schemas/Branch' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/counters:
+    get:
+      operationId: listCounters
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: branchId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Counters allowed by the authenticated operator
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [counters]
+                properties:
+                  counters: { type: array, items: { $ref: '#/components/schemas/Counter' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/roles:
+    get:
+      operationId: listRoles
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: Tenant groups and their permission sets
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [roles]
+                properties:
+                  roles: { type: array, items: { $ref: '#/components/schemas/Role' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: createRole
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleUpsert' }
+      responses:
+        '201':
+          description: Created tenant group
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Role' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/roles/{id}:
+    patch:
+      operationId: updateRole
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleUpsert' }
+      responses:
+        '200':
+          description: Updated tenant group
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Role' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/operators:
+    get:
+      operationId: listOperators
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: Operators visible in the authenticated operational scope
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [operators]
+                properties:
+                  operators: { type: array, items: { $ref: '#/components/schemas/Operator' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/operators/{id}:
+    patch:
+      operationId: updateOperator
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OperatorUpdate' }
+      responses:
+        '200':
+          description: Updated tenant-scoped operator
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Operator' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/items/lookup:
+    get:
+      operationId: lookupItems
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: name, in: query, schema: { type: string } }
+        - { name: alias, in: query, schema: { type: string } }
+        - { name: barcode, in: query, schema: { type: string } }
+        - { name: legacyId, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Tenant-scoped item matches by name, alias, barcode, or legacy identifier
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/ItemLookupResult' } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /v1/inventory/availability:
+    get:
+      operationId: getInventoryAvailability
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: itemLegacyId, in: query, required: true, schema: { type: string } }
+        - { name: godownId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Active, non-expired stock batches for the selected tenant branch and godown
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tenantId, branchId, itemLegacyId, godownId, batches]
+                properties:
+                  tenantId: { type: string, format: uuid }
+                  branchId: { type: string, format: uuid }
+                  itemLegacyId: { type: string }
+                  godownId: { type: string, format: uuid }
+                  batches:
+                    type: array
+                    items:
+                      type: object
+                      required: [batchId, batchNumber, quantity, unitCost]
+                      properties:
+                        batchId: { type: string, format: uuid }
+                        batchNumber: { type: string }
+                        expiryDate: { type: string, format: date }
+                        quantity: { type: string }
+                        unitCost: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /v1/master/{kind}:
+    get:
+      operationId: listCanonicalMaster
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string } }
+        - { name: search, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Tenant-scoped canonical master list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [records]
+                properties:
+                  records: { type: array, items: { $ref: '#/components/schemas/MasterRecord' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: createCanonicalMaster
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/MasterUpsert' } } }
+      responses:
+        '201':
+          description: Created canonical master
+          content: { application/json: { schema: { $ref: '#/components/schemas/MasterRecord' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/master/{kind}/{id}:
+    get:
+      operationId: getCanonicalMaster
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Tenant-scoped canonical master detail
+          content: { application/json: { schema: { $ref: '#/components/schemas/MasterRecord' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: updateCanonicalMaster
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/MasterUpsert' } } }
+      responses:
+        '200':
+          description: Updated canonical master
+          content: { application/json: { schema: { $ref: '#/components/schemas/MasterRecord' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    delete:
+      operationId: deleteCanonicalMaster
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Canonical master deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/master/item/{id}/suppliers:
+    get:
+      operationId: listItemSuppliers
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Tenant-scoped ItemSuppliers grid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [suppliers]
+                properties:
+                  suppliers: { type: array, items: { $ref: '#/components/schemas/ItemSupplier' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: replaceItemSuppliers
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [suppliers]
+              properties:
+                suppliers: { type: array, items: { $ref: '#/components/schemas/ItemSupplier' } }
+      responses:
+        '200': { description: Replaced ItemSuppliers grid }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/transactions/sales:
+    post:
+      operationId: createSale
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SyncEnvelope' }
+      responses:
+        '202':
+          description: Sale accepted or deduplicated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted: { type: boolean }
+                  duplicate: { type: boolean }
+                  eventId: { type: string, format: uuid }
+                  aggregateId: { type: string, format: uuid }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/transactions/returns:
+    post:
+      operationId: createReturn
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/SyncEnvelope' } }
+      responses:
+        '202':
+          description: Return accepted or deduplicated
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/TransactionResult' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/transactions/receiving:
+    post:
+      operationId: createReceiving
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/SyncEnvelope' } }
+      responses:
+        '202':
+          description: Receiving accepted or deduplicated
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/TransactionResult' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/transactions/inventory:
+    post:
+      operationId: createInventoryTransaction
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/SyncEnvelope' } }
+      responses:
+        '202':
+          description: Inventory event accepted or deduplicated
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/TransactionResult' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/tax-rates:
+    get:
+      operationId: listTaxRates
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: effectiveAt
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Effective-dated tax rates in the authenticated branch
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [rates]
+                properties:
+                  rates: { type: array, items: { $ref: '#/components/schemas/TaxRate' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: createTaxRate
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/TaxRateUpsert' } }
+      responses:
+        '201': { description: Tax rate created, content: { application/json: { schema: { $ref: '#/components/schemas/TaxRate' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/tax-rates/{id}:
+    patch:
+      operationId: updateTaxRate
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/TaxRateUpsert' } }
+      responses:
+        '200': { description: Tax rate updated, content: { application/json: { schema: { $ref: '#/components/schemas/TaxRate' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteTaxRate
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Tax rate deleted }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/tax-assignments:
+    get:
+      operationId: listTaxAssignments
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: itemId, in: query, schema: { type: string, format: uuid } }
+        - { name: partyId, in: query, schema: { type: string, format: uuid } }
+        - { name: effectiveAt, in: query, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Effective-dated item and party tax assignments
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, parties]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/TaxAssignment' } }
+                  parties: { type: array, items: { $ref: '#/components/schemas/TaxAssignment' } }
+  /v1/tax-assignments/items/{itemId}:
+    put:
+      operationId: replaceItemTaxAssignments
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: itemId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/TaxAssignmentReplace' } }
+      responses:
+        '200': { description: Item tax assignments replaced }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/tax-assignments/parties/{partyId}:
+    put:
+      operationId: replacePartyTaxAssignments
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: partyId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/TaxAssignmentReplace' } }
+      responses:
+        '200': { description: Party tax assignments replaced }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/tax-assignments/apply-item-gst:
+    post:
+      operationId: applyItemGST
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/ApplyItemGST' } }
+      responses:
+        '200': { description: GST assignment applied to the selected or all active canonical items }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/documents/{kind}:
+    post:
+      operationId: commandBusinessDocument
+      description: |
+        Commands cash/credit sales and the Phase I purchase families:
+        pack-purchase, loose-purchase, opening-purchase, purchase-return, and
+        purchase-order. Save, post, save-and-post, and void are idempotent by
+        commandId/idempotencyKey and use optimistic document revisions.
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: kind
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/DocumentKind' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DocumentCommand' }
+      responses:
+        '200':
+          description: Document command accepted or replayed from an idempotent receipt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentCommandResult' }
+        '201':
+          description: New draft document saved
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentCommandResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+  /v1/shifts/open:
+    post:
+      operationId: openShift
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount: { type: string }
+      responses:
+        '201': { description: Shift opened }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/shifts/{id}/close:
+    post:
+      operationId: closeShift
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount: { type: string }
+      responses:
+        '200': { description: Shift closed }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/sync/push:
+    post:
+      operationId: pushSync
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events]
+              properties:
+                events: { type: array, minItems: 1, maxItems: 500, items: { $ref: '#/components/schemas/SyncEnvelope' } }
+      responses:
+        '202':
+          description: Batch result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncBatchResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/sync/pull:
+    get:
+      operationId: pullSync
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: cursor
+          in: query
+          schema: { type: integer, format: int64, minimum: 0, default: 0 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 500, default: 100 }
+      responses:
+        '200':
+          description: Server-authoritative event page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events, nextCursor]
+                properties:
+                  events: { type: array, items: { $ref: '#/components/schemas/SyncEnvelope' } }
+                  nextCursor: { type: integer, format: int64 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/conflicts:
+    get:
+      operationId: listConflicts
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: Conflict review queue
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conflicts]
+                properties:
+                  conflicts: { type: array, items: { $ref: '#/components/schemas/ConflictRecord' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/conflicts/{id}/resolve:
+    post:
+      operationId: resolveConflict
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [resolved, dismissed] }
+                resolution: { type: object, additionalProperties: true }
+      responses:
+        '200':
+          description: Conflict status updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConflictResolutionResult' }
+        '400': { $ref: '#/components/responses/Conflict' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Conflict not found }
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: abuzar_session
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } } }
+    Conflict:
+      description: Idempotency conflict
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } } }
+    BadRequest:
+      description: Request validation failed
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } } }
+    Forbidden:
+      description: Authenticated operator lacks the required tenant-admin permission
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } } }
+    NotFound:
+      description: Resource not found in the authenticated tenant scope
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } } }
+    Unavailable:
+      description: Database or identity store unavailable
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } } }
+    UnprocessableEntity:
+      description: The command was well-formed but failed canonical, lifecycle, stock, or finance validation
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } } }
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username, password, tenantCode]
+      properties:
+        username: { type: string, minLength: 1 }
+        password: { type: string, minLength: 1, writeOnly: true }
+        tenantCode: { type: string, minLength: 1 }
+        branchId: { type: string, format: uuid }
+        counterId: { type: string, format: uuid }
+    TenantContext:
+      type: object
+      required: [operatorId, displayName, tenantId, tenantCode, roles, permissions]
+      properties:
+        operatorId: { type: string, format: uuid }
+        displayName: { type: string }
+        tenantId: { type: string, format: uuid }
+        tenantCode: { type: string }
+        branchId: { type: string, format: uuid }
+        counterId: { type: string, format: uuid }
+        roles: { type: array, items: { type: string } }
+        permissions: { type: array, items: { type: string } }
+    SessionResponse:
+      type: object
+      required: [authenticated, context]
+      properties:
+        authenticated: { type: boolean }
+        context: { anyOf: [{ $ref: '#/components/schemas/TenantContext' }, { type: 'null' }] }
+    AuthenticatedSession:
+      type: object
+      required: [authenticated, context, expiresAt]
+      properties:
+        authenticated: { const: true }
+        context: { $ref: '#/components/schemas/TenantContext' }
+        expiresAt: { type: string, format: date-time }
+    Tenant:
+      type: object
+      required: [id, code, legalName, active]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        legalName: { type: string }
+        active: { type: boolean }
+    Branch:
+      type: object
+      required: [id, code, name, timezone, active]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        timezone: { type: string }
+        active: { type: boolean }
+    Counter:
+      type: object
+      required: [id, branchId, code, name, active]
+      properties:
+        id: { type: string, format: uuid }
+        branchId: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        active: { type: boolean }
+    Role:
+      type: object
+      required: [id, code, name, memberCount, permissions]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        memberCount: { type: integer, minimum: 0 }
+        permissions: { type: array, items: { type: string } }
+    RoleUpsert:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string, minLength: 1, maxLength: 80 }
+        name: { type: string, minLength: 1, maxLength: 160 }
+        permissions: { type: array, uniqueItems: true, items: { type: string } }
+    Operator:
+      type: object
+      required: [id, username, displayName, active, roles]
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        displayName: { type: string }
+        active: { type: boolean }
+        roles: { type: array, items: { type: string } }
+        branchId: { type: string, format: uuid }
+        counterId: { type: string, format: uuid }
+    OperatorUpdate:
+      type: object
+      required: [username, displayName]
+      properties:
+        username: { type: string, minLength: 1, maxLength: 80 }
+        displayName: { type: string, minLength: 1, maxLength: 160 }
+        password: { type: string, minLength: 8, maxLength: 256 }
+        active: { type: boolean }
+        roleCode: { type: string, maxLength: 80 }
+        branchId: { type: string, format: uuid }
+        counterId: { type: string, format: uuid }
+    SyncEnvelope:
+      type: object
+      required: [eventId, aggregate, aggregateId, tenantId, branchId, counterId, operatorId, occurredAt, idempotencyKey, schemaVersion, payload]
+      properties:
+        eventId: { type: string, format: uuid }
+        aggregate: { type: string }
+        aggregateId: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        branchId: { type: string, format: uuid }
+        counterId: { type: string, format: uuid }
+        operatorId: { type: string, format: uuid }
+        occurredAt: { type: string, format: date-time }
+        idempotencyKey: { type: string }
+        schemaVersion: { type: integer, minimum: 1 }
+        payload: { type: object, additionalProperties: true }
+    SyncBatchResult:
+      type: object
+      required: [accepted, duplicates, conflicts]
+      properties:
+        accepted: { type: integer, minimum: 0 }
+        duplicates: { type: integer, minimum: 0 }
+        conflicts: { type: integer, minimum: 0 }
+    TransactionResult:
+      type: object
+      required: [accepted, duplicate, eventId, aggregateId]
+      properties:
+        accepted: { type: boolean }
+        duplicate: { type: boolean }
+        eventId: { type: string, format: uuid }
+        aggregateId: { type: string, format: uuid }
+    ConflictRecord:
+      type: object
+      required: [id, entityType, entityId, tenantId, branchId, status, localValue, serverValue, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        entityType: { type: string }
+        entityId: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        branchId: { type: string, format: uuid }
+        status: { type: string, enum: [open, resolved, dismissed] }
+        localValue: { type: object, additionalProperties: true }
+        serverValue: { type: object, additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+    ConflictResolutionResult:
+      type: object
+      required: [id, status]
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [resolved, dismissed] }
+    MasterRecord:
+      type: object
+      required: [id, kind, code, name, payload, active, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string }
+        legacyId: { type: string }
+        code: { type: string }
+        name: { type: string }
+        payload: { type: object, additionalProperties: true }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        suppliers: { type: array, items: { $ref: '#/components/schemas/ItemSupplier' } }
+    MasterUpsert:
+      type: object
+      properties:
+        legacyId: { type: string, maxLength: 160 }
+        code: { type: string, maxLength: 160 }
+        name: { type: string, maxLength: 240 }
+        payload: { type: object, additionalProperties: true }
+        active: { type: boolean }
+    ItemSupplier:
+      type: object
+      required: [legacySupplierId]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        legacySupplierId: { type: string }
+        supplierId: { type: string, format: uuid }
+        priority: { type: integer }
+        rate: { type: string }
+        discountPercent: { type: string }
+        quantity: { type: string }
+        bonus: { type: string }
+        days: { type: integer }
+    ItemLookupResult:
+      type: object
+      required: [id, legacyId, code, name, payload, active, aliases]
+      properties:
+        id: { type: string, format: uuid }
+        legacyId: { type: string }
+        code: { type: string }
+        name: { type: string }
+        payload: { type: object, additionalProperties: true }
+        active: { type: boolean }
+        aliases: { type: array, items: { type: string } }
+    TaxRate:
+      type: object
+      required: [id, tenantId, branchId, taxKind, code, name, rate, inclusive, effectiveFrom, active]
+      properties:
+        id: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        branchId: { type: string, format: uuid }
+        taxKind: { type: string, enum: [gst, pct, advance] }
+        code: { type: string }
+        name: { type: string }
+        rate: { type: string }
+        inclusive: { type: boolean }
+        effectiveFrom: { type: string, format: date }
+        effectiveTo: { type: string, format: date }
+        sourceTable: { type: string }
+        sourceLegacyId: { type: string }
+        active: { type: boolean }
+    TaxRateUpsert:
+      type: object
+      required: [taxKind, code, name, rate, effectiveFrom]
+      properties:
+        taxKind: { type: string, enum: [gst, pct, advance] }
+        code: { type: string }
+        name: { type: string }
+        rate: { type: string }
+        inclusive: { type: boolean }
+        effectiveFrom: { type: string, format: date }
+        effectiveTo: { type: string, format: date }
+        sourceTable: { type: string }
+        sourceLegacyId: { type: string }
+        active: { type: boolean }
+    TaxAssignment:
+      type: object
+      required: [id, targetKind, taxRate, effectiveFrom]
+      properties:
+        id: { type: string, format: uuid }
+        targetKind: { type: string, enum: [item, party] }
+        itemId: { type: string, format: uuid }
+        partyId: { type: string, format: uuid }
+        taxRate: { $ref: '#/components/schemas/TaxRate' }
+        effectiveFrom: { type: string, format: date }
+        effectiveTo: { type: string, format: date }
+        sourceTable: { type: string }
+        sourceLegacyId: { type: string }
+    TaxAssignmentReplace:
+      type: object
+      required: [assignments]
+      properties:
+        assignments:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            required: [taxRateId, effectiveFrom]
+            properties:
+              taxRateId: { type: string, format: uuid }
+              effectiveFrom: { type: string, format: date }
+              effectiveTo: { type: string, format: date }
+              sourceTable: { type: string }
+              sourceLegacyId: { type: string }
+    ApplyItemGST:
+      type: object
+      required: [effectiveFrom]
+      properties:
+        rateId: { type: string, format: uuid }
+        rate: { type: string }
+        inclusive: { type: boolean }
+        effectiveFrom: { type: string, format: date }
+        effectiveTo: { type: string, format: date }
+        itemIds: { type: array, items: { type: string, format: uuid } }
+        sourceTable: { type: string }
+        sourceLegacyId: { type: string }
+    DocumentCommand:
+      type: object
+      description: |
+        Lifecycle command for a sale or purchase document. Save creates or
+        revises a draft; post transitions an existing draft to posted;
+        save-and-post creates and posts atomically; void is supported for
+        drafts and stock/GL-neutral purchase orders. Posted receipts and
+        returns require their stock and finance projections to succeed.
+      required: [commandId, kind, action, idempotencyKey, occurredAt]
+      properties:
+        commandId: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/DocumentKind' }
+        action: { $ref: '#/components/schemas/DocumentAction' }
+        idempotencyKey: { type: string, minLength: 1, maxLength: 200 }
+        occurredAt: { type: string, format: date-time }
+        expectedVersion: { type: integer, minimum: 1 }
+        document:
+          $ref: '#/components/schemas/DocumentDraft'
+        documentId: { type: string, format: uuid }
+        reason: { type: string }
+    DocumentDraft:
+      type: object
+      required: [kind, occurredAt, lines]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/DocumentKind' }
+        documentNumber: { type: string }
+        occurredAt: { type: string, format: date-time }
+        customerId: { type: string, format: uuid }
+        supplierId:
+          type: string
+          format: uuid
+          description: Required for pack, loose, opening, return, and purchase-order documents.
+        sourceDocumentId:
+          type: string
+          format: uuid
+          description: Required when posting a purchase return; must identify a posted purchase in the same tenant and branch.
+        sourceDocumentNumber: { type: string }
+        godownId: { type: string, format: uuid }
+        reference: { type: string }
+        remarks: { type: string }
+        voidReason: { type: string }
+        priceLevel: { type: integer, minimum: 1, maximum: 10 }
+        flatDiscountAmount: { type: string }
+        miscAmount: { type: string }
+        documentDiscountPercent: { type: string }
+        pricing: { $ref: '#/components/schemas/DocumentPricing' }
+        lines:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/DocumentLineDraft' }
+    DocumentLineDraft:
+      type: object
+      required: [lineNumber, itemId, quantity]
+      properties:
+        lineNumber: { type: integer, minimum: 1 }
+        itemId: { type: string, format: uuid }
+        quantity: { type: string }
+        unitPrice: { type: string }
+        discountPercent: { type: string }
+        supplierScheme: { type: object, additionalProperties: true }
+        allocations:
+          type: array
+          description: Required on posted purchase returns; each allocation must identify a valid source batch.
+          items: { $ref: '#/components/schemas/BatchAllocationRequest' }
+        batchNumber:
+          type: string
+          description: Required when posting pack, loose, or opening purchases. No automatic batch number is generated.
+        expiryDate: { type: string, format: date }
+        unitCost:
+          type: string
+          description: Required when posting pack, loose, or opening purchases.
+        gstRate: { type: string, description: Optional GST metadata retained on the purchase line. }
+        pctRate: { type: string, description: Optional PCT metadata retained on the purchase line. }
+        advanceTaxRate: { type: string, description: Optional advance-tax metadata retained on the purchase line. }
+        notes: { type: string }
+    BatchAllocationRequest:
+      type: object
+      required: [quantity]
+      properties:
+        batchId: { type: string, format: uuid }
+        batchNumber: { type: string }
+        quantity: { type: string }
+    DocumentPricing:
+      type: object
+      properties:
+        priceLevel: { type: integer, minimum: 1, maximum: 10 }
+        groupDiscountPercent: { type: string }
+        customerDiscountPercent: { type: string }
+        overrideDiscountPercent: { type: string }
+        documentDiscountPercent: { type: string }
+        flatDiscountAmount: { type: string }
+        miscAmount: { type: string }
+        taxes: { $ref: '#/components/schemas/DocumentTaxInputs' }
+    DocumentTaxInputs:
+      type: object
+      properties:
+        gst: { $ref: '#/components/schemas/DocumentTaxInput' }
+        pct: { $ref: '#/components/schemas/DocumentTaxInput' }
+        advanceTax: { $ref: '#/components/schemas/DocumentTaxInput' }
+    DocumentTaxInput:
+      type: object
+      required: [rate]
+      properties:
+        rate: { type: string }
+        inclusive: { type: boolean, default: false }
+    DocumentKind:
+      type: string
+      description: Supported sale and Phase I purchase document families.
+      enum:
+        - cash-sale
+        - credit-sale
+        - pack-purchase
+        - loose-purchase
+        - opening-purchase
+        - purchase-return
+        - purchase-order
+    DocumentAction:
+      type: string
+      enum: [save, post, save-and-post, void]
+    DocumentStatus:
+      type: string
+      enum: [draft, posted, void]
+    DocumentCommandResult:
+      type: object
+      required: [accepted, duplicate, eventId, aggregateId, kind, action, status, document]
+      properties:
+        accepted: { type: boolean }
+        duplicate: { type: boolean }
+        eventId: { type: string, format: uuid, description: Immutable sync_events event ID; not the command-receipt ID }
+        aggregateId: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/DocumentKind' }
+        action: { $ref: '#/components/schemas/DocumentAction' }
+        status: { $ref: '#/components/schemas/DocumentStatus' }
+        document: { $ref: '#/components/schemas/BusinessDocument' }
+        errors: { type: array, items: { $ref: '#/components/schemas/DocumentCommandError' } }
+    DocumentCommandError:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        field: { type: string }
+    BusinessDocument:
+      type: object
+      description: |
+        Canonical lifecycle response. Purchase orders are stock/GL-neutral
+        even when posted. Pack, loose, and opening purchases post stock-in and
+        supplier payable/input-tax projections. Purchase returns post stock-out
+        and payable/input-tax reversal only against a valid source batch.
+      required: [id, kind, status, documentNumber, tenantId, branchId, counterId, operatorId, occurredAt, lines, totals, version]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/DocumentKind' }
+        status: { $ref: '#/components/schemas/DocumentStatus' }
+        documentNumber: { type: string }
+        tenantId: { type: string, format: uuid }
+        branchId: { type: string, format: uuid }
+        counterId: { type: string, format: uuid }
+        operatorId: { type: string, format: uuid }
+        occurredAt: { type: string, format: date-time }
+        customerId: { type: string, format: uuid }
+        supplierId: { type: string, format: uuid }
+        sourceDocumentId: { type: string, format: uuid }
+        sourceDocumentNumber: { type: string }
+        godownId: { type: string, format: uuid }
+        reference: { type: string }
+        remarks: { type: string }
+        voidReason: { type: string }
+        lines: { type: array, items: { $ref: '#/components/schemas/DocumentLine' } }
+        totals: { $ref: '#/components/schemas/DocumentTotals' }
+        pricing: { type: object, additionalProperties: true }
+        finance: { $ref: '#/components/schemas/DocumentFinanceSummary' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    DocumentLine:
+      type: object
+      required: [id, lineNumber, itemId, itemCode, itemName, quantity, price, lineTotal, stock]
+      properties:
+        id: { type: string, format: uuid }
+        lineNumber: { type: integer }
+        itemId: { type: string, format: uuid }
+        itemCode: { type: string }
+        itemName: { type: string }
+        quantity: { type: string }
+        price: { $ref: '#/components/schemas/DocumentPrice' }
+        itemLegacyId: { type: string }
+        batchNumber: { type: string }
+        expiryDate: { type: string, format: date }
+        unitCost: { type: string }
+        taxAmount: { type: string }
+        allocations: { type: array, items: { $ref: '#/components/schemas/BatchAllocation' } }
+        lineTotal: { type: string }
+        stock:
+          type: object
+          required: [direction, quantity]
+          properties:
+            direction: { type: string, enum: [in, out, none] }
+            quantity: { type: string }
+    DocumentPrice:
+      type: object
+      required: [unitPrice, grossAmount, discountPercent, discountAmount, netAmount]
+      properties:
+        priceTier: { type: integer, minimum: 1, maximum: 10 }
+        unitPrice: { type: string }
+        grossAmount: { type: string }
+        discountPercent: { type: string }
+        discountAmount: { type: string }
+        netAmount: { type: string }
+    BatchAllocation:
+      type: object
+      required: [batchNumber, quantity]
+      properties:
+        batchId: { type: string, format: uuid }
+        batchNumber: { type: string }
+        expiryDate: { type: string, format: date }
+        godownId: { type: string, format: uuid }
+        quantity: { type: string }
+        unitCost: { type: string }
+    DocumentFinanceSummary:
+      type: object
+      required: [journalId, debitTotal, creditTotal, balanced]
+      properties:
+        journalId: { type: string, format: uuid }
+        debitTotal: { type: string }
+        creditTotal: { type: string }
+        balanced: { type: boolean }
+        partyLedgerEntryId: { type: string, format: uuid }
+        partyBalanceAfter: { type: string }
+    DocumentTotals:
+      type: object
+      required: [subtotal, discountAmount, miscAmount, taxAmount, totalAmount, paidAmount, balanceAmount]
+      properties:
+        subtotal: { type: string }
+        discountAmount: { type: string }
+        miscAmount: { type: string }
+        taxAmount: { type: string }
+        totalAmount: { type: string }
+        paidAmount: { type: string }
+        balanceAmount: { type: string }
+    ProblemDetails:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        code: { type: string }

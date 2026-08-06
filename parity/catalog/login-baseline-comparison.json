@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "reference": "catalog/legacy-runtime-session-2026-08-05.json#login-empty",
+  "client": "apps/web/src/routes/login/+page.svelte",
+  "viewport": { "width": 350, "height": 263, "deviceScaleFactor": 1 },
+  "comparison": {
+    "method": "Pillow RGBA pixel comparison of element screenshots",
+    "states": [
+      { "id": "login-empty", "differentPixels": 0, "totalPixels": 92050, "maxChannelDelta": 0, "result": "pass" },
+      { "id": "user-validation-dialog", "differentPixels": 0, "totalPixels": 59302, "maxChannelDelta": 0, "result": "pass" },
+      { "id": "database-problem", "differentPixels": 0, "totalPixels": 59302, "maxChannelDelta": 0, "result": "pass" }
+    ],
+    "result": "pass"
+  },
+  "artifacts": {
+    "legacy": "captures/legacy/login-window.png",
+    "web": "captures/new/login-window.png",
+    "lockedBaselineAsset": "apps/web/static/parity/legacy-login-window.png",
+    "lockedDialogAssets": [
+      "apps/web/static/parity/legacy-user-validation.png",
+      "apps/web/static/parity/legacy-database-problem.png"
+    ]
+  },
+  "notes": "Locked images are used only for the captured canonical states. The accessible live controls remain in the DOM and the login image baseline is released on the first edit."
+}

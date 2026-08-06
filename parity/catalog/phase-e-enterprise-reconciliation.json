@@ -1,0 +1,269 @@
+{
+  "generatedAt": "2026-08-05T21:16:07.0804411Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CompanyHeader",
+      "sourceCount": 0,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 0,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ConfigSetting",
+      "sourceCount": 9,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 9,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Preferences",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 1,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Area",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 1,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemCategory",
+      "sourceCount": 7,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 7,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerCategory",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 1,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemGroup",
+      "sourceCount": 0,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 0,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerGroup",
+      "sourceCount": 0,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 0,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GodownGroup",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 1,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SupplierCategory",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 1,
+      "status": "matched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ManufacturerCategory",
+      "sourceCount": 1,
+      "targetSchema": "public",
+      "targetTable": "master_records",
+      "targetCount": 1,
+      "status": "matched"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "config_setting_count",
+      "sourceValue": "9",
+      "targetValue": "9",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "preference_count",
+      "sourceValue": "1",
+      "targetValue": "1",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "area_count",
+      "sourceValue": "1",
+      "targetValue": "1",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "item_category_count",
+      "sourceValue": "7",
+      "targetValue": "7",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "customer_category_count",
+      "sourceValue": "1",
+      "targetValue": "1",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "item_group_count",
+      "sourceValue": "0",
+      "targetValue": "0",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "customer_group_count",
+      "sourceValue": "0",
+      "targetValue": "0",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "godown_group_count",
+      "sourceValue": "1",
+      "targetValue": "1",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "supplier_category_count",
+      "sourceValue": "1",
+      "targetValue": "1",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "manufacturer_category_count",
+      "sourceValue": "1",
+      "targetValue": "1",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "item_count",
+      "sourceValue": "30052",
+      "targetValue": "30052",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "customer_count",
+      "sourceValue": "2",
+      "targetValue": "2",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "supplier_count",
+      "sourceValue": "235",
+      "targetValue": "235",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "manufacturer_count",
+      "sourceValue": "838",
+      "targetValue": "838",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "godown_count",
+      "sourceValue": "1",
+      "targetValue": "1",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "price_policy_count",
+      "sourceValue": "30052",
+      "targetValue": "30052",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "item_supplier_count",
+      "sourceValue": "22245",
+      "targetValue": "22245",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "item_sale_price_total",
+      "sourceValue": "16556012.89",
+      "targetValue": "16556012.89",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    },
+    {
+      "name": "item_purchase_price_total",
+      "sourceValue": "13601851.65",
+      "targetValue": "13601851.65",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    },
+    {
+      "name": "item_sales_tax_total",
+      "sourceValue": "0.00",
+      "targetValue": "0.00",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    }
+  ]
+}

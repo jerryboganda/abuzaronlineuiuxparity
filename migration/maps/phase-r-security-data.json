@@ -1,0 +1,488 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "tables": [
+    {
+      "source": { "schema": "dbo", "table": "Groups" },
+      "target": { "schema": "public", "table": "roles" },
+      "sourceId": "GroupCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": {
+        "code": "GroupName",
+        "name": "GroupName",
+        "legacy_group_id": "GroupCode"
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "GroupCode": "GroupCode",
+        "GroupName": "GroupName",
+        "Remarks": "Remarks",
+        "saleinvflatdisc": "saleinvflatdisc",
+        "saleItemdiscperc": "saleItemdiscperc",
+        "SaleGodownStrategy": "SaleGodownStrategy",
+        "SaleReturnGodownStrategy": "SaleReturnGodownStrategy",
+        "PurchaseGodownStrategy": "PurchaseGodownStrategy",
+        "PurchaseReturnGodownStrategy": "PurchaseReturnGodownStrategy",
+        "IssueGodownStrategy": "IssueGodownStrategy",
+        "ReceiptGodownStrategy": "ReceiptGodownStrategy",
+        "AdjustmentGodownStrategy": "AdjustmentGodownStrategy",
+        "TransferSourceGodownStrategy": "TransferSourceGodownStrategy",
+        "TransferTargetGodownStrategy": "TransferTargetGodownStrategy",
+        "DefaultServiceTemplateCode": "DefaultServiceTemplateCode",
+        "QuotationGodownStrategy": "QuotationGodownStrategy",
+        "AutoRefreshItemList": "AutoRefreshItemList",
+        "AutoRefreshItemListTime": "AutoRefreshItemListTime",
+        "AccumulatedDiscPerc": "AccumulatedDiscPerc",
+        "AccumDiscPercCaution": "AccumDiscPercCaution",
+        "ServiceDiscPercLimit": "ServiceDiscPercLimit",
+        "ServiceDeliveryTime": "ServiceDeliveryTime",
+        "MaxServiceFlatDisc": "MaxServiceFlatDisc",
+        "MaxServiceInvFlatDisc": "MaxServiceInvFlatDisc",
+        "SaleTypeCode": "SaleTypeCode",
+        "ConsiderAllDiscountsOnItem": "ConsiderAllDiscountsOnItem",
+        "SalePriceInItemList": "SalePriceInItemList",
+        "FinancialLimitPerTransaction": "FinancialLimitPerTransaction",
+        "MaxQtyLimit": "MaxQtyLimit"
+      },
+      "inject": { "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee" },
+      "conflictColumns": ["tenant_id", "code"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Groups" },
+      "target": { "schema": "public", "table": "legacy_groups" },
+      "sourceId": "GroupCode",
+      "targetId": "role_id",
+      "targetIdGenerated": true,
+      "columns": {
+        "role_id": "GroupCode",
+        "legacy_group_code": "GroupCode",
+        "legacy_group_name": "GroupName",
+        "legacy_group_id": "GroupCode"
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "GroupCode": "GroupCode",
+        "GroupName": "GroupName",
+        "Remarks": "Remarks",
+        "saleinvflatdisc": "saleinvflatdisc",
+        "saleItemdiscperc": "saleItemdiscperc",
+        "SaleGodownStrategy": "SaleGodownStrategy",
+        "SalePriceInItemList": "SalePriceInItemList",
+        "FinancialLimitPerTransaction": "FinancialLimitPerTransaction",
+        "MaxQtyLimit": "MaxQtyLimit"
+      },
+      "lookups": {
+        "role_id": {
+          "target": { "schema": "public", "table": "roles" },
+          "targetColumn": "legacy_group_id",
+          "sourceColumn": "GroupCode"
+        }
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "active": "true"
+      },
+      "conflictColumns": ["tenant_id", "role_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Users" },
+      "target": { "schema": "public", "table": "users" },
+      "sourceId": "UserCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": {
+        "legacy_user_id": "UserCode",
+        "username": "UserName",
+        "display_name": "UserName",
+        "active": "Active"
+      },
+      "coerce": { "active": "boolean" },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "UserCode": "UserCode",
+        "UserName": "UserName",
+        "FatherName": "FatherName",
+        "Address": "Address",
+        "Phone": "Phone",
+        "Active": "Active"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "password_hash": "!legacy-import-password-reset-required"
+      },
+      "conflictColumns": ["tenant_id", "legacy_user_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "UserGroups" },
+      "target": { "schema": "public", "table": "user_memberships" },
+      "sourceId": "UserCode",
+      "sourceIdColumns": ["UserCode", "GroupCode"],
+      "targetId": "user_id",
+      "targetIdGenerated": true,
+      "columns": {
+        "user_id": "UserCode",
+        "role_id": "GroupCode",
+        "legacy_user_code": "UserCode",
+        "legacy_group_code": "GroupCode"
+      },
+      "lookups": {
+        "user_id": {
+          "target": { "schema": "public", "table": "users" },
+          "targetColumn": "legacy_user_id",
+          "sourceColumn": "UserCode"
+        },
+        "role_id": {
+          "target": { "schema": "public", "table": "roles" },
+          "targetColumn": "legacy_group_id",
+          "sourceColumn": "GroupCode"
+        }
+      },
+      "inject": { "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee" },
+      "conflictColumns": ["user_id", "role_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "GroupRights" },
+      "target": { "schema": "public", "table": "group_rights" },
+      "sourceId": "RightCode",
+      "sourceIdColumns": ["GroupCode", "RightCode"],
+      "targetId": "role_id",
+      "targetIdGenerated": true,
+      "columns": {
+        "role_id": "GroupCode",
+        "legacy_group_code": "GroupCode",
+        "right_code": "RightCode",
+        "allowed": "Status",
+        "legacy_status": "Status"
+      },
+      "coerce": { "allowed": "boolean" },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "GroupCode": "GroupCode",
+        "RightCode": "RightCode",
+        "Status": "Status"
+      },
+      "lookups": {
+        "role_id": {
+          "target": { "schema": "public", "table": "roles" },
+          "targetColumn": "legacy_group_id",
+          "sourceColumn": "GroupCode"
+        }
+      },
+      "inject": { "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee" },
+      "conflictColumns": ["tenant_id", "role_id", "right_code"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "GroupAllowedGodown" },
+      "target": { "schema": "public", "table": "group_allowed_scopes" },
+      "sourceId": "GroupCode",
+      "sourceIdColumns": ["GroupCode", "GCode", "Module", "Priority"],
+      "targetId": "role_id",
+      "targetIdGenerated": true,
+      "columns": {
+        "role_id": "GroupCode",
+        "legacy_group_code": "GroupCode",
+        "scope_key": "GroupCode",
+        "legacy_scope_id": "GroupCode"
+      },
+      "derivedColumns": {
+        "scope_key": ["GroupCode", "GCode", "Module", "Priority"],
+        "legacy_scope_id": ["GroupCode", "GCode", "Module", "Priority"]
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "GroupCode": "GroupCode",
+        "GCode": "GCode",
+        "Module": "Module",
+        "Priority": "Priority"
+      },
+      "lookups": {
+        "role_id": {
+          "target": { "schema": "public", "table": "roles" },
+          "targetColumn": "legacy_group_id",
+          "sourceColumn": "GroupCode"
+        }
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "scope_kind": "godown",
+        "allowed": "true",
+        "legacy_table": "GroupAllowedGodown"
+      },
+      "conflictColumns": ["tenant_id", "role_id", "scope_kind", "scope_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "GroupAllowedGroups" },
+      "target": { "schema": "public", "table": "group_allowed_scopes" },
+      "sourceId": "GroupCode",
+      "sourceIdColumns": ["GroupCode", "Module", "AllowedGroupCode"],
+      "targetId": "role_id",
+      "targetIdGenerated": true,
+      "columns": {
+        "role_id": "GroupCode",
+        "legacy_group_code": "GroupCode",
+        "scope_key": "GroupCode",
+        "legacy_scope_id": "GroupCode"
+      },
+      "derivedColumns": {
+        "scope_key": ["GroupCode", "Module", "AllowedGroupCode"],
+        "legacy_scope_id": ["GroupCode", "Module", "AllowedGroupCode"]
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "GroupCode": "GroupCode",
+        "Module": "Module",
+        "AllowedGroupCode": "AllowedGroupCode"
+      },
+      "lookups": {
+        "role_id": {
+          "target": { "schema": "public", "table": "roles" },
+          "targetColumn": "legacy_group_id",
+          "sourceColumn": "GroupCode"
+        }
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "scope_kind": "group",
+        "allowed": "true",
+        "legacy_table": "GroupAllowedGroups"
+      },
+      "conflictColumns": ["tenant_id", "role_id", "scope_kind", "scope_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "GroupAllowedHeader" },
+      "target": { "schema": "public", "table": "group_allowed_scopes" },
+      "sourceId": "GroupCode",
+      "sourceIdColumns": ["GroupCode", "HeaderCode", "Module", "Priority"],
+      "targetId": "role_id",
+      "targetIdGenerated": true,
+      "columns": {
+        "role_id": "GroupCode",
+        "legacy_group_code": "GroupCode",
+        "scope_key": "GroupCode",
+        "legacy_scope_id": "GroupCode"
+      },
+      "derivedColumns": {
+        "scope_key": ["GroupCode", "HeaderCode", "Module", "Priority"],
+        "legacy_scope_id": ["GroupCode", "HeaderCode", "Module", "Priority"]
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "GroupCode": "GroupCode",
+        "HeaderCode": "HeaderCode",
+        "Module": "Module",
+        "Priority": "Priority"
+      },
+      "lookups": {
+        "role_id": {
+          "target": { "schema": "public", "table": "roles" },
+          "targetColumn": "legacy_group_id",
+          "sourceColumn": "GroupCode"
+        }
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "scope_kind": "header",
+        "allowed": "true",
+        "legacy_table": "GroupAllowedHeader"
+      },
+      "conflictColumns": ["tenant_id", "role_id", "scope_kind", "scope_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "GroupAllowedPrice" },
+      "target": { "schema": "public", "table": "group_allowed_scopes" },
+      "sourceId": "GroupCode",
+      "sourceIdColumns": ["GroupCode", "Module", "PriceTypeCode"],
+      "targetId": "role_id",
+      "targetIdGenerated": true,
+      "columns": {
+        "role_id": "GroupCode",
+        "legacy_group_code": "GroupCode",
+        "scope_key": "GroupCode",
+        "legacy_scope_id": "GroupCode"
+      },
+      "derivedColumns": {
+        "scope_key": ["GroupCode", "Module", "PriceTypeCode"],
+        "legacy_scope_id": ["GroupCode", "Module", "PriceTypeCode"]
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "GroupCode": "GroupCode",
+        "Module": "Module",
+        "PriceTypeCode": "PriceTypeCode"
+      },
+      "lookups": {
+        "role_id": {
+          "target": { "schema": "public", "table": "roles" },
+          "targetColumn": "legacy_group_id",
+          "sourceColumn": "GroupCode"
+        }
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "scope_kind": "price",
+        "allowed": "true",
+        "legacy_table": "GroupAllowedPrice"
+      },
+      "conflictColumns": ["tenant_id", "role_id", "scope_kind", "scope_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "GroupAllowedRecipient" },
+      "target": { "schema": "public", "table": "group_allowed_scopes" },
+      "sourceId": "GroupCode",
+      "sourceIdColumns": ["GroupCode", "ModuleID", "RecipientCode", "Priority"],
+      "targetId": "role_id",
+      "targetIdGenerated": true,
+      "columns": {
+        "role_id": "GroupCode",
+        "legacy_group_code": "GroupCode",
+        "scope_key": "GroupCode",
+        "legacy_scope_id": "GroupCode"
+      },
+      "derivedColumns": {
+        "scope_key": ["GroupCode", "ModuleID", "RecipientCode", "Priority"],
+        "legacy_scope_id": ["GroupCode", "ModuleID", "RecipientCode", "Priority"]
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "GroupCode": "GroupCode",
+        "ModuleID": "ModuleID",
+        "RecipientCode": "RecipientCode",
+        "Priority": "Priority"
+      },
+      "lookups": {
+        "role_id": {
+          "target": { "schema": "public", "table": "roles" },
+          "targetColumn": "legacy_group_id",
+          "sourceColumn": "GroupCode"
+        }
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "scope_kind": "recipient",
+        "allowed": "true",
+        "legacy_table": "GroupAllowedRecipient"
+      },
+      "conflictColumns": ["tenant_id", "role_id", "scope_kind", "scope_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "GroupAllowedServiceCategory" },
+      "target": { "schema": "public", "table": "group_allowed_scopes" },
+      "sourceId": "GroupCode",
+      "sourceIdColumns": ["GroupCode", "ServiceCatCode", "Status"],
+      "targetId": "role_id",
+      "targetIdGenerated": true,
+      "columns": {
+        "role_id": "GroupCode",
+        "legacy_group_code": "GroupCode",
+        "scope_key": "GroupCode",
+        "legacy_scope_id": "GroupCode",
+        "allowed": "Status"
+      },
+      "derivedColumns": {
+        "scope_key": ["GroupCode", "ServiceCatCode", "Status"],
+        "legacy_scope_id": ["GroupCode", "ServiceCatCode", "Status"]
+      },
+      "coerce": { "allowed": "boolean" },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "GroupCode": "GroupCode",
+        "ServiceCatCode": "ServiceCatCode",
+        "Status": "Status"
+      },
+      "lookups": {
+        "role_id": {
+          "target": { "schema": "public", "table": "roles" },
+          "targetColumn": "legacy_group_id",
+          "sourceColumn": "GroupCode"
+        }
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "scope_kind": "service_category",
+        "legacy_table": "GroupAllowedServiceCategory"
+      },
+      "conflictColumns": ["tenant_id", "role_id", "scope_kind", "scope_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "GroupAllowedStartupRight" },
+      "target": { "schema": "public", "table": "group_allowed_scopes" },
+      "sourceId": "GroupCode",
+      "sourceIdColumns": ["GroupCode", "RightCode"],
+      "targetId": "role_id",
+      "targetIdGenerated": true,
+      "columns": {
+        "role_id": "GroupCode",
+        "legacy_group_code": "GroupCode",
+        "scope_key": "GroupCode",
+        "legacy_scope_id": "GroupCode"
+      },
+      "derivedColumns": {
+        "scope_key": ["GroupCode", "RightCode"],
+        "legacy_scope_id": ["GroupCode", "RightCode"]
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "GroupCode": "GroupCode",
+        "RightCode": "RightCode",
+        "Details": "Details",
+        "Arguments": "Arguments"
+      },
+      "lookups": {
+        "role_id": {
+          "target": { "schema": "public", "table": "roles" },
+          "targetColumn": "legacy_group_id",
+          "sourceColumn": "GroupCode"
+        }
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "scope_kind": "startup_right",
+        "allowed": "true",
+        "legacy_table": "GroupAllowedStartupRight"
+      },
+      "conflictColumns": ["tenant_id", "role_id", "scope_kind", "scope_key"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "GroupCashAccount" },
+      "target": { "schema": "public", "table": "group_allowed_scopes" },
+      "sourceId": "RowID",
+      "sourceIdColumns": ["GroupCode", "ModuleID", "CashAccCode", "RowID"],
+      "targetId": "role_id",
+      "targetIdGenerated": true,
+      "columns": {
+        "role_id": "GroupCode",
+        "legacy_group_code": "GroupCode",
+        "scope_key": "GroupCode",
+        "legacy_scope_id": "GroupCode"
+      },
+      "derivedColumns": {
+        "scope_key": ["GroupCode", "ModuleID", "CashAccCode", "RowID"],
+        "legacy_scope_id": ["GroupCode", "ModuleID", "CashAccCode", "RowID"]
+      },
+      "payloadTarget": "legacy_payload",
+      "payloadColumns": {
+        "GroupCode": "GroupCode",
+        "ModuleID": "ModuleID",
+        "CashAccCode": "CashAccCode",
+        "RowID": "RowID"
+      },
+      "lookups": {
+        "role_id": {
+          "target": { "schema": "public", "table": "roles" },
+          "targetColumn": "legacy_group_id",
+          "sourceColumn": "GroupCode"
+        }
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "scope_kind": "cash_account",
+        "allowed": "true",
+        "legacy_table": "GroupCashAccount"
+      },
+      "conflictColumns": ["tenant_id", "role_id", "scope_kind", "scope_key"]
+    }
+  ]
+}

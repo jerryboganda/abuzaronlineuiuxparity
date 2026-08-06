@@ -1,0 +1,17 @@
+{
+  "name": "Abuzar Next",
+  "short_name": "Abuzar",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#f4f6f9",
+  "theme_color": "#17365d",
+  "description": "Abuzar multi-tenant operations workspace",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,232 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "tables": [
+    {
+      "source": { "schema": "dbo", "table": "Item" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "ICode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "ICode", "code": "ICode", "name": "Name", "active": "Active" },
+      "coerce": { "active": "boolean" },
+      "payloadColumns": {
+        "ICode": "ICode",
+        "CustomICode": "CustomICode",
+        "Name": "Name",
+        "ICCode": "ICCode",
+        "ICatCode": "ICatCode",
+        "Packcode": "Packcode",
+        "ManfCode": "ManfCode",
+        "SalePrice": "SalePrice",
+        "PurPrice": "PurPrice",
+        "RetailPrice": "RetailPrice",
+        "AvgPrice": "AvgPrice",
+        "SaleDiscPerc": "SaleDiscPerc",
+        "PurDiscPerc": "PurDiscPerc",
+        "SalesTax": "SalesTax",
+        "ReorderQty": "ReorderQty",
+        "OptimumQty": "OptimumQty",
+        "PackUnits": "PackUnits",
+        "Active": "Active",
+        "Prescribed": "Prescribed",
+        "Refrigrated": "Refrigrated",
+        "Printable": "Printable",
+        "Location1": "Location1",
+        "Remarks1": "Remarks1",
+        "Location": "Location",
+        "Remarks": "Remarks",
+        "Gcode": "Gcode",
+        "GSTPerc1": "GSTPerc1",
+        "GSTPerc2": "GSTPerc2",
+        "PackSalesTax": "PackSalesTax",
+        "SalePrice2": "SalePrice2",
+        "SalePrice3": "SalePrice3",
+        "SalePrice4": "SalePrice4",
+        "SalePrice5": "SalePrice5",
+        "FlatDisc": "FlatDisc",
+        "Taxable": "Taxable",
+        "PCTCode": "PCTCode",
+        "LastUpdate": "LastUpdate"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "item"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Customer" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "CustCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "CustCode", "code": "CustCode", "name": "FullName" },
+      "payloadColumns": {
+        "CustCode": "CustCode",
+        "FullName": "FullName",
+        "AreaCode": "AreaCode",
+        "CP": "CP",
+        "Address1": "Address1",
+        "City": "City",
+        "Country": "Country",
+        "Phone": "Phone",
+        "Email": "Email",
+        "CrLimit": "CrLimit",
+        "DaysLimit": "DaysLimit",
+        "CustCatCode": "CustCatCode",
+        "LicenceNo": "LicenceNo",
+        "LicenceExpiry": "LicenceExpiry",
+        "PriceOnSale": "PriceOnSale",
+        "DiscOnSale": "DiscOnSale",
+        "SalesTaxRegNo": "SalesTaxRegNo",
+        "DefaultGST": "DefaultGST",
+        "SalesManCode": "SalesManCode",
+        "InvDiscPerc": "InvDiscPerc",
+        "DefaultSalePrice": "DefaultSalePrice",
+        "DefaultItemDiscPerc": "DefaultItemDiscPerc",
+        "Block": "Block",
+        "CellNo": "CellNo",
+        "NIC": "NIC",
+        "NTNNo": "NTNNo",
+        "TaxCategoryCode": "TaxCategoryCode",
+        "SalesTaxExemption": "SalesTaxExemption"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "customer"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Supplier" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "SuppCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "SuppCode", "code": "SuppCode", "name": "SuppCode" },
+      "payloadColumns": {
+        "SuppCode": "SuppCode",
+        "CP": "CP",
+        "Address1": "Address1",
+        "City": "City",
+        "Country": "Country",
+        "Phone": "Phone",
+        "Email": "Email",
+        "SuppCatCode": "SuppCatCode",
+        "DefaultGST": "DefaultGST",
+        "DaysLimit": "DaysLimit",
+        "NTNno": "NTNno",
+        "SalesTaxRegNo": "SalesTaxRegNo",
+        "CNIC": "CNIC",
+        "MobileNo": "MobileNo",
+        "WebSiteAdd": "WebSiteAdd"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "supplier"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Manufacturer" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "ManfCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "ManfCode", "code": "ManfCode", "name": "Name" },
+      "payloadColumns": {
+        "ManfCode": "ManfCode",
+        "Name": "Name",
+        "ShortName": "ShortName",
+        "Address1": "Address1",
+        "City": "City",
+        "Country": "Country",
+        "Phone": "Phone",
+        "Fax": "Fax",
+        "CP": "CP",
+        "Email": "Email",
+        "AliasName": "AliasName",
+        "PurOrderBasePeriodDays": "PurOrderBasePeriodDays",
+        "PurOrderProjPeriodDays": "PurOrderProjPeriodDays",
+        "POPolicyCode": "POPolicyCode",
+        "ManfCatCode": "ManfCatCode",
+        "LicenseNo": "LicenseNo",
+        "ManufacturerTypeCode": "ManufacturerTypeCode"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "manufacturer"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Godown" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "GCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "GCode", "code": "GCode", "name": "Name" },
+      "payloadColumns": {
+        "GCode": "GCode",
+        "Name": "Name",
+        "Location": "Location",
+        "GodownGroupCode": "GodownGroupCode",
+        "AutoSatisfyDue": "AutoSatisfyDue",
+        "ConsiderStockInPO": "ConsiderStockInPO",
+        "LocalGodownName": "LocalGodownName"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "godown"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "PricePolicy" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "PricePolicyCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "PricePolicyCode", "code": "PricePolicyCode", "name": "Name" },
+      "payloadColumns": { "PricePolicyCode": "PricePolicyCode", "Name": "Name", "ICode": "ICode" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "price_policy"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "ItemSuppliers" },
+      "target": { "schema": "public", "table": "item_supplier_links" },
+      "sourceId": "ICode",
+      "sourceIdColumns": ["ICode", "SuppCode"],
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": {
+        "legacy_item_id": "ICode",
+        "legacy_supplier_id": "SuppCode",
+        "priority": "Priority",
+        "rate": "Rate",
+        "discount_percent": "DiscPerc",
+        "sale_quantity": "SaleQty",
+        "bonus_quantity": "BonusQty",
+        "scheme_days": "days"
+      },
+      "payloadColumns": {
+        "ICode": "ICode",
+        "SuppCode": "SuppCode",
+        "Priority": "Priority",
+        "Rate": "Rate",
+        "DiscPerc": "DiscPerc",
+        "SaleQty": "SaleQty",
+        "BonusQty": "BonusQty",
+        "days": "days"
+      },
+      "inject": { "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee" },
+      "conflictColumns": ["tenant_id", "legacy_item_id", "legacy_supplier_id"]
+    }
+  ]
+}

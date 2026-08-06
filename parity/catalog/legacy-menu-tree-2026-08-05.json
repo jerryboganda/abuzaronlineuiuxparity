@@ -1,0 +1,1659 @@
+﻿{
+    "capturedAt":  "2026-08-05T11:16:21+05:00",
+    "processId":  7500,
+    "windowTitle":  "WASEELA   ABUZAR V3 01.01.2025 : ADMIN : 05/08/26 11:16:21",
+    "menuItemCount":  275,
+    "topLevelCount":  9,
+    "items":  [
+                  {
+                      "path":  "\u0026File",
+                      "position":  0,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026File \u003e Change User",
+                      "position":  0,
+                      "commandId":  10001,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026File \u003e ",
+                      "position":  1,
+                      "commandId":  0,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026File \u003e Exit\tCtrl+X",
+                      "position":  2,
+                      "commandId":  10002,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Purchase",
+                      "position":  1,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Purchase \u003e \u0026Purchases",
+                      "position":  0,
+                      "commandId":  10005,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Purchase \u003e Purchase Return",
+                      "position":  1,
+                      "commandId":  10006,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Purchase \u003e Openin\u0026g Purchase          ",
+                      "position":  2,
+                      "commandId":  10007,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Purchase \u003e Purchases (Loose)",
+                      "position":  3,
+                      "commandId":  10008,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Purchase \u003e Purchase \u0026Orders",
+                      "position":  4,
+                      "commandId":  10013,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Sales",
+                      "position":  2,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Sales \u003e Cash\u0026Sale",
+                      "position":  0,
+                      "commandId":  10031,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Sales \u003e \u0026Credit Sale",
+                      "position":  1,
+                      "commandId":  10032,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Sales \u003e Sale \u0026Return",
+                      "position":  2,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Sales \u003e Sale \u0026Return \u003e Cash Sale Return",
+                      "position":  0,
+                      "commandId":  10033,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Sales \u003e Sale \u0026Return \u003e \u0026Credit Sale Return",
+                      "position":  1,
+                      "commandId":  10034,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Sales \u003e \u0026Open Sale Return",
+                      "position":  3,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Sales \u003e \u0026Open Sale Return \u003e Cash Sale Return",
+                      "position":  0,
+                      "commandId":  10035,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Sales \u003e \u0026Open Sale Return \u003e \u0026Credit Sale Return",
+                      "position":  1,
+                      "commandId":  10036,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Sales \u003e \u0026Quotation",
+                      "position":  4,
+                      "commandId":  10039,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Sales \u003e Refused Sales",
+                      "position":  5,
+                      "commandId":  10074,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports",
+                      "position":  3,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports",
+                      "position":  0,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sale",
+                      "position":  0,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sale \u003e Sale detail",
+                      "position":  0,
+                      "commandId":  10102,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sale \u003e Sale summary",
+                      "position":  1,
+                      "commandId":  10103,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sale \u003e Sale Summary Inv. Wise",
+                      "position":  2,
+                      "commandId":  10104,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sale \u003e Sale Summary Inv. Cust Wise",
+                      "position":  3,
+                      "commandId":  10106,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sale \u003e Sale Detail Inv. Wise",
+                      "position":  4,
+                      "commandId":  10107,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sale \u003e Sale Detail (Format 2)",
+                      "position":  5,
+                      "commandId":  10111,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sale \u003e Refused Sales Detail",
+                      "position":  6,
+                      "commandId":  10113,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sale \u003e Sale Detail Inv. Wise(with diff.col.)",
+                      "position":  7,
+                      "commandId":  10114,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sale \u003e Sale Summary - Invoice Wise",
+                      "position":  8,
+                      "commandId":  10115,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sale \u003e Sale Summary Machine and Invoice Range Wise",
+                      "position":  9,
+                      "commandId":  10120,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sale \u003e Selected Sales and Summaries Report",
+                      "position":  10,
+                      "commandId":  10121,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sales Return",
+                      "position":  1,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sales Return \u003e Sales Return detail",
+                      "position":  0,
+                      "commandId":  10122,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sales Return \u003e Sales Return summary",
+                      "position":  1,
+                      "commandId":  10123,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sales Return \u003e Sales Return Summary Inv.wise",
+                      "position":  2,
+                      "commandId":  10124,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Sales Return \u003e Sales Return Detail Inv.wise",
+                      "position":  3,
+                      "commandId":  10125,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Purchase",
+                      "position":  2,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Purchase \u003e Purchase detail",
+                      "position":  0,
+                      "commandId":  10128,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Purchase \u003e Purchase summary",
+                      "position":  1,
+                      "commandId":  10129,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Purchase \u003e Purchase Summary2",
+                      "position":  2,
+                      "commandId":  10130,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Purchase Return",
+                      "position":  3,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Purchase Return \u003e Purchase Return detail",
+                      "position":  0,
+                      "commandId":  10132,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Purchase Return \u003e Purchase Return summary",
+                      "position":  1,
+                      "commandId":  10133,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Adjustment",
+                      "position":  4,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Adjustment \u003e Adjustment Summary",
+                      "position":  0,
+                      "commandId":  10145,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Adjustment \u003e Adjustment Detail",
+                      "position":  1,
+                      "commandId":  10146,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Adjustment \u003e Adjustment Summary Inv. Wise",
+                      "position":  2,
+                      "commandId":  10148,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Adjustment \u003e Adjustment Detail Inv. wise",
+                      "position":  3,
+                      "commandId":  10149,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Adjustment \u003e Adjustment Summary/Detail",
+                      "position":  4,
+                      "commandId":  10150,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Adjustment \u003e Item Wise Adjustment Summary",
+                      "position":  5,
+                      "commandId":  10151,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Quotation",
+                      "position":  5,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Quotation \u003e Detail",
+                      "position":  0,
+                      "commandId":  10152,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Quotation \u003e Summary",
+                      "position":  1,
+                      "commandId":  10153,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Header Wise Transaction Summary",
+                      "position":  6,
+                      "commandId":  10169,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Purchase \u0026Order",
+                      "position":  7,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Purchase \u0026Order \u003e Purchase Order \u0026Summary",
+                      "position":  0,
+                      "commandId":  10170,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Daily Reports \u003e Purchase \u0026Order \u003e P/O Based Purchase Disparity",
+                      "position":  1,
+                      "commandId":  10171,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports",
+                      "position":  1,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock In hand",
+                      "position":  0,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock In hand \u003e Manufacturer wise",
+                      "position":  0,
+                      "commandId":  10177,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock In hand \u003e Category wise",
+                      "position":  1,
+                      "commandId":  10178,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock In hand \u003e Others",
+                      "position":  2,
+                      "commandId":  10179,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock In hand \u003e Class Wise",
+                      "position":  3,
+                      "commandId":  10180,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock In hand \u003e Batch, Priority Wise",
+                      "position":  4,
+                      "commandId":  10181,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock In hand \u003e Back Date",
+                      "position":  5,
+                      "commandId":  10183,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock In hand \u003e Manufacturer Wise (Format2)",
+                      "position":  6,
+                      "commandId":  10188,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock In hand \u003e Supplier Manufacturer Association",
+                      "position":  7,
+                      "commandId":  10194,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock In hand \u003e Stock Quantity Format",
+                      "position":  8,
+                      "commandId":  10195,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock In hand \u003e Stock in Hand - Audit Purpose",
+                      "position":  9,
+                      "commandId":  10198,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock In hand \u003e Batch, Priority Wise - Audit Purposes",
+                      "position":  10,
+                      "commandId":  10200,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Expiry Report",
+                      "position":  1,
+                      "commandId":  10201,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Reorder Level Report",
+                      "position":  2,
+                      "commandId":  10202,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock Register",
+                      "position":  3,
+                      "commandId":  10203,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Item Stock Register Summary",
+                      "position":  4,
+                      "commandId":  10207,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock Register(For Narcotics)",
+                      "position":  5,
+                      "commandId":  10209,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock and Sales",
+                      "position":  6,
+                      "commandId":  10214,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Optimum Level Report",
+                      "position":  7,
+                      "commandId":  10216,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Item Activity",
+                      "position":  8,
+                      "commandId":  10218,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock Register(Narcotics Format2)",
+                      "position":  9,
+                      "commandId":  10220,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Expiry Report(Class Wise)",
+                      "position":  10,
+                      "commandId":  10221,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Minimum Level Report",
+                      "position":  11,
+                      "commandId":  10222,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Reorder/Optimum Level Report",
+                      "position":  12,
+                      "commandId":  10224,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Daily Stock IN/OUT",
+                      "position":  13,
+                      "commandId":  10225,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock IN/OUT(Date Wise)",
+                      "position":  14,
+                      "commandId":  10226,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Stock Management Report",
+                      "position":  15,
+                      "commandId":  10235,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Stoc\u0026k Reports \u003e Norcotics Stock Register-Generic Type Wise",
+                      "position":  16,
+                      "commandId":  10236,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports",
+                      "position":  2,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales",
+                      "position":  0,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Detail",
+                      "position":  0,
+                      "commandId":  10237,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Summary",
+                      "position":  1,
+                      "commandId":  10239,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Days Summary",
+                      "position":  2,
+                      "commandId":  10240,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Invoice Wise Profit Margin Detail",
+                      "position":  3,
+                      "commandId":  10243,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Items Summary",
+                      "position":  4,
+                      "commandId":  10244,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Invoice Summary",
+                      "position":  5,
+                      "commandId":  10250,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Hourly Graph",
+                      "position":  6,
+                      "commandId":  10251,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e LP Ledger",
+                      "position":  7,
+                      "commandId":  10258,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Customer Category Wise Net Sales",
+                      "position":  8,
+                      "commandId":  10263,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Customer Category Wise Sales",
+                      "position":  9,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Customer Category Wise Sales \u003e Customer Category Wise Sales Summary Report",
+                      "position":  0,
+                      "commandId":  10265,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Customer Category Wise Sales \u003e Customer Category Wise Sales Detail Report",
+                      "position":  1,
+                      "commandId":  10266,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Customer Category Wise Sales \u003e Net Sales and Volume",
+                      "position":  2,
+                      "commandId":  10267,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Customer Category Wise Sales \u003e Customer Wise Summary",
+                      "position":  3,
+                      "commandId":  10268,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Customer Category Wise Sales \u003e Customer Category Wise Net Sales Report",
+                      "position":  4,
+                      "commandId":  10269,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Customer Category Wise Sales \u003e Output Sales Tax Report",
+                      "position":  5,
+                      "commandId":  10270,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Customer Category Wise Sales \u003e Customer Wise Gross Profit",
+                      "position":  6,
+                      "commandId":  10271,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Customer Wise Category Net Sales",
+                      "position":  10,
+                      "commandId":  10282,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Monthly Net Sales",
+                      "position":  11,
+                      "commandId":  10286,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Claimable for Allowed Customers",
+                      "position":  12,
+                      "commandId":  10302,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Customer NTN Wise Sales Tax Report",
+                      "position":  13,
+                      "commandId":  10303,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Customer Sales \u003e Customer Wise Advance Tax",
+                      "position":  14,
+                      "commandId":  10304,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Category Wise",
+                      "position":  1,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Category Wise \u003e Sale And Return ",
+                      "position":  0,
+                      "commandId":  10306,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Category Wise \u003e Sales",
+                      "position":  1,
+                      "commandId":  10307,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Category Wise \u003e Deviated Items",
+                      "position":  2,
+                      "commandId":  10309,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Category Wise \u003e Monthly Sale",
+                      "position":  3,
+                      "commandId":  10310,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Category Wise \u003e Net Sale",
+                      "position":  4,
+                      "commandId":  10311,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Category Wise \u003e Gross Profit",
+                      "position":  5,
+                      "commandId":  10312,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Category Wise \u003e Item Wise Sale Discounts Detail",
+                      "position":  6,
+                      "commandId":  10317,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Category Wise \u003e Item Category Wise Monthly Sales",
+                      "position":  7,
+                      "commandId":  10324,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Category Wise \u003e Category Wise Day Net Sale",
+                      "position":  8,
+                      "commandId":  10328,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Manufacturer Wise",
+                      "position":  2,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Manufacturer Wise \u003e Sales",
+                      "position":  0,
+                      "commandId":  10329,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Manufacturer Wise \u003e Sales Detail And Summary",
+                      "position":  1,
+                      "commandId":  10333,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Manufacturer Wise \u003e Net Sales",
+                      "position":  2,
+                      "commandId":  10334,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Manufacturer Wise \u003e Item Sales/Discount",
+                      "position":  3,
+                      "commandId":  10336,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Manufacturer Wise \u003e Manufacturer Wise Sales And Return Summary",
+                      "position":  4,
+                      "commandId":  10340,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Manufacturer Wise \u003e CNIC/NTN Registered Customers Sales",
+                      "position":  5,
+                      "commandId":  10344,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Class Wise",
+                      "position":  3,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e User Wise",
+                      "position":  4,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e User Wise \u003e Invoice Graph",
+                      "position":  0,
+                      "commandId":  10359,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e User Wise \u003e Sales",
+                      "position":  1,
+                      "commandId":  10360,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e User Wise \u003e Category Summary",
+                      "position":  2,
+                      "commandId":  10361,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e User Wise \u003e Discount Report",
+                      "position":  3,
+                      "commandId":  10362,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e User Wise \u003e Net Cash",
+                      "position":  4,
+                      "commandId":  10365,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e User Wise \u003e Sales Commission",
+                      "position":  5,
+                      "commandId":  10366,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e User Wise \u003e User Wise Sales Summary",
+                      "position":  6,
+                      "commandId":  10367,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Hourly Sales Graph",
+                      "position":  5,
+                      "commandId":  10420,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Slow/Fast moving Items",
+                      "position":  6,
+                      "commandId":  10421,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Net Sale Summary",
+                      "position":  7,
+                      "commandId":  10425,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Item Wise",
+                      "position":  8,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Item Wise \u003e Item Sale and Return Activity",
+                      "position":  0,
+                      "commandId":  10429,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Item Wise \u003e Item Wise Net Sales",
+                      "position":  1,
+                      "commandId":  10432,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Sale/Return Summary Inv. Type Wise",
+                      "position":  9,
+                      "commandId":  10450,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Daily Sales Summary with Profit(Day wise grouping)",
+                      "position":  10,
+                      "commandId":  10457,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Monthly Net Sales Summary",
+                      "position":  11,
+                      "commandId":  10459,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Dead Item List",
+                      "position":  12,
+                      "commandId":  10461,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Sales Reports \u003e Sales Tax Report",
+                      "position":  13,
+                      "commandId":  10466,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports",
+                      "position":  3,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Periodic Purchases",
+                      "position":  0,
+                      "commandId":  10467,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Purchase Order",
+                      "position":  1,
+                      "commandId":  10469,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Supplier Wise",
+                      "position":  2,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Supplier Wise \u003e Detail",
+                      "position":  0,
+                      "commandId":  10470,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Supplier Wise \u003e Purchase Detail",
+                      "position":  1,
+                      "commandId":  10471,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Supplier Wise \u003e Advance Income Tax",
+                      "position":  2,
+                      "commandId":  10476,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Manufacturer Wise",
+                      "position":  3,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Manufacturer Wise \u003e Detail",
+                      "position":  0,
+                      "commandId":  10477,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Manufacturer Wise \u003e Monthly Stock Movement",
+                      "position":  1,
+                      "commandId":  10478,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Monthly Purchase Graph",
+                      "position":  4,
+                      "commandId":  10479,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Category Wise Purchase",
+                      "position":  5,
+                      "commandId":  10480,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Days Summary",
+                      "position":  6,
+                      "commandId":  10484,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Purchase Order Supplier Wise",
+                      "position":  7,
+                      "commandId":  10493,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Net Purchase Summary",
+                      "position":  8,
+                      "commandId":  10494,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Supplier Category Wise",
+                      "position":  9,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Supplier Category Wise \u003e Input Sales Tax Report",
+                      "position":  0,
+                      "commandId":  10499,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Withholding Tax Deduction",
+                      "position":  10,
+                      "commandId":  10502,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Purchase Reports \u003e Supplier/Manufacturer Wise G/P",
+                      "position":  11,
+                      "commandId":  10503,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Accounts Reports",
+                      "position":  4,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Accounts Reports \u003e Ledger Reports",
+                      "position":  0,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e \u0026Accounts Reports \u003e Ledger Reports \u003e Accounts Ledger",
+                      "position":  0,
+                      "commandId":  10512,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Listing",
+                      "position":  5,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Listing \u003e Supplier List",
+                      "position":  0,
+                      "commandId":  10587,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Listing \u003e ",
+                      "position":  1,
+                      "commandId":  0,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Listing \u003e Items List",
+                      "position":  2,
+                      "commandId":  10588,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Listing \u003e Manufacturer List",
+                      "position":  3,
+                      "commandId":  10591,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Listing \u003e ",
+                      "position":  4,
+                      "commandId":  0,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Listing \u003e Group Rights List",
+                      "position":  5,
+                      "commandId":  10599,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Listing \u003e Item List Class Wise",
+                      "position":  6,
+                      "commandId":  10600,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Listing \u003e GroupWise User List",
+                      "position":  7,
+                      "commandId":  10601,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Listing \u003e Sale Person Scope",
+                      "position":  8,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Listing \u003e Sale Person Scope \u003e Manufacturer/Sub Area Wise Sales Person Conflict",
+                      "position":  0,
+                      "commandId":  10606,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e RePrinting",
+                      "position":  6,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e RePrinting \u003e Sale",
+                      "position":  0,
+                      "commandId":  10611,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e RePrinting \u003e Purchase",
+                      "position":  1,
+                      "commandId":  10612,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e RePrinting \u003e Sale (with summary reports)",
+                      "position":  2,
+                      "commandId":  10613,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e RePrinting \u003e Sale Format(2)",
+                      "position":  3,
+                      "commandId":  10614,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e RePrinting \u003e Sale Format(3)",
+                      "position":  4,
+                      "commandId":  10617,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e RePrinting \u003e Sale Format(4)",
+                      "position":  5,
+                      "commandId":  10621,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e RePrinting \u003e Sale (with header wise summaries)",
+                      "position":  6,
+                      "commandId":  10622,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e RePrinting \u003e Selected Sales and Summaries",
+                      "position":  7,
+                      "commandId":  10634,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Item Reports",
+                      "position":  7,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Item Reports \u003e History",
+                      "position":  0,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Item Reports \u003e History \u003e Sale Price Difference",
+                      "position":  0,
+                      "commandId":  10678,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Item Reports \u003e History \u003e Item Basic Data Changes",
+                      "position":  1,
+                      "commandId":  10679,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Item Reports \u003e History \u003e Item Sale Price Changes",
+                      "position":  2,
+                      "commandId":  10680,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Item Reports \u003e History \u003e New Item(s) Created/Defined",
+                      "position":  3,
+                      "commandId":  10682,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Item Reports \u003e History \u003e Item Name Changes",
+                      "position":  4,
+                      "commandId":  10684,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Item Reports \u003e Stock Adjustments",
+                      "position":  1,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Item Reports \u003e Stock Adjustments \u003e Stock Adjustments Detail",
+                      "position":  0,
+                      "commandId":  10685,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Item Reports \u003e Deleted Sale Items Log",
+                      "position":  2,
+                      "commandId":  10687,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Purchase Return Reports",
+                      "position":  8,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Purchase Return Reports \u003e Supplier Purchase Returns",
+                      "position":  0,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Purchase Return Reports \u003e Supplier Purchase Returns \u003e Detail",
+                      "position":  0,
+                      "commandId":  10709,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Reports \u003e Purchase Return Reports \u003e Supplier Purchase Returns \u003e Summary",
+                      "position":  1,
+                      "commandId":  10710,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data",
+                      "position":  4,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Customer ..........",
+                      "position":  0,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Customer .......... \u003e \u0026Customer",
+                      "position":  0,
+                      "commandId":  10860,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Customer .......... \u003e Customer Categ\u0026ory",
+                      "position":  1,
+                      "commandId":  10861,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Customer .......... \u003e Sale Promotion",
+                      "position":  2,
+                      "commandId":  10880,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Customer .......... \u003e Customer Sector",
+                      "position":  3,
+                      "commandId":  10881,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Supplier ..........",
+                      "position":  1,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Supplier .......... \u003e \u0026Supplier",
+                      "position":  0,
+                      "commandId":  10882,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Supplier .......... \u003e Supplier \u0026Category",
+                      "position":  1,
+                      "commandId":  10883,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item ..........",
+                      "position":  2,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e \u0026Item",
+                      "position":  0,
+                      "commandId":  10885,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e \u0026Manufacturer",
+                      "position":  1,
+                      "commandId":  10886,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e Item C\u0026lass",
+                      "position":  2,
+                      "commandId":  10887,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e Item Categor\u0026y",
+                      "position":  3,
+                      "commandId":  10888,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e \u0026Generic Item",
+                      "position":  4,
+                      "commandId":  10900,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e It\u0026em Basic Data",
+                      "position":  5,
+                      "commandId":  10903,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e Price Policy",
+                      "position":  6,
+                      "commandId":  10907,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e Item \u0026Alert",
+                      "position":  7,
+                      "commandId":  10909,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e Sales Tax Schedule",
+                      "position":  8,
+                      "commandId":  10914,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e PCT Codes",
+                      "position":  9,
+                      "commandId":  10915,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e Generic Item Type",
+                      "position":  10,
+                      "commandId":  10916,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e Item Thickness",
+                      "position":  11,
+                      "commandId":  10917,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e Lock Reason",
+                      "position":  12,
+                      "commandId":  10918,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e Category Segment",
+                      "position":  13,
+                      "commandId":  10919,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e \u0026Item .......... \u003e Manufacturer Type",
+                      "position":  14,
+                      "commandId":  10920,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e Sale Template",
+                      "position":  3,
+                      "commandId":  10928,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Basic Data \u003e Tax Category",
+                      "position":  4,
+                      "commandId":  11054,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance",
+                      "position":  5,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e \u0026Change Password         ",
+                      "position":  0,
+                      "commandId":  11057,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Preferences",
+                      "position":  1,
+                      "commandId":  11058,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Change Items Price",
+                      "position":  2,
+                      "commandId":  11065,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Database Utilities",
+                      "position":  3,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Database Utilities \u003e Backup Database",
+                      "position":  0,
+                      "commandId":  11066,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Database Utilities \u003e Check Database Integrity",
+                      "position":  1,
+                      "commandId":  11067,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Adjustment",
+                      "position":  4,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Adjustment \u003e Increase",
+                      "position":  0,
+                      "commandId":  11068,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Adjustment \u003e Decrease",
+                      "position":  1,
+                      "commandId":  11069,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Adjustment \u003e Stock Adjustment",
+                      "position":  2,
+                      "commandId":  11070,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Priority Setting",
+                      "position":  5,
+                      "commandId":  11077,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Change Item Discount",
+                      "position":  6,
+                      "commandId":  11083,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Modify Sale Invoices",
+                      "position":  7,
+                      "commandId":  11084,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Modify Last Transaction Date",
+                      "position":  8,
+                      "commandId":  11085,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e \u0026Godown Preferences",
+                      "position":  9,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e \u0026Godown Preferences \u003e Group Wise Godown Setting",
+                      "position":  0,
+                      "commandId":  11090,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Interface \u0026Setting",
+                      "position":  10,
+                      "commandId":  11096,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Update Item Basic Data",
+                      "position":  11,
+                      "commandId":  11129,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Update Item Suppliers",
+                      "position":  12,
+                      "commandId":  11134,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Change Item Reorder Qty",
+                      "position":  13,
+                      "commandId":  11137,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Import Historical Data",
+                      "position":  14,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Import Historical Data \u003e Import Previous Sales",
+                      "position":  0,
+                      "commandId":  11146,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Inplace Initialization",
+                      "position":  15,
+                      "commandId":  11149,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Maintenance \u003e Lock Item Batches",
+                      "position":  16,
+                      "commandId":  11157,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "Mana\u0026ge",
+                      "position":  6,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "Mana\u0026ge \u003e Groups",
+                      "position":  0,
+                      "commandId":  11162,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "Mana\u0026ge \u003e Users",
+                      "position":  1,
+                      "commandId":  11163,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "Mana\u0026ge \u003e Group Wise Header Setting",
+                      "position":  2,
+                      "commandId":  11166,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "Mana\u0026ge \u003e Group Allowed Price Setting",
+                      "position":  3,
+                      "commandId":  11183,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "Mana\u0026ge \u003e Group Wise Cash Account Setting",
+                      "position":  4,
+                      "commandId":  11185,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "Mana\u0026ge \u003e Session Monitor\tCtrl+Alt+M",
+                      "position":  5,
+                      "commandId":  11190,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "Mana\u0026ge \u003e Cashier Management",
+                      "position":  6,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "Mana\u0026ge \u003e Cashier Management \u003e Cashier Job",
+                      "position":  0,
+                      "commandId":  11196,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "Mana\u0026ge \u003e Cashier Management \u003e Cashier Activity Window",
+                      "position":  1,
+                      "commandId":  11197,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "Mana\u0026ge \u003e Job Schedule",
+                      "position":  7,
+                      "commandId":  11215,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "Mana\u0026ge \u003e Group Wise Supplier Category",
+                      "position":  8,
+                      "commandId":  11216,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Window",
+                      "position":  7,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Window \u003e \u0026Arrange Icons",
+                      "position":  0,
+                      "commandId":  11259,
+                      "hasSubmenu":  false
+                  },
+                  {
+                      "path":  "\u0026Help",
+                      "position":  8,
+                      "commandId":  4294967295,
+                      "hasSubmenu":  true
+                  },
+                  {
+                      "path":  "\u0026Help \u003e About",
+                      "position":  0,
+                      "commandId":  11261,
+                      "hasSubmenu":  false
+                  }
+              ]
+}

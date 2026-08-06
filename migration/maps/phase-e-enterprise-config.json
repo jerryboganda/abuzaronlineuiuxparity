@@ -1,0 +1,196 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "tables": [
+    {
+      "source": { "schema": "dbo", "table": "CompanyHeader" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "HeaderNo",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "HeaderNo", "code": "HeaderNo", "name": "Company" },
+      "payloadColumns": {
+        "Company": "Company",
+        "HeaderNo": "HeaderNo",
+        "CreationDateTime": "CreationDateTime",
+        "LastUpdation": "LastUpdation",
+        "Remarks": "Remarks",
+        "ClientName": "ClientName",
+        "Address1": "Address1",
+        "Address2": "Address2",
+        "Phone": "Phone",
+        "Fax": "Fax",
+        "DrugLicenceNo": "DrugLicenceNo",
+        "OwnerName": "OwnerName",
+        "Email": "Email"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "company_header"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "ConfigSetting" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "Name",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "Name", "code": "Name", "name": "Name" },
+      "payloadColumns": { "Name": "Name", "VALUE": "VALUE" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "config_setting"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Preferences" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "UserId",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "UserId", "code": "UserId", "name": "UserId" },
+      "payloadColumns": {
+        "UserId": "UserId",
+        "PageSize": "PageSize",
+        "HeaderNo": "HeaderNo",
+        "Batch": "Batch",
+        "Expiry": "Expiry",
+        "DefaultGcode": "DefaultGcode",
+        "SaleGodownOption": "SaleGodownOption",
+        "PurchaseGodownOption": "PurchaseGodownOption",
+        "ItemDefaultCategory": "ItemDefaultCategory",
+        "ItemDefaultManfcode": "ItemDefaultManfcode",
+        "ItemDefaultPackCode": "ItemDefaultPackCode",
+        "ItemDefaultAssociatedGCode": "ItemDefaultAssociatedGCode",
+        "ItemGSTPerc": "ItemGSTPerc",
+        "SaleCheckExpiry": "SaleCheckExpiry",
+        "saleexpirydays": "saleexpirydays",
+        "DefaultBatch": "DefaultBatch",
+        "DefaultExpiry": "DefaultExpiry",
+        "AppName": "AppName",
+        "MultiGodown": "MultiGodown"
+      },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "preference"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "Area" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "AreaCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "AreaCode", "code": "AreaCode", "name": "Name" },
+      "payloadColumns": { "AreaCode": "AreaCode", "Name": "Name", "Manager": "Manager", "RegionCode": "RegionCode", "ShortName": "ShortName", "Tag": "Tag" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "area"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "ItemCategory" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "ICatCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "ICatCode", "code": "ICatCode", "name": "Name" },
+      "payloadColumns": { "ICatCode": "ICatCode", "Name": "Name", "NumericalFactor": "NumericalFactor", "SaleExpiryDays": "SaleExpiryDays", "PurMonthlyCounter": "PurMonthlyCounter", "PurDailyCounter": "PurDailyCounter", "CategorySegmentCode": "CategorySegmentCode" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "item_category"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "CustomerCategory" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "CustCatCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "CustCatCode", "code": "CustCatCode", "name": "Name" },
+      "payloadColumns": { "CustCatCode": "CustCatCode", "Name": "Name", "AllowInCashSale": "AllowInCashSale", "AllowInCreditSale": "AllowInCreditSale", "CustomerSegmentCode": "CustomerSegmentCode" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "customer_category"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "ItemGroup" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "ItemGroupCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "ItemGroupCode", "code": "ItemGroupCode", "name": "Name" },
+      "payloadColumns": { "ItemGroupCode": "ItemGroupCode", "Name": "Name", "Remarks": "Remarks" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "item_group"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "CustomerGroup" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "CustomerGroupCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "CustomerGroupCode", "code": "CustomerGroupCode", "name": "Name" },
+      "payloadColumns": { "CustomerGroupCode": "CustomerGroupCode", "Name": "Name", "Remarks": "Remarks", "UserCode": "UserCode" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "customer_group"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "GodownGroup" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "GodownGroupCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "GodownGroupCode", "code": "GodownGroupCode", "name": "Name" },
+      "payloadColumns": { "GodownGroupCode": "GodownGroupCode", "Name": "Name", "Description": "Description" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "godown_group"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "SupplierCategory" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "SuppCatCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "SuppCatCode", "code": "SuppCatCode", "name": "Name" },
+      "payloadColumns": { "SuppCatCode": "SuppCatCode", "Name": "Name" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "supplier_category"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    },
+    {
+      "source": { "schema": "dbo", "table": "ManufacturerCategory" },
+      "target": { "schema": "public", "table": "master_records" },
+      "sourceId": "ManfCatCode",
+      "targetId": "id",
+      "targetIdGenerated": true,
+      "columns": { "legacy_id": "ManfCatCode", "code": "ManfCatCode", "name": "Name" },
+      "payloadColumns": { "ManfCatCode": "ManfCatCode", "Name": "Name" },
+      "inject": {
+        "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        "kind": "manufacturer_category"
+      },
+      "conflictColumns": ["tenant_id", "kind", "legacy_id"]
+    }
+  ]
+}

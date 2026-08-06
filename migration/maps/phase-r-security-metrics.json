@@ -1,0 +1,82 @@
+{
+  "metrics": [
+    {
+      "name": "groups_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Groups",
+      "targetQuery": "SELECT COUNT(*) FROM public.legacy_groups WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'",
+      "tolerance": 0
+    },
+    {
+      "name": "users_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Users",
+      "targetQuery": "SELECT COUNT(*) FROM public.users WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_user_id IS NOT NULL",
+      "tolerance": 0
+    },
+    {
+      "name": "user_group_memberships_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.UserGroups",
+      "targetQuery": "SELECT COUNT(*) FROM public.user_memberships WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_user_code IS NOT NULL",
+      "tolerance": 0
+    },
+    {
+      "name": "group_rights_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.GroupRights",
+      "targetQuery": "SELECT COUNT(*) FROM public.group_rights WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_group_code IS NOT NULL",
+      "tolerance": 0
+    },
+    {
+      "name": "group_rights_allowed_count",
+      "sourceQuery": "SELECT COALESCE(SUM(CASE WHEN Status <> 0 THEN 1 ELSE 0 END), 0) FROM dbo.GroupRights",
+      "targetQuery": "SELECT COALESCE(SUM(CASE WHEN allowed THEN 1 ELSE 0 END), 0) FROM public.group_rights WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_group_code IS NOT NULL",
+      "tolerance": 0
+    },
+    {
+      "name": "group_allowed_godown_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.GroupAllowedGodown",
+      "targetQuery": "SELECT COUNT(*) FROM public.group_allowed_scopes WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_table = 'GroupAllowedGodown'",
+      "tolerance": 0
+    },
+    {
+      "name": "group_allowed_groups_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.GroupAllowedGroups",
+      "targetQuery": "SELECT COUNT(*) FROM public.group_allowed_scopes WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_table = 'GroupAllowedGroups'",
+      "tolerance": 0
+    },
+    {
+      "name": "group_allowed_header_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.GroupAllowedHeader",
+      "targetQuery": "SELECT COUNT(*) FROM public.group_allowed_scopes WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_table = 'GroupAllowedHeader'",
+      "tolerance": 0
+    },
+    {
+      "name": "group_allowed_price_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.GroupAllowedPrice",
+      "targetQuery": "SELECT COUNT(*) FROM public.group_allowed_scopes WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_table = 'GroupAllowedPrice'",
+      "tolerance": 0
+    },
+    {
+      "name": "group_allowed_recipient_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.GroupAllowedRecipient",
+      "targetQuery": "SELECT COUNT(*) FROM public.group_allowed_scopes WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_table = 'GroupAllowedRecipient'",
+      "tolerance": 0
+    },
+    {
+      "name": "group_allowed_service_category_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.GroupAllowedServiceCategory",
+      "targetQuery": "SELECT COUNT(*) FROM public.group_allowed_scopes WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_table = 'GroupAllowedServiceCategory'",
+      "tolerance": 0
+    },
+    {
+      "name": "group_allowed_startup_right_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.GroupAllowedStartupRight",
+      "targetQuery": "SELECT COUNT(*) FROM public.group_allowed_scopes WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_table = 'GroupAllowedStartupRight'",
+      "tolerance": 0
+    },
+    {
+      "name": "group_cash_account_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.GroupCashAccount",
+      "targetQuery": "SELECT COUNT(*) FROM public.group_allowed_scopes WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_table = 'GroupCashAccount'",
+      "tolerance": 0
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "metrics": [
+    {
+      "name": "config_setting_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.ConfigSetting",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'config_setting'",
+      "tolerance": 0
+    },
+    {
+      "name": "preference_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Preferences",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'preference'",
+      "tolerance": 0
+    },
+    {
+      "name": "area_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Area",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'area'",
+      "tolerance": 0
+    },
+    {
+      "name": "item_category_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.ItemCategory",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'item_category'",
+      "tolerance": 0
+    },
+    {
+      "name": "customer_category_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.CustomerCategory",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'customer_category'",
+      "tolerance": 0
+    },
+    {
+      "name": "item_group_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.ItemGroup",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'item_group'",
+      "tolerance": 0
+    },
+    {
+      "name": "customer_group_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.CustomerGroup",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'customer_group'",
+      "tolerance": 0
+    },
+    {
+      "name": "godown_group_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.GodownGroup",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'godown_group'",
+      "tolerance": 0
+    },
+    {
+      "name": "supplier_category_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.SupplierCategory",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'supplier_category'",
+      "tolerance": 0
+    },
+    {
+      "name": "manufacturer_category_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.ManufacturerCategory",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'manufacturer_category'",
+      "tolerance": 0
+    },
+    {
+      "name": "item_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Item",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'item'",
+      "tolerance": 0
+    },
+    {
+      "name": "customer_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Customer",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'customer'",
+      "tolerance": 0
+    },
+    {
+      "name": "supplier_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Supplier",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'supplier'",
+      "tolerance": 0
+    },
+    {
+      "name": "manufacturer_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Manufacturer",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'manufacturer'",
+      "tolerance": 0
+    },
+    {
+      "name": "godown_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Godown",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'godown'",
+      "tolerance": 0
+    },
+    {
+      "name": "price_policy_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.PricePolicy",
+      "targetQuery": "SELECT COUNT(*) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'price_policy'",
+      "tolerance": 0
+    },
+    {
+      "name": "item_supplier_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.ItemSuppliers",
+      "targetQuery": "SELECT COUNT(*) FROM public.item_supplier_links WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'",
+      "tolerance": 0
+    },
+    {
+      "name": "item_sale_price_total",
+      "sourceQuery": "SELECT COALESCE(SUM(SalePrice), 0) FROM dbo.Item",
+      "targetQuery": "SELECT COALESCE(SUM((payload->>'SalePrice')::numeric), 0) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'item'",
+      "tolerance": 0.01
+    },
+    {
+      "name": "item_purchase_price_total",
+      "sourceQuery": "SELECT COALESCE(SUM(PurPrice), 0) FROM dbo.Item",
+      "targetQuery": "SELECT COALESCE(SUM((payload->>'PurPrice')::numeric), 0) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'item'",
+      "tolerance": 0.01
+    },
+    {
+      "name": "item_sales_tax_total",
+      "sourceQuery": "SELECT COALESCE(SUM(SalesTax), 0) FROM dbo.Item",
+      "targetQuery": "SELECT COALESCE(SUM((payload->>'SalesTax')::numeric), 0) FROM public.master_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND kind = 'item'",
+      "tolerance": 0.01
+    }
+  ]
+}

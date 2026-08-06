@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-08-06",
+  "sourceDatabase": "AbuzarLegacyReference",
+  "targetTenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "importReport": "phase-r-security-import.json",
+  "reconciliationReport": "phase-r-security-reconciliation.json",
+  "sourceSchema": "phase-r-security-source-schema.json",
+  "groupCashAccountInspection": "phase-r-group-cash-account-inspection.json",
+  "mappedSourceTables": [
+    "Groups",
+    "Users",
+    "UserGroups",
+    "GroupRights",
+    "GroupAllowedGodown",
+    "GroupAllowedGroups",
+    "GroupAllowedHeader",
+    "GroupAllowedPrice",
+    "GroupAllowedRecipient",
+    "GroupAllowedServiceCategory",
+    "GroupAllowedStartupRight",
+    "GroupCashAccount"
+  ],
+  "actualImportedRows": {
+    "legacy_groups": 4,
+    "users": 9,
+    "user_memberships": 9,
+    "group_rights": 726,
+    "group_allowed_scopes": 173
+  },
+  "allowScopeRowsBySource": {
+    "GroupAllowedGodown": 33,
+    "GroupAllowedGroups": 0,
+    "GroupAllowedHeader": 35,
+    "GroupAllowedPrice": 54,
+    "GroupAllowedRecipient": 8,
+    "GroupAllowedServiceCategory": 0,
+    "GroupAllowedStartupRight": 0,
+    "GroupCashAccount": 43
+  },
+  "groupRightsState": {
+    "sourceStatusOne": 726,
+    "targetAllowed": 726,
+    "targetDenied": 0
+  },
+  "remainingUnmappedRights": {
+    "UserRights": 0,
+    "GroupCashAccount": 0,
+    "GroupPurExpTemplate": 0
+  },
+  "supersededExceptionsResolved": 44,
+  "currentRowExceptions": 0,
+  "canonicalSourceRefused": true
+}

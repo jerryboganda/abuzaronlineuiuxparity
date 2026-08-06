@@ -1,0 +1,33 @@
+{
+  "capturedAt": "2026-08-05T11:00:00+05:00",
+  "status": "reference-accessible-not-100-percent-complete",
+  "canonicalPath": "D:\\ABUZAR\\V2_AbuzarSoftware",
+  "sandboxApplicationPath": "D:\\ABUZAR\\LegacyReferenceSandbox\\Application",
+  "sandboxDatabase": "AbuzarLegacyReference",
+  "mainShell": {
+    "verified": true,
+    "menuTopLevelCount": 9,
+    "menuItemCount": 275,
+    "menuCatalogue": "parity/catalog/legacy-menu-tree-2026-08-05.json",
+    "capture": "parity/captures/legacy/sandbox-main-window-2026-08-05-rerun.png"
+  },
+  "states": [
+    {"name": "startup backup device", "status": "captured", "capture": "parity/captures/legacy/sandbox-backup-device-2026-08-05-rerun.png"},
+    {"name": "startup backup information", "status": "captured", "capture": "parity/captures/legacy/sandbox-backup-information-2026-08-05-rerun.png"},
+    {"name": "startup backup database", "status": "captured", "capture": "parity/captures/legacy/sandbox-backup-database-2026-08-05-rerun.png"},
+    {"name": "change user confirmation", "status": "captured", "capture": "parity/captures/legacy/sandbox-change-user-confirmation-2026-08-05.png"},
+    {"name": "preferences all tabs", "status": "captured", "captureGlob": "parity/captures/legacy/sandbox-preferences-*-2026-08-05.png"},
+    {"name": "customer supplier item user forms", "status": "captured", "captureGlob": "parity/captures/legacy/sandbox-{customer,supplier,item,user}-*-2026-08-05.png"},
+    {"name": "cash sale and pack purchase", "status": "captured", "captureGlob": "parity/captures/legacy/sandbox-{cash-sale,pack-purchase}-2026-08-05.png"},
+    {"name": "daily sales report flow", "status": "captured", "captureGlob": "parity/captures/legacy/sandbox-report-*-2026-08-05.png"},
+    {"name": "database integrity monitor", "status": "captured-with-defect", "captureGlob": "parity/captures/legacy/sandbox-database-integrity-*-2026-08-05.png"}
+  ],
+  "defects": [
+    {"id": "LEGACY-STARTUP-XPCMD", "status": "sandbox-harness-only", "evidence": "SP_WayToMoon xp_cmdshell probe for missing systemab.dll/tapi161.dll"},
+    {"id": "LEGACY-MSDB-AGENT-COLUMNS", "status": "open", "evidence": "sandbox-preferences-job-error-2026-08-05.png"},
+    {"id": "LEGACY-PACK-PURCHASE-R0002", "status": "open", "evidence": "sandbox-pack-purchase-r0002-error-2026-08-05.png"},
+    {"id": "LEGACY-CHECKDB-R0002", "status": "open", "evidence": "sandbox-database-integrity-close-r0002-2026-08-05.png"}
+  ],
+  "canonicalModified": false,
+  "productionParityApproved": false
+}
