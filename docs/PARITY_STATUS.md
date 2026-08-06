@@ -1,5 +1,13 @@
 # Parity status - 2026-08-06
 
+## Current acceptance handoff - 2026-08-07
+
+The fresh local verification and the remaining external/incomplete-data gates
+are consolidated in [`ACCEPTANCE_EVIDENCE_2026-08-07.md`](ACCEPTANCE_EVIDENCE_2026-08-07.md).
+The implementation/test gate is green; the document deliberately does not
+claim complete canonical migration, exact every-report output, full raster
+approval, physical hardware, full-volume performance, or cutover acceptance.
+
 ## Implemented in this wave
 
 - The browser legacy shell now builds its menu tree from `parity/catalog/legacy-menu-tree-2026-08-05.json` (275 captured entries, 9 top-level menus), including recursive submenus, command IDs, keyboard shortcuts, and deterministic route metadata.
