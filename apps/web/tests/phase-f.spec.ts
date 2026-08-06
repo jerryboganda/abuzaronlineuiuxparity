@@ -75,6 +75,7 @@ test('item supplier grid saves and reloads through the canonical API', async ({ 
 
 test('customer and supplier forms use canonical CRUD endpoints', async ({ page }) => {
   page.on('request', (request) => { if (request.url().includes('/v1/master/')) console.log(`CRUD REQUEST ${request.method()} ${request.url()}`); });
+  page.on('console', (message) => console.log(`BROWSER ${message.text()}`));
   for (const kind of ['customer', 'supplier']) {
     const code = kind === 'customer' ? 'C-NEW' : 'S-NEW';
     await page.route(`**/v1/master/${kind}*`, async (route) => {
@@ -89,7 +90,7 @@ test('customer and supplier forms use canonical CRUD endpoints', async ({ page }
     await page.getByRole('textbox', { name: 'Name:', exact: true }).fill(`${kind} record`);
     const saveButton = page.locator('form.legacy-master-form').getByRole('button', { name: 'Save' });
     await expect(saveButton).toBeEnabled();
-    await page.getByLabel('Save').click({ force: true });
+    await saveButton.click({ force: true });
     await expect(page.locator('.legacy-transaction-footer')).toContainText('created', { timeout: 7000 });
   }
 });

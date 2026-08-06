@@ -200,6 +200,15 @@ func TestTaxConfigurationResolvesProfilesEffectiveDatesAndPostedGL(t *testing.T)
 	if draftTax != "2.9000" {
 		t.Fatalf("draft tax = %s, pricing=%s", draftTax, string(draftResponse.Document.Pricing))
 	}
+	var linePricing []byte
+	var lineGST string
+	if err := database.QueryRowContext(ctx, `SELECT pricing, gst_rate::text
+		FROM business_document_lines WHERE document_id = $1::uuid`, draftResponse.Document.ID).Scan(&linePricing, &lineGST); err != nil {
+		t.Fatalf("read line tax snapshot: %v", err)
+	}
+	if lineGST != "18.0000" || !strings.Contains(string(linePricing), `"kind": "gst"`) {
+		t.Fatalf("line tax snapshot = gst %s pricing %s", lineGST, string(linePricing))
+	}
 	post := command
 	post.Action = "post"
 	post.CommandID = "00000000-0000-0000-0000-000000000031"
@@ -223,6 +232,19 @@ func TestTaxConfigurationResolvesProfilesEffectiveDatesAndPostedGL(t *testing.T)
 	_, replayed, _ := executeDocumentHandler(t, server, operator, post)
 	if !replayed.Duplicate {
 		t.Fatal("tax post replay was not idempotent")
+	}
+	supplierTx, err := server.beginScopedTx(ctx, operator)
+	if err != nil {
+		t.Fatalf("begin supplier tax read: %v", err)
+	}
+	supplierAssignments, err := queryTaxAssignments(ctx, supplierTx, operator, "party", supplierID, "")
+	if err != nil {
+		_ = supplierTx.Rollback()
+		t.Fatalf("supplier tax read: %v", err)
+	}
+	_ = supplierTx.Rollback()
+	if len(supplierAssignments) != 1 || supplierAssignments[0].TaxRate.TaxKind != "gst" {
+		t.Fatalf("supplier tax assignments = %+v", supplierAssignments)
 	}
 	otherOperator := &sessionContext{UserID: other.operatorID, TenantID: other.tenantID, BranchID: other.branchID, CounterID: other.counterID, Roles: []string{"tenant_admin"}}
 	otherTx, err := server.beginScopedTx(ctx, otherOperator)
