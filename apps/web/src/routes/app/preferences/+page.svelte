@@ -1,10 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { AbuzarApi, ApiError } from '$lib/api';
+  import LegacyMenuBar from '$lib/LegacyMenuBar.svelte';
 
   type PreferenceRow = { caption: string; value: string; section?: boolean };
   type PreferenceMeta = {
     caption: string;
+    fieldKey?: string;
     type: string;
     default: string;
     value: string;
@@ -158,6 +160,17 @@
     return `preference-value-${tab.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${index}`;
   }
 
+  function preferenceKeyPart(value: string): string {
+    return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  function fieldKeyFor(row: PreferenceRow, index: number): string {
+    const occurrence = activeRows.slice(0, index + 1).filter((candidate) => !candidate.section && candidate.caption === row.caption).length;
+    const total = activeRows.filter((candidate) => !candidate.section && candidate.caption === row.caption).length;
+    const base = `${preferenceKeyPart(activeTab)}.${preferenceKeyPart(row.caption)}`;
+    return total > 1 ? `${base}.${occurrence}` : base;
+  }
+
   function selectTab(tab: string) {
     activeTab = tab;
     activeRows = preferencesByTab[tab] ?? [];
@@ -179,8 +192,10 @@
       const rows = preferencesByTab[category] ?? [];
       metadata = result.registry ?? [];
       divergences = result.divergences ?? [];
-      values = rows.map((row) => {
-        const stored = result.items.find((preference) => preference.caption === row.caption);
+      values = rows.map((row, index) => {
+        const fieldKey = fieldKeyFor(row, index);
+        const stored = result.items.find((preference) => preference.fieldKey === fieldKey)
+          ?? result.items.find((preference) => !preference.fieldKey && preference.caption === row.caption);
         if (stored) return stored.value;
         return row.value;
       });
@@ -193,14 +208,16 @@
     }
   }
 
-  function metaFor(row: PreferenceRow): PreferenceMeta | undefined {
-    return metadata.find((field) => field.caption === row.caption);
+  function metaFor(row: PreferenceRow, index: number): PreferenceMeta | undefined {
+    const fieldKey = fieldKeyFor(row, index);
+    return metadata.find((field) => field.fieldKey === fieldKey)
+      ?? metadata.find((field) => !field.fieldKey && field.caption === row.caption);
   }
 
   function validateValues(): string {
     for (const [index, row] of activeRows.entries()) {
       if (row.section) continue;
-      const meta = metaFor(row);
+      const meta = metaFor(row, index);
       const value = values[index] ?? '';
       if (!meta) continue;
       if (meta.type === 'boolean' && value !== 'Yes' && value !== 'No') return `${row.caption} must be Yes or No.`;
@@ -224,7 +241,7 @@
     message = '';
     error = '';
     try {
-      await api.savePreferences(activeTab, activeRows.flatMap((row, index) => row.section ? [] : [{ caption: row.caption, value: values[index] ?? '', position: index }]));
+      await api.savePreferences(activeTab, activeRows.flatMap((row, index) => row.section ? [] : [{ caption: row.caption, fieldKey: fieldKeyFor(row, index), value: values[index] ?? '', position: index }]));
       originalValues = [...values];
       message = `${activeTab} preferences saved for the current branch.`;
     } catch (cause) {
@@ -259,6 +276,7 @@
 <svelte:head><title>WASEELA - ABUZAR V3 - Preferences</title></svelte:head>
 <main class={`legacy-preferences-page ${baselineClass}`} onpointerdown={enableInteractive} onfocusin={enableInteractive}><section class="legacy-preferences-window" aria-label="Preferences" aria-busy={loading}>
   <header class="legacy-preferences-titlebar"><a href="/app/legacy" aria-label="Back to main window">&larr;</a><h1>Preferences</h1></header>
+  <LegacyMenuBar context="base" windowId="preferences" windowLabel="Preferences" windowHref="/app/preferences" />
   <div class="legacy-preferences-tabs" role="tablist" aria-label="Preference categories">{#each tabs as tab}<button type="button" role="tab" class:active={activeTab === tab} aria-selected={activeTab === tab} onclick={() => selectTab(tab)}>{tab}</button>{/each}</div>
   <div class="legacy-preferences-body">
     <span class="sr-only" data-preference-registry-count={metadata.length}></span>
@@ -280,7 +298,7 @@
       <table><thead><tr><th scope="col">Sr. #</th><th scope="col">Preference Caption</th><th scope="col">Preference Value</th><th scope="col"><span class="sr-only">Edit</span></th></tr></thead><tbody>
         {#each activeRows as row, index}
           {#if row.section}<tr class="section"><td colspan="4">{row.caption}</td></tr>{:else}
-            {@const meta = metaFor(row)}
+            {@const meta = metaFor(row, index)}
             <tr>
               <td>{displayNumber(index)}</td><td id={`${inputId(activeTab, index)}-caption`}>{row.caption}</td>
               <td>

@@ -2,6 +2,7 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { AbuzarApi } from '$lib/api';
+  import LegacyMenuBar from '$lib/LegacyMenuBar.svelte';
 
   const labels: Record<string, string> = {
     purchases: 'Purchases',
@@ -95,6 +96,7 @@
       <h1>{title}</h1>
       <span class="module-context">WASEELA · ABUZAR</span>
     </header>
+    <LegacyMenuBar context="base" windowId={'module-' + safeSlug} windowLabel={title} windowHref={'/app/module/' + safeSlug} />
     <div class="module-toolbar" role="toolbar" aria-label="Module actions">
       <button type="button" onclick={save} disabled={busy}>Save</button>
       <button type="button" onclick={() => { reference = ''; notes = ''; message = 'Ready for a new record.'; }}>New</button>

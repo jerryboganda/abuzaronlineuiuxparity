@@ -15,19 +15,31 @@ func TestReviewedPreferenceRegistryCoversCapturedTabsAndFields(t *testing.T) {
 	}
 	seenCategories := make(map[string]bool)
 	seenKeys := make(map[string]bool)
+	seenStorageKeys := make(map[string]bool)
 	for _, definition := range registry {
 		seenCategories[definition.Category] = true
-		key := definition.Category + "\x00" + definition.Caption
+		key := definition.Category + "\x00" + definition.FieldKey
 		if seenKeys[key] {
-			t.Fatalf("duplicate preference registry key %q", key)
+			t.Fatalf("duplicate preference field_key %q", key)
 		}
 		seenKeys[key] = true
-		if definition.Caption == "" || definition.Behavior == "" || definition.RuntimeStatus == "" {
+		storageKey := definition.Category + "\x00" + definition.StorageCaption
+		if seenStorageKeys[storageKey] {
+			t.Fatalf("duplicate preference storage key %q", storageKey)
+		}
+		seenStorageKeys[storageKey] = true
+		if definition.Caption == "" || definition.FieldKey == "" || definition.StorageCaption == "" || definition.Behavior == "" || definition.RuntimeStatus == "" {
 			t.Fatalf("incomplete preference definition: %+v", definition)
 		}
 	}
 	if len(seenCategories) != 17 {
 		t.Fatalf("registry categories = %d, want 17", len(seenCategories))
+	}
+	schedule := preferenceDefinitionMap("Schedule")
+	first, firstOK := schedule["schedule.activate.1"]
+	second, secondOK := schedule["schedule.activate.2"]
+	if !firstOK || !secondOK || first.FieldKey == second.FieldKey {
+		t.Fatal("repeated Schedule Activate fields collapsed to one field key")
 	}
 }
 
@@ -59,6 +71,17 @@ func TestSchedulePreferenceIsExplicitlyNotConfigured(t *testing.T) {
 	divergences := preferenceDivergences()
 	if len(divergences) == 0 || divergences[0].Status != "not_configured" {
 		t.Fatalf("schedule divergence contract = %+v", divergences)
+	}
+}
+
+func TestPreferenceRuntimeStatusOnlyClaimsProvenBehavior(t *testing.T) {
+	for _, definition := range reviewedPreferenceRegistry() {
+		if definition.RuntimeStatus != "wired" {
+			continue
+		}
+		if definition.Category != "Report" || definition.Caption != "Default Header On Report:" {
+			t.Fatalf("unreviewed preference marked wired: %s/%s", definition.Category, definition.Caption)
+		}
 	}
 }
 

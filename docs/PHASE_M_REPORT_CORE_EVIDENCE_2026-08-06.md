@@ -88,3 +88,29 @@ renaming legacy captions:
 The catalog extraction returns 153 non-submenu records because two Listing
 records have blank legacy captions; this discrepancy is deliberately left open
 for catalog reconciliation rather than presented as completed report work.
+
+## Final registry consistency follow-up — 2026-08-07
+
+The later N/O/P/Q waves completed the reconciliation: 68 + 24 + 27 + 32 =
+151 distinct non-blank catalog leaves resolve to explicit definitions. The four
+direct Phase M API kinds and financial aliases are not additional catalog
+leaves; two blank Listing records remain outside the authoritative count.
+
+## Daily Sale Detail column-contract follow-up - 2026-08-07
+
+The dedicated Daily Sale Detail projection now exposes the captured 11-column
+detail contract and expands compatibility payload rows. It prefers retained
+historical `Saledetail` values for price, discount, and tax fields, and uses
+typed stock allocations for batch/expiry when present. This improves the
+retrieval/grid contract without claiming the ten format-specific PowerBuilder
+calculations or golden print output; evidence is recorded in
+[`PHASE_N_DAILY_SALES_DETAIL_EVIDENCE_2026-08-07.md`](PHASE_N_DAILY_SALES_DETAIL_EVIDENCE_2026-08-07.md).
+
+## Format and preview follow-up - 2026-08-07
+
+The report response now validates and returns the selected configured format,
+and the browser preview has a legacy-style toolbar, ruler, letterhead metadata,
+zoom, and paging over loaded rows. The focused and full-suite results are in
+[`PHASE_M_REPORT_PREVIEW_EVIDENCE_2026-08-07.md`](PHASE_M_REPORT_PREVIEW_EVIDENCE_2026-08-07.md).
+Exact PowerBuilder format calculations and approved golden print output remain
+acceptance work.

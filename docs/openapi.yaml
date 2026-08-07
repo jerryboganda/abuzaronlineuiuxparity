@@ -627,6 +627,26 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
+  /v1/documents/{id}:
+    get:
+      operationId: getBusinessDocument
+      description: Read one canonical business document, including its persisted lines, pricing snapshot, stock allocations, and finance summary, within the authenticated tenant and branch.
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Canonical business document detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BusinessDocument' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /v1/shifts/open:
     post:
       operationId: openShift
@@ -748,6 +768,25 @@ paths:
         '400': { $ref: '#/components/responses/Conflict' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { description: Conflict not found }
+  /v1/finance/ledger:
+    get:
+      operationId: financeLedger
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: partyId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Party ledger entries including source-backed historical payment allocations
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FinanceLedgerResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
 components:
   securitySchemes:
     sessionCookie:
@@ -1104,10 +1143,12 @@ components:
       description: |
         Lifecycle command for a sale or purchase document. Save creates or
         revises a draft; post transitions an existing draft to posted;
-        save-and-post creates and posts atomically; void is supported for
-        drafts and stock/GL-neutral purchase orders. Posted receipts and
-        source-bound or open sale returns require their stock and finance
-        projections to succeed. Open returns intentionally omit a source invoice.
+        save-and-post creates and posts atomically. Void is supported for
+        drafts and stock/GL-neutral purchase orders, and for canonical posted
+        sales, purchases, and returns when completed projections exist; those
+        posted voids append compensating stock/GL/party-ledger projections in
+        the same transaction and reject posted dependents. Open returns
+        intentionally omit a source invoice.
       required: [commandId, kind, action, idempotencyKey, occurredAt]
       properties:
         commandId: { type: string, format: uuid }
@@ -1141,12 +1182,20 @@ components:
         godownId: { type: string, format: uuid }
         reference: { type: string }
         remarks: { type: string }
+        creditDays:
+          type: string
+          description: Whole supplier credit term in days for purchase documents; bounded by the server to -36500 through 36500.
+        dueDate:
+          type: string
+          format: date
+          description: SaleLedger-compatible due date for credit-sale documents; retained for receivables aging.
         voidReason: { type: string }
         priceLevel: { type: integer, minimum: 1, maximum: 10 }
         flatDiscountAmount: { type: string }
         miscAmount: { type: string }
         documentDiscountPercent: { type: string }
         pricing: { $ref: '#/components/schemas/DocumentPricing' }
+        payment: { $ref: '#/components/schemas/DocumentPayment' }
         lines:
           type: array
           minItems: 1
@@ -1160,7 +1209,7 @@ components:
         sourceLineId:
           type: string
           format: uuid
-          description: Required on every posted closed cash/credit sale-return line and must belong to sourceDocumentId.
+          description: Required on every posted closed cash/credit sale-return and purchase-return line and must belong to sourceDocumentId.
         quantity: { type: string }
         unitPrice: { type: string }
         discountPercent: { type: string }
@@ -1198,6 +1247,15 @@ components:
         flatDiscountAmount: { type: string }
         miscAmount: { type: string }
         taxes: { $ref: '#/components/schemas/DocumentTaxInputs' }
+    DocumentPayment:
+      type: object
+      required: [mode, received, tendered, change]
+      properties:
+        mode: { type: string, enum: [cash] }
+        received: { type: string }
+        tendered: { type: string }
+        change: { type: string }
+        accountCode: { type: string }
     DocumentTaxInputs:
       type: object
       properties:
@@ -1280,9 +1338,12 @@ components:
         godownId: { type: string, format: uuid }
         reference: { type: string }
         remarks: { type: string }
+        creditDays: { type: string, description: Retained supplier credit term in days for purchase aging. }
+        dueDate: { type: string, format: date, description: Retained SaleLedger due date for credit-sale receivables aging. }
         voidReason: { type: string }
         lines: { type: array, items: { $ref: '#/components/schemas/DocumentLine' } }
         totals: { $ref: '#/components/schemas/DocumentTotals' }
+        payment: { $ref: '#/components/schemas/DocumentPayment' }
         pricing: { type: object, additionalProperties: true }
         finance: { $ref: '#/components/schemas/DocumentFinanceSummary' }
         createdAt: { type: string, format: date-time }
@@ -1290,7 +1351,7 @@ components:
         version: { type: integer, minimum: 1 }
     DocumentLine:
       type: object
-      required: [id, lineNumber, itemId, itemCode, itemName, quantity, price, lineTotal, stock]
+      required: [id, lineNumber, itemId, itemCode, itemName, quantity, price, tax, lineTotal, stock]
       properties:
         id: { type: string, format: uuid }
         lineNumber: { type: integer }
@@ -1300,6 +1361,7 @@ components:
         itemName: { type: string }
         quantity: { type: string }
         price: { $ref: '#/components/schemas/DocumentPrice' }
+        tax: { $ref: '#/components/schemas/DocumentTaxSummary' }
         itemLegacyId: { type: string }
         batchNumber: { type: string }
         expiryDate: { type: string, format: date }
@@ -1313,6 +1375,21 @@ components:
           properties:
             direction: { type: string, enum: [in, out, none] }
             quantity: { type: string }
+    DocumentTaxSummary:
+      type: object
+      required: [taxableAmount, amount, lines]
+      properties:
+        taxableAmount: { type: string }
+        amount: { type: string }
+        lines: { type: array, items: { $ref: '#/components/schemas/DocumentTax' } }
+    DocumentTax:
+      type: object
+      required: [rate, taxableAmount, amount]
+      properties:
+        kind: { type: string }
+        rate: { type: string }
+        taxableAmount: { type: string }
+        amount: { type: string }
     DocumentPrice:
       type: object
       required: [unitPrice, grossAmount, discountPercent, discountAmount, netAmount]
@@ -1343,6 +1420,25 @@ components:
         balanced: { type: boolean }
         partyLedgerEntryId: { type: string, format: uuid }
         partyBalanceAfter: { type: string }
+    FinanceLedgerEntry:
+      type: object
+      required: [id, documentId, debit, credit, occurredAt, description]
+      properties:
+        id: { type: string }
+        documentId: { type: string }
+        debit: { type: string }
+        credit: { type: string }
+        balanceAfter: { type: string }
+        occurredAt: { type: string, format: date-time }
+        description: { type: string }
+        sourceType: { type: string, enum: [party-ledger, payment-allocation, receivable-adjustment, return-allocation] }
+    FinanceLedgerResponse:
+      type: object
+      required: [partyId, balance, entries]
+      properties:
+        partyId: { type: string, format: uuid }
+        balance: { type: string }
+        entries: { type: array, items: { $ref: '#/components/schemas/FinanceLedgerEntry' } }
     DocumentTotals:
       type: object
       required: [subtotal, discountAmount, miscAmount, taxAmount, totalAmount, paidAmount, balanceAmount]

@@ -1,0 +1,37 @@
+[
+  {
+    "name": "sale slip printer",
+    "path": "/v1/hardware/print/sale-slip",
+    "body": {
+      "invoiceNumber": "ACCEPTANCE-NO-DEVICE",
+      "total": "1.00"
+    },
+    "forbiddenFields": ["printed", "bytes"]
+  },
+  {
+    "name": "purchase label printer",
+    "path": "/v1/hardware/print/purchase-labels",
+    "body": {
+      "labels": [
+        {
+          "itemName": "Acceptance fixture item"
+        }
+      ]
+    },
+    "forbiddenFields": ["printed", "bytes"]
+  },
+  {
+    "name": "barcode lookup",
+    "path": "/v1/hardware/barcode/lookup",
+    "body": {
+      "raw": "ACCEPTANCE-NO-DEVICE"
+    },
+    "forbiddenFields": ["itemId", "name"]
+  },
+  {
+    "name": "cash drawer",
+    "path": "/v1/hardware/cash-drawer/kick",
+    "body": {},
+    "forbiddenFields": ["kicked"]
+  }
+]

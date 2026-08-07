@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/abuzar/abuzar-next/services/edge/internal/hardware"
 	"github.com/abuzar/abuzar-next/services/edge/internal/store"
 )
 
@@ -108,6 +109,25 @@ func TestHardwareEndpointsDegradeWithoutConfiguredAdapters(t *testing.T) {
 		t.Fatalf("normalize response = %d %s", normalized.Code, normalized.Body.String())
 	}
 
+	capabilities := httptest.NewRequest(http.MethodGet, "/v1/hardware/capabilities", nil)
+	capabilities.Header.Set("Authorization", "secret")
+	capabilityResponse := httptest.NewRecorder()
+	handler.ServeHTTP(capabilityResponse, capabilities)
+	if capabilityResponse.Code != http.StatusOK ||
+		bytes.Contains(capabilityResponse.Body.Bytes(), []byte(`"available":true`)) {
+		t.Fatalf("capabilities response = %d %s", capabilityResponse.Code, capabilityResponse.Body.String())
+	}
+
+	readiness := httptest.NewRequest(http.MethodGet, "/v1/hardware/readiness", nil)
+	readiness.Header.Set("Authorization", "secret")
+	readinessResponse := httptest.NewRecorder()
+	handler.ServeHTTP(readinessResponse, readiness)
+	if readinessResponse.Code != http.StatusOK ||
+		!bytes.Contains(readinessResponse.Body.Bytes(), []byte(`"ready":false`)) ||
+		!bytes.Contains(readinessResponse.Body.Bytes(), []byte(`"status":"unavailable"`)) {
+		t.Fatalf("readiness response = %d %s", readinessResponse.Code, readinessResponse.Body.String())
+	}
+
 	kick := httptest.NewRequest(http.MethodPost, "/v1/hardware/cash-drawer/kick", bytes.NewBufferString(`{}`))
 	kick.Header.Set("Authorization", "secret")
 	kicked := httptest.NewRecorder()
@@ -128,5 +148,24 @@ func TestHardwareEndpointsDegradeWithoutConfiguredAdapters(t *testing.T) {
 	handler.ServeHTTP(unauthorized, httptest.NewRequest(http.MethodPost, "/v1/hardware/cash-drawer/kick", bytes.NewBufferString(`{}`)))
 	if unauthorized.Code != http.StatusUnauthorized {
 		t.Fatalf("hardware unauthorized status = %d, want 401", unauthorized.Code)
+	}
+}
+
+func TestInvalidHardwareConfigurationNeverAttemptsOperation(t *testing.T) {
+	localStore, err := store.Open(context.Background(), ":memory:")
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer localStore.Close()
+	registry := hardware.NewWithConfig(hardware.Config{PrinterProvider: "orphan-provider"})
+	handler := NewWithHardware(localStore, "test", "secret", registry)
+
+	request := httptest.NewRequest(http.MethodPost, "/v1/hardware/print/sale-slip", bytes.NewBufferString(`{"invoiceNumber":"1","total":"1.00"}`))
+	request.Header.Set("Authorization", "secret")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusServiceUnavailable ||
+		!bytes.Contains(response.Body.Bytes(), []byte(`"code":"hardware_configuration_invalid"`)) {
+		t.Fatalf("invalid config response = %d %s", response.Code, response.Body.String())
 	}
 }

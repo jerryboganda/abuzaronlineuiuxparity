@@ -132,6 +132,7 @@ type salePayload struct {
 	Status         string                 `json:"status"`
 	TotalAmount    string                 `json:"totalAmount"`
 	OccurredAt     string                 `json:"occurredAt"`
+	GodownID       string                 `json:"godownId"`
 	Rows           []inventoryRowPayload  `json:"rows"`
 	PricingRequest *pricingPreviewRequest `json:"pricingRequest"`
 }
@@ -697,6 +698,9 @@ func (s *Server) createSale(w http.ResponseWriter, r *http.Request) {
 	if payload.OccurredAt == "" {
 		payload.OccurredAt = event.OccurredAt
 	}
+	if !s.requireEventGodownScopes(r, w, operator, event) {
+		return
+	}
 	if payload.DocumentNumber == "" {
 		payload.DocumentNumber = ""
 	}
@@ -763,6 +767,9 @@ func (s *Server) createTransaction(aggregate string) http.Handler {
 		}
 		if err := validateEventScope(event, operator); err != nil {
 			writeProblem(w, http.StatusForbidden, "scope_mismatch", "Transaction scope rejected", err.Error())
+			return
+		}
+		if !s.requireEventGodownScopes(r, w, operator, event) {
 			return
 		}
 		if event.OperatorID == "" {
@@ -849,6 +856,11 @@ func (s *Server) pushSync(w http.ResponseWriter, r *http.Request) {
 	for _, event := range request.Events {
 		if err := validateSyncEventScope(r.Context(), tx, event, operator); err != nil {
 			writeProblem(w, http.StatusForbidden, "scope_mismatch", "Synchronization scope rejected", err.Error())
+			return
+		}
+		if godownID := eventGodownScopeDenied(event, operator); godownID != "" {
+			_ = tx.Rollback()
+			s.requireScope(r, w, operator, "godown", godownID)
 			return
 		}
 		if event.OperatorID == "" {
@@ -1503,6 +1515,61 @@ func validateEventScope(event syncEvent, operator *sessionContext) error {
 		return errors.New("event operator does not match the authenticated operator")
 	}
 	return nil
+}
+
+// requireEventGodownScopes keeps explicitly canonicalized GroupAllowedGodown
+// decisions at the event ingress boundary. Older compatibility envelopes may
+// omit godownId, and composite source keys remain unmapped; those paths stay
+// valid and are still checked by the projection's own payload validation when
+// they claim stock identity.
+func (s *Server) requireEventGodownScopes(r *http.Request, w http.ResponseWriter, operator *sessionContext, event syncEvent) bool {
+	if godownID := eventGodownScopeDenied(event, operator); godownID != "" {
+		s.requireScope(r, w, operator, "godown", godownID)
+		return false
+	}
+	return true
+}
+
+func eventGodownScopeDenied(event syncEvent, operator *sessionContext) string {
+	seen := make(map[string]struct{})
+	for _, godownID := range eventGodownIDs(event) {
+		godownID = strings.TrimSpace(godownID)
+		if godownID == "" {
+			continue
+		}
+		if _, duplicate := seen[godownID]; duplicate {
+			continue
+		}
+		seen[godownID] = struct{}{}
+		if !scopeAllowedAtEnforcementBoundary(operator, "godown", godownID) {
+			return godownID
+		}
+	}
+	return ""
+}
+
+func eventGodownIDs(event syncEvent) []string {
+	var ids []string
+	appendInventoryRows := func(rows []inventoryRowPayload) {
+		for _, row := range rows {
+			ids = append(ids, row.GodownID)
+		}
+	}
+	switch event.Aggregate {
+	case "sale":
+		var payload salePayload
+		if json.Unmarshal(event.Payload, &payload) == nil {
+			ids = append(ids, payload.GodownID)
+			appendInventoryRows(payload.Rows)
+		}
+	case "receiving", "return", "inventory", "sale_return":
+		var payload inventoryPayload
+		if json.Unmarshal(event.Payload, &payload) == nil {
+			ids = append(ids, payload.GodownID)
+			appendInventoryRows(payload.Rows)
+		}
+	}
+	return ids
 }
 
 // validateSyncEventScope permits a branch-scoped tenant administrator to

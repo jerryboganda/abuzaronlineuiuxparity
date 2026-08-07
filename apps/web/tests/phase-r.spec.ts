@@ -71,10 +71,98 @@ test('Groups rights matrix edits imported denies without losing normalized permi
   await page.getByLabel(/LEGACY-SALE/).uncheck();
   await page.getByLabel(/branch: Branch A/).uncheck();
   await page.getByRole('button', { name: 'Save group' }).click();
-  await expect(page.getByRole('status')).toContainText('saved successfully');
+  await expect(page.locator('section[aria-label="Groups"] footer [role="status"]')).toContainText('saved successfully');
   expect(rightsBody?.permissions).toEqual(['sales.read']);
   expect(rightsBody?.legacyRights).toEqual([{ rightCode: 'LEGACY-SALE', allowed: false }]);
   expect(rightsBody?.scopes).toEqual([{ scopeKind: 'branch', scopeKey: 'branch-a', allowed: false }]);
+});
+
+test('Group Allowed Price Setting edits retained composite GroupAllowedPrice scopes', async ({ page }) => {
+  await page.route('**/v1/session', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(session(['operator'], ['manage.groups'])) }));
+  await page.route('**/v1/access', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(access()) }));
+  await page.route('**/v1/roles', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ roles: [{ id: 'role-1', code: 'SALES OFFICER', name: 'Sales Officer', memberCount: 1, permissions: ['sales.read'] }] })
+  }));
+  let rightsBody: Record<string, unknown> | undefined;
+  await page.route('**/v1/roles/role-1/rights', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          roleId: 'role-1',
+          permissions: ['sales.read'],
+          legacyRights: [],
+          scopes: [
+            { scopeKind: 'price', scopeKey: '2:1:1', allowed: true, legacyTable: 'GroupAllowedPrice' },
+            { scopeKind: 'price', scopeKey: '2:1:2', allowed: false, legacyTable: 'GroupAllowedPrice' },
+            { scopeKind: 'godown', scopeKey: '2:10', allowed: true, legacyTable: 'GroupAllowedGodown' }
+          ]
+        })
+      });
+      return;
+    }
+    rightsBody = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ roleId: 'role-1', permissions: ['sales.read'], legacyRights: [], scopes: [] })
+    });
+  });
+
+  await page.goto('/app/manage/group-allowed-price-setting');
+  await page.getByLabel('Group:').selectOption('role-1');
+  await expect(page.getByText('GroupCode 2 - Module 1 - PriceTypeCode 1', { exact: false })).toBeVisible();
+  await page.getByLabel(/GroupCode 2 - Module 1 - PriceTypeCode 1/).uncheck();
+  await page.getByRole('button', { name: 'Save group price access' }).click();
+  await expect(page.locator('section[aria-label="Group Allowed Price Setting"] footer [role="status"]')).toHaveText('Sales Officer price access saved.');
+  expect(rightsBody?.scopes).toEqual([
+    { scopeKind: 'price', scopeKey: '2:1:1', allowed: false },
+    { scopeKind: 'price', scopeKey: '2:1:2', allowed: false }
+  ]);
+});
+
+test('imported group scope setting leaves isolate their approved scope kinds', async ({ page }) => {
+  await page.route('**/v1/session', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(session(['operator'], ['manage.groups', 'maintenance.write'])) }));
+  await page.route('**/v1/access', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(access({ permissions: ['manage.groups', 'maintenance.write'] })) }));
+  await page.route('**/v1/roles', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ roles: [{ id: 'role-1', code: 'SALES OFFICER', name: 'Sales Officer', memberCount: 1, permissions: ['sales.read'] }] })
+  }));
+  const importedScopes = [
+    { scopeKind: 'header', scopeKey: '2:10:1:1', allowed: true, legacyTable: 'GroupAllowedHeader' },
+    { scopeKind: 'godown', scopeKey: '2:10:1:1', allowed: true, legacyTable: 'GroupAllowedGodown' },
+    { scopeKind: 'cash_account', scopeKey: '2:1:100:7', allowed: true, legacyTable: 'GroupCashAccount' },
+    { scopeKind: 'service_category', scopeKey: '2:9:1', allowed: true, legacyTable: 'GroupAllowedServiceCategory' }
+  ];
+  let rightsBody: Record<string, unknown> | undefined;
+  await page.route('**/v1/roles/role-1/rights', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ roleId: 'role-1', permissions: ['sales.read'], legacyRights: [], scopes: importedScopes }) });
+      return;
+    }
+    rightsBody = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ roleId: 'role-1', permissions: ['sales.read'], legacyRights: [], scopes: importedScopes }) });
+  });
+
+  const leaves = [
+    { section: 'manage', kind: 'group-wise-header-setting', title: 'Group Wise Header Setting', scopeKind: 'header', scopeKey: '2:10:1:1', source: 'GroupAllowedHeader' },
+    { section: 'maintenance', kind: 'group-wise-godown-setting', title: 'Group Wise Godown Setting', scopeKind: 'godown', scopeKey: '2:10:1:1', source: 'GroupAllowedGodown' },
+    { section: 'manage', kind: 'group-wise-cash-account-setting', title: 'Group Wise Cash Account Setting', scopeKind: 'cash_account', scopeKey: '2:1:100:7', source: 'GroupCashAccount' },
+    { section: 'manage', kind: 'group-wise-supplier-category', title: 'Group Wise Supplier Category', scopeKind: 'service_category', scopeKey: '2:9:1', source: 'GroupAllowedServiceCategory' }
+  ];
+  for (const leaf of leaves) {
+    await page.goto(`/app/${leaf.section}/${leaf.kind}`);
+    await page.getByLabel('Group:').selectOption('role-1');
+    await expect(page.getByLabel(`${leaf.source} [${leaf.scopeKey}]`, { exact: true })).toBeVisible();
+    await page.getByLabel(`${leaf.source} [${leaf.scopeKey}]`, { exact: true }).uncheck();
+    await page.getByRole('button', { name: 'Save group scope access' }).click();
+    await expect(page.locator(`section[aria-label="${leaf.title}"] footer [role="status"]`)).toContainText(`${leaf.title} access saved.`);
+    expect(rightsBody?.scopes).toEqual([{ scopeKind: leaf.scopeKind, scopeKey: leaf.scopeKey, allowed: false }]);
+  }
 });
 
 test('revoked contextual command is disabled while tenant admin retains it', async ({ page }) => {

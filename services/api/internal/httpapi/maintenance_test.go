@@ -68,3 +68,44 @@ func TestMaintenanceAuditPayloadRedactsSecrets(t *testing.T) {
 		t.Fatalf("non-sensitive audit field was lost: %#v", payload)
 	}
 }
+
+func TestCanonicalItemMaintenanceValidation(t *testing.T) {
+	valid := map[string]any{
+		"itemCode": "ITEM-1", "priceType": "Sale Price", "price": "12.50",
+		"effectiveDate": "2026-08-07",
+	}
+	if err := validateCanonicalItemMaintenancePayload("change-items-price", valid); err != nil {
+		t.Fatalf("valid price maintenance rejected: %v", err)
+	}
+	numeric := map[string]any{"itemCode": "ITEM-1", "priceType": "Sale Price", "price": 12.75}
+	if err := validateCanonicalItemMaintenancePayload("change-items-price", numeric); err != nil {
+		t.Fatalf("numeric browser price maintenance rejected: %v", err)
+	}
+	invalidCases := []struct {
+		kind    string
+		payload map[string]any
+	}{
+		{"change-items-price", map[string]any{"itemCode": "ITEM-1", "priceType": "Sale Price", "price": "12.501"}},
+		{"change-item-discount", map[string]any{"itemCode": "ITEM-1", "discountType": "Percent", "discount": "100.01"}},
+		{"update-item-basic-data", map[string]any{"itemCode": "ITEM-1", "field": "Unsupported", "value": "x"}},
+		{"change-item-reorder-qty", map[string]any{"itemCode": "ITEM-1", "reorderQty": "-1"}},
+	}
+	for _, testCase := range invalidCases {
+		if err := validateCanonicalItemMaintenancePayload(testCase.kind, testCase.payload); err == nil {
+			t.Errorf("invalid %s payload was accepted: %#v", testCase.kind, testCase.payload)
+		}
+	}
+}
+
+func TestBatchLockMaintenanceValidation(t *testing.T) {
+	valid := map[string]any{"itemCode": "ITEM-1", "batch": "B-1", "locked": "Yes"}
+	if err := validateBatchLockMaintenancePayload("lock-item-batches", valid); err != nil {
+		t.Fatalf("valid batch lock rejected: %v", err)
+	}
+	if err := validateBatchLockMaintenancePayload("lock-item-batches", map[string]any{"itemCode": "ITEM-1", "batch": "B-1", "locked": false}); err != nil {
+		t.Fatalf("boolean batch unlock rejected: %v", err)
+	}
+	if err := validateBatchLockMaintenancePayload("lock-item-batches", map[string]any{"itemCode": "ITEM-1", "batch": "B-1", "locked": "maybe"}); err == nil {
+		t.Fatal("invalid batch lock state was accepted")
+	}
+}

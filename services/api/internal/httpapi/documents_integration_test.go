@@ -118,7 +118,7 @@ func TestBusinessDocumentLifecycleIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("posted documents require stock reversal before void", func(t *testing.T) {
+	t.Run("posted documents without completed projections reject void", func(t *testing.T) {
 		post := updateCommand
 		post.Action = "post"
 		post.CommandID = "00000000-0000-0000-0000-000000000015"
@@ -141,7 +141,7 @@ func TestBusinessDocumentLifecycleIntegration(t *testing.T) {
 		}
 		if _, _, err := server.voidBusinessDocument(ctx, tx, operator, void); err == nil {
 			_ = tx.Rollback()
-			t.Fatal("posted document was voided without a stock reversal")
+			t.Fatal("posted document was voided without completed reversal projections")
 		}
 		_ = tx.Rollback()
 		var revisions, stockRows, syncEvents int

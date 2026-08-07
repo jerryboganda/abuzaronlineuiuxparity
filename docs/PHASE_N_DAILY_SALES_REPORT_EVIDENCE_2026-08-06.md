@@ -30,7 +30,10 @@ legacy report parity, and the legacy application/database were not modified.
 - Event-level definitions expose only payload-backed values. Their
   `projectionStatus` is `event-ledger` and their note explicitly says that
   captured legacy grouping and calculated numeric fields are not implemented.
-  Unregistered leaves remain `generic-fallback`.
+  At the time of this wave, unregistered leaves remained `generic-fallback`;
+  the final sweep now resolves all 151 non-blank catalog leaves, with the six
+  Item Reports history leaves retaining exact labels but an explicit empty
+  generic fallback.
 - Server pagination is requested by the report UI and retains `page`,
   `pageSize`, and `hasMore`; no totals are fabricated.
 
@@ -89,3 +92,17 @@ remains explicitly generic until its legacy identity/output is captured.
 - Focused evidence: `go test ./services/api/internal/httpapi -run
   'TestInvoiceSummaryReadModelsGroupRowsOncePerDocument|TestInvoiceSummaryReportGroupsCanonicalLines'
   -count=1` passed with the local PostgreSQL cluster.
+
+## Daily Sale Detail column-contract follow-up - 2026-08-07
+
+The Daily Sale Detail leaf now has a dedicated 11-column canonical/compatibility
+projection matching the captured output contract: Alias, Item Description, Sale
+Price, Qty, Disc(%), Discount Value, Item Disc, SalesTax Value, Amount, Expiry
+Date, and Batch Number. Canonical imported lines prefer retained `Saledetail`
+payload values for legacy price/discount/tax fields; fresh typed lines use their
+pricing snapshot, and allocated stock batches supply batch/expiry values when
+available. Compatibility sale payload rows are expanded without changing the
+generic six-field contract used by other report leaves.
+
+Focused evidence and the explicit remaining format/golden-output boundary are
+recorded in [`PHASE_N_DAILY_SALES_DETAIL_EVIDENCE_2026-08-07.md`](PHASE_N_DAILY_SALES_DETAIL_EVIDENCE_2026-08-07.md).

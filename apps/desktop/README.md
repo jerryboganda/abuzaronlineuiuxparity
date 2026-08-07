@@ -10,9 +10,10 @@ The wrapper exposes explicit `set_api_session`, `get_api_session`, and `clear_ap
 
 The native bridge exposes `set_edge_config`, `get_edge_config`, and
 `clear_edge_config`, plus `get_hardware_capabilities`, `print_sale_slip`,
-`print_purchase_labels`, `lookup_barcode`, and `kick_cash_drawer`. The edge URL
-and optional shared secret are stored together in Windows Credential Manager;
-the read command reports only the URL and whether a secret is configured.
+`get_hardware_readiness`, `print_purchase_labels`, `lookup_barcode`, and
+`kick_cash_drawer`. The edge URL and optional shared secret are stored together
+in Windows Credential Manager; the read command reports only the URL and
+whether a secret is configured.
 Hardware commands call the configured branch edge and return its status/error
 status and problem code so the caller can distinguish `503
 hardware_adapter_unavailable` from a successful operation. They never open a

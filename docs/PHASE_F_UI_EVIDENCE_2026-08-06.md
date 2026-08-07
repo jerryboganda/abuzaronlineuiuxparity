@@ -1,5 +1,10 @@
 # Phase F frontend evidence — 2026-08-06
 
+> Historical baseline: the 16 auxiliary Basic Data leaves described here as
+> read-only were promoted to tenant-scoped source-shaped CRUD in the
+> 2026-08-07 follow-up. See
+> [`PHASE_F_AUXILIARY_MASTER_EVIDENCE_2026-08-07.md`](PHASE_F_AUXILIARY_MASTER_EVIDENCE_2026-08-07.md).
+
 ## Scope
 
 Frontend implementation for canonical master data. Backend APIs, migrations,

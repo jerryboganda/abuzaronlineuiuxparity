@@ -45,7 +45,7 @@ pnpm --filter @abuzar/desktop build
 Observed result: all edge packages passed; verbose hardware and sync API tests
 passed, including shared-secret protection and no-adapter `503` behavior; Go
 vet and the edge OpenAPI YAML validation passed. The desktop Rust tests passed
-(2 URL/configuration tests), and the Tauri production build produced the NSIS
+(3 URL/IPC configuration tests), and the Tauri production build produced the NSIS
 and MSI bundles.
 
 ## Acceptance still open
@@ -61,3 +61,47 @@ parity or physical success.
 The desktop build and command tests prove IPC/configuration and edge error
 plumbing only. They do not claim that a printer, scanner, drawer, or any other
 physical adapter is present.
+
+## Hardening addendum — 2026-08-07
+
+- Adapter configuration validation rejects orphan providers, provider names
+  with surrounding whitespace/control characters, and typed-nil adapters.
+- `/v1/hardware/readiness` reports configuration validity, aggregate status,
+  available/unavailable counts, and per-category diagnostics. The default
+  registry is explicitly `ready: false` / `status: unavailable`.
+- The unavailable-device acceptance fixture covers sale slips, purchase
+  labels, barcode lookup, and cash-drawer kick. It asserts `503
+  hardware_adapter_unavailable` and rejects success-shaped response fields.
+- The Tauri IPC test proves an edge `503 hardware_adapter_unavailable` remains
+  an IPC error even when the response body contains a misleading `printed`
+  field.
+
+The checklist is recorded in
+[`PHASE_U_DEVICE_ACCEPTANCE_CHECKLIST.md`](PHASE_U_DEVICE_ACCEPTANCE_CHECKLIST.md).
+Its physical pilot section remains unchecked.
+
+Hardening commands observed on 2026-08-07:
+
+```text
+go test ./services/edge/...
+go vet ./services/edge/...
+cargo fmt -- --check
+cargo test
+python -c "import yaml; yaml.safe_load(open('docs/edge-openapi.yaml', encoding='utf-8')); print('edge-openapi.yaml: valid YAML')"
+```
+
+All passed; the desktop test suite reported 3 passing tests, including IPC
+problem/status propagation.
+
+## Purchase-label workflow follow-up - 2026-08-07
+
+The Purchase transaction surface now sends populated item, batch, expiry, MRP,
+and quantity rows to the authenticated edge
+`/v1/hardware/print/purchase-labels` route. When the branch adapter is absent or
+unavailable, the workflow preserves the browser print-preview fallback and
+does not claim a physical print succeeded.
+
+Focused web evidence: `cmd /c pnpm --filter @abuzar/web check` passed with 0
+errors and 0 warnings. Edge renderer and unavailable-adapter tests remain the
+authoritative software boundary; physical label layout, printer connection,
+and legacy byte/raster comparison remain open.

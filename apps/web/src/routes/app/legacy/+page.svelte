@@ -8,8 +8,6 @@
   let status = 'Ready';
   let authenticatedUsername = 'ADMIN';
   let clock = new Date();
-  let changeUserOpen = false;
-  let changeUserInteractive = false;
   let minimized = false;
 
   onMount(() => {
@@ -32,25 +30,7 @@
 
   $: title = formatLegacyTitle(authenticatedUsername, clock);
 
-  function enableChangeUserInteractive() {
-    changeUserInteractive = true;
-  }
-
-  function confirmChangeUser() {
-    enableChangeUserInteractive();
-    window.location.assign('/login?changeUser=1');
-  }
-
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.ctrlKey && event.altKey && event.key.toLowerCase() === 'm') {
-      event.preventDefault();
-      window.location.assign('/app/manage/session-monitor');
-    }
-  }
-
 </script>
-
-<svelte:window onkeydown={handleKeydown} />
 
 <svelte:head>
   <title>WASEELA · Abuzar</title>
@@ -77,13 +57,4 @@
       <footer class="legacy-statusbar" class:legacy-statusbar-live={status !== 'Ready'} role="status">{status}</footer>
     </div>{:else}<button class="legacy-minimized-strip" type="button" onclick={() => { minimized = false; status = 'Restore'; }}>Restore WASEELA ABUZAR</button>{/if}
   </section>
-  {#if changeUserOpen}
-    <div class="legacy-shell-modal-backdrop" role="presentation" onclick={(event) => { if (event.currentTarget === event.target) changeUserOpen = false; }}>
-      <div class:legacy-change-user-captured={!changeUserInteractive} class="legacy-change-user-dialog" role="alertdialog" aria-modal="true" aria-label="Change User">
-        <h2>Change User</h2><p>Are you sure you want to change current user with another?</p>
-        <button type="button" onclick={confirmChangeUser} onpointerdown={enableChangeUserInteractive}>Yes</button>
-        <button type="button" onclick={() => { enableChangeUserInteractive(); changeUserOpen = false; }} onpointerdown={enableChangeUserInteractive}>No</button>
-      </div>
-    </div>
-  {/if}
 </main>

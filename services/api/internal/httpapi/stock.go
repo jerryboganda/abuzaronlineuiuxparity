@@ -233,14 +233,18 @@ func projectPurchaseReturnStock(ctx context.Context, tx *sql.Tx, operator *sessi
 		if err != nil {
 			return fmt.Errorf("line %d quantity: %w", index+1, err)
 		}
-		var sourceLineID, sourceQuantity string
+		sourceLineID := strings.TrimSpace(document.Lines[index].SourceLineID)
+		if !documentUUIDPattern.MatchString(sourceLineID) {
+			return fmt.Errorf("line %d requires a valid sourceLineId", index+1)
+		}
+		var sourceQuantity string
 		if err := tx.QueryRowContext(ctx, `
-				SELECT id::text, quantity::text
+				SELECT quantity::text
 				FROM business_document_lines
-				WHERE tenant_id = $1::uuid AND document_id = $2::uuid AND item_id = $3::uuid
-			`, operator.TenantID, sourceID, document.Lines[index].ItemID).Scan(&sourceLineID, &sourceQuantity); err != nil {
+				WHERE tenant_id = $1::uuid AND document_id = $2::uuid AND id = $3::uuid AND item_id = $4::uuid
+			`, operator.TenantID, sourceID, sourceLineID, document.Lines[index].ItemID).Scan(&sourceQuantity); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return fmt.Errorf("line %d item is not present on the source purchase", index+1)
+				return fmt.Errorf("line %d source purchase line is not present or does not match the return item", index+1)
 			}
 			return err
 		}
@@ -252,9 +256,9 @@ func projectPurchaseReturnStock(ctx context.Context, tx *sql.Tx, operator *sessi
 				  ON l.tenant_id = d.tenant_id AND l.document_id = d.id
 				WHERE d.tenant_id = $1::uuid AND d.branch_id = $2::uuid
 				  AND d.kind = 'purchase-return' AND d.status = 'posted'
-				  AND d.source_document_id = $3::uuid AND l.item_id = $4::uuid
+				  AND d.source_document_id = $3::uuid AND l.source_line_id = $4::uuid
 				  AND d.id <> $5::uuid
-			`, operator.TenantID, operator.BranchID, sourceID, document.Lines[index].ItemID, document.ID).Scan(&priorReturns); err != nil {
+			`, operator.TenantID, operator.BranchID, sourceID, sourceLineID, document.ID).Scan(&priorReturns); err != nil {
 			return err
 		}
 		sourceQty, ok := new(big.Rat).SetString(sourceQuantity)
@@ -281,9 +285,10 @@ func projectPurchaseReturnStock(ctx context.Context, tx *sql.Tx, operator *sessi
 					SELECT EXISTS (
 						SELECT 1 FROM stock_ledger
 						WHERE tenant_id = $1::uuid AND branch_id = $2::uuid
-						  AND source_document_id = $3::uuid AND batch_id = $4::uuid AND direction = 'in'
-					)
-				`, operator.TenantID, operator.BranchID, sourceID, choice.batch.ID).Scan(&sourceBatch); err != nil {
+						  AND source_document_id = $3::uuid AND source_document_line_id = $4::uuid
+						  AND batch_id = $5::uuid AND direction = 'in'
+						)
+				`, operator.TenantID, operator.BranchID, sourceID, sourceLineID, choice.batch.ID).Scan(&sourceBatch); err != nil {
 				return err
 			}
 			if !sourceBatch {
@@ -319,7 +324,6 @@ func projectPurchaseReturnStock(ctx context.Context, tx *sql.Tx, operator *sessi
 		if allocated.Cmp(quantity) != 0 {
 			return fmt.Errorf("line %d batch allocations total %s but line quantity is %s", index+1, formatStockQuantity(allocated), formatStockQuantity(quantity))
 		}
-		_ = sourceLineID
 	}
 	return nil
 }
@@ -1054,6 +1058,9 @@ func (s *Server) stockAvailability(w http.ResponseWriter, r *http.Request) {
 	godown := strings.TrimSpace(r.URL.Query().Get("godownId"))
 	if item == "" || godown == "" || !documentUUIDPattern.MatchString(godown) {
 		writeProblem(w, http.StatusBadRequest, "stock_scope_required", "Stock scope required", "Provide itemLegacyId and godownId; stock is never selected across godowns implicitly.")
+		return
+	}
+	if !s.requireScope(r, w, operator, "godown", godown) {
 		return
 	}
 	tx, err := s.beginScopedTx(r.Context(), operator)

@@ -26,6 +26,7 @@ Focused evidence:
 - `pnpm --filter @abuzar/web exec playwright test tests/phase-cd.spec.ts --workers=1 --reporter=line --grep "open cash sale return"`
 
 The integration test verifies a source-bound return and an open cash return,
-including posted status, balanced finance, idempotent source-bound replay, and
-the generated open-return stock batch. Physical printing and the canonical
-legacy SQL Server reconciliation remain separate acceptance gates.
+including posted status, balanced finance, idempotent stock/GL/party replay,
+explicit batch creation, fail-closed posted-return void, and cross-tenant
+source/godown rejection. Physical printing and canonical legacy SQL Server
+reconciliation remain separate acceptance gates.

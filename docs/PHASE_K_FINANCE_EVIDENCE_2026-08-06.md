@@ -23,10 +23,17 @@ historical financial parity or completion of the Phase K plan.
   idempotent and missing account configuration fails the enclosing transaction.
 - Guarded `GET /v1/finance/accounts`, `/v1/finance/journals`, and
   `/v1/finance/ledger?partyId=...` reads use the existing authenticated
-  `reports.read` boundary. Posted document responses include a finance
-  summary only when a journal and ledger entry actually exist.
+  `reports.read` boundary. The party ledger now includes posted source-backed
+  historical payment allocations when a canonical party match exists, while
+  unresolved legacy identities remain visible in the statement report.
+  Posted document responses include a finance summary only when a journal and
+  ledger entry actually exist.
 - Existing document and compatibility transaction routes were preserved.
   Posted pack/loose/opening purchases and purchase returns now create balanced supplier payable/input-tax projections; voucher tables remain placeholders.
+- Canonical posted sales, purchases, sale returns, and purchase returns support
+  append-only compensating void journals and reversed party-ledger entries when
+  their completed projections exist; dependent posted documents block the
+  source void. See `docs/PHASE_T_VOID_REVERSAL_EVIDENCE_2026-08-07.md`.
 
 ## Verification
 
@@ -46,14 +53,41 @@ historical financial parity or completion of the Phase K plan.
 
 ## Unresolved historical and parity gaps
 
-- Legacy `VirtualGl` has not been migrated or reconciled against the new GL;
-  historical opening balances are intentionally absent.
+- The imported `VirtualGl` projection is now available through the bounded
+  `GL Journal` report slice, but it has not been reconciled against the new
+  GL; historical opening balances are intentionally absent. See
+  `docs/PHASE_K_HISTORICAL_GL_EVIDENCE_2026-08-07.md`.
+- Trial Balance now unions the same imported `historical_gl_entries` with
+  posted canonical GL lines and labels unmatched legacy account codes as
+  Historical. Opening balances, fiscal-period grouping, and exact legacy
+  account semantics remain unverified.
+- Accounts Ledger now unions imported `historical_gl_entries` with posted
+  canonical journal lines. The cash-only ledger remains canonical-only until
+  VirtualGl account mapping is reviewed; historical account naming and opening
+  balance semantics remain unverified.
 - Legacy `SaleLedger` and `Purledger` have not been migrated or reconciled.
-  Supplier/payables posting is implemented for new canonical documents; historical balances remain open.
+  The guarded `-wave payments` path now retains source-backed supplier
+  `PurPayment` and customer receipt/direct-payment rows for statement reads,
+  but source counts, invoice allocation, historical balances, and exact legacy
+  settlement semantics remain open.
 - Tax source tables, legacy tax ordering/rates, tax registers, returns,
   reversals, and credit-limit behavior remain open Phase L/H/K work.
 - Voucher posting, cash-book semantics, historical account mapping, and
   sampled-party statement parity remain open.
+- Canonical interactive payment-entry/settlement, `SaleReceivableAdj`,
+  `PRAllocationDetail`, and `SRAllocationDetail` adjustment semantics remain
+  open for exact legacy posting/grouping. `SaleReceivableAdj` is now retained
+  separately and projected into statements through the guarded
+  `-wave party-adjustments` path; see
+  `docs/PHASE_K_PARTY_PAYMENT_EVIDENCE_2026-08-07.md`.
+- `SRAllocationHeader/Detail` and `PRAllocationHeader/Detail` are now retained
+  as a distinct source-backed return-allocation stream and projected into
+  bounded party statements/ledger reads. Aging and canonical balance mutation
+  remain unchanged pending reconciliation of legacy posting and duplicate
+  semantics.
 - COGS currently reflects the Phase J FIFO allocation costs where available;
   weighted-average/legacy valuation and historical stock-cost reconciliation
   remain unresolved.
+- Void reversal is verified for canonical projections only. Historical
+  `VirtualGl`, `SaleLedger`, `Purledger`, fiscal-period, tax-register, and
+  imported-document reversal parity remain unresolved.

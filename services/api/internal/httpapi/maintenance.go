@@ -122,6 +122,14 @@ func (s *Server) maintenanceAction(w http.ResponseWriter, r *http.Request) {
 		writeProblem(w, http.StatusBadRequest, "invalid_maintenance_request", "Invalid maintenance request", err.Error())
 		return
 	}
+	if err := validateBatchLockMaintenancePayload(kind, payload); err != nil {
+		writeProblem(w, http.StatusBadRequest, "invalid_batch_lock_request", "Invalid batch-lock request", err.Error())
+		return
+	}
+	if err := validateCanonicalItemMaintenancePayload(kind, payload); err != nil {
+		writeProblem(w, http.StatusBadRequest, "invalid_item_maintenance_request", "Invalid item maintenance request", err.Error())
+		return
+	}
 
 	if kind == "check-database-integrity" {
 		s.handleIntegrityCheck(w, r, operator, kind, payload)
@@ -135,6 +143,19 @@ func (s *Server) maintenanceAction(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
+	mutation, err := applyCanonicalItemMaintenance(r.Context(), tx, operator, kind, payload)
+	if err != nil {
+		writeProblem(w, http.StatusUnprocessableEntity, "item_maintenance_failed", "Item maintenance failed", err.Error())
+		return
+	}
+	if kind == "lock-item-batches" {
+		mutation, err = applyBatchLockMaintenance(r.Context(), tx, operator, payload)
+		if err != nil {
+			writeProblem(w, http.StatusUnprocessableEntity, "batch_lock_failed", "Batch lock failed", err.Error())
+			return
+		}
+	}
+
 	saved := 0
 	for caption, value := range payload {
 		caption = strings.TrimSpace(caption)
@@ -147,11 +168,11 @@ func (s *Server) maintenanceAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if _, err := tx.ExecContext(r.Context(), `
-			INSERT INTO tenant_preferences (tenant_id, category, caption, value, position, updated_at)
-			VALUES ($1::uuid, $2, $3, $4, $5, now())
-			ON CONFLICT (tenant_id, category, caption) DO UPDATE
+			INSERT INTO tenant_preferences (tenant_id, branch_id, category, caption, value, position, updated_at)
+			VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, now())
+			ON CONFLICT (tenant_id, (COALESCE(branch_id, '00000000-0000-0000-0000-000000000000'::uuid)), category, caption) DO UPDATE
 			SET value = EXCLUDED.value, position = EXCLUDED.position, updated_at = now()
-		`, operator.TenantID, "maintenance:"+kind, caption, encodedValue, saved); err != nil {
+		`, operator.TenantID, operator.BranchID, "maintenance:"+kind, caption, encodedValue, saved); err != nil {
 			writeProblem(w, http.StatusServiceUnavailable, "maintenance_state_failed", "Maintenance state could not be saved", "The maintenance settings store rejected the value.")
 			return
 		}
@@ -159,7 +180,13 @@ func (s *Server) maintenanceAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	status, message := maintenanceExternalOutcome(kind)
-	operationID, err := recordMaintenanceOperation(r, tx, operator, kind, status, message, payload)
+	operationPayload := payload
+	if mutation.status != "" {
+		status = mutation.status
+		message = mutation.message
+		operationPayload = mutation.auditPayload
+	}
+	operationID, err := recordMaintenanceOperation(r, tx, operator, kind, status, message, operationPayload)
 	if err != nil {
 		writeProblem(w, http.StatusServiceUnavailable, "maintenance_audit_failed", "Maintenance audit failed", "The maintenance operation could not be recorded.")
 		return

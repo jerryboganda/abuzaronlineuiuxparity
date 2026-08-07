@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   font-family: "Segoe UI", Tahoma, Arial, sans-serif;
   color: #1d2b3a;
   background: #f4f6f9;
@@ -166,9 +166,13 @@ h1, h2, p { margin-top: 0; }
 .legacy-menu-separator { height: 1px; margin: 3px 5px; border-top: 1px solid #c9c9c9; }
 .legacy-contextual-menu-bar { border-right-width: 0; border-left-width: 0; }
 .legacy-mdi-tabs { display: flex; min-height: 22px; align-items: stretch; overflow-x: auto; border-bottom: 1px solid #888; background: #d8d8d8; font: 12px Tahoma, Arial, sans-serif; }
-.legacy-mdi-tabs button { min-width: 130px; padding: 2px 9px; border: 0; border-right: 1px solid #aaa; background: #d8d8d8; color: #000; text-align: left; white-space: nowrap; font: inherit; }
+.legacy-mdi-tabs .legacy-mdi-tab-item { display: inline-flex; align-items: center; border-right: 1px solid #aaa; background: #d8d8d8; }
+.legacy-mdi-tabs .legacy-mdi-tab-item.active { background: #fff; }
+.legacy-mdi-tabs button { min-width: 110px; padding: 2px 9px; border: 0; background: transparent; color: #000; text-align: left; white-space: nowrap; font: inherit; }
 .legacy-mdi-tabs button:hover, .legacy-mdi-tabs button:focus-visible { background: #e9e9e9; outline: 1px dotted #555; outline-offset: -3px; }
 .legacy-mdi-tabs button.active { background: #fff; font-weight: 700; }
+.legacy-mdi-tabs button.legacy-mdi-tab-close { min-width: 0; width: 18px; padding: 0 3px; border: 0; font-weight: bold; cursor: pointer; color: #666; background: transparent; text-align: center; }
+.legacy-mdi-tabs button.legacy-mdi-tab-close:hover { color: #cc0000; background: rgba(0, 0, 0, 0.08); }
 .legacy-contextual-status { display: flex; min-height: 19px; align-items: center; gap: 18px; padding: 1px 6px; border-bottom: 1px solid #aaa; background: #f0f0f0; color: #000; font: 12px/17px Tahoma, Arial, sans-serif; }
 .legacy-unimplemented-note { color: #8a5a00; }
 .legacy-unimplemented-note a { color: #075a9c; text-decoration: underline; }
@@ -280,6 +284,7 @@ h1, h2, p { margin-top: 0; }
 .legacy-transaction-grid th { background: #f3f3f3; color: #000; font-weight: 400; text-align: center; }
 .legacy-transaction-grid td { background: #fafafa; }
 .legacy-transaction-grid input { width: 100%; height: 19px; box-sizing: border-box; padding: 0 2px; border: 0; background: transparent; color: #000; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-transaction-grid td:nth-child(2) > input { width: calc(100% - 28px); }
 .legacy-transaction-grid input:focus { outline: 1px dotted #333; background: #fff; }
 .legacy-transaction-grid th:nth-child(1), .legacy-transaction-grid td:nth-child(1) { width: 32px; }
 .legacy-transaction-grid th:nth-child(2), .legacy-transaction-grid td:nth-child(2) { width: 110px; }
@@ -300,6 +305,17 @@ h1, h2, p { margin-top: 0; }
 .legacy-purchase-adjustments label { display: inline-flex; align-items: center; gap: 4px; }
 .legacy-purchase-adjustments input { width: 58px; height: 18px; box-sizing: border-box; border: 1px solid #aaa; font: 12px Tahoma, Arial, sans-serif; }
 .legacy-purchase-adjustments button { padding: 2px 8px; border: 1px solid #888; background: #eee; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-return-batch-panel { margin: 8px 5px 0; padding: 6px; border: 1px solid #aaa; background: #f7f7f7; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-return-batch-panel h2 { margin: 0 0 4px; font-size: 13px; font-weight: 400; }
+.legacy-return-batch-panel p { margin: 0 0 6px; }
+.legacy-return-batch-allocation { margin: 5px 0; padding: 5px 7px 7px; border: 1px solid #bbb; }
+.legacy-return-batch-allocation legend { padding: 0 4px; }
+.legacy-return-batch-allocation-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+.legacy-return-batch-allocation-row label { display: inline-flex; align-items: center; gap: 4px; }
+.legacy-return-batch-allocation-row select { min-width: 220px; height: 20px; border: 1px solid #999; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-return-batch-allocation-row input { width: 70px; height: 20px; box-sizing: border-box; border: 1px solid #999; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-return-batch-allocation button, .legacy-return-batch-panel > button { padding: 2px 8px; border: 1px solid #888; background: #eee; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-return-batch-allocation small { display: block; margin-top: 4px; color: #555; }
 .legacy-hidden-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .legacy-dialog-backdrop { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgb(0 0 0 / 22%); }
 .legacy-simple-dialog { min-width: 340px; padding: 14px; border: 1px solid #777; background: #eee; box-shadow: 2px 2px 10px rgb(0 0 0 / 28%); font: 12px Tahoma, Arial, sans-serif; }
@@ -312,8 +328,13 @@ h1, h2, p { margin-top: 0; }
 .legacy-transaction-totals { display: flex; justify-content: flex-end; gap: 55px; padding: 8px 180px 0 0; font: 12px Tahoma, Arial, sans-serif; }
 .legacy-transaction-totals strong { margin-left: 30px; font-weight: 400; }
 .legacy-purchase-list { display: none; }
-.legacy-purchase-list-page .legacy-transaction-fields, .legacy-purchase-list-page .legacy-transaction-grid-wrap, .legacy-purchase-list-page .legacy-add-row, .legacy-purchase-list-page .legacy-transaction-totals { display: none; }
+.legacy-purchase-list-page .legacy-transaction-fields, .legacy-purchase-list-page .legacy-transaction-grid-wrap, .legacy-purchase-list-page .legacy-return-batch-panel, .legacy-purchase-list-page .legacy-add-row, .legacy-purchase-list-page .legacy-transaction-totals { display: none; }
 .legacy-purchase-list-page .legacy-purchase-list { display: block; margin: 0 5px; border: 1px solid #aaa; background: #f7f7f7; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-history-filter { display: flex; align-items: center; gap: 8px; margin: 0 5px; padding: 4px 6px; border: 1px solid #aaa; border-bottom: 0; background: #eee; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-history-filter label { display: flex; align-items: center; gap: 5px; }
+.legacy-history-filter input { width: 220px; height: 19px; box-sizing: border-box; border: 1px solid #999; background: #fff; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-history-filter button { min-width: 96px; height: 21px; padding: 1px 8px; border: 1px solid #888; background: #eee; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-history-filter button:hover, .legacy-history-filter button:focus-visible { background: #fff; outline: 1px dotted #555; }
 .legacy-purchase-list table { width: 100%; border-collapse: collapse; }
 .legacy-purchase-list th, .legacy-purchase-list td { height: 22px; padding: 2px 6px; border: 1px solid #aaa; text-align: left; }
 .legacy-purchase-list th { background: #eee; font-weight: 400; }
@@ -440,8 +461,20 @@ h1, h2, p { margin-top: 0; }
 .legacy-report-preview-backdrop { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; overflow: auto; padding: 24px; background: rgba(0, 0, 0, .35); }
 .legacy-report-preview { width: min(1100px, 96vw); max-height: 94vh; overflow: auto; border: 1px solid #555; background: #ddd; box-shadow: 4px 5px 14px rgba(0, 0, 0, .35); font: 12px Tahoma, Arial, sans-serif; }
 .legacy-report-preview > header { display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; border-bottom: 1px solid #999; background: #eee; }
+.legacy-report-preview > header div { display: grid; gap: 2px; }
+.legacy-report-preview > header small { color: #555; }
 .legacy-report-preview > header button { min-width: 24px; border: 1px solid #888; background: #f7f7f7; }
-.legacy-report-preview-page { min-height: 650px; margin: 18px auto; padding: 28px 30px; box-sizing: border-box; width: min(900px, calc(100% - 36px)); background: #fff; box-shadow: 0 0 4px rgba(0, 0, 0, .3); }
+.legacy-report-preview-toolbar { display: flex; align-items: center; gap: 5px; min-height: 30px; padding: 3px 6px; border-bottom: 1px solid #999; background: #eee; }
+.legacy-report-preview-toolbar button { min-width: 42px; height: 22px; padding: 0 6px; border: 1px solid #888; background: #f7f7f7; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-report-preview-toolbar button:disabled { color: #888; }
+.legacy-report-preview-toolbar span { white-space: nowrap; }
+.legacy-report-preview-toolbar-separator { height: 19px; margin: 0 3px; border-left: 1px solid #aaa; }
+.legacy-report-preview-ruler { display: grid; grid-template-columns: repeat(13, 1fr); align-items: end; height: 20px; padding: 0 24px; box-sizing: border-box; border-bottom: 1px solid #999; background: repeating-linear-gradient(90deg, #f2f2f2 0, #f2f2f2 39px, #c6c6c6 40px); color: #555; font: 10px Arial, sans-serif; }
+.legacy-report-preview-ruler span { padding-left: 2px; border-left: 1px solid #888; }
+.legacy-report-preview-status { padding: 4px 8px; border-bottom: 1px solid #bbb; background: #e8e8e8; color: #555; }
+.legacy-report-preview-workspace { overflow: auto; min-height: 700px; background: #aaa; }
+.legacy-report-preview-page-wrap { min-height: calc(700px * var(--preview-scale, 1)); padding: 18px 0 42px; box-sizing: border-box; }
+.legacy-report-preview-page { min-height: 650px; margin: 0 auto; padding: 28px 30px; box-sizing: border-box; width: min(900px, calc(100% - 36px)); background: #fff; box-shadow: 0 0 4px rgba(0, 0, 0, .3); transform: scale(var(--preview-scale, 1)); transform-origin: top center; }
 .legacy-report-letterhead { display: grid; gap: 3px; margin-bottom: 14px; text-align: center; }
 .legacy-report-letterhead strong { font-size: 16px; }
 .legacy-report-preview-meta { display: flex; justify-content: space-between; padding: 5px 0; border-top: 1px dashed #555; border-bottom: 1px dashed #555; }
@@ -547,6 +580,8 @@ h1, h2, p { margin-top: 0; }
   .legacy-sales-cash-page .sale-bottom-misc { top: 0; left: 235px; }
   .legacy-sales-cash-page .sale-bottom-sales { top: 0; left: 630px; }
   .legacy-sales-cash-page .sale-bottom-total { top: 42px; left: 470px; }
+  .legacy-sales-cash-page .sale-bottom-cash-tendered { top: 42px; left: 0; }
+  .legacy-sales-cash-page .sale-bottom-cash-back { top: 42px; left: 210px; }
   .legacy-sales-cash-page .sale-bottom-stock { top: 24px; left: 0; }
   .legacy-sales-cash-page .sale-bottom-discount-value { top: 24px; left: 235px; }
   .legacy-sales-cash-page .sale-bottom-disc-value { top: 24px; left: 420px; }
@@ -559,7 +594,8 @@ h1, h2, p { margin-top: 0; }
   .legacy-sales-cash-page.legacy-sales-list-page .legacy-add-row,
   .legacy-sales-cash-page.legacy-sales-list-page .legacy-sale-total-line,
   .legacy-sales-cash-page.legacy-sales-list-page .legacy-sale-bottom { display: none !important; }
-  .legacy-sales-cash-page.legacy-sales-list-page .legacy-sale-list { position: absolute; top: 0; right: 5px; left: 5px; display: block; }
+  .legacy-sales-cash-page.legacy-sales-list-page .legacy-history-filter { position: absolute; z-index: 1; top: 0; right: 5px; left: 5px; }
+  .legacy-sales-cash-page.legacy-sales-list-page .legacy-sale-list { position: absolute; top: 31px; right: 5px; left: 5px; display: block; }
 
   .legacy-master-page .legacy-master-body { position: relative; min-height: calc(100vh - 83px); padding: 19px 16px 30px; }
   .legacy-master-page .legacy-master-form { width: 560px; gap: 4px; }
@@ -648,7 +684,10 @@ h1, h2, p { margin-top: 0; }
   .legacy-report-preview-backdrop { position: static; display: block; padding: 0; background: #fff; }
   .legacy-report-preview { width: 100%; max-height: none; overflow: visible; border: 0; box-shadow: none; }
   .legacy-report-preview > header { display: none; }
-  .legacy-report-preview-page { width: 100%; min-height: 0; margin: 0; box-shadow: none; }
+  .legacy-report-preview-toolbar, .legacy-report-preview-ruler, .legacy-report-preview-status { display: none; }
+  .legacy-report-preview-workspace { min-height: 0; overflow: visible; background: #fff; }
+  .legacy-report-preview-page-wrap { min-height: 0; padding: 0; }
+  .legacy-report-preview-page { width: 100%; min-height: 0; margin: 0; box-shadow: none; transform: none; }
 }
 
 @media (width: 1536px) and (height: 972px) {
@@ -1125,6 +1164,13 @@ tbody tr:last-child td { border-bottom: 0; }
     max-height: calc(100vh - 330px);
   }
 
+  /* Purchase and return detail grids use the measured legacy child height.
+   * Cash Sale has its own lookup/line layout below and is intentionally
+   * excluded. */
+  .legacy-transaction-page:not(.legacy-sales-cash-page) .legacy-transaction-grid-wrap {
+    height: 563px;
+  }
+
   .legacy-sale-lookup {
     max-height: calc(100vh - 330px);
   }
@@ -1154,6 +1200,21 @@ tbody tr:last-child td { border-bottom: 0; }
     min-height: 0;
     flex: 1 1 auto;
     overflow: auto;
+  }
+
+  .legacy-preferences-body table {
+    width: 590px;
+  }
+
+  .legacy-preferences-body th,
+  .legacy-preferences-body td {
+    height: 16px;
+    line-height: 15px;
+  }
+
+  .legacy-preferences-body input {
+    height: 15px;
+    line-height: 14px;
   }
 
   /* Explicitly opt every old baseline class back into the semantic DOM at

@@ -111,6 +111,133 @@ func TestMaintenanceManageOperationsIntegration(t *testing.T) {
 			t.Fatal("password was not changed")
 		}
 	})
+
+	t.Run("item maintenance updates canonical payloads and audit history", func(t *testing.T) {
+		itemCode := "ITEM-" + formatTestSuffix(suffix)
+		var itemID string
+		if err := database.QueryRowContext(ctx, `
+			INSERT INTO master_items (tenant_id, legacy_id, code, name, payload)
+			VALUES ($1::uuid, $2, $2, 'Maintenance Item', '{"SalePrice1":"10.00","SalePrice2":"11.00","PurchasePrice":"7.50"}'::jsonb)
+			RETURNING id::text
+		`, tenantID, itemCode).Scan(&itemID); err != nil {
+			t.Fatalf("seed maintenance item: %v", err)
+		}
+		var godownID, otherBranchID string
+		if err := database.QueryRowContext(ctx, `
+			INSERT INTO master_godowns (tenant_id, legacy_id, code, name)
+			VALUES ($1::uuid, $2, $2, 'Maintenance Godown')
+			RETURNING id::text
+		`, tenantID, "G-"+formatTestSuffix(suffix)).Scan(&godownID); err != nil {
+			t.Fatalf("seed maintenance godown: %v", err)
+		}
+		if err := database.QueryRowContext(ctx, `
+			INSERT INTO stock_batches (tenant_id, branch_id, item_id, item_legacy_id, godown_id, batch_number, unit_cost)
+			VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::uuid, 'LOCK-ME', 7.50)
+			RETURNING branch_id::text
+		`, tenantID, branchID, itemID, itemCode, godownID).Scan(&branchID); err != nil {
+			t.Fatalf("seed maintenance batch: %v", err)
+		}
+		if err := database.QueryRowContext(ctx, `INSERT INTO branches (tenant_id, code, name) VALUES ($1::uuid, $2, 'Other Maintenance Branch') RETURNING id::text`, tenantID, "other-maintenance-"+formatTestSuffix(suffix)).Scan(&otherBranchID); err != nil {
+			t.Fatalf("seed other maintenance branch: %v", err)
+		}
+		if _, err := database.ExecContext(ctx, `
+			INSERT INTO stock_batches (tenant_id, branch_id, item_id, item_legacy_id, godown_id, batch_number, unit_cost)
+			VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::uuid, 'LOCK-ME', 7.50)
+		`, tenantID, otherBranchID, itemID, itemCode, godownID); err != nil {
+			t.Fatalf("seed other-branch maintenance batch: %v", err)
+		}
+
+		run := func(kind, body string) string {
+			request := maintenanceTestRequest(http.MethodPost, "/v1/maintenance/"+kind, body, operator)
+			recorder := httptest.NewRecorder()
+			server.maintenanceAction(recorder, request)
+			if recorder.Code != http.StatusAccepted {
+				t.Fatalf("%s status = %d, body=%s", kind, recorder.Code, recorder.Body.String())
+			}
+			var response struct {
+				OperationID string `json:"operationId"`
+				Status      string `json:"status"`
+				Message     string `json:"message"`
+			}
+			if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+				t.Fatalf("decode %s response: %v", kind, err)
+			}
+			if response.OperationID == "" || response.Status != "completed" {
+				t.Fatalf("%s response = %+v", kind, response)
+			}
+			return response.OperationID
+		}
+
+		lockAudit := run("lock-item-batches", fmt.Sprintf(`{"itemCode":%q,"batch":"LOCK-ME","locked":"Yes"}`, itemCode))
+		var locked bool
+		if err := database.QueryRowContext(ctx, `
+			SELECT locked FROM stock_batches
+			WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND item_id = $3::uuid AND batch_number = 'LOCK-ME'
+		`, tenantID, branchID, itemID).Scan(&locked); err != nil {
+			t.Fatalf("read locked maintenance batch: %v", err)
+		}
+		if !locked {
+			t.Fatal("maintenance batch lock did not update the current branch")
+		}
+		var affected string
+		if err := database.QueryRowContext(ctx, `SELECT payload->>'affectedBatches' FROM audit_events WHERE id = $1::uuid`, lockAudit).Scan(&affected); err != nil {
+			t.Fatalf("read batch lock audit: %v", err)
+		}
+		if affected != "1" {
+			t.Fatalf("batch lock audit affectedBatches = %q, want 1", affected)
+		}
+		run("lock-item-batches", fmt.Sprintf(`{"itemCode":%q,"batch":"LOCK-ME","locked":false}`, itemCode))
+		if err := database.QueryRowContext(ctx, `
+			SELECT locked FROM stock_batches
+			WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND item_id = $3::uuid AND batch_number = 'LOCK-ME'
+		`, tenantID, branchID, itemID).Scan(&locked); err != nil {
+			t.Fatalf("read unlocked maintenance batch: %v", err)
+		}
+		if locked {
+			t.Fatal("maintenance batch unlock did not update the current branch")
+		}
+		if err := database.QueryRowContext(ctx, `
+			SELECT locked FROM stock_batches
+			WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND item_id = $3::uuid AND batch_number = 'LOCK-ME'
+		`, tenantID, otherBranchID, itemID).Scan(&locked); err != nil {
+			t.Fatalf("read other-branch maintenance batch: %v", err)
+		}
+		if locked {
+			t.Fatal("batch mutation escaped the current branch scope")
+		}
+
+		priceAudit := run("change-items-price", fmt.Sprintf(`{"itemCode":%q,"priceType":"Sale Price","price":12.75,"effectiveDate":"2026-08-07"}`, itemCode))
+		var salePrice1, salePrice, salePrice2, purchasePrice, previousPrice, newPrice string
+		if err := database.QueryRowContext(ctx, `
+			SELECT payload->>'SalePrice1', payload->>'SalePrice', payload->>'SalePrice2', payload->>'PurchasePrice'
+			FROM master_items WHERE tenant_id = $1::uuid AND id = $2::uuid
+		`, tenantID, itemID).Scan(&salePrice1, &salePrice, &salePrice2, &purchasePrice); err != nil {
+			t.Fatalf("read updated price payload: %v", err)
+		}
+		if salePrice1 != "12.75" || salePrice != "12.75" || salePrice2 != "11.00" || purchasePrice != "7.50" {
+			t.Fatalf("price payload = %s/%s/%s/%s", salePrice1, salePrice, salePrice2, purchasePrice)
+		}
+		if err := database.QueryRowContext(ctx, `SELECT payload->>'previousValue', payload->>'newValue' FROM audit_events WHERE id = $1::uuid`, priceAudit).Scan(&previousPrice, &newPrice); err != nil {
+			t.Fatalf("read price audit: %v", err)
+		}
+		if previousPrice != "10.00" || newPrice != "12.75" {
+			t.Fatalf("price audit = %s/%s", previousPrice, newPrice)
+		}
+
+		run("change-item-discount", fmt.Sprintf(`{"itemCode":%q,"discountType":"Percent","discount":5.5}`, itemCode))
+		run("update-item-basic-data", fmt.Sprintf(`{"itemCode":%q,"field":"Name","value":"Renamed Maintenance Item"}`, itemCode))
+		run("change-item-reorder-qty", fmt.Sprintf(`{"itemCode":%q,"reorderQty":12.5,"minimumQty":3}`, itemCode))
+		var name, saleDiscount, legacyDiscount, reorder, minimum string
+		if err := database.QueryRowContext(ctx, `
+		SELECT name, payload->>'SaleDiscPercent', payload->>'DiscPerc', payload->>'ReorderQuantity', payload->>'MinimumQuantity'
+		FROM master_items WHERE tenant_id = $1::uuid AND id = $2::uuid
+	`, tenantID, itemID).Scan(&name, &saleDiscount, &legacyDiscount, &reorder, &minimum); err != nil {
+			t.Fatalf("read canonical item maintenance result: %v", err)
+		}
+		if name != "Renamed Maintenance Item" || saleDiscount != "5.50" || legacyDiscount != "5.50" || reorder != "12.5" || minimum != "3" {
+			t.Fatalf("canonical item maintenance result = %s/%s/%s/%s/%s", name, saleDiscount, legacyDiscount, reorder, minimum)
+		}
+	})
 }
 
 func TestSessionMonitorIsBranchScopedIntegration(t *testing.T) {

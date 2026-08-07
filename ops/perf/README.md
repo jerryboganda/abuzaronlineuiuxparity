@@ -15,20 +15,22 @@ powershell -ExecutionPolicy Bypass -File .\ops\perf\run-phase-w.ps1
 
 The default fixture is 25,000 stock movements, 10,000 GL journals, 3,000
 items, and 5,000 batches. It creates a database named `abuzar_phasew_*`,
-applies migrations 001–020, seeds set-based data, runs `ANALYZE`, captures
+applies current migrations 001–028, seeds set-based data, runs `ANALYZE`, captures
 `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` plans and repeated p50/p95 timings,
 then drops the database unless `-KeepDatabase` is supplied.
 
 The historical targets are opt-in and expensive:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\ops\perf\run-phase-w.ps1 -FullVolume -Iterations 15
+powershell -ExecutionPolicy Bypass -File .\ops\perf\run-phase-w.ps1 -FullVolume -AllowSharedCluster -Iterations 15
 ```
 
 `-FullVolume` targets 3,231,846 stock rows, 1,040,590 GL journals, 30,050
-items, and 30,050 batches. It was not run as part of the current change unless
-an artifact explicitly says `fullVolumeLoaded: true`. Disk, WAL, index build
-time, and memory should be checked before using it.
+items, and 30,050 batches. It is guarded unless `-AllowSharedCluster` is
+supplied. Use that switch only when the PostgreSQL service is isolated from the
+application cluster; the failed local attempt demonstrated that a backend
+crash during a multi-million-row insert can force cluster recovery. Disk, WAL,
+index build time, and memory should be checked before using it.
 
 The artifact reports these budgets:
 
@@ -70,3 +72,8 @@ of ordinary pull-request CI.
 otherwise unused loopback port, waits for `/v1/health`, records the time, and
 stops that exact process ID. It does not post or mutate data. The 3-second
 result is a local process/health probe, not a browser cold-start claim.
+
+`measure-browser-cold-start.ps1` launches a fresh headless Chromium per sample
+at a 1936×1048 viewport and measures navigation to `/login` plus the visible
+`main` element. It measures browser launch/navigation against an already
+running web server; it is not an eight-hour or production-network test.

@@ -19,8 +19,15 @@ func TestPurchaseCommandValidationRequiresReceiptMetadataButKeepsPONeutral(t *te
 	if err := validateDocumentCommand(po, "purchase-order"); err != nil {
 		t.Fatalf("purchase order incorrectly requires receipt metadata: %v", err)
 	}
+	missingSourceLine := purchaseValidationCommand("purchase-return", "post")
+	missingSourceLine.Document.ID = "00000000-0000-0000-0000-000000000046"
+	missingSourceLine.Document.Lines[0].Allocations = []documentAllocationRequest{{BatchNumber: "B-1", Quantity: "1"}}
+	if err := validateDocumentCommand(missingSourceLine, "purchase-return"); err == nil || !strings.Contains(err.Error(), "sourceLineId") {
+		t.Fatalf("purchase return without source line was accepted: %v", err)
+	}
 	ret := purchaseValidationCommand("purchase-return", "post")
 	ret.Document.ID = "00000000-0000-0000-0000-000000000044"
+	ret.Document.Lines[0].SourceLineID = "00000000-0000-0000-0000-000000000045"
 	ret.Document.Lines[0].Allocations = []documentAllocationRequest{{BatchNumber: "B-1", Quantity: "1"}}
 	if err := validateDocumentCommand(ret, "purchase-return"); err != nil {
 		t.Fatalf("purchase return with explicit allocation rejected: %v", err)

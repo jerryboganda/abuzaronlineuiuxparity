@@ -74,6 +74,7 @@ type sourceRow struct {
 type exceptionRow struct {
 	LegacyID string
 	Reason   string
+	Details  []byte
 }
 
 const sourceQuery = `
@@ -338,7 +339,11 @@ func readRows(ctx context.Context, source *sql.DB) ([]sourceRow, int, []exceptio
 			reason = "missing_item_id"
 		}
 		if reason != "" {
-			exceptions = append(exceptions, exceptionRow{LegacyID: legacyID, Reason: reason})
+			details, err := purchaseLineExceptionDetails(values, legacyID, reason)
+			if err != nil {
+				return nil, 0, nil, fmt.Errorf("encode Purdetail exception %s: %w", legacyID, err)
+			}
+			exceptions = append(exceptions, exceptionRow{LegacyID: legacyID, Reason: reason, Details: details})
 			continue
 		}
 		payload, err := json.Marshal(map[string]any{
@@ -397,6 +402,7 @@ func dependencyExceptions(ctx context.Context, tx pgx.Tx, tenant, branch string)
 		if err := rows.Scan(&item.LegacyID, &item.Reason); err != nil {
 			return nil, err
 		}
+		item.Details = genericExceptionDetails(item.LegacyID, item.Reason)
 		result = append(result, item)
 	}
 	return result, rows.Err()
@@ -408,7 +414,8 @@ func writeExceptions(ctx context.Context, tx pgx.Tx, tenant string, items []exce
 	}
 	if _, err := tx.Exec(ctx, `CREATE TEMP TABLE IF NOT EXISTS purchase_line_exception_stage (
 		legacy_id text NOT NULL,
-		reason text NOT NULL
+		reason text NOT NULL,
+		details jsonb NOT NULL
 	) ON COMMIT DROP`); err != nil {
 		return err
 	}
@@ -417,9 +424,13 @@ func writeExceptions(ctx context.Context, tx pgx.Tx, tenant string, items []exce
 	}
 	rows := make([][]any, 0, len(items))
 	for _, item := range items {
-		rows = append(rows, []any{item.LegacyID, item.Reason})
+		details := item.Details
+		if len(details) == 0 {
+			details = genericExceptionDetails(item.LegacyID, item.Reason)
+		}
+		rows = append(rows, []any{item.LegacyID, item.Reason, details})
 	}
-	if _, err := tx.CopyFrom(ctx, pgx.Identifier{"purchase_line_exception_stage"}, []string{"legacy_id", "reason"}, pgx.CopyFromRows(rows)); err != nil {
+	if _, err := tx.CopyFrom(ctx, pgx.Identifier{"purchase_line_exception_stage"}, []string{"legacy_id", "reason", "details"}, pgx.CopyFromRows(rows)); err != nil {
 		return err
 	}
 	_, err := tx.Exec(ctx, `INSERT INTO legacy_id_mappings (
@@ -438,11 +449,11 @@ func writeExceptions(ctx context.Context, tx pgx.Tx, tenant string, items []exce
 		return err
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO migration_exceptions (
-		tenant_id, source_schema, source_table, legacy_id, reason_code, details, status
-	)
-	SELECT $1, 'dbo', 'Purdetail', legacy_id, reason,
-		jsonb_build_object('reason', reason, 'legacy_id', legacy_id), 'open'
-	FROM purchase_line_exception_stage`, tenant)
+			tenant_id, source_schema, source_table, legacy_id, reason_code, details, status
+		)
+		SELECT $1, 'dbo', 'Purdetail', legacy_id, reason,
+			details, 'open'
+		FROM purchase_line_exception_stage`, tenant)
 	return err
 }
 
@@ -461,6 +472,38 @@ func writeMappedMappings(ctx context.Context, tx pgx.Tx, tenant string) error {
 func positiveDecimal(text string) bool {
 	value, ok := new(big.Rat).SetString(strings.TrimSpace(text))
 	return ok && value.Sign() > 0
+}
+
+func purchaseLineExceptionDetails(values []any, legacyID, reason string) ([]byte, error) {
+	if len(values) < 27 {
+		return nil, fmt.Errorf("Purdetail row has %d values; want at least 27", len(values))
+	}
+	return json.Marshal(map[string]any{
+		"legacy_id":            legacyID,
+		"reason":               reason,
+		"PurInvCode":           normalizeValue(values[0]),
+		"PurRowId":             normalizeValue(values[1]),
+		"ICode":                normalizeValue(values[2]),
+		"quantity":             normalizeValue(values[3]),
+		"PackQty":              normalizeValue(values[14]),
+		"LooseQty":             normalizeValue(values[15]),
+		"PackUnits":            normalizeValue(values[16]),
+		"PurPrice":             normalizeValue(values[17]),
+		"rate":                 normalizeValue(values[18]),
+		"DiscPerc":             normalizeValue(values[19]),
+		"GSTPerc":              normalizeValue(values[20]),
+		"UnitSalesTax":         normalizeValue(values[21]),
+		"PCTCode":              normalizeValue(values[22]),
+		"SalesTaxScheduleCode": normalizeValue(values[23]),
+		"AvgPrice":             normalizeValue(values[24]),
+		"BonusQty":             normalizeValue(values[25]),
+		"ItemAdvanceTaxPerc":   normalizeValue(values[26]),
+	})
+}
+
+func genericExceptionDetails(legacyID, reason string) []byte {
+	details, _ := json.Marshal(map[string]string{"reason": reason, "legacy_id": legacyID})
+	return details
 }
 
 func normalizeText(value any) string {

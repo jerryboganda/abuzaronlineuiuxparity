@@ -759,7 +759,7 @@ func (s *Server) financeLedger(w http.ResponseWriter, r *http.Request) {
 	}
 	partyID := strings.TrimSpace(r.URL.Query().Get("partyId"))
 	if !documentUUIDPattern.MatchString(partyID) {
-		writeProblem(w, http.StatusBadRequest, "party_required", "Party is required", "Provide a canonical customer partyId.")
+		writeProblem(w, http.StatusBadRequest, "party_required", "Party is required", "Provide a canonical customer or supplier partyId.")
 		return
 	}
 	tx, err := s.beginScopedTx(r.Context(), operator)
@@ -770,9 +770,30 @@ func (s *Server) financeLedger(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 	balance := "0.0000"
 	if err := tx.QueryRowContext(r.Context(), `
-		SELECT balance::text
-		FROM party_ledger_balances
-		WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND party_id = $3::uuid
+		SELECT COALESCE(SUM(entries.debit_amount - entries.credit_amount), 0)::text
+		FROM (
+			SELECT debit_amount, credit_amount
+			FROM party_ledger_entries
+			WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND party_id = $3::uuid
+			UNION ALL
+			SELECT CASE WHEN counterparty_kind = 'supplier' THEN payment_amount ELSE 0 END,
+			       CASE WHEN counterparty_kind = 'customer' THEN payment_amount ELSE 0 END
+			FROM historical_party_payment_allocations
+			WHERE tenant_id = $1::uuid AND branch_id = $2::uuid
+			  AND party_id = $3::uuid AND posted = true AND payment_amount <> 0
+			UNION ALL
+			SELECT debit_amount, credit_amount
+			FROM historical_party_ledger_adjustments
+			WHERE tenant_id = $1::uuid AND branch_id = $2::uuid
+			  AND party_id = $3::uuid AND posted = true
+			  AND (debit_amount <> 0 OR credit_amount <> 0)
+			UNION ALL
+			SELECT debit_amount, credit_amount
+			FROM historical_party_return_allocations
+			WHERE tenant_id = $1::uuid AND branch_id = $2::uuid
+			  AND party_id = $3::uuid AND posted = true
+			  AND allocation_amount <> 0
+		) entries
 	`, operator.TenantID, operator.BranchID, partyID).Scan(&balance); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		writeProblem(w, http.StatusServiceUnavailable, "finance_read_failed", "Unable to read party ledger", "The party balance query failed.")
 		return
@@ -785,13 +806,63 @@ func (s *Server) financeLedger(w http.ResponseWriter, r *http.Request) {
 		BalanceAfter string `json:"balanceAfter,omitempty"`
 		OccurredAt   string `json:"occurredAt"`
 		Description  string `json:"description"`
+		SourceType   string `json:"sourceType,omitempty"`
 	}
 	rows, err := tx.QueryContext(r.Context(), `
-		SELECT id::text, source_document_id::text, debit_amount::text, credit_amount::text,
-		       COALESCE(balance_after::text, ''), occurred_at::text, description
-		FROM party_ledger_entries
-		WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND party_id = $3::uuid
-		ORDER BY occurred_at, id
+		WITH entries AS (
+			SELECT id::text AS row_id, source_document_id::text AS document_id,
+			       debit_amount, credit_amount,
+			       occurred_at, description, 'party-ledger' AS source_type
+			FROM party_ledger_entries
+			WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND party_id = $3::uuid
+			UNION ALL
+			SELECT p.id::text AS row_id,
+			       COALESCE(p.source_document_id::text,
+			                NULLIF(p.source_document_legacy_id, ''), p.payment_code),
+			       CASE WHEN p.counterparty_kind = 'supplier' THEN p.payment_amount ELSE 0 END,
+			       CASE WHEN p.counterparty_kind = 'customer' THEN p.payment_amount ELSE 0 END,
+			       p.occurred_at,
+			       COALESCE(NULLIF(p.remarks, ''), 'Payment ' || p.payment_code),
+			       'payment-allocation'
+			FROM historical_party_payment_allocations p
+			WHERE p.tenant_id = $1::uuid AND p.branch_id = $2::uuid
+			  AND p.party_id = $3::uuid AND p.posted = true AND p.payment_amount <> 0
+			UNION ALL
+			SELECT a.id::text AS row_id,
+			       COALESCE(a.source_document_id::text,
+			                NULLIF(a.source_document_legacy_id, ''), a.source_legacy_id),
+			       a.debit_amount, a.credit_amount, a.occurred_at,
+			       COALESCE(NULLIF(a.remarks, ''), 'Receivable adjustment ' || a.source_legacy_id),
+			       'receivable-adjustment'
+			FROM historical_party_ledger_adjustments a
+			WHERE a.tenant_id = $1::uuid AND a.branch_id = $2::uuid
+			  AND a.party_id = $3::uuid AND a.posted = true
+			  AND (a.debit_amount <> 0 OR a.credit_amount <> 0)
+			  AND a.occurred_at IS NOT NULL
+			UNION ALL
+			SELECT r.id::text AS row_id,
+			       COALESCE(r.source_document_id::text,
+			                NULLIF(r.source_document_legacy_id, ''), r.return_source_legacy_id),
+			       r.debit_amount, r.credit_amount, r.occurred_at,
+			       'Return allocation ' || r.return_kind || ' ' || r.return_source_legacy_id,
+			       'return-allocation'
+			FROM historical_party_return_allocations r
+			WHERE r.tenant_id = $1::uuid AND r.branch_id = $2::uuid
+			  AND r.party_id = $3::uuid AND r.posted = true
+			  AND r.allocation_amount <> 0
+		), running_entries AS (
+			SELECT row_id, document_id, debit_amount, credit_amount,
+			       SUM(debit_amount - credit_amount) OVER (
+				       ORDER BY occurred_at NULLS LAST, row_id
+				       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+			       )::numeric(19,4)::text AS balance_after,
+			       occurred_at, description, source_type
+			FROM entries
+		)
+		SELECT row_id, document_id, debit_amount::text, credit_amount::text, balance_after,
+		       occurred_at::text, description, source_type
+		FROM running_entries
+		ORDER BY occurred_at NULLS LAST, row_id
 	`, operator.TenantID, operator.BranchID, partyID)
 	if err != nil {
 		writeProblem(w, http.StatusServiceUnavailable, "finance_read_failed", "Unable to read party ledger", "The party ledger query failed.")
@@ -800,7 +871,7 @@ func (s *Server) financeLedger(w http.ResponseWriter, r *http.Request) {
 	entries := make([]entry, 0)
 	for rows.Next() {
 		var item entry
-		if err := rows.Scan(&item.ID, &item.DocumentID, &item.Debit, &item.Credit, &item.BalanceAfter, &item.OccurredAt, &item.Description); err != nil {
+		if err := rows.Scan(&item.ID, &item.DocumentID, &item.Debit, &item.Credit, &item.BalanceAfter, &item.OccurredAt, &item.Description, &item.SourceType); err != nil {
 			rows.Close()
 			writeProblem(w, http.StatusServiceUnavailable, "finance_read_failed", "Unable to read party ledger", "The party ledger response could not be decoded.")
 			return

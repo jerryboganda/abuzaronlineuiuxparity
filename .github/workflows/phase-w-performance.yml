@@ -41,7 +41,7 @@ jobs:
         run: |
           $full = [System.Convert]::ToBoolean("${{ inputs.full_volume }}")
           if ($full) {
-            ./ops/perf/run-phase-w.ps1 -AdminDsn $env:ABUZAR_PERF_ADMIN_DATABASE_URL -FullVolume -Iterations 15
+            ./ops/perf/run-phase-w.ps1 -AdminDsn $env:ABUZAR_PERF_ADMIN_DATABASE_URL -FullVolume -AllowSharedCluster -Iterations 15
           } else {
             ./ops/perf/run-phase-w.ps1 -AdminDsn $env:ABUZAR_PERF_ADMIN_DATABASE_URL -Iterations 5
           }

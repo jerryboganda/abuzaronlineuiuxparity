@@ -9,6 +9,11 @@
 -- several million rows plus indexes can require substantial disk and time.
 
 \set ON_ERROR_STOP on
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET synchronous_commit = off;
+SET maintenance_work_mem = '1GB';
+SET work_mem = '64MB';
 \if :{?scale_stock}
 \else
   \set scale_stock 25000
@@ -43,6 +48,7 @@
 \endif
 
 BEGIN;
+\echo Phase W fixture: tenant and master data
 
 -- A fixed fixture identity makes the harness repeatable while the database
 -- itself remains disposable. No application or legacy credentials are used.
@@ -90,6 +96,7 @@ ON CONFLICT DO NOTHING;
 
 -- Batch identity is deterministic. The first batch is the line-add proxy's
 -- lookup target and all batches belong to the explicit benchmark godown.
+\echo Phase W fixture: stock batches
 INSERT INTO stock_batches (
     id, tenant_id, branch_id, item_id, item_legacy_id, godown_id,
     batch_number, expiry_date, unit_cost, received_at
@@ -110,6 +117,7 @@ ON CONFLICT DO NOTHING;
 
 -- Each stock row has a source event because the canonical movement report
 -- joins the immutable event envelope to exclude draft/void compatibility data.
+\echo Phase W fixture: stock source events and ledger
 INSERT INTO sync_events (
     event_id, tenant_id, branch_id, aggregate, aggregate_id,
     idempotency_key, payload, occurred_at
@@ -163,6 +171,7 @@ SET on_hand = EXCLUDED.on_hand, updated_at = now();
 -- Canonical posted sales provide report rows and the source documents required
 -- by the disposable GL and party-ledger volume. They are not imported business
 -- data and are never written to the real local application database.
+\echo Phase W fixture: canonical documents and lines
 INSERT INTO business_documents (
     id, tenant_id, branch_id, counter_id, operator_id, kind, document_number,
     status, occurred_at, customer_id, subtotal, total_amount, paid_amount,
@@ -224,6 +233,7 @@ SELECT
 FROM generate_series(1, :scale_gl::integer) AS docs(n)
 ON CONFLICT DO NOTHING;
 
+\echo Phase W fixture: GL journals, lines, and party ledger
 INSERT INTO gl_journals (
     id, tenant_id, branch_id, source_event_id, source_document_id, kind,
     posted_at, total_debit, total_credit

@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestIdentifierQuotingEscapesDelimiters(t *testing.T) {
 	if got := quoteSQLServer("a]b"); got != "[a]]b]" {
@@ -10,7 +13,6 @@ func TestIdentifierQuotingEscapesDelimiters(t *testing.T) {
 		t.Fatalf("PostgreSQL quote = %q", got)
 	}
 }
-
 func TestReadOnlyMetricQuery(t *testing.T) {
 	valid := []string{
 		"SELECT COUNT(*) FROM dbo.sales",
@@ -81,5 +83,82 @@ func TestRewriteMetricTenantOnlyReplacesReviewedSandboxLiteral(t *testing.T) {
 	}
 	if rewriteMetricTenant(query, "") != query {
 		t.Fatal("empty metric tenant unexpectedly changed query")
+	}
+}
+
+func TestBookkeepingStatusRequiresBothExceptionTablesToBeClear(t *testing.T) {
+	tests := []struct {
+		name            string
+		openExceptions  int64
+		openAmbiguities int64
+		want            string
+	}{
+		{name: "clear", want: "clear"},
+		{name: "open migration exception", openExceptions: 1, want: "review_required"},
+		{name: "open ambiguity", openAmbiguities: 1, want: "review_required"},
+		{name: "both open", openExceptions: 2, openAmbiguities: 3, want: "review_required"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := bookkeepingStatus(test.openExceptions, test.openAmbiguities); got != test.want {
+				t.Fatalf("bookkeeping status = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestBookkeepingCountsDistinctOpenSourceCases(t *testing.T) {
+	if !containsAll(bookkeepingMigrationExceptionQuery,
+		"COUNT(*) AS open_rows",
+		"COUNT(DISTINCT (source_schema, source_table, legacy_id, reason_code)) AS open_cases",
+		"status = 'open'",
+	) {
+		t.Fatal("bookkeeping query does not expose raw rows and distinct open cases")
+	}
+}
+
+func containsAll(value string, needles ...string) bool {
+	for _, needle := range needles {
+		if !strings.Contains(value, needle) {
+			return false
+		}
+	}
+	return true
+}
+
+func TestQueryMetricTypes(t *testing.T) {
+	// Test byte slice conversion
+	mBytes := decimalMetric{Value: 123.456, Raw: string([]byte("123.456"))}
+	if mBytes.String() != "123.456" {
+		t.Fatalf("byte slice raw string mismatch: got %s, want 123.456", mBytes.String())
+	}
+	if mBytes.Value != 123.456 {
+		t.Fatalf("byte slice value mismatch: got %f, want 123.456", mBytes.Value)
+	}
+
+	// Test zero value default float formatting
+	mZero := decimalMetric{Value: 0}
+	if mZero.String() != "0.00000000" {
+		t.Fatalf("zero value string mismatch: got %s, want 0.00000000", mZero.String())
+	}
+}
+
+func TestReadOnlySelectSecurityEdgeCases(t *testing.T) {
+	rejectedQueries := []string{
+		"SELECT * FROM sales; DROP TABLE users",
+		"SELECT * FROM sales -- comment with DELETE",
+		"INSERT INTO audit_log SELECT * FROM sales",
+		"UPDATE accounts SET balance = 0",
+		"EXEC sp_executesql N'SELECT 1'",
+		"CREATE TABLE temp (id int)",
+		"TRUNCATE TABLE logs",
+		"ALTER TABLE users ADD COLUMN bad int",
+		"",
+		"   ",
+	}
+	for _, q := range rejectedQueries {
+		if readOnlySelect(q) {
+			t.Fatalf("readOnlySelect unexpectedly approved dangerous/invalid query: %q", q)
+		}
 	}
 }

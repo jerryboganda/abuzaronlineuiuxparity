@@ -1,13 +1,14 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
-  import type { DocumentCommandForKind, InventoryAvailableBatch, ItemLookupResult, MasterRecord, PurchaseDocumentKind, SessionResponse, SyncEnvelope, ReportRow } from '@abuzar/contracts';
-  import { AbuzarApi, ApiError, OfflineQueue, newEventId } from '$lib/api';
+  import type { Document, DocumentCommandForKind, InventoryAvailableBatch, ItemLookupResult, MasterRecord, PurchaseDocumentKind, SessionResponse, SyncEnvelope, ReportRow } from '@abuzar/contracts';
+  import { AbuzarApi, ApiError, OfflineQueue, edgeRequest, newEventId } from '$lib/api';
   import LegacyMenuBar from '$lib/LegacyMenuBar.svelte';
   import type { MenuAction } from '$lib/legacy-menu';
   import { formatLegacyTitle } from '$lib/legacy-title';
   import { localDateAtNoonUtc, localDateString } from '$lib/calendar-date';
 
+  type PurchaseAllocation = { batchId: string; batchNumber: string; quantity: string };
   type PurchaseRow = {
     quickSearch: string;
     itemId?: string;
@@ -26,6 +27,7 @@
     discountPercent: string;
     gstRate: string;
     sourceBatchId: string;
+    sourceLineId?: string;
     total: string;
   };
 
@@ -48,6 +50,7 @@
   let supplierId = '';
   let godownId = '';
   let availableBatches: Record<number, InventoryAvailableBatch[]> = {};
+  let returnAllocations: Record<number, PurchaseAllocation[]> = {};
   let businessDocumentId = '';
   let businessDocumentVersion = 0;
   let itemLookupBusy = false;
@@ -60,8 +63,15 @@
   let rows: PurchaseRow[] = [blankRow()];
   let activeTab: 'detail' | 'list' = 'detail';
   let interactive = false;
-  let history: ReportRow[] = [];
-  let historyBusy = false;
+	let history: ReportRow[] = [];
+	let historyBusy = false;
+	let historyFilter = '';
+  type HistoryMode = 'browse' | 'populate-invoice' | 'populate-return';
+  let historyMode: HistoryMode = 'browse';
+  let historyQueryKind = '';
+  let saleTemplates: MasterRecord[] = [];
+  let saleTemplateBusy = false;
+  let showSaleTemplatePicker = false;
   let clock = new Date();
   let authenticatedUsername = 'ADMIN';
   let canonicalCommandSignature = '';
@@ -70,6 +80,7 @@
   let itemGstRate = '';
   let itemDiscountRate = '';
   let miscAmount = '0';
+  let creditDays = '';
   let showExpenses = false;
   let attachmentInput: HTMLInputElement | null = null;
   let attachments: Array<{ name: string; size: number }> = [];
@@ -77,15 +88,16 @@
   $: kind = $page?.params?.kind ?? 'pack';
   $: title = titles[kind] ?? 'Purchase';
   $: historyKind = kind === 'return' ? 'purchase-return' : kind === 'order' ? 'purchase-order' : kind === 'loose' ? 'loose-purchase' : kind === 'opening' ? 'opening-purchase' : 'pack-purchase';
+  $: historyRequestKind = historyQueryKind || historyKind;
   $: transactionWindowTitle = `${formatLegacyTitle(authenticatedUsername, clock)} - [${title}]`;
   function isCanonicalPurchaseKind(): boolean {
     return supportedPurchaseRouteKinds.includes(kind);
   }
 
-  async function loadHistory() {
+  async function loadHistory(requestedKind = historyRequestKind) {
     historyBusy = true;
     try {
-      history = (await api.transactions(historyKind, transactionDate, transactionDate)).rows;
+		history = (await api.transactions(requestedKind, transactionDate, transactionDate, historyFilter.trim())).rows;
     } catch {
       history = [];
     } finally {
@@ -93,12 +105,85 @@
     }
   }
 
-  function applyHistoryRow(row: ReportRow) {
-    invoiceNumber = row.document || '';
-    supplier = row.party || supplier;
-    rows = [{ ...blankRow(), itemName: row.item || '', quantity: row.quantity || '1', total: row.amount || '0.00' }];
-    activeTab = 'detail';
-    message = `${title} ${invoiceNumber || 'document'} loaded.`;
+  function purchaseRowsFromDocument(document: Document, useDocumentLineIdsAsSource = false): PurchaseRow[] {
+    const hydrated = document.lines.map((line) => {
+      const allocation = line.allocations?.[0];
+      const batch = line.batchNumber || allocation?.batchNumber || '';
+      return {
+        ...blankRow(),
+        quickSearch: line.itemName || line.itemCode || '',
+        itemId: line.itemId,
+        itemLegacyId: line.itemLegacyId || line.itemCode || line.itemId,
+        itemName: line.itemName,
+        batch,
+        expiry: line.expiryDate || allocation?.expiryDate || '',
+        quantity: line.quantity || '0',
+        purchasePrice: line.unitCost || line.price.unitPrice || '0.00',
+        discountPercent: line.price.discountPercent || '',
+        gstRate: line.tax?.lines?.[0]?.rate || '',
+        sourceBatchId: allocation?.batchId || '',
+        sourceLineId: useDocumentLineIdsAsSource ? line.id : line.sourceLineId || '',
+        total: line.lineTotal || line.price.netAmount || '0.00'
+      };
+    });
+    returnAllocations = Object.fromEntries(document.lines.map((line, index) => [
+      index,
+      (line.allocations ?? []).map((allocation) => ({
+        batchId: allocation.batchId ?? '',
+        batchNumber: allocation.batchNumber ?? '',
+        quantity: allocation.quantity || '0'
+      }))
+    ]).filter(([, allocations]) => (allocations as PurchaseAllocation[]).length > 0));
+    return hydrated.length ? hydrated : [blankRow()];
+  }
+
+  async function applyHistoryRow(row: ReportRow) {
+    historyBusy = true;
+    error = '';
+    try {
+      if (!row.documentId) {
+        invoiceNumber = row.document || '';
+        supplier = row.party || supplier;
+        availableBatches = {};
+        returnAllocations = {};
+        creditDays = '';
+        rows = [{ ...blankRow(), itemName: row.item || '', quantity: row.quantity || '1', total: row.amount || '0.00' }];
+        activeTab = 'detail';
+        message = `${title} ${invoiceNumber || 'document'} loaded from the compatibility history summary.`;
+        return;
+      }
+      const document = await api.document(row.documentId);
+      const isPurchaseDocument = ['pack-purchase', 'loose-purchase', 'opening-purchase', 'purchase-return', 'purchase-order'].includes(document.kind);
+      if (!isPurchaseDocument) throw new Error('The selected history row is not a canonical purchase document.');
+      const populating = historyMode !== 'browse';
+      const sourceDocument = historyMode === 'populate-invoice' || historyMode === 'populate-return' ? document : undefined;
+      invoiceNumber = populating ? '' : document.documentNumber || row.document || '';
+      transactionDate = document.occurredAt?.slice(0, 10) || transactionDate;
+      supplier = document.supplier?.name || row.party || supplier;
+      supplierId = document.supplierId || supplierId;
+      godownId = document.godownId || godownId;
+      supplierInvoice = document.reference || '';
+      remarks = document.remarks || '';
+      sourceDocumentId = sourceDocument?.id || document.sourceDocumentId || '';
+      sourceDocumentNumber = sourceDocument?.documentNumber || document.sourceDocumentNumber || '';
+      creditDays = sourceDocument?.creditDays ?? document.creditDays ?? '';
+      rows = purchaseRowsFromDocument(document, historyMode === 'populate-return');
+      if (historyMode === 'populate-return') await prepareReturnSourceBatches(document);
+      businessDocumentId = populating ? '' : document.id;
+      businessDocumentVersion = populating ? 0 : document.version;
+      canonicalCommandSignature = '';
+      canonicalCommandId = '';
+      canonicalIdempotencyKey = '';
+      activeTab = 'detail';
+      message = populating
+        ? `${title}: ${document.documentNumber || row.document || 'document'} lines populated from canonical history.`
+        : `${title} ${document.documentNumber || row.document || 'document'} loaded with canonical lines.`;
+    } catch (cause) {
+      error = cause instanceof Error ? cause.message : 'The selected purchase document could not be loaded.';
+      message = 'The selected purchase document could not be loaded.';
+    } finally {
+      historyBusy = false;
+    }
   }
 
   async function navigateHistory(offset: number) {
@@ -106,13 +191,13 @@
     if (!history.length) { message = 'No persisted documents found for this date.'; return; }
     const current = history.findIndex((row) => row.document === invoiceNumber);
     const next = current < 0 ? (offset > 0 ? 0 : history.length - 1) : (current + offset + history.length) % history.length;
-    applyHistoryRow(history[next]);
+    void applyHistoryRow(history[next]);
   }
 
   async function navigateHistoryTo(index: number) {
     if (!history.length) await loadHistory();
     if (!history.length) { message = 'No persisted documents found for this date.'; return; }
-    applyHistoryRow(history[index < 0 ? history.length - 1 : Math.min(index, history.length - 1)]);
+    void applyHistoryRow(history[index < 0 ? history.length - 1 : Math.min(index, history.length - 1)]);
   }
 
   function autoGenerateBatches() {
@@ -130,13 +215,24 @@
   }
 
   async function printPurchaseLabels() {
-    const labels = rows.filter((row) => row.itemName.trim()).map((row) => `${row.itemName} | Batch: ${row.batch || 'N/A'} | Qty: ${row.quantity || '0'} | Price: ${row.purchasePrice || '0.00'}`);
+    const labels = rows.filter((row) => row.itemName.trim()).map((row) => ({
+      itemName: row.itemName,
+      batch: row.batch || '',
+      expiry: row.expiry || '',
+      mrp: row.batchSalePrice || '',
+      quantity: row.quantity || '0'
+    }));
     if (!labels.length) {
       message = 'Print Purchase Labels: enter at least one item first.';
       return;
     }
-    message = `Print Purchase Labels: preview ready for ${labels.length} item${labels.length === 1 ? '' : 's'}.`;
-    window.print();
+    try {
+      await edgeRequest('/v1/hardware/print/purchase-labels', { labels, cutAfter: true });
+      message = `Print Purchase Labels: ${labels.length} label${labels.length === 1 ? '' : 's'} sent to the branch printer.`;
+    } catch {
+      message = `Print Purchase Labels: preview ready for ${labels.length} item${labels.length === 1 ? '' : 's'}.`;
+      window.print();
+    }
   }
 
   function onAttachmentsSelected(event: Event) {
@@ -145,7 +241,14 @@
     message = attachments.length ? `${attachments.length} document${attachments.length === 1 ? '' : 's'} attached to this draft.` : 'No documents selected.';
   }
 
-  $: if (activeTab === 'list' && historyKind && transactionDate) void loadHistory();
+  $: if (activeTab === 'list' && historyRequestKind && transactionDate) void loadHistory();
+
+  function openHistory(mode: HistoryMode = 'browse', requestedKind = historyKind) {
+    historyMode = mode;
+    historyQueryKind = requestedKind === historyKind ? '' : requestedKind;
+    activeTab = 'list';
+    void loadHistory(requestedKind);
+  }
 
   function enableInteractive(event?: Event) {
     const target = event?.target;
@@ -159,8 +262,7 @@
         newDocument();
         return true;
       case 'List':
-        activeTab = 'list';
-        void loadHistory();
+        openHistory();
         return true;
       case 'Save':
         void savePurchase('save');
@@ -180,18 +282,27 @@
         void printPurchaseLabels();
         return true;
       case 'Populate Items':
-        activeTab = 'detail';
-        message = 'Populate Items: choose synchronized item identities in the grid before posting.';
+        void populatePurchaseItems();
+        return true;
+      case 'Populate Purchase Invoice':
+        openHistory('populate-invoice', 'purchase-order');
+        message = 'Populate Purchase Invoice: select a purchase order to copy its canonical lines.';
+        return true;
+      case 'Populate Purchase Return Invoice':
+        openHistory('populate-return', 'pack-purchase');
+        message = 'Populate Purchase Return Invoice: select the posted purchase whose batches should be returned.';
         return true;
       case 'Populate Sales Order':
       case 'Populate Pending Due Item(s)':
-      case 'Populate Purchase Invoice':
-      case 'Populate Purchase Return Invoice':
-      case 'Populate From Sale Template':
-      case 'Fetch Purchase Invoice From Other Sources':
-        activeTab = 'list';
-        void loadHistory();
+        openHistory('browse');
         message = `${action.label}: persisted purchase history is ready for selection.`;
+        return true;
+      case 'Populate From Sale Template':
+        void openSaleTemplatePicker();
+        return true;
+      case 'Fetch Purchase Invoice From Other Sources':
+        openHistory('populate-invoice', 'purchase-order');
+        message = 'Fetch Purchase Invoice From Other Sources: select a canonical purchase order to populate a new invoice.';
         return true;
       case 'Import Parent Server Selected Transactions':
         void flushQueue();
@@ -248,12 +359,20 @@
         autoGenerateBatches();
         return true;
       case 'Item Purchase History':
-        activeTab = 'list';
-        void loadHistory();
+        openHistory();
         message = 'Item Purchase History: filtered transaction list ready.';
         return true;
       case 'Sort Items':
-        rows = [...rows].sort((left, right) => left.itemName.localeCompare(right.itemName));
+        {
+          const sorted = rows.map((row, index) => ({ row, index })).sort((left, right) => left.row.itemName.localeCompare(right.row.itemName));
+          rows = sorted.map((entry) => entry.row);
+          returnAllocations = Object.fromEntries(sorted
+            .map((entry, index) => [index, returnAllocations[entry.index]])
+            .filter(([, allocations]) => Boolean(allocations)) as Array<[number, PurchaseAllocation[]]>);
+          availableBatches = Object.fromEntries(sorted
+            .map((entry, index) => [index, availableBatches[entry.index]])
+            .filter(([, batches]) => Boolean(batches)) as Array<[number, InventoryAvailableBatch[]]>);
+        }
         message = 'Items sorted by name.';
         return true;
       case 'Delete Item':
@@ -345,19 +464,56 @@
     rows = rows.map((row, rowIndex) => {
       if (rowIndex !== index) return row;
       const next = { ...row, [key]: value };
-      if ((key === 'itemName' || key === 'quickSearch') && value !== row[key]) { next.itemId = undefined; next.itemLegacyId = ''; next.sourceBatchId = ''; }
+      if ((key === 'itemName' || key === 'quickSearch') && value !== row[key]) { next.itemId = undefined; next.itemLegacyId = ''; next.sourceBatchId = ''; next.sourceLineId = ''; returnAllocations = { ...returnAllocations, [index]: [] }; }
       if (key === 'quantity' || key === 'purchasePrice') next.total = ((Number(next.quantity) || 0) * (Number(next.purchasePrice) || 0)).toFixed(2);
       return next;
     });
   }
 
-  async function chooseItem(index: number, value: string) {
+  function returnAllocationsFor(index: number, row = rows[index]): PurchaseAllocation[] {
+    const explicit = returnAllocations[index];
+    if (explicit?.length) return explicit;
+    return [{ batchId: row?.sourceBatchId ?? '', batchNumber: row?.batch ?? '', quantity: row?.quantity || '1' }];
+  }
+
+  function setReturnAllocation(index: number, allocationIndex: number, key: keyof PurchaseAllocation, value: string) {
+    const row = rows[index];
+    if (!row) return;
+    const allocations = [...returnAllocationsFor(index, row)];
+    const selectedBatch = key === 'batchId' ? (availableBatches[index] ?? []).find((batch) => batch.batchId === value) : undefined;
+    allocations[allocationIndex] = {
+      ...(allocations[allocationIndex] ?? { batchId: '', batchNumber: '', quantity: '0' }),
+      [key]: value,
+      ...(selectedBatch ? { batchNumber: selectedBatch.batchNumber } : {})
+    };
+    returnAllocations = { ...returnAllocations, [index]: allocations };
+    if (allocationIndex === 0 && key === 'batchId') updateRow(index, 'sourceBatchId', value);
+    if (allocationIndex === 0 && key === 'batchNumber') updateBatch(index, value);
+    if (key === 'batchId') message = value ? `Source batch selected for return line ${index + 1}. Enter the quantity for this allocation.` : `Automatic source batch selection restored for return line ${index + 1}.`;
+  }
+
+  function addReturnAllocation(index: number) {
+    const row = rows[index];
+    if (!row) return;
+    returnAllocations = { ...returnAllocations, [index]: [...returnAllocationsFor(index, row), { batchId: '', batchNumber: '', quantity: '0' }] };
+  }
+
+  function removeReturnAllocation(index: number, allocationIndex: number) {
+    const row = rows[index];
+    if (!row) return;
+    const allocations = returnAllocationsFor(index, row).filter((_, candidateIndex) => candidateIndex !== allocationIndex);
+    const nextAllocations = allocations.length ? allocations : [{ batchId: '', batchNumber: '', quantity: row.quantity || '1' }];
+    returnAllocations = { ...returnAllocations, [index]: nextAllocations };
+  }
+
+  async function chooseItem(index: number, value: string): Promise<boolean> {
     const records = await lookupItems(value);
     const normalized = value.trim().toLowerCase();
     const match = records.find((record) => record.code.toLowerCase() === normalized
       || record.name.toLowerCase() === normalized
       || record.legacyId.toLowerCase() === normalized
-      || record.aliases.some((alias) => alias.toLowerCase() === normalized));
+      || record.aliases.some((alias) => alias.toLowerCase() === normalized))
+      ?? (records.length === 1 ? records[0] : undefined);
     updateRow(index, 'quickSearch', value);
     if (match) {
       updateRow(index, 'itemName', match.name);
@@ -365,6 +521,124 @@
       rows = rows.map((row, rowIndex) => rowIndex === index ? { ...row, itemId: match.id } : row);
       void refreshRowBatches(index);
     }
+    return Boolean(match);
+  }
+
+  async function populatePurchaseItems() {
+    activeTab = 'detail';
+    error = '';
+    const searchRows = rows.map((row, index) => ({
+      index,
+      value: row.quickSearch.trim() || (!row.itemId ? row.itemName.trim() : '')
+    })).filter((candidate) => candidate.value);
+    let attempted = searchRows.length;
+    let populated = 0;
+    let unresolved = 0;
+    for (const candidate of searchRows) {
+      if (await chooseItem(candidate.index, candidate.value)) populated += 1;
+      else unresolved += 1;
+    }
+    if (!attempted) {
+      const blankIndex = rows.findIndex((row) => !row.itemId && !row.itemName.trim() && !row.quickSearch.trim());
+      const fallback = itemRecords[0];
+      if (blankIndex >= 0 && fallback) {
+        attempted = 1;
+        if (await chooseItem(blankIndex, fallback.code || fallback.name)) populated = 1;
+        else unresolved = 1;
+      }
+    }
+    if (populated) {
+      message = `Populate Items: ${populated} active canonical item${populated === 1 ? '' : 's'} populated${unresolved ? `; ${unresolved} search${unresolved === 1 ? '' : 'es'} still require an exact match.` : '.'}`;
+    } else if (attempted) {
+      message = 'Populate Items: no exact or unique active canonical item matched the entered search values.';
+    } else {
+      message = 'Populate Items: enter a quick-search value or run an item lookup before populating.';
+    }
+  }
+
+  function templateText(payload: Record<string, unknown>, ...keys: string[]): string {
+    for (const key of keys) {
+      const value = payload[key];
+      if (value !== undefined && value !== null && String(value).trim()) return String(value).trim();
+    }
+    return '';
+  }
+
+  function purchaseRowsFromSaleTemplate(template: MasterRecord): PurchaseRow[] {
+    const payload = template.payload ?? {};
+    const candidates = [payload.rows, payload.lines, payload.items].find((value) => Array.isArray(value));
+    if (!Array.isArray(candidates)) return [];
+    return candidates.flatMap((candidate) => {
+      if (!candidate || typeof candidate !== 'object') return [];
+      const line = candidate as Record<string, unknown>;
+      const itemIdCandidate = templateText(line, 'itemId', 'ItemId');
+      const itemId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(itemIdCandidate) ? itemIdCandidate : '';
+      const itemName = templateText(line, 'itemName', 'itemDescription', 'item', 'ItemName');
+      const quickSearch = templateText(line, 'quickSearch', 'itemCode', 'itemLegacyId', 'alias', 'code') || itemName;
+      const quantity = templateText(line, 'quantity', 'Qty') || '1';
+      const purchasePrice = templateText(line, 'purchasePrice', 'unitCost', 'price', 'PurchasePrice');
+      const total = templateText(line, 'total', 'lineTotal', 'amount') || ((Number(quantity) || 0) * (Number(purchasePrice) || 0)).toFixed(2);
+      return [{
+        ...blankRow(),
+        ...(itemId ? { itemId } : {}),
+        quickSearch,
+        itemLegacyId: templateText(line, 'itemLegacyId', 'legacyId', 'itemCode'),
+        itemName,
+        packUnits: templateText(line, 'packUnits', 'PiecesInPacking'),
+        packing: templateText(line, 'packing'),
+        location: templateText(line, 'location', 'Location'),
+        godown: templateText(line, 'godown', 'godownName'),
+        batch: templateText(line, 'batch', 'batchNumber'),
+        mfgDate: templateText(line, 'mfgDate', 'manufactureDate'),
+        expiry: templateText(line, 'expiry', 'expiryDate'),
+        batchSalePrice: templateText(line, 'batchSalePrice', 'salePrice'),
+        quantity,
+        purchasePrice,
+        discountPercent: templateText(line, 'discountPercent', 'discPerc'),
+        gstRate: templateText(line, 'gstRate', 'salesTax', 'taxRate'),
+        total
+      }];
+    });
+  }
+
+  async function openSaleTemplatePicker() {
+    saleTemplateBusy = true;
+    showSaleTemplatePicker = true;
+    activeTab = 'detail';
+    error = '';
+    try {
+      saleTemplates = (await api.masterRecords('sale-template')).records.filter((record) => record.active);
+      message = saleTemplates.length ? 'Populate From Sale Template: select an active template.' : 'Populate From Sale Template: no active sale templates are available.';
+    } catch (cause) {
+      saleTemplates = [];
+      error = cause instanceof ApiError ? cause.problem?.detail ?? cause.message : 'Sale templates could not be loaded.';
+      message = 'Populate From Sale Template could not load the template list.';
+    } finally {
+      saleTemplateBusy = false;
+    }
+  }
+
+  async function applySaleTemplate(template: MasterRecord) {
+    const templateRows = purchaseRowsFromSaleTemplate(template);
+    if (!templateRows.length) {
+      message = `${template.name || template.code}: no supported line payload was found; the template master remains unchanged.`;
+      return;
+    }
+    availableBatches = {};
+    returnAllocations = {};
+    rows = templateRows;
+    invoiceNumber = '';
+    businessDocumentId = '';
+    businessDocumentVersion = 0;
+    creditDays = '';
+    canonicalCommandSignature = '';
+    canonicalCommandId = '';
+    canonicalIdempotencyKey = '';
+    orderCode = template.code;
+    showSaleTemplatePicker = false;
+    activeTab = 'detail';
+    await populatePurchaseItems();
+    message = `Populate From Sale Template: ${template.name || template.code} loaded ${templateRows.length} line${templateRows.length === 1 ? '' : 's'} into a new draft.`;
   }
 
   function chooseSupplier(value: string) {
@@ -393,16 +667,48 @@
     }
   }
 
+  async function prepareReturnSourceBatches(document: Document) {
+    if (document.godownId) godownId = document.godownId;
+    const godown = godownRecords.find((record) => record.id === godownId);
+    rows = rows.map((row) => ({ ...row, godown: row.godown || godown?.name || godown?.code || godownId }));
+    availableBatches = {};
+    await Promise.all(rows.map((_, index) => refreshRowBatches(index)));
+    const nextAllocations = { ...returnAllocations };
+    rows = rows.map((row, index) => {
+      if (nextAllocations[index]?.length || !row.batch.trim()) return row;
+      const match = (availableBatches[index] ?? []).filter((batch) => batch.batchNumber.toLowerCase() === row.batch.trim().toLowerCase());
+      if (match.length !== 1) return row;
+      nextAllocations[index] = [{ batchId: match[0].batchId, batchNumber: match[0].batchNumber, quantity: row.quantity || '1' }];
+      return { ...row, sourceBatchId: match[0].batchId };
+    });
+    returnAllocations = nextAllocations;
+  }
+
   function updateBatch(index: number, value: string) {
     updateRow(index, 'batch', value);
     if (kind !== 'return') return;
     const match = (availableBatches[index] ?? []).find((batch) => batch.batchNumber.toLowerCase() === value.trim().toLowerCase());
     rows = rows.map((row, rowIndex) => rowIndex === index ? { ...row, sourceBatchId: match?.batchId ?? row.sourceBatchId } : row);
+    const allocations = [...returnAllocationsFor(index, rows[index])];
+    allocations[0] = { ...allocations[0], batchId: match?.batchId ?? allocations[0].batchId, batchNumber: value };
+    returnAllocations = { ...returnAllocations, [index]: allocations };
+  }
+
+  function updateSourceBatchId(index: number, value: string) {
+    updateRow(index, 'sourceBatchId', value);
+    const row = rows[index];
+    if (!row) return;
+    const allocations = [...returnAllocationsFor(index, row)];
+    allocations[0] = { ...allocations[0], batchId: value };
+    returnAllocations = { ...returnAllocations, [index]: allocations };
   }
 
   function removeRow(index: number) {
     rows = rows.filter((_, rowIndex) => rowIndex !== index);
     if (!rows.length) rows = [blankRow()];
+    returnAllocations = Object.fromEntries(Object.entries(returnAllocations)
+      .filter(([key]) => Number(key) !== index)
+      .map(([key, value]) => [Number(key) > index ? Number(key) - 1 : Number(key), value]));
     availableBatches = Object.fromEntries(Object.entries(availableBatches)
       .filter(([key]) => Number(key) !== index)
       .map(([key, value]) => [Number(key) > index ? Number(key) - 1 : Number(key), value]));
@@ -425,7 +731,7 @@
       occurredAt: localDateAtNoonUtc(transactionDate),
       idempotencyKey: `${kind}:${invoiceNumber || eventId}`,
       schemaVersion: 1,
-      payload: { kind, invoiceNumber, supplier, supplierInvoice, orderCode, remarks, rows, status: 'posted' }
+      payload: { kind, invoiceNumber, supplier, supplierInvoice, orderCode, remarks, creditDays, rows, status: 'posted' }
     };
   }
 
@@ -447,12 +753,27 @@
     if (lineRows.some((row) => !row.itemId || !isUuid(row.itemId) || !row.itemLegacyId)) throw new Error('Select every purchase item from the active canonical item list.');
     if (requestedKind === 'purchase-return') {
       if (!isUuid(sourceDocumentId)) throw new Error('Enter the canonical source purchase document UUID before saving or posting a return.');
-      if (lineRows.some((row) => !row.batch.trim() || !isUuid(row.sourceBatchId))) throw new Error('Select an explicit canonical source batch and batch ID for every return line.');
+      lineRows.forEach((row, lineIndex) => {
+        const sourceIndex = rows.indexOf(row);
+        if ((action === 'post' || action === 'save-and-post') && !isUuid(row.sourceLineId ?? '')) throw new Error(`Select the canonical source purchase line for return line ${lineIndex + 1}.`);
+        const allocations = returnAllocationsFor(sourceIndex, row).map((allocation) => ({
+          batchId: allocation.batchId.trim(),
+          batchNumber: allocation.batchNumber.trim(),
+          quantity: allocation.quantity.trim()
+        }));
+        if (allocations.some((allocation) => !allocation.batchNumber || !isUuid(allocation.batchId))) throw new Error(`Select an explicit canonical source batch and batch ID for every return allocation on line ${lineIndex + 1}.`);
+        if (allocations.some((allocation) => !/^\d+(?:\.\d{1,4})?$/.test(allocation.quantity) || Number(allocation.quantity) <= 0)) throw new Error(`Enter a positive source allocation quantity with no more than four decimals for return line ${lineIndex + 1}.`);
+        const batchIds = allocations.map((allocation) => allocation.batchId);
+        if (new Set(batchIds).size !== batchIds.length) throw new Error(`Select each source batch only once for return line ${lineIndex + 1}.`);
+        const allocated = allocations.reduce((sum, allocation) => sum + Number(allocation.quantity), 0);
+        if (Math.abs(allocated - Number(row.quantity)) > 0.00000001) throw new Error(`Source batch allocations for return line ${lineIndex + 1} must total the line quantity (${row.quantity || '0'}).`);
+      });
     } else if (requestedKind !== 'purchase-order') {
       if (lineRows.some((row) => !row.batch.trim() || !row.expiry.trim() || !row.purchasePrice.trim())) throw new Error('Batch, expiry, and unit cost are required for every purchase receipt.');
     }
     if (lineRows.some((row) => !row.quantity.trim() || Number(row.quantity) <= 0)) throw new Error('Every canonical purchase line requires a positive quantity.');
     if (lineRows.some((row) => Number(row.purchasePrice || '0') < 0)) throw new Error('Purchase unit cost cannot be negative.');
+    if (['pack-purchase', 'loose-purchase', 'opening-purchase'].includes(requestedKind) && creditDays.trim() && (!/^-?\d{1,5}$/.test(creditDays.trim()) || Math.abs(Number(creditDays)) > 36500)) throw new Error('Credit days must be a whole number between -36500 and 36500.');
     void action;
     return lineRows;
   }
@@ -470,11 +791,16 @@
       ...(row.discountPercent.trim() ? { discountPercent: row.discountPercent.trim() } : {}),
       ...(row.gstRate.trim() ? { gstRate: row.gstRate.trim() } : {}),
       ...(documentKind === 'purchase-return' ? {
-        allocations: [{ batchId: row.sourceBatchId, batchNumber: row.batch, quantity: row.quantity }]
+        ...(row.sourceLineId?.trim() ? { sourceLineId: row.sourceLineId.trim() } : {}),
+        allocations: returnAllocationsFor(rows.indexOf(row), row).map((allocation) => ({
+          batchId: allocation.batchId.trim(),
+          batchNumber: allocation.batchNumber.trim(),
+          quantity: allocation.quantity.trim()
+        }))
       } : {}),
       ...(documentKind === 'purchase-order' ? {} : { batchNumber: row.batch, expiryDate: row.expiry })
     }));
-    const signature = JSON.stringify({ documentKind, action, documentId: businessDocumentId, version: businessDocumentVersion, supplierId, godownId, sourceDocumentId, sourceDocumentNumber, lines, transactionDate });
+    const signature = JSON.stringify({ documentKind, action, documentId: businessDocumentId, version: businessDocumentVersion, supplierId, godownId, sourceDocumentId, sourceDocumentNumber, creditDays, lines, transactionDate });
     if (signature !== canonicalCommandSignature) {
       canonicalCommandSignature = signature;
       canonicalCommandId = newEventId();
@@ -493,9 +819,10 @@
         occurredAt,
         supplierId,
         ...(documentKind !== 'purchase-order' ? { godownId } : {}),
-        ...(documentKind === 'purchase-return' ? { sourceDocumentId: sourceDocumentId.trim(), sourceDocumentNumber: sourceDocumentNumber.trim() } : {}),
+        ...(sourceDocumentId.trim() ? { sourceDocumentId: sourceDocumentId.trim(), sourceDocumentNumber: sourceDocumentNumber.trim() } : {}),
         reference: supplierInvoice,
         remarks,
+        ...(['pack-purchase', 'loose-purchase', 'opening-purchase'].includes(documentKind) && creditDays.trim() ? { creditDays: creditDays.trim() } : {}),
         lines,
         priceLevel: 1,
         flatDiscountAmount: '0',
@@ -612,7 +939,10 @@
     sourceDocumentId = '';
     sourceDocumentNumber = '';
     remarks = '';
+    creditDays = '';
     rows = [blankRow()];
+    availableBatches = {};
+    returnAllocations = {};
     supplierId = '';
     godownId = '';
     businessDocumentId = '';
@@ -681,10 +1011,11 @@
         <label>Invoice No:<input bind:value={invoiceNumber} /></label>
         <label>Alias Name:<input aria-label="Supplier" list="purchase-supplier-options" value={supplier} oninput={(event) => chooseSupplier(event.currentTarget.value)} /></label>
         <label>Supp. Inv. #:<input bind:value={supplierInvoice} /></label>
-        <label>Remarks:<input bind:value={remarks} /></label>
-        <label>Order Code:<input bind:value={orderCode} /></label>
-        <label>Date:<input type="date" bind:value={transactionDate} /></label>
-        {#if kind === 'return'}<label>Source Document ID:<input aria-label="Source document ID" bind:value={sourceDocumentId} /></label><label>Source Document #:<input aria-label="Source document number" bind:value={sourceDocumentNumber} /></label>{/if}
+         <label>Remarks:<input bind:value={remarks} /></label>
+         <label>Order Code:<input bind:value={orderCode} /></label>
+         <label>Date:<input type="date" bind:value={transactionDate} /></label>
+         {#if kind === 'pack' || kind === 'loose' || kind === 'opening'}<label>Credit Days:<input aria-label="Credit days" inputmode="numeric" bind:value={creditDays} /></label>{/if}
+         {#if kind === 'return'}<label>Source Document ID:<input aria-label="Source document ID" bind:value={sourceDocumentId} /></label><label>Source Document #:<input aria-label="Source document number" bind:value={sourceDocumentNumber} /></label>{/if}
       </div>
       <div class="legacy-transaction-grid-wrap">
         <table class="legacy-transaction-grid" class:legacy-pack-purchase-grid={kind === 'pack'}>
@@ -709,7 +1040,7 @@
                 <td><input aria-label={`Purchase price ${index + 1}`} value={row.purchasePrice} oninput={(event) => updateRow(index, 'purchasePrice', event.currentTarget.value)} /></td>
                 <td>{row.total}</td>
                 <td><button type="button" aria-label={`Remove row ${index + 1}`} onclick={() => removeRow(index)}>×</button></td>
-                {#if kind === 'return'}<td><input aria-label={`Source batch ID ${index + 1}`} value={row.sourceBatchId} oninput={(event) => updateRow(index, 'sourceBatchId', event.currentTarget.value)} /></td>{/if}
+                {#if kind === 'return'}<td><input aria-label={`Source batch ID ${index + 1}`} value={row.sourceBatchId} oninput={(event) => updateSourceBatchId(index, event.currentTarget.value)} /></td>{/if}
               </tr>
             {/each}
           </tbody>
@@ -719,6 +1050,40 @@
       <datalist id="purchase-item-options">{#each itemRecords as record}<option value={record.name}>{record.code}</option>{/each}</datalist>
       <datalist id="purchase-supplier-options">{#each supplierRecords as record}<option value={record.name}>{record.code}</option>{/each}</datalist>
       <datalist id="purchase-godown-options">{#each godownRecords as record}<option value={record.name}>{record.code}</option>{/each}</datalist>
+      {#if kind === 'return'}
+        <section class="legacy-return-batch-panel" aria-label="Purchase return source batch allocations">
+          <h2>Source batch allocations</h2>
+          <p>Choose one or more batches received by the source purchase. Allocation quantities must equal each return line quantity.</p>
+          {#each rows as row, index}
+            {#if row.itemName.trim() || row.quickSearch.trim()}
+              <fieldset class="legacy-return-batch-allocation">
+                <legend>Line {index + 1}: {row.itemName || row.quickSearch || 'Item'}</legend>
+                <label>Source purchase line ID:
+                  <input aria-label={`Source purchase line ID ${index + 1}`} value={row.sourceLineId ?? ''} oninput={(event) => updateRow(index, 'sourceLineId', event.currentTarget.value)} />
+                </label>
+                {#each returnAllocationsFor(index, row) as allocation, allocationIndex}
+                  <div class="legacy-return-batch-allocation-row">
+                    <label>Source batch {allocationIndex + 1}:
+                      <select aria-label={`Source batch allocation ${index + 1}-${allocationIndex + 1}`} value={allocation.batchId} onchange={(event) => setReturnAllocation(index, allocationIndex, 'batchId', (event.currentTarget as HTMLSelectElement).value)}>
+                        <option value="">Select source batch</option>
+                        {#each availableBatches[index] ?? [] as batch}
+                          <option value={batch.batchId} disabled={returnAllocationsFor(index, row).some((candidate, candidateIndex) => candidateIndex !== allocationIndex && candidate.batchId === batch.batchId)}>{batch.batchNumber}{batch.expiryDate ? ` · ${batch.expiryDate}` : ''} · {batch.quantity}</option>
+                        {/each}
+                      </select>
+                    </label>
+                    <label>Qty:
+                      <input aria-label={`Source allocation quantity ${index + 1}-${allocationIndex + 1}`} type="number" min="0" step="any" value={allocation.quantity} oninput={(event) => setReturnAllocation(index, allocationIndex, 'quantity', (event.currentTarget as HTMLInputElement).value)} />
+                    </label>
+                    {#if returnAllocationsFor(index, row).length > 1}<button type="button" aria-label={`Remove source allocation ${index + 1}-${allocationIndex + 1}`} onclick={() => removeReturnAllocation(index, allocationIndex)}>Remove</button>{/if}
+                  </div>
+                {/each}
+                <button type="button" aria-label={`Add source allocation ${index + 1}`} onclick={() => addReturnAllocation(index)}>Add source batch</button>
+                {#if !(availableBatches[index] ?? []).length}<small>Load the source purchase batches through the active godown before selecting additional allocations.</small>{/if}
+              </fieldset>
+            {/if}
+          {/each}
+        </section>
+      {/if}
       <button class="legacy-add-row" type="button" onclick={addRow}>Add item row</button>
       <div class="legacy-purchase-adjustments" aria-label="Purchase adjustments">
         <label>Item GST %<input aria-label="Item GST percent" bind:value={itemGstRate} /></label>
@@ -727,14 +1092,15 @@
         <button type="button" onclick={() => { showExpenses = true; }}>Purchase Expenses</button>
       </div>
       <div class="legacy-transaction-totals"><span>{rows.length}</span><span>0</span><span>0.00</span><span>0.00</span><strong>Grand Total: {grandTotal}</strong></div>
-      {#if activeTab === 'list'}<div class="legacy-purchase-list"><table><thead><tr><th>Invoice</th><th>Date</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Total</th></tr></thead><tbody>
+	      {#if activeTab === 'list'}<div class="legacy-history-filter" role="search"><label>Filter:<input aria-label="Purchase history filter" bind:value={historyFilter} onkeydown={(event) => { if (event.key === 'Enter') void loadHistory(); }} /></label><button type="button" onclick={() => void loadHistory()}>Filter / Retrieve</button></div><div class="legacy-purchase-list"><table><thead><tr><th>Invoice</th><th>Date</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Total</th></tr></thead><tbody>
         {#if historyBusy}<tr><td colspan="6">Loading transaction history...</td></tr>
         {:else if history.length === 0}<tr><td colspan="6">No transactions found for this date.</td></tr>
-        {:else}{#each history as row}<tr><td><button type="button" onclick={() => applyHistoryRow(row)}>{row.document || ''}</button></td><td>{row.occurredAt || ''}</td><td>{row.party || ''}</td><td>{row.item || ''}</td><td>{row.quantity || ''}</td><td>{row.amount || ''}</td></tr>{/each}{/if}
+        {:else}{#each history as row}<tr><td><button type="button" onclick={() => { void applyHistoryRow(row); }}>{row.document || ''}</button></td><td>{row.occurredAt || ''}</td><td>{row.party || ''}</td><td>{row.item || ''}</td><td>{row.quantity || ''}</td><td>{row.amount || ''}</td></tr>{/each}{/if}
       </tbody></table></div>{/if}
     </div>
     <input class="legacy-hidden-file-input" type="file" multiple bind:this={attachmentInput} onchange={onAttachmentsSelected} aria-label="Attach purchase documents" />
     {#if showExpenses}<div class="legacy-dialog-backdrop" role="presentation"><div class="legacy-simple-dialog" role="dialog" aria-modal="true" aria-label="Purchase Expenses"><h2>Purchase Expenses</h2><label>Misc (+)<input aria-label="Purchase expenses dialog value" bind:value={miscAmount} /></label><p>Expenses are carried into the canonical document pricing snapshot.</p><div><button type="button" onclick={() => { showExpenses = false; }}>Ok</button><button type="button" onclick={() => { showExpenses = false; }}>Cancel</button></div></div></div>{/if}
+    {#if showSaleTemplatePicker}<div class="legacy-dialog-backdrop" role="presentation"><div class="legacy-simple-dialog legacy-sale-template-dialog" role="dialog" aria-modal="true" aria-label="Sale Templates"><h2>Populate From Sale Template</h2>{#if saleTemplateBusy}<p>Loading active sale templates...</p>{:else if saleTemplates.length === 0}<p>No active sale templates are available in the current tenant scope.</p>{:else}<table><thead><tr><th>Code</th><th>Name</th><th>Updated</th><th></th></tr></thead><tbody>{#each saleTemplates as template}<tr><td>{template.code}</td><td>{template.name}</td><td>{template.updatedAt.slice(0, 10)}</td><td><button type="button" data-testid={`sale-template-${template.id}`} onclick={() => { void applySaleTemplate(template); }}>Use template</button></td></tr>{/each}</tbody></table>{/if}<div><button type="button" onclick={() => { showSaleTemplatePicker = false; }}>Cancel</button></div></div></div>{/if}
     <div class="legacy-transaction-footer">
       {#if error}<span class="error" role="alert">{error}</span>{:else if message}<span role="status">{message}</span>{:else}<span>Ready</span>{/if}
       <button type="button" class="legacy-sync-button" onclick={flushQueue} disabled={busy || pending === 0}>Sync queue ({pending})</button>

@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -102,6 +103,16 @@ func TestOperatorUpdateRequiresAuthentication(t *testing.T) {
 	}
 }
 
+func TestChangeUserEndpointWithoutDatabase(t *testing.T) {
+	server := New(nil, "test", "http://localhost:5173")
+	req := httptest.NewRequest(http.MethodPost, "/v1/auth/change-user", nil)
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want %d when database is not configured", rec.Code, http.StatusServiceUnavailable)
+	}
+}
+
 func TestInventoryBalanceRequiresAuthentication(t *testing.T) {
 	server := New(nil, "test", "")
 	req := httptest.NewRequest(http.MethodGet, "/v1/inventory/balance?itemLegacyId=ITEM-1", nil)
@@ -109,6 +120,81 @@ func TestInventoryBalanceRequiresAuthentication(t *testing.T) {
 	server.ServeHTTP(rec, req)
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestStockRoutesRejectDisallowedGodownScopeBeforeDatabaseAccess(t *testing.T) {
+	operator := &sessionContext{
+		UserID: "operator", TenantID: "tenant-a", BranchID: "branch-a",
+		Roles: []string{"operator"}, Permissions: []string{"sales.read"},
+		Scopes: map[string]map[string]bool{"godown": {"00000000-0000-0000-0000-000000000010": false}},
+	}
+	server := &Server{}
+	for _, test := range []struct {
+		name    string
+		handler http.HandlerFunc
+		target  string
+	}{
+		{name: "balance", handler: server.inventoryBalance, target: "/v1/inventory/balance?itemLegacyId=ITEM-1&godownId=00000000-0000-0000-0000-000000000010"},
+		{name: "availability", handler: server.stockAvailability, target: "/v1/inventory/availability?itemLegacyId=ITEM-1&godownId=00000000-0000-0000-0000-000000000010"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, test.target, nil).WithContext(context.WithValue(context.Background(), sessionContextKey, operator))
+			recorder := httptest.NewRecorder()
+			test.handler(recorder, request)
+			if recorder.Code != http.StatusForbidden {
+				t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusForbidden, recorder.Body.String())
+			}
+			var problem map[string]any
+			if err := json.NewDecoder(recorder.Body).Decode(&problem); err != nil {
+				t.Fatalf("decode problem: %v", err)
+			}
+			if problem["code"] != "scope_not_allowed" {
+				t.Fatalf("problem code = %v, want scope_not_allowed", problem["code"])
+			}
+		})
+	}
+}
+
+func TestStockMutationIngressRejectsDisallowedGodownScope(t *testing.T) {
+	operator := &sessionContext{
+		UserID: "operator", TenantID: "tenant-a", BranchID: "branch-a", CounterID: "counter-a",
+		Roles: []string{"operator"}, Permissions: []string{"maintenance.write", "sales.write"},
+		Scopes: map[string]map[string]bool{"godown": {"00000000-0000-0000-0000-000000000010": false}},
+	}
+	server := &Server{}
+	event := syncEvent{
+		EventID: "00000000-0000-0000-0000-000000000011", Aggregate: "inventory",
+		AggregateID: "00000000-0000-0000-0000-000000000012", TenantID: operator.TenantID,
+		BranchID: operator.BranchID, CounterID: operator.CounterID, OperatorID: operator.UserID,
+		OccurredAt: "2026-08-07T00:00:00Z", IdempotencyKey: "inventory-scope-test", SchemaVersion: 1,
+		Payload: json.RawMessage(`{"itemLegacyId":"ITEM-1","quantity":"1","godownId":"00000000-0000-0000-0000-000000000010","batchNumber":"B-1"}`),
+	}
+	request := httptest.NewRequest(http.MethodPost, "/v1/transactions/inventory", strings.NewReader(string(mustJSON(event))))
+	request = request.WithContext(context.WithValue(request.Context(), sessionContextKey, operator))
+	recorder := httptest.NewRecorder()
+	server.createTransaction("inventory").ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusForbidden, recorder.Body.String())
+	}
+}
+
+func TestCanonicalDocumentIngressRejectsDisallowedGodownScope(t *testing.T) {
+	operator := &sessionContext{
+		UserID: "operator", TenantID: "tenant-a", BranchID: "branch-a", CounterID: "counter-a",
+		Roles: []string{"operator"}, Permissions: []string{"sales.write"},
+		Scopes: map[string]map[string]bool{"godown": {"00000000-0000-0000-0000-000000000010": false}},
+	}
+	command := validDocumentCommand("save")
+	command.Document.GodownID = "00000000-0000-0000-0000-000000000010"
+	payload := mustJSON(command)
+	request := httptest.NewRequest(http.MethodPost, "/v1/documents/cash-sale", strings.NewReader(string(payload)))
+	request.SetPathValue("kind", "cash-sale")
+	request = request.WithContext(context.WithValue(request.Context(), sessionContextKey, operator))
+	recorder := httptest.NewRecorder()
+	(&Server{}).documentCommand(recorder, request)
+	if recorder.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusForbidden, recorder.Body.String())
 	}
 }
 
@@ -196,6 +282,20 @@ func TestLegacyAllowedScopesFailClosedWhenAnAllowListExists(t *testing.T) {
 	}
 	if scopeAllowed(&sessionContext{TenantID: "tenant-b", Scopes: operator.Scopes}, "report", "other-report") {
 		t.Fatal("tenant-scoped report allow-list accepted an unlisted report")
+	}
+}
+
+func TestCompositeImportedGodownScopesDeferUntilCanonicalMappingExists(t *testing.T) {
+	operator := &sessionContext{
+		Roles:  []string{"operator"},
+		Scopes: map[string]map[string]bool{"godown": {"2:10:1:1": false}},
+	}
+	if !canonicalGodownScopeAllowed(operator, "00000000-0000-0000-0000-000000000010") {
+		t.Fatal("composite source godown key was treated as a canonical UUID deny")
+	}
+	operator.Scopes["godown"] = map[string]bool{"00000000-0000-0000-0000-000000000010": false}
+	if canonicalGodownScopeAllowed(operator, "00000000-0000-0000-0000-000000000010") {
+		t.Fatal("explicit canonical UUID godown deny was ignored")
 	}
 }
 
@@ -330,6 +430,21 @@ func TestPhaseNReportRegistryDefinitionsAndAggregateFilters(t *testing.T) {
 	for kind, spec := range phaseNReportRegistry {
 		definition := reportDefinitionFor(kind)
 		resolvedSpec, _ := reportSpecForKey(kind)
+		if resolvedSpec.documentReadModel {
+			if definition.ProjectionStatus != "real" {
+				t.Errorf("%s document projection status = %q, want real", kind, definition.ProjectionStatus)
+			}
+			if definition.Title != spec.title {
+				t.Errorf("%s title = %q, want %q", kind, definition.Title, spec.title)
+			}
+			if got := reportAggregateCondition(kind); got != spec.aggregateCondition {
+				t.Errorf("%s aggregate condition = %q, want %q", kind, got, spec.aggregateCondition)
+			}
+			if len(definition.Columns) != 6 || definition.Columns[0].Label == "Event / Document" {
+				t.Errorf("%s columns do not describe the canonical document projection: %+v", kind, definition.Columns)
+			}
+			continue
+		}
 		if resolvedSpec.financeMode != "" {
 			if definition.ProjectionStatus != "real" && resolvedSpec.financeMode != "tax-withholding" {
 				t.Errorf("%s financial projection status = %q", kind, definition.ProjectionStatus)
@@ -348,13 +463,46 @@ func TestPhaseNReportRegistryDefinitionsAndAggregateFilters(t *testing.T) {
 		if got := reportAggregateCondition(kind); got != spec.aggregateCondition {
 			t.Errorf("%s aggregate condition = %q, want %q", kind, got, spec.aggregateCondition)
 		}
-		if len(definition.Columns) != 6 || definition.Columns[0].Label != "Event / Document" {
+		if spec.salesMode == "line-detail" {
+			if len(definition.Columns) != 11 || definition.Columns[0].Label != "Alias" {
+				t.Errorf("%s columns do not describe the source-backed line detail: %+v", kind, definition.Columns)
+			}
+		} else if spec.salesMode == "profit-margin-detail" {
+			if len(definition.Columns) != 11 || definition.Columns[0].Label != "Invoice" || definition.Columns[8].Label != "Gross Profit" {
+				t.Errorf("%s columns do not describe the source-backed profit-margin detail: %+v", kind, definition.Columns)
+			}
+		} else if spec.salesMode == "profit-day-summary" {
+			if len(definition.Columns) != 11 || definition.Columns[0].Label != "Day" || definition.Columns[8].Label != "Gross Profit" {
+				t.Errorf("%s columns do not describe the source-backed profit day summary: %+v", kind, definition.Columns)
+			}
+		} else if spec.salesMode == "profit-customer-summary" {
+			if len(definition.Columns) != 11 || definition.Columns[0].Label != "Customer" || definition.Columns[8].Label != "Gross Profit" {
+				t.Errorf("%s columns do not describe the source-backed customer profit summary: %+v", kind, definition.Columns)
+			}
+		} else if spec.salesMode == "customer-summary" {
+			if len(definition.Columns) != 6 || definition.Columns[0].Label != "Customer" || definition.Columns[4].Label != "Volume" {
+				t.Errorf("%s columns do not describe the source-backed customer summary: %+v", kind, definition.Columns)
+			}
+		} else if spec.salesMode == "customer-category-summary" {
+			if len(definition.Columns) != 6 || definition.Columns[0].Label != "Customer Category" || definition.Columns[4].Label != "Volume" {
+				t.Errorf("%s columns do not describe the source-backed customer-category summary: %+v", kind, definition.Columns)
+			}
+		} else if spec.salesMode == "customer-wise-category-summary" {
+			if len(definition.Columns) != 6 || definition.Columns[0].Label != "Customer" || definition.Columns[3].Label != "Category" || definition.Columns[4].Label != "Volume" {
+				t.Errorf("%s columns do not describe the source-backed customer-wise category summary: %+v", kind, definition.Columns)
+			}
+		} else if spec.salesMode == "invoice-summary" || spec.salesMode == "day-summary" ||
+			spec.salesMode == "item-summary" || spec.salesMode == "month-summary" || spec.salesMode == "hour-summary" {
+			if len(definition.Columns) != 6 || definition.Columns[0].Label == "Event / Document" {
+				t.Errorf("%s columns do not describe the source-backed %s summary: %+v", kind, spec.salesMode, definition.Columns)
+			}
+		} else if len(definition.Columns) != 6 || definition.Columns[0].Label != "Event / Document" {
 			t.Errorf("%s columns do not describe the event payload: %+v", kind, definition.Columns)
 		}
 		if !definition.Retrieval.SupportsDateRange || !definition.Retrieval.SupportsTextFilter || definition.Retrieval.Scope == "" {
 			t.Errorf("%s retrieval metadata is incomplete: %+v", kind, definition.Retrieval)
 		}
-		if definition.Retrieval.SupportsCashCredit {
+		if definition.Retrieval.SupportsCashCredit && spec.salesMode != "line-detail" {
 			t.Errorf("%s advertises cash/credit filtering without an event payload field for it", kind)
 		}
 	}
@@ -375,6 +523,95 @@ func TestReportRegistryResolvesAmbiguousCapturedLeafPaths(t *testing.T) {
 		if got := reportRegistryKey(kind, test.path); got != test.want {
 			t.Errorf("reportRegistryKey(%q) = %q, want %q", kind, got, test.want)
 		}
+	}
+}
+
+func TestNoStockDocumentReportsUseCanonicalAndDeduplicatedCompatibilityRows(t *testing.T) {
+	cases := []struct {
+		kind      string
+		docKind   string
+		aggregate string
+		mode      string
+	}{
+		{kind: "refused-sales-detail", docKind: "refused-sale", aggregate: "refused_sale", mode: "line-detail"},
+		{kind: "quotation-detail", docKind: "quotation", aggregate: "quotation", mode: "line-detail"},
+		{kind: "quotation-summary", docKind: "quotation", aggregate: "quotation", mode: "invoice-summary"},
+	}
+	for _, test := range cases {
+		t.Run(test.kind, func(t *testing.T) {
+			spec, ok := reportSpecForKey(test.kind)
+			if !ok || !spec.documentReadModel || spec.documentKind != test.docKind ||
+				spec.documentAggregate != test.aggregate || spec.documentMode != test.mode {
+				t.Fatalf("document report spec = %+v", spec)
+			}
+			query := documentReadModelQuery(test.docKind, test.aggregate, test.mode, "LIMIT $6 OFFSET $7")
+			for _, fragment := range []string{
+				"FROM business_documents bd",
+				"bd.kind = '" + test.docKind + "'",
+				"bd.status = 'posted'",
+				"FROM sync_events se",
+				"se.aggregate = '" + test.aggregate + "'",
+				"jsonb_array_elements",
+				"NOT EXISTS",
+				"$1::uuid",
+				"$2::uuid",
+				"$3::date",
+				"$4::date",
+				"$5",
+				"LIMIT $6 OFFSET $7",
+			} {
+				if !strings.Contains(query, fragment) {
+					t.Errorf("query is missing %q", fragment)
+				}
+			}
+			definition := reportDefinitionFor(test.kind)
+			if definition.ProjectionStatus != "real" || len(definition.Columns) != 6 {
+				t.Fatalf("definition = %+v", definition)
+			}
+			if test.mode == "invoice-summary" {
+				if definition.Columns[3].Label != "Summary" || !strings.Contains(query, "GROUP BY document") {
+					t.Fatalf("summary projection is not explicit: %+v", definition)
+				}
+			} else if definition.Columns[3].Label != "Item" {
+				t.Fatalf("detail projection columns = %+v", definition.Columns)
+			}
+		})
+	}
+}
+
+func TestHeaderTransactionReportUsesCanonicalHeadersAndCompatibilityFallback(t *testing.T) {
+	spec, ok := reportSpecForKey("header-wise-transaction-summary")
+	if !ok || !spec.headerReadModel {
+		t.Fatalf("header transaction report spec = %+v", spec)
+	}
+	query := headerTransactionReadModelQuery("LIMIT $6 OFFSET $7")
+	for _, fragment := range []string{
+		"FROM business_documents bd",
+		"bd.status = 'posted'",
+		"SUM(bl.quantity)",
+		"FROM sync_events se",
+		"DISTINCT ON",
+		"se.aggregate IN",
+		"NOT EXISTS",
+		"$1::uuid",
+		"$2::uuid",
+		"$3::date",
+		"$4::date",
+		"$5",
+		"LIMIT $6 OFFSET $7",
+	} {
+		if !strings.Contains(query, fragment) {
+			t.Errorf("header transaction query is missing %q", fragment)
+		}
+	}
+	definition := reportDefinitionFor("header-wise-transaction-summary")
+	if definition.ProjectionStatus != "real" || len(definition.Columns) != 6 {
+		t.Fatalf("header transaction definition = %+v", definition)
+	}
+	if definition.Columns[3].Label != "Transaction Type" ||
+		!strings.Contains(definition.ProjectionNote, "Canonical posted business_documents") ||
+		!strings.Contains(definition.Retrieval.Scope, "grouped by header") {
+		t.Fatalf("header transaction metadata is not explicit: %+v", definition)
 	}
 }
 
@@ -408,14 +645,24 @@ func TestPhaseOReportRegistryCoversCapturedPurchaseLeaves(t *testing.T) {
 			if reportAggregateCondition(kind) != spec.aggregateCondition {
 				t.Fatalf("aggregate condition = %q, want %q", reportAggregateCondition(kind), spec.aggregateCondition)
 			}
-			if len(definition.Columns) != 6 || definition.Columns[2].Label != "Customer/Supplier" {
+			if spec.purchaseMode == "line-detail" {
+				if len(definition.Columns) != 12 || definition.Columns[5].Label != "Purchase Price" {
+					t.Fatalf("columns do not describe source-backed purchase line detail: %+v", definition.Columns)
+				}
+			} else if isPurchaseSummaryMode(spec.purchaseMode) {
+				if len(definition.Columns) != 6 || definition.Columns[2].Label != "Supplier" {
+					t.Fatalf("columns do not describe source-backed purchase %s summary: %+v", spec.purchaseMode, definition.Columns)
+				}
+			} else if len(definition.Columns) != 6 || definition.Columns[2].Label != "Customer/Supplier" {
 				t.Fatalf("columns do not describe available purchase values: %+v", definition.Columns)
 			}
 			if len(definition.Formats) != 1 || definition.Formats[0].Name != "Standard" {
 				t.Fatalf("formats = %+v, want one truthful default format", definition.Formats)
 			}
 			if definition.Retrieval.SupportsCashCredit || !definition.Retrieval.SupportsDateRange ||
-				!definition.Retrieval.SupportsTextFilter || !strings.Contains(definition.Retrieval.Scope, "supplier party ledger") {
+				!definition.Retrieval.SupportsTextFilter ||
+				(!strings.Contains(definition.Retrieval.Scope, "supplier party ledger") &&
+					!strings.Contains(definition.Retrieval.Scope, "canonical purchase lines")) {
 				t.Fatalf("retrieval metadata is not purchase-scoped: %+v", definition.Retrieval)
 			}
 			if !strings.Contains(definition.ProjectionNote, "tax") || !strings.Contains(definition.ProjectionNote, "profit") {
@@ -484,6 +731,69 @@ func TestPurchaseReadModelUsesCanonicalLedgersPostedFiltersAndPagination(t *test
 	}
 }
 
+func TestPurchaseSummaryModesUseExplicitBuckets(t *testing.T) {
+	cases := map[string]struct {
+		mode      string
+		fragment  string
+		label     string
+		condition string
+	}{
+		"purchase-summary": {
+			mode:      "invoice-summary",
+			fragment:  "ORDER BY occurred_at DESC, document, item",
+			label:     "Document",
+			condition: "se.aggregate = 'receiving'",
+		},
+		"days-summary": {
+			mode:      "day-summary",
+			fragment:  "GROUP BY occurred_at::date, party",
+			label:     "Day",
+			condition: "se.aggregate = 'receiving'",
+		},
+		"monthly-purchase-graph": {
+			mode:      "month-summary",
+			fragment:  "date_trunc('month', occurred_at::date)::date",
+			label:     "Month",
+			condition: "se.aggregate = 'receiving'",
+		},
+		"category-wise-purchase": {
+			mode:      "item-summary",
+			fragment:  "GROUP BY item, party",
+			label:     "Item",
+			condition: "se.aggregate = 'receiving'",
+		},
+		"purchase-order-supplier-wise": {
+			mode:      "supplier-summary",
+			fragment:  "GROUP BY party",
+			label:     "Supplier",
+			condition: "se.aggregate = 'purchase_order'",
+		},
+	}
+	for kind, test := range cases {
+		spec, ok := reportSpecForKey(kind)
+		if !ok || !spec.purchaseReadModel || spec.purchaseMode != test.mode {
+			t.Fatalf("%s spec = %+v (ok=%v), want %s purchase projection", kind, spec, ok, test.mode)
+		}
+		query := purchaseReadModelQueryMode(test.condition, test.mode, "LIMIT $6 OFFSET $7")
+		fragments := []string{test.fragment, "LIMIT $6 OFFSET $7"}
+		if test.mode != "invoice-summary" {
+			fragments = append(fragments, "numeric(19,4)")
+		}
+		for _, fragment := range fragments {
+			if !strings.Contains(query, fragment) {
+				t.Errorf("%s %s query is missing %q", kind, test.mode, fragment)
+			}
+		}
+		definition := reportDefinitionFor(kind)
+		if len(definition.Columns) != 6 || definition.Columns[0].Label != test.label || definition.Columns[2].Label != "Supplier" {
+			t.Errorf("%s definition columns = %+v", kind, definition.Columns)
+		}
+		if !strings.Contains(definition.ProjectionNote, test.mode) || !strings.Contains(definition.ProjectionNote, "tax") {
+			t.Errorf("%s definition note = %q", kind, definition.ProjectionNote)
+		}
+	}
+}
+
 func TestPhasePStockRegistryCoversCapturedLeaves(t *testing.T) {
 	if len(phasePReportRegistry) != 27 {
 		t.Fatalf("Phase P registry contains %d definitions, want 27 captured stock leaves", len(phasePReportRegistry))
@@ -497,13 +807,30 @@ func TestPhasePStockRegistryCoversCapturedLeaves(t *testing.T) {
 			if !spec.stockReadModel || spec.stockMode == "" {
 				t.Fatal("stock read-model mode is not explicit")
 			}
-			if len(definition.Columns) != 6 || definition.Columns[0].Label == "Event / Document" {
+			if kind == "stock-in-hand-back-date" {
+				if len(definition.Columns) != 10 || definition.Columns[0].Label != "Source Row" {
+					t.Fatalf("back-date columns do not describe imported StockReport values: %+v", definition.Columns)
+				}
+			} else if isStockLevelMode(spec.stockMode) {
+				if len(definition.Columns) != 8 || definition.Columns[5].Key != "reorderQuantity" || definition.Columns[7].Key != "minimumQuantity" {
+					t.Fatalf("stock-level columns do not expose all thresholds: %+v", definition.Columns)
+				}
+			} else if isStockManagementMode(spec.stockMode) {
+				if len(definition.Columns) != 8 || definition.Columns[5].Key != "reorderQuantity" || definition.Columns[7].Key != "minimumQuantity" {
+					t.Fatalf("stock-management columns do not expose all thresholds: %+v", definition.Columns)
+				}
+			} else if len(definition.Columns) != 6 || definition.Columns[0].Label == "Event / Document" {
 				t.Fatalf("columns do not describe normalized stock values: %+v", definition.Columns)
 			}
 			if len(definition.Formats) != 1 || definition.Formats[0].Name != "Standard" {
 				t.Fatalf("formats = %+v, want one truthful default format", definition.Formats)
 			}
-			if !strings.Contains(definition.ProjectionNote, "Normalized") ||
+			if kind == "stock-in-hand-back-date" {
+				if !strings.Contains(definition.ProjectionNote, "historical_stock_snapshots") ||
+					!strings.Contains(definition.Retrieval.Scope, "as-of date") {
+					t.Fatalf("back-date definition is missing truthful historical metadata: %+v", definition)
+				}
+			} else if !strings.Contains(definition.ProjectionNote, "Normalized") ||
 				!strings.Contains(definition.Retrieval.Scope, "posted stock_ledger") {
 				t.Fatalf("stock definition is missing truthful projection metadata: %+v", definition)
 			}
@@ -585,6 +912,36 @@ func TestStockReadModelUsesPostedNormalizedLedgersAndBoundedPagination(t *testin
 	}
 }
 
+func TestStockManagementReadModelIncludesThresholdsAndPostedScope(t *testing.T) {
+	query := stockReadModelQuery("management-summary", "LIMIT $8 OFFSET $9")
+	for _, fragment := range []string{
+		"FROM stock_balances sb",
+		"stock_batches b",
+		"ReorderQty",
+		"OptimumQty",
+		"MinimumQty",
+		"COALESCE(NULLIF(se.payload->>'status', ''), 'posted') = 'posted'",
+		"$6::uuid",
+		"$7",
+		"LIMIT $8 OFFSET $9",
+	} {
+		if !strings.Contains(query, fragment) {
+			t.Errorf("stock-management query is missing %q", fragment)
+		}
+	}
+	if strings.Contains(query, "WHERE reorder_quantity") {
+		t.Fatal("stock-management query unexpectedly applies an alert predicate")
+	}
+	definition := reportDefinitionFor("stock-management-report")
+	if definition.ProjectionStatus != "real" || len(definition.Columns) != 8 {
+		t.Fatalf("stock-management definition = %+v", definition)
+	}
+	if !strings.Contains(definition.ProjectionNote, "without an alert") ||
+		!strings.Contains(definition.Retrieval.Scope, "without an alert predicate") {
+		t.Fatalf("stock-management definition does not disclose its bounded semantics: %+v", definition)
+	}
+}
+
 func TestDailySaleDetailReportDefinitionUsesRealProjectionMetadata(t *testing.T) {
 	definition := reportDefinitionFor("daily-sales-detail")
 	if definition.ProjectionStatus != "real" {
@@ -595,6 +952,15 @@ func TestDailySaleDetailReportDefinitionUsesRealProjectionMetadata(t *testing.T)
 	}
 	if len(definition.Formats) != 10 {
 		t.Fatalf("formats = %d, want 10 captured formats", len(definition.Formats))
+	}
+	wantColumns := []string{"Alias", "Item Description", "Sale Price", "Qty", "Disc(%)", "Discount Value", "Item Disc", "SalesTax Value", "Amount", "Expiry Date", "Batch Number"}
+	if len(definition.Columns) != len(wantColumns) {
+		t.Fatalf("columns = %d, want %d captured detail columns: %+v", len(definition.Columns), len(wantColumns), definition.Columns)
+	}
+	for index, want := range wantColumns {
+		if definition.Columns[index].Label != want {
+			t.Errorf("column %d label = %q, want %q", index, definition.Columns[index].Label, want)
+		}
 	}
 	if definition.Retrieval.Title != "Specify Retrieval Arguements" {
 		t.Fatalf("retrieval title = %q, want legacy spelling", definition.Retrieval.Title)
@@ -614,12 +980,16 @@ func TestDailySaleDetailReportDefinitionUsesRealProjectionMetadata(t *testing.T)
 }
 
 func TestDailySaleDetailUsesCanonicalAndCompatibilityReadModel(t *testing.T) {
-	query := salesReadModelQuery(reportSaleAggregate, "LIMIT $6 OFFSET $7")
+	query := dailySalesDetailReadModelQuery("LIMIT $6 OFFSET $7")
 	for _, fragment := range []string{
 		"FROM business_documents bd",
 		"business_document_lines bl",
 		"FROM sales_documents sd",
 		"FROM sync_events se",
+		"legacy_payload",
+		"stock_allocations",
+		"jsonb_array_elements",
+		"alias, item_description, sale_price, discount_percent, discount_value",
 		"bd.tenant_id = $1::uuid AND bd.branch_id = $2::uuid",
 	} {
 		if !strings.Contains(query, fragment) {
@@ -662,6 +1032,23 @@ func TestReportDefinitionAcceptsBoundedDatabaseLetterheadAndFormats(t *testing.T
 	}
 	if len(definition.Formats) != 1 || definition.Formats[0].Source != "database" {
 		t.Fatalf("database format list was not applied: %+v", definition.Formats)
+	}
+}
+
+func TestReportFormatSelectionReturnsCanonicalConfiguredName(t *testing.T) {
+	definition := reportDefinitionFor("daily-sales-detail")
+	applyReportPreferences(&definition, map[string]map[string]string{
+		"report:format:daily-sales-detail": {
+			"Compact Layout": "",
+			"Ledger Layout":  "",
+		},
+	})
+	selected, ok := selectReportFormat(definition, "compact-layout")
+	if !ok || selected != "Compact Layout" {
+		t.Fatalf("selected format = %q, %v; want canonical Compact Layout", selected, ok)
+	}
+	if _, ok := selectReportFormat(definition, "not-configured"); ok {
+		t.Fatal("unconfigured report format was accepted")
 	}
 }
 

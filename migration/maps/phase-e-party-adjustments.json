@@ -1,0 +1,29 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "target": {
+    "schema": "public",
+    "table": "historical_party_ledger_adjustments"
+  },
+  "sources": [
+    {
+      "source": { "schema": "dbo", "table": "SaleReceivableAdj" },
+      "counterpartyKind": "customer",
+      "partyLegacyId": "CustCode via SaleLedger.SaleInvCode",
+      "documentLegacyId": "SaleInvCode",
+      "occurredAt": "SaleLedger.date when the parent row resolves",
+      "posted": "SaleLedger.Posted",
+      "debitAmount": "Debit",
+      "creditAmount": "Credit",
+      "accountCode": "AccCode",
+      "checkNumber": "CheckNo",
+      "sourceIdentity": "SaleReceivableAdj:<SaleInvCode>:<ROWID>"
+    }
+  ],
+  "notes": [
+    "Missing SaleLedger parent data is retained as an unresolved source row and is not assigned a fabricated date or party.",
+    "This stream is an adjustment, not a customer payment; it must not be counted as received cash without approved legacy semantics."
+  ]
+}

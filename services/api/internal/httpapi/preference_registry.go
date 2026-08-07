@@ -25,16 +25,18 @@ const (
 )
 
 type preferenceDefinition struct {
-	Category      string
-	Caption       string
-	Type          preferenceValueType
-	Default       string
-	Allowed       []string
-	Minimum       *float64
-	Maximum       *float64
-	Behavior      string
-	RuntimeStatus string
-	Position      int
+	Category       string
+	Caption        string
+	FieldKey       string
+	StorageCaption string
+	Type           preferenceValueType
+	Default        string
+	Allowed        []string
+	Minimum        *float64
+	Maximum        *float64
+	Behavior       string
+	RuntimeStatus  string
+	Position       int
 }
 
 type preferenceDivergence struct {
@@ -316,10 +318,27 @@ Hour:
 Minute:
 Second:
 Every:
+Activate:
 Post Cash Sale Invoices:
 Minutes old:
 Occurs Every:
+Activate:
 Post Credit Sale Invoices:
+Minutes old:
+Occurs Every:
+Activate:
+Once At:
+Hour:
+Minute:
+Second:
+Every:
+Activate:
+Once At:
+Hour:
+Minute:
+Second:
+Every:
+Activate:
 Once a day at:`,
 	"Adjustment": `
 Show Header:
@@ -532,14 +551,20 @@ func reviewedPreferenceRegistry() []preferenceDefinition {
 			"Email", "SMS", "Dashboard",
 		} {
 			position := 0
-			seen := make(map[string]bool)
+			lines := make([]string, 0)
+			counts := make(map[string]int)
 			for _, line := range strings.Split(preferenceCatalog[category], "\n") {
 				caption := strings.TrimSpace(line)
-				if caption == "" || seen[caption] {
+				if caption == "" {
 					continue
 				}
-				seen[caption] = true
-				registry = append(registry, reviewedPreference(category, caption, position))
+				lines = append(lines, caption)
+				counts[caption]++
+			}
+			occurrences := make(map[string]int)
+			for _, caption := range lines {
+				occurrences[caption]++
+				registry = append(registry, reviewedPreference(category, caption, position, occurrences[caption], counts[caption]))
 				position++
 			}
 		}
@@ -547,11 +572,16 @@ func reviewedPreferenceRegistry() []preferenceDefinition {
 	return registry
 }
 
-func reviewedPreference(category, caption string, position int) preferenceDefinition {
+func reviewedPreference(category, caption string, position, occurrence, count int) preferenceDefinition {
 	key := category + "\x00" + caption
 	defaultValue := explicitPreferenceDefaults[key]
+	fieldKey := preferenceFieldKey(category, caption, occurrence, count)
+	storageCaption := caption
+	if count > 1 {
+		storageCaption = caption + " [" + fieldKey + "]"
+	}
 	definition := preferenceDefinition{
-		Category: category, Caption: caption, Type: preferenceText,
+		Category: category, Caption: caption, FieldKey: fieldKey, StorageCaption: storageCaption, Type: preferenceText,
 		Default: defaultValue, Position: position, RuntimeStatus: "stored_only",
 		Behavior: "No backend behavior is currently dependent on this value.",
 	}
@@ -583,6 +613,29 @@ func reviewedPreference(category, caption string, position int) preferenceDefini
 	}
 	definition.Behavior, definition.RuntimeStatus = preferenceBehavior(category, caption)
 	return definition
+}
+
+func preferenceFieldKey(category, caption string, occurrence, count int) string {
+	base := preferenceKeyPart(category) + "." + preferenceKeyPart(caption)
+	if count > 1 {
+		return fmt.Sprintf("%s.%d", base, occurrence)
+	}
+	return base
+}
+
+func preferenceKeyPart(value string) string {
+	var builder strings.Builder
+	lastDash := false
+	for _, character := range strings.ToLower(value) {
+		if (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') {
+			builder.WriteRune(character)
+			lastDash = false
+		} else if !lastDash && builder.Len() > 0 {
+			builder.WriteByte('-')
+			lastDash = true
+		}
+	}
+	return strings.Trim(builder.String(), "-")
 }
 
 func isPreferenceBooleanCaption(caption string) bool {
@@ -633,16 +686,16 @@ func preferenceBehavior(category, caption string) (string, string) {
 	switch {
 	case category == "Schedule":
 		return "Captured legacy SQL-Agent/msdb schedule; PostgreSQL scheduler adapter is not configured.", "not_configured"
-	case category == "Report" && (strings.Contains(lower, "header") || strings.Contains(lower, "refresh") || strings.Contains(lower, "default date")):
-		return "Used by report definition loading for letterhead, retrieval defaults, and refresh metadata.", "wired"
+	case category == "Report" && strings.Contains(lower, "default header"):
+		return "Mapped to the report definition letterhead name used by the existing report loader.", "wired"
 	case strings.Contains(lower, "price #") || strings.Contains(lower, "retail price"):
-		return "Feeds the pricing contract when the transaction supplies its price level.", "wired"
+		return "Stored for the captured preference contract; the current pricing API does not implicitly read this setting.", "stored_only"
 	case strings.Contains(lower, "gst") || strings.Contains(lower, "sales tax") || strings.Contains(lower, "pct code") || strings.Contains(lower, "extra tax"):
-		return "Tax configuration is enforced by the tax/document APIs; this value controls captured UI visibility only.", "partial"
+		return "Stored for captured UI parity; tax rates and assignments are controlled by the existing tax API.", "stored_only"
 	case strings.Contains(lower, "expiry") || strings.Contains(lower, "batch") || strings.Contains(lower, "stock") || strings.Contains(lower, "godown"):
-		return "Stock posting validates branch, batch, and expiry data; unsupported display-only options remain stored.", "partial"
+		return "Stored for captured UI parity; stock posting independently validates branch, batch, and expiry data.", "stored_only"
 	case category == "Point of Sale" && (strings.Contains(lower, "cashier") || strings.Contains(lower, "cash drawer") || strings.Contains(lower, "cash charged")):
-		return "Cashier activity is branch scoped; physical drawer signaling remains an edge adapter concern.", "partial"
+		return "Stored for captured UI parity; cashier activity is branch scoped and physical drawer signaling remains an edge adapter concern.", "stored_only"
 	default:
 		return "No backend behavior is currently dependent on this value.", "stored_only"
 	}

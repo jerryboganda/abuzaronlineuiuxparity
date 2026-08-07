@@ -17,8 +17,8 @@ test('Phase Q representative financial and labeled fallback leaves expose their 
   const cases: Record<string, { title: string; labels: string[]; note: string; row: string }> = {
     'gl-journal': {
       title: 'GL Journal',
-      labels: ['Journal', 'Account', 'Debit', 'Credit'],
-      note: 'Posted-only gl_journals and gl_lines',
+      labels: ['Document Code', 'Date', 'Document Type', 'Account Code', 'Alternate Account', 'Invoice Code', 'User Code', 'Remarks', 'Debit', 'Credit'],
+      note: 'Imported historical_gl_entries from dbo.VirtualGl',
       row: 'JOURNAL-1'
     },
     'customer-statement': {
@@ -27,11 +27,17 @@ test('Phase Q representative financial and labeled fallback leaves expose their 
       note: 'Posted-only customer party_ledger_entries',
       row: 'SALE-1'
     },
-    'payables-aging': {
-      title: 'Supplier Statement',
+    'receivables-aging': {
+      title: 'Receivables Aging',
       labels: ['Party', 'Aging Status', 'Debit Total', 'Credit Total'],
-      note: 'No due_date, payment allocation',
-      row: 'UNAGED - due date unavailable'
+      note: 'DueDate payloads when available',
+      row: '0-30 days'
+    },
+    'payables-aging': {
+      title: 'Payables Aging',
+      labels: ['Party', 'Aging Status', 'Debit Total', 'Credit Total'],
+      note: 'Purledger CreditDays',
+      row: '0-30 days'
     },
     'tax-register': {
       title: 'Tax Register',
@@ -39,11 +45,77 @@ test('Phase Q representative financial and labeled fallback leaves expose their 
       note: 'Posted document line tax snapshots',
       row: 'INV-TAX-1'
     },
+    'customer-sales-customer-wise-advance-tax': {
+      title: 'Customer Wise Advance Tax',
+      labels: ['Document', 'Date', 'Customer/Supplier', 'Item / Tax Snapshot', 'Taxable Base', 'Tax Amount'],
+      note: 'explicit advance-tax rate/base/amount evidence',
+      row: 'ADVANCE-TAX-1'
+    },
+    'supplier-wise-advance-income-tax': {
+      title: 'Advance Income Tax',
+      labels: ['Document', 'Date', 'Customer/Supplier', 'Item / Tax Snapshot', 'Taxable Base', 'Tax Amount'],
+      note: 'explicit advance-tax rate/base/amount evidence',
+      row: 'ADVANCE-TAX-INPUT-1'
+    },
+    'withholding-tax-deduction': {
+      title: 'Withholding Tax Deduction',
+      labels: ['Payment', 'Date', 'Supplier', 'Purchase Invoice / Certificate', 'Withholding Base', 'Withholding Amount'],
+      note: 'Imported dbo.PurPayment rows expose posted payment-level withholding',
+      row: 'PAYMENT-WHT-1'
+    },
     'quotation-summary': {
       title: 'Summary',
-      labels: ['Event / Document', 'Party', 'Amount (payload)'],
-      note: 'Explicit compatibility fallback',
-      row: 'QUOTE-EVENT-1'
+      labels: ['Document', 'Date', 'Customer', 'Summary', 'Quantity', 'Amount'],
+      note: 'Canonical posted quotation/refused-sale document rows',
+      row: 'QUOTE-CANONICAL-1'
+    },
+    'refused-sales-detail': {
+      title: 'Refused Sales Detail',
+      labels: ['Document', 'Date', 'Customer/Supplier', 'Item', 'Quantity', 'Amount'],
+      note: 'Canonical posted quotation/refused-sale document rows',
+      row: 'REFUSED-CANONICAL-1'
+    },
+    'header-wise-transaction-summary': {
+      title: 'Header Wise Transaction Summary',
+      labels: ['Document', 'Date', 'Customer/Supplier', 'Transaction Type', 'Quantity', 'Amount'],
+      note: 'Canonical posted business-document headers',
+      row: 'HEADER-CANONICAL-1'
+    },
+    'reprinting-sale': {
+      title: 'Sale',
+      labels: ['Alias', 'Item Description', 'Sale Price', 'Qty', 'Disc(%)', 'Discount Value', 'Item Disc', 'SalesTax Value', 'Amount', 'Expiry Date', 'Batch Number'],
+      note: 'Canonical posted sale lines are available for reprinting',
+      row: 'SALE-REPRINT-1'
+    },
+    'reprinting-sale-with-summary-reports': {
+      title: 'Sale (with summary reports)',
+      labels: ['Invoice', 'Date', 'Customer', 'Summary', 'Quantity', 'Amount'],
+      note: 'Canonical posted sale invoice summaries are available for reprinting',
+      row: 'SALE-SUMMARY-1'
+    },
+    'reprinting-purchase': {
+      title: 'Purchase',
+      labels: ['Document', 'Date', 'Supplier', 'Item', 'Quantity', 'Purchase Price', 'Disc(%)', 'Discount Value', 'Sales Tax', 'Amount', 'Expiry Date', 'Batch Number'],
+      note: 'Canonical posted purchase lines are available for reprinting',
+      row: 'PURCHASE-REPRINT-1'
+    },
+    'item-reports-history-item-name-changes': {
+      title: 'Item Name Changes',
+      labels: ['Source Row', 'User / Reason', 'Item', 'Previous', 'Current'],
+      note: 'Normalized source-backed ItemLog snapshots',
+      row: 'ITEMLOG-1'
+    },
+    'item-reports-stock-adjustments-stock-adjustments-detail': {
+      title: 'Stock Adjustments Detail',
+      labels: ['Adjustment', 'Godown / User', 'Item / Batch', 'Loose Quantity', 'Adjustment Price'],
+      note: 'Normalized source-backed AdjHeader/AdjDetail rows',
+      row: 'ADJ-1'
+    },
+    'item-reports-deleted-sale-items-log': {
+      title: 'Deleted Sale Items Log',
+      labels: ['Sale Invoice', 'Deleted At', 'Machine / User', 'Item / Godown', 'Qty + Bonus', 'Sale Price'],
+      note: 'source-backed DeletedSaleItem rows',
+      row: 'DELETED-SALE-1'
     }
   };
 
@@ -51,7 +123,7 @@ test('Phase Q representative financial and labeled fallback leaves expose their 
     const kind = new URL(route.request().url()).pathname.split('/').pop() ?? '';
     const current = cases[kind] ?? cases['quotation-summary'];
     const columns = current.labels.map((label, index) => ({
-      key: ['document', 'occurredAt', 'party', 'item', 'quantity', 'amount'][index] ?? 'document',
+      key: ['document', 'occurredAt', 'documentType', 'party', 'alternateAccountCode', 'invoiceCode', 'userLegacyId', 'item', 'quantity', 'amount'][index] ?? 'document',
       label,
       dataType: label.includes('Date') || label === 'Posted' ? 'date' : 'text',
       sortable: true

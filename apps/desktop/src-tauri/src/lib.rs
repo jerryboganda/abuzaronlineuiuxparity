@@ -56,6 +56,19 @@ struct HardwareCapabilitiesResponse {
     capabilities: Vec<HardwareCapability>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct HardwareReadiness {
+    ready: bool,
+    status: String,
+    configuration_valid: bool,
+    configuration_error: Option<String>,
+    available_count: usize,
+    total_count: usize,
+    unavailable: Vec<String>,
+    capabilities: Vec<HardwareCapability>,
+}
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
@@ -250,7 +263,8 @@ fn clear_edge_config() -> Result<(), HardwareCommandError> {
     }
 }
 
-async fn edge_request<B, T>(
+async fn edge_request_with_config<B, T>(
+    config: &StoredEdgeConfig,
     method: Method,
     path: &str,
     body: Option<&B>,
@@ -259,7 +273,6 @@ where
     B: Serialize + ?Sized,
     T: DeserializeOwned,
 {
-    let config = configured_edge()?;
     let base_url = validate_edge_url(&config.edge_url)?;
     let url = format!("{}{}", base_url.as_str().trim_end_matches('/'), path);
     let client = reqwest::Client::builder()
@@ -275,7 +288,7 @@ where
         .request(method, url)
         .header("accept", "application/json");
     if !config.shared_secret.is_empty() {
-        request = request.bearer_auth(config.shared_secret);
+        request = request.bearer_auth(&config.shared_secret);
     }
     if let Some(body) = body {
         request = request.json(body);
@@ -311,10 +324,28 @@ where
     })
 }
 
+async fn edge_request<B, T>(
+    method: Method,
+    path: &str,
+    body: Option<&B>,
+) -> Result<T, HardwareCommandError>
+where
+    B: Serialize + ?Sized,
+    T: DeserializeOwned,
+{
+    let config = configured_edge()?;
+    edge_request_with_config(&config, method, path, body).await
+}
+
 #[tauri::command]
 async fn get_hardware_capabilities() -> Result<HardwareCapabilitiesResponse, HardwareCommandError> {
     edge_request::<(), HardwareCapabilitiesResponse>(Method::GET, "/v1/hardware/capabilities", None)
         .await
+}
+
+#[tauri::command]
+async fn get_hardware_readiness() -> Result<HardwareReadiness, HardwareCommandError> {
+    edge_request::<(), HardwareReadiness>(Method::GET, "/v1/hardware/readiness", None).await
 }
 
 #[tauri::command]
@@ -398,6 +429,7 @@ pub fn run() {
             get_edge_config,
             clear_edge_config,
             get_hardware_capabilities,
+            get_hardware_readiness,
             print_sale_slip,
             print_purchase_labels,
             lookup_barcode,
@@ -409,7 +441,11 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::validate_edge_url;
+    use super::{edge_request_with_config, validate_edge_url, StoredEdgeConfig};
+    use reqwest::Method;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::thread;
 
     #[test]
     fn accepts_explicit_http_edge_url() {
@@ -428,5 +464,45 @@ mod tests {
         ] {
             assert!(validate_edge_url(value).is_err(), "accepted {value}");
         }
+    }
+
+    #[test]
+    fn ipc_preserves_unavailable_edge_error_and_rejects_success_payload() {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind test edge");
+        let address = listener.local_addr().expect("read test edge address");
+        let body = r#"{"type":"https://abuzar.invalid/problems/hardware_adapter_unavailable","title":"Hardware adapter unavailable","status":503,"detail":"No physical hardware adapter is configured for this branch.","code":"hardware_adapter_unavailable","printed":true}"#;
+        let response = format!(
+            "HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/problem+json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        let server = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("accept test edge request");
+            let mut request = [0_u8; 4096];
+            let _ = stream.read(&mut request);
+            stream
+                .write_all(response.as_bytes())
+                .expect("write test edge response");
+        });
+
+        let config = StoredEdgeConfig {
+            edge_url: format!("http://{}", address),
+            shared_secret: "test-only-secret".to_string(),
+        };
+        let result = tauri::async_runtime::block_on(edge_request_with_config::<
+            serde_json::Value,
+            serde_json::Value,
+        >(
+            &config,
+            Method::POST,
+            "/v1/hardware/print/sale-slip",
+            Some(&serde_json::json!({"invoiceNumber":"1","total":"1.00"})),
+        ));
+        server.join().expect("join test edge");
+
+        let error = result.expect_err("503 must not become a successful IPC result");
+        assert_eq!(error.code, "hardware_adapter_unavailable");
+        assert_eq!(error.status, Some(503));
+        assert!(error.message.contains("No physical hardware adapter"));
     }
 }

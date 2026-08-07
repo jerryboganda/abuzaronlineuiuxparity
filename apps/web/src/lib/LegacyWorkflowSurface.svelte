@@ -1,16 +1,26 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
-  import type { LegacyRight, LegacyScope, RoleSummary, SessionResponse, SyncEnvelope } from '@abuzar/contracts';
+  import type { ItemLookupResult, LegacyRight, LegacyScope, MasterRecord, RoleSummary, SessionResponse, SyncEnvelope } from '@abuzar/contracts';
   import { AbuzarApi, ApiError, OfflineQueue, newEventId } from '$lib/api';
   import { formatLegacyTitle } from '$lib/legacy-title';
+  import LegacyMenuBar from '$lib/LegacyMenuBar.svelte';
+  import type { LegacyWindowContext } from '$lib/legacy-menu';
 
   export let section: 'maintenance' | 'manage';
 
   type WorkflowField = { key: string; label: string; kind?: 'text' | 'number' | 'date' | 'select'; value?: string; options?: string[] };
+  type GroupScopeDefinition = { title: string; scopeKind: string; sourceTable: string };
 
   const api = new AbuzarApi();
   const queue = new OfflineQueue();
+  const importedGroupScopeDefinitions: Record<string, GroupScopeDefinition> = {
+    'group-wise-godown-setting': { title: 'Group Wise Godown Setting', scopeKind: 'godown', sourceTable: 'GroupAllowedGodown' },
+    'group-wise-header-setting': { title: 'Group Wise Header Setting', scopeKind: 'header', sourceTable: 'GroupAllowedHeader' },
+    'group-allowed-price-setting': { title: 'Group Allowed Price Setting', scopeKind: 'price', sourceTable: 'GroupAllowedPrice' },
+    'group-wise-cash-account-setting': { title: 'Group Wise Cash Account Setting', scopeKind: 'cash_account', sourceTable: 'GroupCashAccount' },
+    'group-wise-supplier-category': { title: 'Group Wise Supplier Category', scopeKind: 'service_category', sourceTable: 'GroupAllowedServiceCategory' }
+  };
   const permissionOptions = [
     { code: 'sales.read', label: 'Sales - view' },
     { code: 'sales.write', label: 'Sales - post/edit' },
@@ -28,6 +38,25 @@
     { code: 'preferences.read', label: 'Preferences - view' },
     { code: 'preferences.write', label: 'Preferences - edit' }
   ];
+
+  function formatWorkflowTitle(kind: string): string {
+    return kind.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+  }
+  const workflowTitles: Record<string, string> = {
+    'check-database-integrity': 'Check Database Integrity',
+    'backup-database': 'Backup Database',
+    'change-items-price': 'Change Items Price',
+    'lock-item-batches': 'Lock Item Batches',
+    'opening-stock': 'Opening Stock',
+    'stock-adjustment': 'Stock Adjustment',
+    increase: 'Stock Adjustment (Increase)',
+    decrease: 'Stock Adjustment (Decrease)',
+    'cashier-job': 'Cashier Job Activity',
+    'cashier-activity-window': 'Cashier Activity Window',
+    'change-password': 'Change Password',
+    'session-monitor': 'Session Monitor',
+    groups: 'Groups'
+  };
   const workflowFieldDefinitions: Record<string, WorkflowField[]> = {
     'change-items-price': [
       { key: 'itemCode', label: 'Item Code' }, { key: 'priceType', label: 'Price Type', kind: 'select', value: 'Sale Price', options: ['Sale Price', 'Purchase Price'] }, { key: 'price', label: 'New Price', kind: 'number' }, { key: 'effectiveDate', label: 'Effective Date', kind: 'date' }
@@ -126,6 +155,9 @@
   let shiftRows: Array<{ id: string; branchId: string; counterId: string; operatorId: string; openedAt: string; closedAt?: string; status: string; openingAmount: string; closingAmount?: string }> = [];
   let sessionRows: Array<{ userId: string; username: string; displayName: string; branchId: string; counterId: string; createdAt: string; lastSeenAt: string; expiresAt: string; current: boolean }> = [];
   let extraValues: Record<string, string> = {};
+  let adjustmentGodowns: MasterRecord[] = [];
+  let adjustmentItemResults: ItemLookupResult[] = [];
+  let adjustmentItemBusy = false;
   let configuredKind = '';
   let savedWorkflow: { reference: string; notes: string; itemName: string; quantity: string; amount: string; shiftAction: 'open' | 'close'; extraValues: Record<string, string> } | null = null;
   let operationId = '';
@@ -134,15 +166,24 @@
   $: kind = $page?.params?.kind ?? 'workflow';
   $: legacyPath = $page?.url?.searchParams?.get('legacyPath') ?? '';
   $: legacyLeaf = String(legacyPath ?? '').split(' > ').at(-1)?.replace(/\t.*$/, '').replace(/&/g, '').trim() ?? '';
-  $: title = legacyLeaf || kind.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
-  $: adjustment = section === 'maintenance' && ['increase', 'decrease', 'stock-adjustment'].includes(kind);
+  $: title = legacyLeaf || (workflowTitles[kind] ?? formatWorkflowTitle(kind));
+  let menuContext: LegacyWindowContext = 'base';
+  $: menuContext = section === 'manage' && kind === 'groups' ? 'manage-groups' : 'base';
+  $: workflowWindowId = `${section}-${kind}`;
+  $: workflowWindowHref = `/app/${section}/${kind}`;
+  $: adjustment = section === 'maintenance' && ['increase', 'decrease', 'stock-adjustment', 'opening-stock'].includes(kind);
   $: isBackup = section === 'maintenance' && kind === 'backup-database';
   $: isIntegrity = section === 'maintenance' && kind === 'check-database-integrity';
   $: isGroups = section === 'manage' && kind === 'groups';
+  $: groupScopeDefinition = importedGroupScopeDefinitions[kind];
+  $: isImportedGroupScope = Boolean(groupScopeDefinition) && (section === 'manage' || kind === 'group-wise-godown-setting');
   $: isCashierActivity = section === 'manage' && kind === 'cashier-activity-window';
   $: isSessionMonitor = section === 'manage' && kind === 'session-monitor';
   $: persistedKind = section === 'maintenance' ? kind : `manage-${kind}`;
   $: workflowFields = workflowFieldDefinitions[kind] ?? [];
+  $: groupScopeRows = groupScopeDefinition
+    ? roleScopes.filter((scope) => scope.scopeKind === groupScopeDefinition.scopeKind)
+    : [];
   $: if (kind && kind !== configuredKind) {
     configuredKind = kind;
     extraValues = Object.fromEntries(workflowFields.map((field) => [field.key, field.value ?? '']));
@@ -156,6 +197,10 @@
   function enableBackupDialogInteractive() {
     interactive = true;
     backupDialogInteractive = true;
+  }
+
+  function isUuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value ?? '').trim());
   }
 
   function cancelWorkflow() {
@@ -184,13 +229,51 @@
     const update = () => (online = navigator.onLine);
     window.addEventListener('online', update);
     window.addEventListener('offline', update);
-    if (isGroups) void loadRoles();
+    if (isGroups || isImportedGroupScope) void loadRoles();
     if (isCashierActivity) void loadShiftActivity();
     if (isSessionMonitor) void loadSessionMonitor();
-    if (!isGroups && !isSessionMonitor && kind !== 'change-password') void loadWorkflowState();
+    if (adjustment) void loadAdjustmentContext();
+    if (!isGroups && !isImportedGroupScope && !isSessionMonitor && kind !== 'change-password') void loadWorkflowState();
     void api.session().then((result) => { if (result.authenticated) session = result.context; }).catch(() => { /* offline workflow remains visible */ });
     return () => { window.clearInterval(clockTimer); window.removeEventListener('online', update); window.removeEventListener('offline', update); };
   });
+
+  async function loadAdjustmentContext() {
+    try {
+      adjustmentGodowns = (await api.masterRecords('godown')).records.filter((record) => record.active);
+    } catch (cause) {
+      if (!(cause instanceof ApiError && cause.status === 401)) error = 'Active godowns could not be loaded for stock adjustment.';
+    }
+  }
+
+  async function searchAdjustmentItems() {
+    const inputEl = typeof document !== 'undefined' ? (document.getElementById('adjustment-item-input') as HTMLInputElement | null) : null;
+    const query = String(inputEl?.value || itemName || '').trim();
+    if (!query) {
+      adjustmentItemResults = [];
+      return;
+    }
+    adjustmentItemBusy = true;
+    try {
+      const lookup = await api.itemLookup(query);
+      adjustmentItemResults = [...lookup.items.filter((item) => item.active && item.id)];
+    } catch (cause) {
+      adjustmentItemResults = [];
+      error = cause instanceof ApiError ? cause.problem?.detail ?? cause.message : 'Active items could not be searched for stock adjustment.';
+    } finally {
+      adjustmentItemBusy = false;
+    }
+  }
+
+  function chooseAdjustmentItem(item: ItemLookupResult) {
+    itemName = item.name;
+    const itemInput = typeof document !== 'undefined' ? (document.getElementById('adjustment-item-input') as HTMLInputElement | null) : null;
+    if (itemInput) itemInput.value = item.name;
+    extraValues = { ...extraValues, itemLegacyId: item.legacyId };
+    adjustmentItemResults = [];
+    error = '';
+    message = `Canonical item ${item.name} selected for stock adjustment.`;
+  }
 
   async function loadWorkflowState() {
     try {
@@ -282,12 +365,45 @@
     roleScopes = roleScopes.map((scope) => scope.scopeKind === scopeKind && scope.scopeKey === scopeKey ? { ...scope, allowed: checked } : scope);
   }
 
+  function groupScopeCaption(scope: LegacyScope) {
+    const sourceTable = groupScopeDefinition?.sourceTable ?? scope.legacyTable ?? 'Imported scope';
+    if (sourceTable === 'GroupAllowedPrice') {
+      const parts = scope.scopeKey.split(':');
+      if (parts.length === 3 && parts.every((part) => part.trim() !== '')) {
+        return `GroupCode ${parts[0]} - Module ${parts[1]} - PriceTypeCode ${parts[2]}`;
+      }
+    }
+    return `${sourceTable} [${scope.scopeKey}]`;
+  }
+
+  async function saveGroupScopeRows() {
+    if (!selectedRoleId || !rightsLoaded) {
+      error = 'Select a group and wait for its imported scope rows to load.';
+      return;
+    }
+    busy = true;
+    message = '';
+    error = '';
+    try {
+      const updated = await api.updateRoleRights(selectedRoleId, {
+        scopes: groupScopeRows.map((scope) => ({ scopeKind: scope.scopeKind, scopeKey: scope.scopeKey, allowed: scope.allowed }))
+      });
+      roleScopes = updated.scopes ?? roleScopes;
+      const savedLabel = groupScopeDefinition?.scopeKind === 'price' ? 'price access' : `${groupScopeDefinition?.title ?? 'scope access'} access`;
+      message = `${roles.find((role) => role.id === selectedRoleId)?.name ?? 'Group'} ${savedLabel} saved.`;
+    } catch (cause) {
+      error = cause instanceof Error ? cause.message : 'Group scope access could not be saved.';
+    } finally {
+      busy = false;
+    }
+  }
+
   async function saveRole() {
     busy = true;
     message = '';
     error = '';
     try {
-      if (!roleCode.trim() || !roleName.trim()) throw new Error('Group code and name are required.');
+      if (!String(roleCode ?? '').trim() || !String(roleName ?? '').trim()) throw new Error('Group code and name are required.');
       const updating = Boolean(selectedRoleId);
       const saved = updating
         ? await api.updateRole(selectedRoleId, roleCode.trim(), roleName.trim(), rolePermissions)
@@ -322,10 +438,27 @@
   }
 
   function inventoryEvent(): SyncEnvelope {
+    const itemLegacyId = String(extraValues.itemLegacyId ?? '').trim();
+    const godownId = String(extraValues.godownId ?? '').trim();
+    const batchNumber = String(extraValues.batchNumber ?? '').trim();
+    const expiryDate = String(extraValues.expiryDate ?? '').trim();
+    const adjustmentSign = String(extraValues.adjustmentSign ?? '').trim();
+    const normalizedQuantity = String(quantity ?? '').trim();
+    if (!String(itemName ?? '').trim() || !itemLegacyId) throw new Error('Enter the canonical item name and legacy ID before posting stock.');
+    if (!isUuid(godownId)) throw new Error('Enter an active canonical godown UUID before posting stock.');
+    if (!batchNumber) throw new Error('Enter a batch number before posting stock.');
+    if (!/^\d+(?:\.\d{1,4})?$/.test(normalizedQuantity) || Number(normalizedQuantity) <= 0) throw new Error('Enter a positive stock quantity with no more than four decimals.');
+    if (kind === 'stock-adjustment' && !['-1', '1'].includes(adjustmentSign)) throw new Error('Choose an adjustment sign of 1 or -1.');
+    if (!session?.tenantId || !session.branchId || !session.counterId || !session.operatorId) throw new Error('Select a branch and counter before posting an adjustment.');
+    if (!itemName.trim() || !itemLegacyId) throw new Error('Enter the canonical item name and legacy ID before posting stock.');
+    if (!isUuid(godownId)) throw new Error('Enter an active canonical godown UUID before posting stock.');
+    if (!batchNumber) throw new Error('Enter a batch number before posting stock.');
+    if (!/^\d+(?:\.\d{1,4})?$/.test(normalizedQuantity) || Number(normalizedQuantity) <= 0) throw new Error('Enter a positive stock quantity with no more than four decimals.');
+    if (kind === 'stock-adjustment' && !['-1', '1'].includes(adjustmentSign)) throw new Error('Choose an adjustment sign of 1 or -1.');
     if (!session?.tenantId || !session.branchId || !session.counterId || !session.operatorId) throw new Error('Select a branch and counter before posting an adjustment.');
     const eventId = newEventId();
     const direction = kind === 'increase' || kind === 'opening-stock' ? 'in' : kind === 'decrease' ? 'out' : 'adjustment';
-    const adjustmentSign = kind === 'stock-adjustment' ? Number(extraValues.adjustmentSign || '1') : 1;
+    const signedAdjustment = kind === 'stock-adjustment' ? Number(adjustmentSign) : 1;
     return {
       eventId,
       aggregate: 'inventory',
@@ -339,13 +472,13 @@
       schemaVersion: 1,
       payload: {
         itemName,
-        itemLegacyId: extraValues.itemLegacyId || itemName,
-        quantity,
+        itemLegacyId,
+        quantity: normalizedQuantity,
         direction,
-        adjustmentSign,
-        godownId: extraValues.godownId || '',
-        batchNumber: extraValues.batchNumber || '',
-        expiryDate: extraValues.expiryDate || '',
+        adjustmentSign: signedAdjustment,
+        godownId,
+        batchNumber,
+        expiryDate,
         unitCost: extraValues.unitCost || '0',
         reference,
         notes
@@ -451,9 +584,43 @@
         </div>
       {/if}
     </section>
+  {:else if isImportedGroupScope}
+    <section class="legacy-workflow-window" aria-label={groupScopeDefinition?.title ?? title}>
+      <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">&lt;-</a><h1>{formatLegacyTitle(session?.username, clock)} : [{groupScopeDefinition?.title ?? title}]</h1></header>
+      <LegacyMenuBar context={menuContext} windowId={workflowWindowId} windowLabel={groupScopeDefinition?.title ?? title} windowHref={workflowWindowHref} />
+      <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Group scope access toolbar">
+        <button type="button" aria-label="Refresh groups" onclick={loadRoles} title="Refresh">Refresh</button>
+        <button type="button" aria-label={groupScopeDefinition?.scopeKind === 'price' ? 'Save group price access' : 'Save group scope access'} onclick={saveGroupScopeRows} disabled={busy || !selectedRoleId || !rightsLoaded} title="Save">Save</button>
+        <span class="legacy-toolbar-separator"></span><span class="legacy-toolbar-caption">{online ? 'Online' : 'Offline'} - {section === 'maintenance' ? 'Maintenance' : 'Manage'}</span>
+      </div>
+      <div class="legacy-workflow-body">
+        <div class="legacy-workflow-help">
+          <h2>{groupScopeDefinition?.title ?? title}</h2>
+          <p>Choose an imported group, then edit only its retained {groupScopeDefinition?.sourceTable ?? 'scope'} rows. Composite source identifiers remain visible and are not translated into unapproved labels.</p>
+          <label>Group:<select aria-label="Group:" bind:value={selectedRoleId} onchange={(event) => { const role = roles.find((candidate) => candidate.id === (event.currentTarget as HTMLSelectElement).value); if (role) selectRole(role); }}>
+            <option value="">Select group</option>
+            {#each roles as role}<option value={role.id}>{role.code} - {role.name}</option>{/each}
+          </select></label>
+          {#if selectedRoleId && !rightsLoaded}<p role="status">Loading imported {groupScopeDefinition?.sourceTable ?? 'scope'} rows...</p>
+          {:else if selectedRoleId && groupScopeRows.length === 0}<p>No imported {groupScopeDefinition?.sourceTable ?? 'scope'} rows are available for this group.</p>
+          {:else if groupScopeRows.length}
+            <fieldset class="legacy-permission-fieldset" aria-label={`Imported ${groupScopeDefinition?.sourceTable ?? 'scope'} rows`}>
+              <legend>Imported {groupScopeDefinition?.sourceTable ?? 'scope'} rows</legend>
+              <div class="legacy-rights-matrix">
+                {#each groupScopeRows as scope}
+                  <label class="legacy-permission-option"><input type="checkbox" checked={scope.allowed} onchange={(event) => toggleRoleScope(scope.scopeKind, scope.scopeKey, (event.currentTarget as HTMLInputElement).checked)} /><span>{groupScopeCaption(scope)}</span></label>
+                {/each}
+              </div>
+            </fieldset>
+          {/if}
+        </div>
+      </div>
+      <footer class="legacy-transaction-footer">{#if error}<span class="error" role="alert">{error}</span>{:else}<span role="status">{message || 'Ready'}</span>{/if}<a href="/app/legacy">Back to main window</a></footer>
+    </section>
   {:else if isGroups}
     <section class="legacy-workflow-window" aria-label="Groups">
       <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>{formatLegacyTitle(session?.username, clock)} : [Groups]</h1></header>
+      <LegacyMenuBar context={menuContext} windowId={workflowWindowId} windowLabel="Groups" windowHref={workflowWindowHref} />
       <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Groups toolbar">
         <button type="button" aria-label="New group" onclick={newRole} title="New">△</button>
         <button type="button" aria-label="Save group" onclick={saveRole} disabled={busy} title="Save">▣</button>
@@ -518,6 +685,7 @@
   {:else if isCashierActivity}
     <section class="legacy-workflow-window" aria-label="Cashier Activity Window">
       <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>{formatLegacyTitle(session?.username, clock)} : [Cashier Activity Window]</h1></header>
+      <LegacyMenuBar context={menuContext} windowId={workflowWindowId} windowLabel="Cashier Activity Window" windowHref={workflowWindowHref} />
       <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Cashier activity toolbar"><button type="button" aria-label="Refresh cashier activity" onclick={loadShiftActivity}>⟳</button><span class="legacy-toolbar-separator"></span><span class="legacy-toolbar-caption">{online ? 'Online' : 'Offline'} · Cashier Activity</span></div>
       <div class="legacy-workflow-body"><div class="legacy-workflow-help"><h2>Cashier Activity Window</h2>{#if shiftRows.length === 0}<p>No cashier shifts are recorded for the current branch and counter.</p>{:else}<table><thead><tr><th>Shift</th><th>Operator</th><th>Opened</th><th>Closed</th><th>Status</th><th>Opening</th><th>Closing</th></tr></thead><tbody>{#each shiftRows as shift}<tr><td>{shift.id}</td><td>{shift.operatorId}</td><td>{shift.openedAt}</td><td>{shift.closedAt || '—'}</td><td>{shift.status}</td><td>{shift.openingAmount}</td><td>{shift.closingAmount || '—'}</td></tr>{/each}</tbody></table>{/if}</div></div>
       <footer class="legacy-transaction-footer">{#if error}<span class="error" role="alert">{error}</span>{:else}<span role="status">{message || 'Ready'}</span>{/if}<a href="/app/legacy">Back to main window</a></footer>
@@ -525,6 +693,7 @@
   {:else if isSessionMonitor}
     <section class="legacy-workflow-window" aria-label="Session Monitor">
       <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>{formatLegacyTitle(session?.username, clock)} : [Session Monitor]</h1></header>
+      <LegacyMenuBar context={menuContext} windowId={workflowWindowId} windowLabel="Session Monitor" windowHref={workflowWindowHref} />
       <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Session monitor toolbar"><button type="button" aria-label="Refresh sessions" onclick={loadSessionMonitor}>⟳</button><span class="legacy-toolbar-separator"></span><span class="legacy-toolbar-caption">{online ? 'Online' : 'Offline'} · Branch scoped</span></div>
       <div class="legacy-workflow-body"><div class="legacy-workflow-help"><h2>Session Monitor</h2>{#if sessionRows.length === 0}<p>No active sessions are recorded for the current branch.</p>{:else}<table><thead><tr><th>User</th><th>Name</th><th>Branch</th><th>Counter</th><th>Last seen</th><th>Current</th></tr></thead><tbody>{#each sessionRows as activeSession}<tr><td>{activeSession.username}</td><td>{activeSession.displayName}</td><td>{activeSession.branchId}</td><td>{activeSession.counterId || '—'}</td><td>{activeSession.lastSeenAt}</td><td>{activeSession.current ? 'Yes' : 'No'}</td></tr>{/each}</tbody></table>{/if}</div></div>
       <footer class="legacy-transaction-footer">{#if error}<span class="error" role="alert">{error}</span>{:else}<span role="status">{message || 'Ready'}</span>{/if}<a href="/app/legacy">Back to main window</a></footer>
@@ -532,6 +701,7 @@
   {:else}
   <section class="legacy-workflow-window" aria-label={title}>
     <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>{formatLegacyTitle(session?.username, clock)} : [{title}]</h1></header>
+    <LegacyMenuBar context={menuContext} windowId={workflowWindowId} windowLabel={title} windowHref={workflowWindowHref} />
     <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Workflow toolbar">
       <button type="button" aria-label="New workflow" onclick={() => { reference = ''; notes = ''; itemName = ''; quantity = '1'; extraValues = Object.fromEntries(workflowFields.map((field) => [field.key, field.value ?? ''])); message = 'New workflow ready.'; error = ''; }} title="New">△</button>
       <button type="button" aria-label="Save workflow" onclick={run} disabled={busy} title="Save">▣</button>
@@ -541,11 +711,11 @@
     <div class="legacy-workflow-body">
       <form class="legacy-workflow-form" onsubmit={(event) => { event.preventDefault(); run(); }}>
         <label>Reference / code:<input bind:value={reference} /></label>
-        {#if adjustment}<label>Item:<input bind:value={itemName} required /></label><label>Quantity:<input type="number" min="0.0001" step="0.0001" bind:value={quantity} required /></label>{/if}
+        {#if adjustment}<label for="adjustment-item-input">Item:</label><input id="adjustment-item-input" bind:value={itemName} required onkeydown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void searchAdjustmentItems(); } }} /><button type="button" aria-label="Lookup adjustment item" onclick={() => void searchAdjustmentItems()}>Lookup</button>{#if adjustmentItemBusy}<p role="status">Searching active canonical items...</p>{:else if adjustmentItemResults.length}<div class="legacy-adjustment-item-results" aria-label="Adjustment item results">{#each adjustmentItemResults as item}<button type="button" onclick={() => chooseAdjustmentItem(item)}>{item.name} ({item.legacyId})</button>{/each}</div>{/if}<label for="adjustment-quantity-input">Quantity:</label><input id="adjustment-quantity-input" type="number" min="0.0001" step="0.0001" bind:value={quantity} required />{/if}
         {#if kind === 'cashier-job'}<label>Shift action:<select bind:value={shiftAction}><option value="open">Open shift</option><option value="close">Close shift</option></select></label><label>Amount:<input type="number" step="0.01" bind:value={amount} /></label>{/if}
         {#if kind === 'change-password'}<label>Current password:<input type="password" bind:value={currentPassword} required /></label><label>New password:<input type="password" bind:value={newPassword} required /></label><label>Confirm password:<input type="password" bind:value={confirmPassword} required /></label>{/if}
-        {#each workflowFields as field}
-          <label>{field.label}:{#if field.kind === 'select'}<select bind:value={extraValues[field.key]}>{#each field.options ?? [] as option}<option value={option}>{option}</option>{/each}</select>{:else}<input type={field.kind === 'date' ? 'date' : field.kind === 'number' ? 'number' : 'text'} bind:value={extraValues[field.key]} />{/if}</label>
+          {#each workflowFields as field}
+          <label for={`workflow-field-${field.key}`}>{field.label}:</label>{#if adjustment && field.key === 'godownId'}<select id={`workflow-field-${field.key}`} bind:value={extraValues[field.key]}><option value="">Select active godown</option>{#each adjustmentGodowns as godown}<option value={godown.id}>{godown.name}</option>{/each}</select>{:else if adjustment && field.key === 'itemLegacyId'}<input id={`workflow-field-${field.key}`} value={extraValues[field.key] ?? ''} readonly />{:else if field.kind === 'select'}<select id={`workflow-field-${field.key}`} bind:value={extraValues[field.key]}>{#each field.options ?? [] as option}<option value={option}>{option}</option>{/each}</select>{:else}<input id={`workflow-field-${field.key}`} type={field.kind === 'date' ? 'date' : field.kind === 'number' ? 'number' : 'text'} step={field.kind === 'number' ? 'any' : undefined} bind:value={extraValues[field.key]} />{/if}
         {/each}
         <label>Notes:<textarea rows="5" bind:value={notes}></textarea></label>
         <div class="legacy-master-actions"><button type="submit" disabled={busy}>Save</button><button type="button" onclick={cancelWorkflow}>Cancel</button></div>

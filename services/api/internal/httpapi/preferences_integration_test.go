@@ -95,6 +95,33 @@ func TestPreferencesRoundTripAndBranchIsolationIntegration(t *testing.T) {
 	if got := read(&otherOperator); got != "No" {
 		t.Fatalf("branch B round trip = %q, want No", got)
 	}
+
+	scheduleBody := `{"category":"Schedule","items":[` +
+		`{"caption":"Activate:","fieldKey":"schedule.activate.1","value":"Yes","position":0},` +
+		`{"caption":"Activate:","fieldKey":"schedule.activate.2","value":"No","position":1}]}`
+	scheduleRecorder := httptest.NewRecorder()
+	server.savePreferences(scheduleRecorder, preferenceTestRequestWithBody(http.MethodPut, "/v1/preferences", scheduleBody, operator))
+	if scheduleRecorder.Code != http.StatusOK {
+		t.Fatalf("schedule collision save status = %d, body=%s", scheduleRecorder.Code, scheduleRecorder.Body.String())
+	}
+	scheduleReadRecorder := httptest.NewRecorder()
+	server.preferences(scheduleReadRecorder, preferenceTestRequest(http.MethodGet, "/v1/preferences?category=Schedule", operator))
+	if scheduleReadRecorder.Code != http.StatusOK {
+		t.Fatalf("schedule collision read status = %d, body=%s", scheduleReadRecorder.Code, scheduleReadRecorder.Body.String())
+	}
+	var scheduleResponse struct {
+		Items []preferenceItem `json:"items"`
+	}
+	if err := json.NewDecoder(scheduleReadRecorder.Body).Decode(&scheduleResponse); err != nil {
+		t.Fatalf("decode schedule preferences: %v", err)
+	}
+	scheduleValues := make(map[string]string)
+	for _, item := range scheduleResponse.Items {
+		scheduleValues[item.FieldKey] = item.Value
+	}
+	if scheduleValues["schedule.activate.1"] != "Yes" || scheduleValues["schedule.activate.2"] != "No" {
+		t.Fatalf("repeated schedule fields collided: %+v", scheduleValues)
+	}
 }
 
 func preferenceTestRequestWithBody(method, target, body string, operator *sessionContext) *http.Request {

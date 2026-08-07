@@ -76,11 +76,21 @@ func (s *Server) transactionHistory(w http.ResponseWriter, r *http.Request) {
 	var query string
 	var args []any
 	if kind == "sale" {
-		query = salesReadModelQuery(reportSaleAggregate, "LIMIT $6")
+		query = salesReadModelQuery(reportSaleAggregate, "LIMIT $6", true)
+		args = []any{operator.TenantID, operator.BranchID, from, to, filter, limit}
+	} else if kind == "sale_return" {
+		query = saleReturnReadModelQuery("LIMIT $6", true)
+		args = []any{operator.TenantID, operator.BranchID, from, to, filter, limit}
+	} else if kind == "quotation" || kind == "refused_sale" {
+		documentKind := "quotation"
+		if kind == "refused_sale" {
+			documentKind = "refused-sale"
+		}
+		query = documentReadModelQuery(documentKind, kind, "", "LIMIT $6", true)
 		args = []any{operator.TenantID, operator.BranchID, from, to, filter, limit}
 	} else if isCanonicalPurchaseHistoryKind(kind) {
 		query = `
-			SELECT d.document_number, d.occurred_at::text,
+			SELECT d.id::text, d.document_number, d.occurred_at::text,
 			       COALESCE(mp.name, ''), COALESCE(line.item_name, ''),
 			       COALESCE(line.quantity::text, ''), d.total_amount::text
 			FROM business_documents d
@@ -125,7 +135,12 @@ func (s *Server) transactionHistory(w http.ResponseWriter, r *http.Request) {
 	defer result.Close()
 	for result.Next() {
 		var row reportRow
-		if err := result.Scan(&row.Document, &row.OccurredAt, &row.Party, &row.Item, &row.Quantity, &row.Amount); err != nil {
+		if kind == "sale" || kind == "sale_return" || kind == "quotation" || kind == "refused_sale" || isCanonicalPurchaseHistoryKind(kind) {
+			if err := result.Scan(&row.DocumentID, &row.Document, &row.OccurredAt, &row.Party, &row.Item, &row.Quantity, &row.Amount); err != nil {
+				writeProblem(w, http.StatusServiceUnavailable, "history_read_failed", "Unable to read transaction history", "The transaction history response could not be decoded.")
+				return
+			}
+		} else if err := result.Scan(&row.Document, &row.OccurredAt, &row.Party, &row.Item, &row.Quantity, &row.Amount); err != nil {
 			writeProblem(w, http.StatusServiceUnavailable, "history_read_failed", "Unable to read transaction history", "The transaction history response could not be decoded.")
 			return
 		}

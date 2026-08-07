@@ -203,6 +203,19 @@ export interface EdgeHardwareCapabilitiesResponse {
   capabilities: EdgeHardwareCapability[];
 }
 
+export type EdgeHardwareReadinessStatus = 'ready' | 'degraded' | 'unavailable' | 'invalid_configuration';
+
+export interface EdgeHardwareReadiness {
+  ready: boolean;
+  status: EdgeHardwareReadinessStatus;
+  configurationValid: boolean;
+  configurationError?: string;
+  availableCount: number;
+  totalCount: number;
+  unavailable: EdgeHardwareCapabilityName[];
+  capabilities: EdgeHardwareCapability[];
+}
+
 export interface EdgeSaleSlipLine {
   itemName: string;
   quantity?: string;
@@ -290,12 +303,35 @@ export interface ApplyItemGSTRequest {
 }
 
 export interface ReportRow {
+  documentId?: UUID;
   document: string;
   occurredAt: string;
   party: string;
   item: string;
   quantity: string;
   amount: string;
+  alias?: string;
+  itemDescription?: string;
+  salePrice?: string;
+  discountPercent?: string;
+  discountValue?: string;
+  itemDiscount?: string;
+  salesTaxValue?: string;
+  purchasePrice?: string;
+  averagePrice?: string;
+  recentPurchasePrice?: string;
+  packUnits?: string;
+  documentType?: string;
+  alternateAccountCode?: string;
+  userLegacyId?: string;
+  invoiceCode?: string;
+  expiryDate?: string;
+  batchNumber?: string;
+  grossProfit?: string;
+  marginPercent?: string;
+  reorderQuantity?: string;
+  optimumQuantity?: string;
+  minimumQuantity?: string;
 }
 
 export interface ReportColumn {
@@ -345,6 +381,7 @@ export interface ReportDefinition {
   projectionNote?: string;
   columns: ReportColumn[];
   formats: ReportFormat[];
+  selectedFormat?: string;
   retrieval: ReportRetrieval;
   letterhead: ReportLetterhead;
   exports: ReportExportHook[];
@@ -357,6 +394,23 @@ export interface ReportResponse {
   page: number;
   pageSize: number;
   hasMore: boolean;
+}
+
+export interface FinanceLedgerEntry {
+  id: string;
+  documentId: string;
+  debit: Decimal;
+  credit: Decimal;
+  balanceAfter?: Decimal;
+  occurredAt: string;
+  description: string;
+  sourceType?: 'party-ledger' | 'payment-allocation' | 'receivable-adjustment' | 'return-allocation';
+}
+
+export interface FinanceLedgerResponse {
+  partyId: UUID;
+  balance: Decimal;
+  entries: FinanceLedgerEntry[];
 }
 
 export interface ProblemDetails {
@@ -559,7 +613,7 @@ export interface DocumentStockSummary {
 export interface DocumentLineDraft {
   lineNumber: number;
   itemId: UUID;
-  /** Canonical source sale line required for posted closed returns. */
+  /** Canonical source sale or purchase line required for posted closed returns. */
   sourceLineId?: UUID;
   quantity: Decimal;
   unitOfMeasure?: string;
@@ -609,6 +663,14 @@ export interface DocumentTotals {
   balanceAmount: Decimal;
 }
 
+export interface DocumentPayment {
+  mode: string;
+  received: Decimal;
+  tendered: Decimal;
+  change: Decimal;
+  accountCode?: string;
+}
+
 export interface DocumentGLPosting {
   accountId: UUID;
   accountCode?: string;
@@ -648,6 +710,10 @@ export interface DocumentDraft<K extends DocumentKind = DocumentKind> {
   godownId?: UUID;
   reference?: string;
   remarks?: string;
+  /** Source-compatible supplier credit term in whole days. */
+  creditDays?: Decimal;
+  /** Retained SaleLedger due date for new credit-sale aging. */
+  dueDate?: string;
   voidReason?: string;
   lines: DocumentLineDraft[];
   priceLevel?: number;
@@ -655,6 +721,7 @@ export interface DocumentDraft<K extends DocumentKind = DocumentKind> {
   miscAmount?: Decimal;
   documentDiscountPercent?: Decimal;
   pricing?: Omit<PricingPreviewRequest, 'lines'>;
+  payment?: DocumentPayment;
 }
 
 export interface DocumentBase<K extends DocumentKind = DocumentKind> {
@@ -675,8 +742,13 @@ export interface DocumentBase<K extends DocumentKind = DocumentKind> {
   godownId?: UUID;
   reference?: string;
   remarks?: string;
+  /** Retained supplier credit term for purchase aging. */
+  creditDays?: Decimal;
+  /** Retained SaleLedger due date for receivables aging. */
+  dueDate?: string;
   lines: DocumentLine[];
   totals: DocumentTotals;
+  payment?: DocumentPayment;
   /** Server-calculated pricing snapshot; absence does not imply stock/GL posting. */
   pricing?: PricingPreviewResponse;
   stock?: DocumentStockSummary;

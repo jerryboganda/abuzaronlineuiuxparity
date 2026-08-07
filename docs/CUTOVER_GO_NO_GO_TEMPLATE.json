@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "document": "AbuzarNext cutover go/no-go checklist",
+  "generatedAtUtc": "2026-08-06T20:16:03.520Z",
+  "status": "HOLD",
+  "checkStatusValues": [
+    "pass",
+    "pending",
+    "blocked",
+    "fail"
+  ],
+  "decisionRule": {
+    "allowedDecisions": [
+      "GO",
+      "HOLD",
+      "ROLLBACK"
+    ],
+    "goRequires": "Every required check has status pass, every required evidence path exists, no blocker is open, and release, DBA, business, and branch approvals are present.",
+    "holdIf": "Any required check is pending, blocked, fail, missing evidence, or has an unsigned exception.",
+    "legacyWritePolicy": "The canonical legacy application and database remain read-only."
+  },
+  "scope": {
+    "tenantId": "",
+    "branchId": "",
+    "counterIds": [],
+    "releaseArtifact": "",
+    "releaseSha256": "",
+    "freezeAtUtc": "",
+    "rollbackWindowEndsAtUtc": ""
+  },
+  "checks": [
+    {
+      "id": "migration_source_files_001_028",
+      "required": true,
+      "status": "pass",
+      "command": "Get-ChildItem .\\db\\migrations\\*.sql | Sort-Object Name",
+      "expected": "29 files covering 001-028; two distinct 009 files; first 001_tenancy.sql; last 028_business_document_void_reversals.sql",
+      "expectedFiles": [
+        "001_tenancy.sql",
+        "002_branch_scope.sql",
+        "003_auth_sessions.sql",
+        "004_migration_support.sql",
+        "005_migration_bookkeeping_rls.sql",
+        "006_master_records.sql",
+        "007_preferences.sql",
+        "008_role_permissions.sql",
+        "009_legacy_security_rights.sql",
+        "009_phase_e_master_wave.sql",
+        "010_master_normalized.sql",
+        "011_business_documents.sql",
+        "012_stock_ledger.sql",
+        "013_finance_ledgers.sql",
+        "014_purchase_documents.sql",
+        "015_sync_event_final_payload.sql",
+        "016_branch_rls_hardening.sql",
+        "017_sync_event_delete_guard.sql",
+        "018_tax_configuration.sql",
+        "019_security_data_import_adaptation.sql",
+        "020_historical_migration_wave.sql",
+        "021_scale_read_indexes.sql",
+        "022_sale_return_lifecycle.sql",
+        "023_open_sale_return_lifecycle.sql",
+        "024_preferences_branch_scope.sql",
+        "025_sale_return_reversal_contract.sql",
+        "026_historical_line_precision.sql",
+        "027_historical_item_history_adjustments.sql",
+        "028_business_document_void_reversals.sql"
+      ],
+      "evidence": "../db/migrations/028_business_document_void_reversals.sql"
+    },
+    {
+      "id": "migration_target_applied_001_028",
+      "required": true,
+      "status": "pending",
+      "command": "powershell -ExecutionPolicy Bypass -File .\\ops\\postgres\\apply-migrations.ps1",
+      "expected": "Successful completion of all 29 ordered migration files covering 001-028 on the approved target",
+      "evidence": ""
+    },
+    {
+      "id": "migration_020_parent_scope",
+      "required": true,
+      "status": "pending",
+      "command": "Verify the approved tenant/branch bootstrap or importer scope before applying 020_historical_migration_wave.sql",
+      "expected": "Reviewed tenant and branch parent rows exist before migration 020; no ad-hoc production SQL",
+      "evidence": ""
+    },
+    {
+      "id": "canonical_inventory",
+      "required": true,
+      "status": "blocked",
+      "command": "go run ./migration/cmd/inspect -out <secure-evidence>\\source-schema.json",
+      "expected": "Reviewed canonical inventory and approved coverage for every in-scope source table",
+      "evidence": "../migration/PHASE_E_CANONICAL_STATUS_2026-08-06.md",
+      "currentBlocker": "Current evidence is partial; remaining source tables are not fully mapped."
+    },
+    {
+      "id": "canonical_counts",
+      "required": true,
+      "status": "blocked",
+      "command": "go run ./migration/cmd/reconcile -config <approved-final-map> -tenant <tenant-uuid> -allow-canonical -out <secure-evidence>\\final-reconciliation.json",
+      "expected": "All in-scope table counts matched; zero unexplained duplicates or exceptions",
+      "evidence": "",
+      "currentBlocker": "Sales, stock, ledgers, and other historical waves remain incomplete."
+    },
+    {
+      "id": "business_metrics",
+      "required": true,
+      "status": "blocked",
+      "command": "go run ./migration/cmd/reconcile -metrics <approved-final-metrics> -tenant <tenant-uuid> -allow-canonical -out <secure-evidence>\\final-reconciliation.json",
+      "expected": "At least 12 reviewed metrics matched within declared tolerance; money/quantity tolerance is at most 0.01 unless approved",
+      "evidence": "../migration/maps/phase-e-historical-reconciliation-metrics.json",
+      "currentBlocker": "The checked metric file is a wave artifact, not complete canonical go-live evidence."
+    },
+    {
+      "id": "s0_s1_acceptance_domains",
+      "required": true,
+      "status": "blocked",
+      "command": "Review docs/ACCEPTANCE_EVIDENCE_2026-08-07.md and docs/GAP_ANALYSIS_2026-08-06.md",
+      "expected": "No open S0/S1 gap and every acceptance domain has an artifact or signed exception",
+      "evidence": "ACCEPTANCE_EVIDENCE_2026-08-07.md",
+      "currentBlocker": "Canonical migration, exact business/report parity, and remaining S1 workflow acceptance are open."
+    },
+    {
+      "id": "rights_and_rls",
+      "required": true,
+      "status": "blocked",
+      "command": "Run the approved app-role RLS probe and four-group rights/menu comparison",
+      "expected": "RLS, API denies, legacy rights, allow scopes, and menu gating match the approved matrix",
+      "evidence": "../tmp/phase-r-backend-evidence.md",
+      "currentBlocker": "Current rights evidence is partial and does not close exact menu/allow-scope parity."
+    },
+    {
+      "id": "hardware_physical_signoff",
+      "required": true,
+      "status": "blocked",
+      "command": "Run authenticated edge hardware capability, print, barcode, and drawer checks on pharmacy devices",
+      "expected": "Required real devices pass operator signoff; no required adapter returns hardware_adapter_unavailable",
+      "evidence": "PHASE_U_HARDWARE_EVIDENCE.md",
+      "currentBlocker": "No physical devices were connected in the current evidence."
+    },
+    {
+      "id": "full_volume_performance",
+      "required": true,
+      "status": "blocked",
+      "command": "powershell -ExecutionPolicy Bypass -File .\\ops\\perf\\run-phase-w.ps1 -FullVolume -Iterations 15",
+      "expected": "POS line-add <150 ms, document post <1 s, heavy report p95 <5 s on full migrated volume",
+      "evidence": "PHASE_W_PERFORMANCE_EVIDENCE_2026-08-07.md",
+      "currentBlocker": "Only bounded synthetic probes were run; full volume was not run."
+    },
+    {
+      "id": "eight_hour_soak",
+      "required": true,
+      "status": "blocked",
+      "command": "powershell -ExecutionPolicy Bypass -File .\\ops\\perf\\run-soak.ps1",
+      "expected": "Approved eight-hour read-only soak completed with zero unexplained errors",
+      "evidence": "",
+      "currentBlocker": "The soak was not run."
+    },
+    {
+      "id": "pixel_acceptance",
+      "required": true,
+      "status": "blocked",
+      "command": "powershell -ExecutionPolicy Bypass -File .\\parity\\tools\\compare-png.ps1 -Reference <reference.png> -Candidate <candidate.png> -ReportPath <comparison.json>",
+      "expected": "All required 1936x1048 states pass tolerance or have individually signed exceptions",
+      "evidence": "../parity/catalog/legacy-shell-parity-comparison-2026-08-05.json",
+      "currentBlocker": "Representative exact rasters do not prove the complete screen/state sweep."
+    },
+    {
+      "id": "functional_uat",
+      "required": true,
+      "status": "blocked",
+      "command": "Execute the approved parallel trading-day UAT script",
+      "expected": "Sales, purchases, returns, reports, permissions, offline recovery, and day-end totals signed by business approver",
+      "evidence": "",
+      "currentBlocker": "Parallel trading-day UAT and final day-end reconciliation are not complete."
+    },
+    {
+      "id": "backup_restore",
+      "required": true,
+      "status": "pending",
+      "command": "pg_dump --format=custom --file <secure-backup.dump> <protected-target-dsn>; pg_restore --clean --if-exists --no-owner --dbname <disposable-target-dsn> <secure-backup.dump>",
+      "expected": "Encrypted backup hash recorded and restore rehearsal passes in a separate target",
+      "evidence": ""
+    },
+    {
+      "id": "health_and_metrics",
+      "required": true,
+      "status": "pending",
+      "command": "GET /v1/health; GET /v1/metrics; authenticated edge GET /v1/sync/status",
+      "expected": "API and edge report status=ok/database=ok; metrics contain requestsTotal/serverErrors/slowRequests; pendingEvents is zero or approved",
+      "evidence": ""
+    },
+    {
+      "id": "rollback_rehearsal",
+      "required": true,
+      "status": "pending",
+      "command": "Complete docs/ROLLBACK_REHEARSAL_RECORD_TEMPLATE.md",
+      "expected": "PASS record with terminal repoint, backup/queue evidence, preserved new events, and no legacy writes",
+      "evidence": ""
+    },
+    {
+      "id": "approvals",
+      "required": true,
+      "status": "pending",
+      "command": "Collect release-manager, DBA, business-approver, and branch-operator signatures",
+      "expected": "All required approvals present with UTC timestamps",
+      "evidence": ""
+    }
+  ],
+  "blockersAsOfUtc": [
+    "Complete canonical migration and reconciliation",
+    "Open S0/S1 parity domains",
+    "Physical-device signoff",
+    "Full-volume performance and eight-hour soak",
+    "Complete pixel and functional acceptance",
+    "Rollback rehearsal and 48-hour operational acceptance"
+  ],
+  "approvals": {
+    "releaseManager": null,
+    "dba": null,
+    "businessApprover": null,
+    "branchOperator": null
+  }
+}

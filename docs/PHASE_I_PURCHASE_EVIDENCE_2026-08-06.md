@@ -101,7 +101,30 @@ Focused evidence:
   identifier` passed (1/1). No sandbox evidence for the legacy batch format is
   claimed by this test.
 - `pnpm --filter @abuzar/web check` — 0 errors and 0 warnings.
+
+## Canonical history population follow-up — 2026-08-07
+
+Purchase history now carries canonical document identity and the new
+`GET /v1/documents/{id}` read path hydrates persisted lines, supplier/godown,
+batch/expiry, discount, and tax metadata. The contextual `Populate Purchase
+Invoice` and `Populate Purchase Return Invoice` commands now select the
+appropriate canonical history source and populate a new draft without
+reusing the selected posted document identity. Full evidence is recorded in
+[`PHASE_I_PURCHASE_HISTORY_POPULATION_EVIDENCE_2026-08-07.md`](PHASE_I_PURCHASE_HISTORY_POPULATION_EVIDENCE_2026-08-07.md).
 - `pnpm --filter @abuzar/web build` — production build passed.
-- `pnpm exec playwright test --workers=1 --retries=1` — the current 67-test
-  suite completed successfully with one transient browser-context retry
-  (66 passed, 1 flaky/recovered).
+- `pnpm --filter @abuzar/web test -- --workers=1 --reporter=line` — the current
+  69-test suite completed successfully: 69 passed serially.
+
+## Purchase return source allocation follow-up — 2026-08-07
+
+Purchase returns now retain and edit all source-batch allocations from a
+hydrated canonical document instead of collapsing them to the first batch.
+The return screen provides a legacy-compatible source batch ID field plus an
+explicit multi-batch editor backed by active godown availability; the command
+serializes every selected allocation and rejects missing IDs, duplicate batch
+IDs, invalid quantities, and allocation totals that do not equal the line
+quantity. The new focused Playwright contract is present but was not executed
+in this short verification slice. The web type check passed with no errors or
+warnings, Playwright discovery listed 9 purchase contracts, and the focused
+Go purchase tests passed. Exact source-document allocation reconciliation and
+approved PowerBuilder raster/UAT evidence remain open.

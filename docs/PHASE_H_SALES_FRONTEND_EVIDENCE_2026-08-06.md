@@ -15,6 +15,13 @@ never fall back to that queue when the canonical request fails.
 - Active canonical godowns are loaded from `/v1/master/godown`. Selecting one
   loads `/v1/inventory/availability` per selected item and displays the
   server-authoritative available quantity.
+- The sales grid now retains positive availability batches and exposes an
+  explicit per-line allocation editor. Users can select multiple distinct
+  batches, enter each allocation quantity, and leave an unused row on
+  `Automatic FIFO`; selected rows are sent through the existing `allocations`
+  contract. Post validation rejects duplicate batches, non-positive quantities,
+  quantities over four decimals, and allocation totals that do not equal the
+  line quantity before the command reaches the server.
 - Cash and credit sales use typed `/v1/documents/cash-sale` and
   `/v1/documents/credit-sale` commands for save, post, save-and-post, and
   void. Commands include idempotency keys, expected versions for updates,
@@ -48,9 +55,10 @@ never fall back to that queue when the canonical request fails.
 
 ## Remaining gaps
 
-- The current stock UI shows available batches as an aggregate. It does not
-  yet expose batch selection, expiry detail, allocation editing, transfers,
-  adjustments, valuation policy, or a full StockReport projection.
+- The current stock UI now exposes a bounded multi-batch allocation editor with
+  expiry and available-quantity labels. Transfers, adjustments, valuation
+  policy, full StockReport projection, and exact legacy allocation rules remain
+  open.
 - Sales returns, open returns, quotations, refused sales, and reversal/void
   posting remain on compatibility/event paths; posted canonical sale void is
   correctly rejected by the backend until a stock-reversal workflow exists.

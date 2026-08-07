@@ -2,7 +2,9 @@ param(
     [string]$AdminDsn = $env:ABUZAR_PERF_ADMIN_DATABASE_URL,
     [string]$DatabaseName = '',
     [switch]$FullVolume,
+    [switch]$AllowSharedCluster,
     [switch]$KeepDatabase,
+    [switch]$CleanupOnFailure,
     [int]$Iterations = 15
 )
 
@@ -26,6 +28,9 @@ if ([string]::IsNullOrWhiteSpace($DatabaseName)) {
 }
 if ($DatabaseName -notmatch '^abuzar_phasew_[A-Za-z0-9_]+$') {
     throw 'DatabaseName must use the disposable abuzar_phasew_ prefix.'
+}
+if ($FullVolume -and -not $AllowSharedCluster) {
+    throw 'Full-volume runs require an isolated PostgreSQL cluster. Pass -AllowSharedCluster only for an explicitly isolated CI/service instance.'
 }
 
 function Invoke-Psql {
@@ -72,7 +77,8 @@ function Apply-HarnessMigrations {
     $files = Get-ChildItem -LiteralPath $migrationRoot -Filter '*.sql' -File |
         Sort-Object Name
     foreach ($file in $files) {
-        if ($file.Name -eq '020_historical_migration_wave.sql') {
+            $script:phase = 'migration:' + $file.Name
+            if ($file.Name -eq '020_historical_migration_wave.sql') {
             # This existing migration has an importer counter FK fixture.
             # Parent rows are created only inside this disposable database.
             Invoke-Psql -Dsn $Dsn -Arguments @(
@@ -86,12 +92,16 @@ function Apply-HarnessMigrations {
 
 $targetDsn = Target-Dsn -Dsn $AdminDsn -Name $DatabaseName
 $created = $false
+$phase = 'create_database'
+$failure = $null
+$artifact = ''
 try {
     Set-AdminConnectionEnvironment -Dsn $AdminDsn
     & $createdb --maintenance-db postgres $DatabaseName
     if ($LASTEXITCODE -ne 0) { throw 'Unable to create the disposable database.' }
     $created = $true
 
+    $phase = 'migrations'
     Apply-HarnessMigrations -Dsn $targetDsn
 
     $stock = 25000
@@ -104,6 +114,7 @@ try {
         $items = 30050
         $batches = 30050
     }
+    $phase = 'seed:' + $stock.ToString() + '-stock/' + $gl.ToString() + '-gl'
     Invoke-Psql -Dsn $targetDsn -Arguments @(
         '--variable', "scale_stock=$stock",
         '--variable', "scale_gl=$gl",
@@ -112,6 +123,7 @@ try {
         '--file', $seed
     )
 
+    $phase = 'performance_probes'
     $artifact = Join-Path $root ('tmp\phase-w-performance-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.json')
     $env:ABUZAR_PERF_DATABASE_URL = $targetDsn
     & go run ./services/api/cmd/perf -iterations $Iterations -output $artifact
@@ -126,15 +138,38 @@ try {
         retained = [bool]$KeepDatabase
     } | ConvertTo-Json -Depth 4)
 }
+catch {
+    $failure = $_.Exception.Message
+    $blocker = Join-Path $root ('tmp\phase-w-blocker-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.json')
+    $drive = Get-PSDrive -Name D -ErrorAction SilentlyContinue
+    $memory = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+    [pscustomobject]@{
+        status = 'blocked'
+        phase = $phase
+        error = $failure
+        database = $DatabaseName
+        fullVolumeRequested = [bool]$FullVolume
+        retainedForInspection = [bool](-not $CleanupOnFailure)
+        diskFreeBytes = if ($drive) { [int64]$drive.Free } else { $null }
+        freeMemoryBytes = if ($memory) { [int64]$memory.FreePhysicalMemory * 1KB } else { $null }
+        generatedAt = [DateTime]::UtcNow.ToString('o')
+        note = 'No acceptance claim is made. Inspect the retained disposable database only if it is explicitly cleaned up later.'
+    } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $blocker -Encoding UTF8
+    Write-Output "Phase W blocker artifact: $blocker"
+    throw
+}
 finally {
     Remove-Item Env:ABUZAR_ADMIN_DATABASE_URL -ErrorAction SilentlyContinue
     Remove-Item Env:ABUZAR_PERF_DATABASE_URL -ErrorAction SilentlyContinue
-    if ($created -and -not $KeepDatabase) {
+    $retain = $KeepDatabase -or ($failure -and -not $CleanupOnFailure)
+    if ($created -and -not $retain) {
         # Drop only the validated disposable name; no application database is
         # used. The harness has no external clients while this finally block
         # runs, so a plain drop is sufficient and avoids broad termination.
         Set-AdminConnectionEnvironment -Dsn $AdminDsn
         & $dropdb --if-exists --maintenance-db postgres $DatabaseName
         if ($LASTEXITCODE -ne 0) { throw 'Unable to drop the disposable database.' }
+    } elseif ($created -and $failure) {
+        Write-Output "Retaining failed disposable database for inspection: $DatabaseName"
     }
 }

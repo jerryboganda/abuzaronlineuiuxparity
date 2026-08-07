@@ -28,12 +28,16 @@ func TestSaleReturnLifecycleIntegration(t *testing.T) {
 	}
 
 	fixture := seedStockTenant(t, ctx, database, "sale-return-"+fmt.Sprint(time.Now().UnixNano()))
-	defer func() { _, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID) }()
+	other := seedStockTenant(t, ctx, database, "sale-return-other-"+fmt.Sprint(time.Now().UnixNano()))
+	defer func() {
+		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id IN ($1::uuid, $2::uuid)`, fixture.tenantID, other.tenantID)
+	}()
 	receive := insertInventoryEvent(t, ctx, database, fixture, "receiving", "sale-return-receive", inventoryRowPayload{
 		ItemLegacyID: fixture.itemLegacyID, GodownID: fixture.godownID,
 		BatchNumber: "RET-001", ExpiryDate: "2030-01-01", Quantity: []byte(`3`), UnitCost: "4.00",
 	})
 	operator := &sessionContext{UserID: fixture.operatorID, TenantID: fixture.tenantID, BranchID: fixture.branchID, CounterID: fixture.counterID, Roles: []string{"tenant_admin"}}
+	otherOperator := &sessionContext{UserID: other.operatorID, TenantID: other.tenantID, BranchID: other.branchID, CounterID: other.counterID, Roles: []string{"tenant_admin"}}
 	tx, err := (&Server{database: database}).beginScopedTx(ctx, operator)
 	if err != nil {
 		t.Fatalf("begin receiving: %v", err)
@@ -84,9 +88,19 @@ func TestSaleReturnLifecycleIntegration(t *testing.T) {
 	if entryKind != "sale-return" {
 		t.Fatalf("return party entry kind = %s, want sale-return", entryKind)
 	}
+	beforeReplayStock := countStockLedger(t, ctx, database, fixture.tenantID)
+	beforeReplayJournals := countFinanceJournals(t, ctx, database, fixture.tenantID)
+	beforeReplayParty := countPartyLedgerEntries(t, ctx, database, fixture.tenantID)
+	beforeReplayReversals := countReturnReversals(t, ctx, database, fixture.tenantID)
 	replayStatus, replay, replayBody := executeDocumentHandler(t, server, operator, returnCommand)
 	if replayStatus != 200 || !replay.Duplicate || replayBody == "" {
 		t.Fatalf("return replay status=%d duplicate=%v body=%s", replayStatus, replay.Duplicate, replayBody)
+	}
+	if countStockLedger(t, ctx, database, fixture.tenantID) != beforeReplayStock ||
+		countFinanceJournals(t, ctx, database, fixture.tenantID) != beforeReplayJournals ||
+		countPartyLedgerEntries(t, ctx, database, fixture.tenantID) != beforeReplayParty ||
+		countReturnReversals(t, ctx, database, fixture.tenantID) != beforeReplayReversals {
+		t.Fatal("idempotent return replay changed stock, GL, party ledger, or reversal rows")
 	}
 
 	overReturn := returnCommand
@@ -104,6 +118,42 @@ func TestSaleReturnLifecycleIntegration(t *testing.T) {
 	if countBusinessDocuments(t, ctx, database, fixture.tenantID) != beforeOverDocuments ||
 		countStockLedger(t, ctx, database, fixture.tenantID) != beforeOverStock {
 		t.Fatal("over-return rejection mutated the document or stock projection")
+	}
+
+	voidReturn := returnCommand
+	voidReturn.CommandID = "00000000-0000-4000-8000-000000000205"
+	voidReturn.IdempotencyKey = "sale-return-void"
+	voidReturn.Action = "void"
+	voidReturn.Document = nil
+	voidReturn.DocumentID = returnResponse.Document.ID
+	voidReturn.ExpectedVersion = pointerInt64(returnResponse.Document.Version)
+	voidReturn.Reason = "Return correction"
+	beforeVoidDocuments := countBusinessDocuments(t, ctx, database, fixture.tenantID)
+	beforeVoidStock := countStockLedger(t, ctx, database, fixture.tenantID)
+	beforeVoidJournals := countFinanceJournals(t, ctx, database, fixture.tenantID)
+	beforeVoidParty := countPartyLedgerEntries(t, ctx, database, fixture.tenantID)
+	voidStatus, voidedReturn, voidBody := executeDocumentHandler(t, server, operator, voidReturn)
+	if voidStatus != http.StatusOK || !voidedReturn.Accepted || voidedReturn.Document.Status != "void" || voidedReturn.Document.Finance == nil || !voidedReturn.Document.Finance.Balanced {
+		t.Fatalf("posted return void status=%d body=%s response=%+v; want balanced compensating reversal", voidStatus, voidBody, voidedReturn)
+	}
+	if countBusinessDocuments(t, ctx, database, fixture.tenantID) != beforeVoidDocuments ||
+		countStockLedger(t, ctx, database, fixture.tenantID) != beforeVoidStock+1 ||
+		countFinanceJournals(t, ctx, database, fixture.tenantID) != beforeVoidJournals+1 ||
+		countPartyLedgerEntries(t, ctx, database, fixture.tenantID) != beforeVoidParty+1 {
+		t.Fatal("posted return void did not append exactly one stock, GL, and party reversal")
+	}
+	var voidStockDirection, voidJournalKind, voidPartyKind string
+	if err := database.QueryRowContext(ctx, `SELECT direction FROM stock_ledger WHERE tenant_id = $1::uuid AND source_document_id = $2::uuid ORDER BY created_at DESC, id DESC LIMIT 1`, fixture.tenantID, returnResponse.Document.ID).Scan(&voidStockDirection); err != nil {
+		t.Fatalf("read return void stock reversal: %v", err)
+	}
+	if err := database.QueryRowContext(ctx, `SELECT kind FROM gl_journals WHERE tenant_id = $1::uuid AND source_document_id = $2::uuid ORDER BY created_at DESC, id DESC LIMIT 1`, fixture.tenantID, returnResponse.Document.ID).Scan(&voidJournalKind); err != nil {
+		t.Fatalf("read return void journal reversal: %v", err)
+	}
+	if err := database.QueryRowContext(ctx, `SELECT entry_kind FROM party_ledger_entries WHERE tenant_id = $1::uuid AND source_document_id = $2::uuid ORDER BY created_at DESC, id DESC LIMIT 1`, fixture.tenantID, returnResponse.Document.ID).Scan(&voidPartyKind); err != nil {
+		t.Fatalf("read return void party reversal: %v", err)
+	}
+	if voidStockDirection != "out" || voidJournalKind != "void-reversal" || voidPartyKind != "void" {
+		t.Fatalf("return void reversal kinds stock=%q journal=%q party=%q", voidStockDirection, voidJournalKind, voidPartyKind)
 	}
 
 	openReturnCommand := documentCommandRequest{
@@ -130,4 +180,72 @@ func TestSaleReturnLifecycleIntegration(t *testing.T) {
 	if openBalance != "2.0000" {
 		t.Fatalf("open return stock balance = %s, want 2.0000", openBalance)
 	}
+
+	beforeOpenReplayStock := countStockLedger(t, ctx, database, fixture.tenantID)
+	beforeOpenReplayJournals := countFinanceJournals(t, ctx, database, fixture.tenantID)
+	beforeOpenReplayParty := countPartyLedgerEntries(t, ctx, database, fixture.tenantID)
+	openReplayStatus, openReplay, openReplayBody := executeDocumentHandler(t, server, operator, openReturnCommand)
+	if openReplayStatus != http.StatusOK || !openReplay.Duplicate || openReplayBody == "" {
+		t.Fatalf("open return replay status=%d duplicate=%v body=%s", openReplayStatus, openReplay.Duplicate, openReplayBody)
+	}
+	if countStockLedger(t, ctx, database, fixture.tenantID) != beforeOpenReplayStock ||
+		countFinanceJournals(t, ctx, database, fixture.tenantID) != beforeOpenReplayJournals ||
+		countPartyLedgerEntries(t, ctx, database, fixture.tenantID) != beforeOpenReplayParty {
+		t.Fatal("idempotent open-return replay changed stock, GL, or party ledger rows")
+	}
+
+	crossSource := returnCommand
+	crossSource.CommandID = "00000000-0000-4000-8000-000000000206"
+	crossSource.IdempotencyKey = "cross-tenant-sale-return"
+	crossSource.Document = &documentDraftRequest{
+		Kind: "cash-return", OccurredAt: returnCommand.Document.OccurredAt,
+		SourceDocumentID: saleResponse.Document.ID, SourceDocumentNumber: saleResponse.Document.DocumentNumber,
+		GodownID: other.godownID,
+		Lines:    []documentLineRequest{{ItemID: other.itemID, SourceLineID: saleResponse.Document.Lines[0].ID, Quantity: "1", UnitPrice: "10.00"}},
+	}
+	beforeOtherDocuments := countBusinessDocuments(t, ctx, database, other.tenantID)
+	beforeOtherStock := countStockLedger(t, ctx, database, other.tenantID)
+	crossSourceStatus, _, crossSourceBody := executeDocumentHandlerStatus(t, server, otherOperator, crossSource)
+	if crossSourceStatus != http.StatusUnprocessableEntity {
+		t.Fatalf("cross-tenant source return status=%d body=%s; want rejection", crossSourceStatus, crossSourceBody)
+	}
+	if countBusinessDocuments(t, ctx, database, other.tenantID) != beforeOtherDocuments ||
+		countStockLedger(t, ctx, database, other.tenantID) != beforeOtherStock {
+		t.Fatal("cross-tenant source return changed the other tenant")
+	}
+
+	crossOpen := openReturnCommand
+	crossOpen.CommandID = "00000000-0000-4000-8000-000000000207"
+	crossOpen.IdempotencyKey = "cross-tenant-open-return"
+	crossOpen.Document = &documentDraftRequest{
+		Kind: "open-cash-return", OccurredAt: openReturnCommand.Document.OccurredAt,
+		GodownID: fixture.godownID,
+		Lines:    []documentLineRequest{{ItemID: other.itemID, Quantity: "1", UnitPrice: "5.00", BatchNumber: "CROSS-OPEN-001"}},
+	}
+	beforeOtherOpenDocuments := countBusinessDocuments(t, ctx, database, other.tenantID)
+	crossOpenStatus, _, crossOpenBody := executeDocumentHandlerStatus(t, server, otherOperator, crossOpen)
+	if crossOpenStatus != http.StatusUnprocessableEntity {
+		t.Fatalf("cross-tenant open return status=%d body=%s; want rejection", crossOpenStatus, crossOpenBody)
+	}
+	if countBusinessDocuments(t, ctx, database, other.tenantID) != beforeOtherOpenDocuments {
+		t.Fatal("cross-tenant open return changed the other tenant")
+	}
+}
+
+func countPartyLedgerEntries(t *testing.T, ctx context.Context, database *sql.DB, tenantID string) int {
+	t.Helper()
+	var count int
+	if err := database.QueryRowContext(ctx, `SELECT count(*) FROM party_ledger_entries WHERE tenant_id = $1::uuid`, tenantID).Scan(&count); err != nil {
+		t.Fatalf("count party ledger entries: %v", err)
+	}
+	return count
+}
+
+func countReturnReversals(t *testing.T, ctx context.Context, database *sql.DB, tenantID string) int {
+	t.Helper()
+	var count int
+	if err := database.QueryRowContext(ctx, `SELECT count(*) FROM business_document_reversals WHERE tenant_id = $1::uuid`, tenantID).Scan(&count); err != nil {
+		t.Fatalf("count return reversals: %v", err)
+	}
+	return count
 }

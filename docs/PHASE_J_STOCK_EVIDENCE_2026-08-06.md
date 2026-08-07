@@ -25,6 +25,14 @@ legacy stock migration.
 - Inventory adjustments require an explicit `adjustmentSign` of `-1` or `1`;
   the sign is persisted in `stock_ledger` and used by balance rebuilds.
   Missing or invalid signs fail the whole event projection.
+- The shared Svelte adjustment/opening-stock surface now fails closed before
+  posting unless it has a canonical item legacy ID, UUID godown, batch number,
+  positive quantity with at most four decimals, and (for signed adjustments)
+  an explicit `1`/`-1` sign; emitted payload values are trimmed and normalized.
+- The same surface now searches active canonical items and lets the operator
+  select an active godown from the authenticated master list; the selected
+  item legacy ID and godown UUID populate the event instead of relying on
+  free-text IDs.
 - Guarded availability and balance-rebuild routes were added:
   `GET /v1/inventory/availability` and
   `POST /v1/inventory/rebuild`.
@@ -35,6 +43,10 @@ legacy stock migration.
 - Allocation policy is `fifo` by default; `legacy` is an explicit, documented
   placeholder using the same stable ordering until legacy evidence is
   reconciled. Unknown policy values are rejected.
+- Canonical posted sales, purchases, sale returns, and purchase returns now
+  append inverse stock movements on a valid void command; source movements are
+  immutable, dependent posted documents block reversal, and replay is
+  idempotent. See `docs/PHASE_T_VOID_REVERSAL_EVIDENCE_2026-08-07.md`.
 
 ## Evidence observed
 
@@ -58,8 +70,8 @@ legacy stock migration.
 ## Remaining work
 
 - FIFO cost allocation is stored, but valuation/COGS, weighted-average
-  behavior, returns/reversals, transfers, adjustments UI, and legacy policy
-  reconciliation are not complete.
+  behavior, historical reversal equivalence, transfers, adjustments UI, and
+  legacy policy reconciliation are not complete.
 - The 3.2M-row legacy stock snapshot has not been imported or reconciled by
   godown, batch, item, and valuation metric.
 - Full `StockReport` projection/performance parity and historical replay

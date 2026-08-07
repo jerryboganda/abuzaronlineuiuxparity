@@ -168,7 +168,89 @@ are currently validated. The `023` and `025` checks validated successfully
 on the existing data, and the 025 return triggers enforce source/line/reversal
 rules. The 024 foreign key was not relaxed.
 
+The current migration tree subsequently added `027_historical_item_history_adjustments.sql`
+and `028_business_document_void_reversals.sql`. Both are included in the
+current ordered replay and have been validated in the latest disposable
+replay; the historical import and reconciliation status above remains
+unchanged.
+
 Final checks: ungranted locks `0`, invalid indexes `0`, orphan document lines
 `0`, orphan stock-batch item references `0`, documents `331,928`, lines
 `895,015`, and open exceptions `320,865`. The exact run record is
 `migration/ORDERED_MIGRATION_REPLAY_2026-08-07.json`.
+
+## Exception analysis and bulk stock/finance promotion — 2026-08-07
+
+Before this category pass, the sandbox had `open=320,865` exceptions:
+
+- stale party-ledger payload failures: `320,465`;
+- stale/superseded return/header bookkeeping: resolved during target matching;
+- non-positive purchase/order rows: `398`;
+- no VirtualGl exception records yet.
+
+After target matching, bulk promotion, and reviewed quarantine:
+
+| Status | Count |
+|---|---:|
+| resolved | 500,976 |
+| ignored/quarantined | 404 |
+| open | 0 |
+
+The 404 ignored records are explicit decisions: 398 zero-total or
+non-positive-quantity rows, 2 residual line-count gap summaries, 1 VirtualGl
+duplicate-identity summary, and 1 stock-batch identity discrepancy. They are
+not treated as successful canonical rows.
+
+Bulk promotion results:
+
+- `StockReport`: `3,215,967` source rows → `3,215,967`
+  `historical_stock_snapshots`.
+- `VirtualGl`: `1,021,852` source rows, `1,021,801` distinct reviewed
+  identities → `1,021,801` historical GL rows; 51 duplicate source rows were
+  quarantined.
+- Stock ledger: `781,203` rows (`158,107` inbound and `623,096` outbound).
+  Source line metric is `781,243`; 40 residual line gaps are quarantined.
+- Party ledger: `329,115` eligible source documents → `329,115` entries.
+- Stock batches: `10,507` canonical physical identities; the seven-row
+  difference from the reviewed source union count is quarantined rather than
+  silently deduplicated.
+
+The final finance/stock metric artifact is
+`parity/catalog/phase-e-finance-stock-reconciliation-final.json`.
+It reports matched StockReport snapshots, distinct VirtualGl identities,
+return ledgers, party ledgers, and zero open exceptions. Sale/purchase stock
+line counts remain mismatched by the quarantined 40 rows, so Phase E is not
+green or complete.
+
+During the large set-based ledger promotion, a concurrent background migration
+runner caused one additional deadlock at `2026-08-07 02:35:16.399 PKT`
+(`stock_ledger` transaction versus an `010_master_normalized.sql` lock on
+`sync_events`). The identified stale migration backends were terminated by
+PID, their transaction was rolled back, and the ledger was resumed in
+5,000-invoice ranges. Final checks show no ungranted locks, no invalid
+indexes, and no orphan document-line or stock-batch references.
+
+## Tax-rule ambiguity bookkeeping clarification — 2026-08-07
+
+The bulk promotion's `open=0` statement refers to `migration_exceptions` only.
+A fresh local PostgreSQL probe found no open rows in that table, but found 16
+open rows in the separate `migration_ambiguous_records` table: four each for
+`AdditionalTaxRule`, `ExtraTaxRule`, `IncomeTaxRule`, and `UnitSalesTaxRules`.
+All use `tax_rule_has_no_numeric_rate`; their retained labels are “TAX ON
+ACTUAL AND BONUS QTY”, “TAX ON ACTUAL QTY ONLY”, “TAX ON BONUS QTY ONLY”, and
+“NO TAX”. They remain explicitly unpromoted because the captured source rows
+do not contain a numeric rate, and the generated finance/stock artifact does
+not query this ambiguity table. This is an open source-semantics acceptance
+boundary, not a silently resolved migration exception.
+
+## Current bookkeeping recheck — 2026-08-07
+
+A fresh local PostgreSQL probe after the historical wave reported 501,024
+resolved, 404 ignored, and 32 open `migration_exceptions` rows in aggregate.
+All 32 are `dbo.Purdetail` rows with `non_positive_quantity` in the isolated
+canonical tenant; they remain quarantined because
+`business_document_lines.quantity` is required to be positive. The sandbox
+tenant has no open `migration_exceptions`. Its separate
+`migration_ambiguous_records` table has 16 open tax-rule rows, while the
+canonical tenant has none. The reconciliation command now emits both counts
+and returns `bookkeeping.status=review_required` whenever either table is open.

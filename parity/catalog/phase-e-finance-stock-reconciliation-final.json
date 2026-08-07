@@ -1,0 +1,142 @@
+{
+  "generatedAt": "2026-08-06T21:45:57.4924324Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Saledetail",
+      "sourceCount": 620619,
+      "targetSchema": "public",
+      "targetTable": "stock_ledger",
+      "targetCount": 623096,
+      "status": "mismatched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purdetail",
+      "sourceCount": 113564,
+      "targetSchema": "public",
+      "targetTable": "stock_ledger",
+      "targetCount": 158107,
+      "status": "mismatched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SRdetail",
+      "sourceCount": 44579,
+      "targetSchema": "public",
+      "targetTable": "stock_ledger",
+      "targetCount": 158107,
+      "status": "mismatched"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PRdetail",
+      "sourceCount": 2481,
+      "targetSchema": "public",
+      "targetTable": "stock_ledger",
+      "targetCount": 623096,
+      "status": "mismatched"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "stock_report_snapshot_count",
+      "sourceValue": "3215967",
+      "targetValue": "3215967",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "virtual_gl_distinct_identity_count",
+      "sourceValue": "1021801",
+      "targetValue": "1021801",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "stock_ledger_total_count",
+      "sourceValue": "781243",
+      "targetValue": "781203",
+      "difference": "40.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "sale_stock_ledger_count",
+      "sourceValue": "620619",
+      "targetValue": "620615",
+      "difference": "4.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "purchase_stock_ledger_count",
+      "sourceValue": "113564",
+      "targetValue": "113528",
+      "difference": "36.00000000",
+      "tolerance": 0.0001,
+      "status": "mismatched"
+    },
+    {
+      "name": "sale_return_stock_ledger_count",
+      "sourceValue": "44579",
+      "targetValue": "44579",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_return_stock_ledger_count",
+      "sourceValue": "2481",
+      "targetValue": "2481",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "sale_party_ledger_count",
+      "sourceValue": "291361",
+      "targetValue": "291361",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "sale_return_party_ledger_count",
+      "sourceValue": "30704",
+      "targetValue": "30704",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_party_ledger_count",
+      "sourceValue": "6416",
+      "targetValue": "6416",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_return_party_ledger_count",
+      "sourceValue": "634",
+      "targetValue": "634",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "open_exception_count",
+      "sourceValue": "0",
+      "targetValue": "0",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    }
+  ]
+}

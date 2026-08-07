@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -62,7 +63,8 @@ func TestReadModelsExposeCanonicalSalesWithoutDuplicateCompatibilityRows(t *test
 			t.Fatalf("%s status = %d, body = %s", path, recorder.Code, recorder.Body.String())
 		}
 		var body struct {
-			Rows []reportRow `json:"rows"`
+			Rows       []reportRow      `json:"rows"`
+			Definition reportDefinition `json:"definition"`
 		}
 		if err := json.NewDecoder(recorder.Body).Decode(&body); err != nil {
 			t.Fatalf("%s decode: %v", path, err)
@@ -82,6 +84,22 @@ func TestReadModelsExposeCanonicalSalesWithoutDuplicateCompatibilityRows(t *test
 		}
 		if !seenCanonical || !seenCompatibility {
 			t.Fatalf("%s rows did not include both sources: %+v", path, body.Rows)
+		}
+		if strings.HasPrefix(path, "/v1/reports/") {
+			if len(body.Definition.Columns) != 11 {
+				t.Fatalf("daily detail columns = %d, want 11: %+v", len(body.Definition.Columns), body.Definition.Columns)
+			}
+			for _, row := range body.Rows {
+				if row.Document != "CANONICAL-1" {
+					continue
+				}
+				if row.Alias != "READ-ALIAS" || row.ItemDescription != "Canonical Item" || row.SalePrice != "7.00" ||
+					!reportNumericEqual(row.Quantity, "2") || row.DiscountPercent != "4.00" || row.DiscountValue != "0.50" ||
+					row.ItemDiscount != "0.50" || row.SalesTaxValue != "0.50" || !reportNumericEqual(row.Amount, "12.00") ||
+					row.ExpiryDate != "2027-12-31" || row.BatchNumber != "B-READ" {
+					t.Fatalf("canonical daily detail row = %+v, want retained detail fields", row)
+				}
+			}
 		}
 	}
 
@@ -202,6 +220,16 @@ func TestReadModelsExposeCanonicalSaleReturnsWithoutDuplicateCompatibilityRows(t
 	if !strings.Contains(body.Definition.ProjectionNote, "business_documents") {
 		t.Fatalf("sale-return definition did not disclose canonical projection: %q", body.Definition.ProjectionNote)
 	}
+	if len(body.Definition.Columns) != 11 {
+		t.Fatalf("sale-return detail columns = %d, want source-backed line-detail contract", len(body.Definition.Columns))
+	}
+	for _, row := range body.Rows {
+		if row.Document == "RETURN-CANONICAL-1" {
+			if row.ItemDescription != "Returned Item" || !reportNumericEqual(row.SalePrice, "2") || !reportNumericEqual(row.Quantity, "2") || !reportNumericEqual(row.Amount, "4") {
+				t.Fatalf("canonical sale-return detail row = %+v, want retained line fields", row)
+			}
+		}
+	}
 }
 
 func TestInvoiceSummaryReportGroupsCanonicalLinesOnce(t *testing.T) {
@@ -261,9 +289,15 @@ func TestInvoiceSummaryReportGroupsCanonicalLinesOnce(t *testing.T) {
 	if len(body.Rows) != 1 {
 		t.Fatalf("sale-summary rows = %d, want one invoice row: %+v", len(body.Rows), body.Rows)
 	}
-	if body.Rows[0].Document != "SUMMARY-CANONICAL-1" || body.Rows[0].Quantity != "3.0000" || body.Rows[0].Amount != "30.0000" {
+	if body.Rows[0].Document != "SUMMARY-CANONICAL-1" || !reportNumericEqual(body.Rows[0].Quantity, "3") || !reportNumericEqual(body.Rows[0].Amount, "30") {
 		t.Fatalf("sale-summary row = %+v, want one grouped invoice with quantity 3 and amount 30", body.Rows[0])
 	}
+}
+
+func reportNumericEqual(left, right string) bool {
+	leftRat, leftOK := new(big.Rat).SetString(strings.TrimSpace(left))
+	rightRat, rightOK := new(big.Rat).SetString(strings.TrimSpace(right))
+	return leftOK && rightOK && leftRat.Cmp(rightRat) == 0
 }
 
 func TestPurchaseReturnReportUsesCanonicalReadModel(t *testing.T) {
@@ -321,6 +355,103 @@ func TestPurchaseReturnReportUsesCanonicalReadModel(t *testing.T) {
 	}
 	if len(body.Rows) != 1 || body.Rows[0].Document != "PR-CANONICAL-1" || body.Rows[0].Item != "Returned Purchase Item" {
 		t.Fatalf("purchase-return report rows = %+v, want canonical row", body.Rows)
+	}
+}
+
+func TestPurchaseLineDetailReportUsesCanonicalAndCompatibilityLines(t *testing.T) {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		t.Skip("DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	database, err := sql.Open("pgx", dsn)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	defer database.Close()
+	if err := database.PingContext(ctx); err != nil {
+		t.Fatalf("ping database: %v", err)
+	}
+	fixture := seedStockTenant(t, ctx, database, "read-model-purchase-detail-"+time.Now().Format("150405.000000"))
+	defer func() {
+		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID)
+	}()
+	supplierID := seedPurchaseSupplier(t, ctx, database, fixture.tenantID, "supplier-"+fixture.itemLegacyID)
+	var documentID string
+	if err := database.QueryRowContext(ctx, `
+		INSERT INTO business_documents
+			(tenant_id, branch_id, counter_id, operator_id, supplier_id, kind, document_number, status,
+			 occurred_at, total_amount)
+		VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'pack-purchase', 'PUR-CANONICAL-1', 'posted',
+		        '2026-08-06T10:00:00Z', 9.00)
+		RETURNING id::text
+	`, fixture.tenantID, fixture.branchID, fixture.counterID, fixture.operatorID, supplierID).Scan(&documentID); err != nil {
+		t.Fatalf("seed purchase document: %v", err)
+	}
+	if _, err := database.ExecContext(ctx, `
+		INSERT INTO business_document_lines
+			(tenant_id, branch_id, document_id, line_number, item_id, item_legacy_id,
+			 item_code, item_name, quantity, unit_price, line_gross, line_total,
+			 unit_cost, tax_amount, batch_number, expiry_date, legacy_payload)
+		VALUES ($1::uuid, $2::uuid, $3::uuid, 1, $4::uuid, $5, $5, 'Canonical Purchase Item',
+		        2, 5.00, 10.00, 9.00, 4.50, 0.50, 'PUR-B', '2027-12-31',
+		        '{"PurPrice":"4.50","DiscPerc":"10.00","DiscountValue":"1.00","SalesTax":"0.50"}'::jsonb)
+	`, fixture.tenantID, fixture.branchID, documentID, fixture.itemID, fixture.itemLegacyID); err != nil {
+		t.Fatalf("seed purchase line: %v", err)
+	}
+	if _, err := database.ExecContext(ctx, `
+		INSERT INTO sync_events
+			(event_id, tenant_id, branch_id, counter_id, operator_id, aggregate, aggregate_id,
+			 idempotency_key, schema_version, payload, occurred_at)
+		VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, $4::uuid, 'receiving', gen_random_uuid(),
+		        'compatibility-purchase-detail-read-model-event', 1,
+		        '{"documentNumber":"PUR-COMPAT-1","supplierName":"Compatibility Supplier","rows":[{"itemName":"Compatibility Purchase Item","quantity":"3","purchasePrice":"2.25","discountPercent":"5.00","discountValue":"0.34","salesTaxValue":"0.20","amount":"6.75","expiryDate":"2028-01-01","batchNumber":"COMPAT-B"}]}',
+		        '2026-08-06T09:00:00Z')
+	`, fixture.tenantID, fixture.branchID, fixture.counterID, fixture.operatorID); err != nil {
+		t.Fatalf("seed compatibility purchase event: %v", err)
+	}
+
+	operator := &sessionContext{UserID: fixture.operatorID, TenantID: fixture.tenantID, BranchID: fixture.branchID, CounterID: fixture.counterID, Roles: []string{"tenant_admin"}}
+	request := readModelRequest(http.MethodGet, "/v1/reports/purchase-detail?from=2026-08-06&to=2026-08-06", operator)
+	request.SetPathValue("kind", "purchase-detail")
+	recorder := httptest.NewRecorder()
+	(&Server{database: database}).report(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("purchase-detail report status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	var body struct {
+		Rows       []reportRow      `json:"rows"`
+		Definition reportDefinition `json:"definition"`
+	}
+	if err := json.NewDecoder(recorder.Body).Decode(&body); err != nil {
+		t.Fatalf("decode purchase-detail report: %v", err)
+	}
+	if len(body.Rows) != 2 || len(body.Definition.Columns) != 12 {
+		t.Fatalf("purchase-detail report = rows %d, columns %d, want two source rows and 12 columns: %+v", len(body.Rows), len(body.Definition.Columns), body.Rows)
+	}
+	seenCanonical, seenCompatibility := false, false
+	for _, row := range body.Rows {
+		switch row.Document {
+		case "PUR-CANONICAL-1":
+			seenCanonical = true
+			if row.Party != "Purchase Supplier" || row.Item != "Canonical Purchase Item" ||
+				!reportNumericEqual(row.Quantity, "2") || !reportNumericEqual(row.PurchasePrice, "4.50") ||
+				!reportNumericEqual(row.DiscountPercent, "10.00") || !reportNumericEqual(row.DiscountValue, "1.00") ||
+				!reportNumericEqual(row.SalesTaxValue, "0.50") || !reportNumericEqual(row.Amount, "9.00") ||
+				row.ExpiryDate != "2027-12-31" || row.BatchNumber != "PUR-B" {
+				t.Fatalf("canonical purchase-detail row = %+v", row)
+			}
+		case "PUR-COMPAT-1":
+			seenCompatibility = true
+			if row.Party != "Compatibility Supplier" || row.Item != "Compatibility Purchase Item" ||
+				!reportNumericEqual(row.PurchasePrice, "2.25") || !reportNumericEqual(row.Amount, "6.75") ||
+				row.BatchNumber != "COMPAT-B" {
+				t.Fatalf("compatibility purchase-detail row = %+v", row)
+			}
+		}
+	}
+	if !seenCanonical || !seenCompatibility {
+		t.Fatalf("purchase-detail report rows did not include both sources: %+v", body.Rows)
 	}
 }
 
@@ -424,6 +555,13 @@ func TestInventoryBalancePrefersNormalizedGodownScopedRows(t *testing.T) {
 
 func insertCanonicalSalesReadFixture(t *testing.T, ctx context.Context, database *sql.DB, fixture stockFixture) string {
 	t.Helper()
+	if _, err := database.ExecContext(ctx, `
+		UPDATE master_items
+		SET payload = '{"SalePrice1":"10.00","AliasName":"READ-ALIAS"}'::jsonb
+		WHERE tenant_id = $1::uuid AND id = $2::uuid
+	`, fixture.tenantID, fixture.itemID); err != nil {
+		t.Fatalf("seed canonical item alias: %v", err)
+	}
 	var customerID string
 	if err := database.QueryRowContext(ctx, `
 		INSERT INTO master_parties (tenant_id, party_type, legacy_id, code, name)
@@ -446,9 +584,11 @@ func insertCanonicalSalesReadFixture(t *testing.T, ctx context.Context, database
 	if _, err := database.ExecContext(ctx, `
 		INSERT INTO business_document_lines
 			(tenant_id, branch_id, document_id, line_number, item_id, item_legacy_id,
-			 item_code, item_name, quantity, unit_price, line_gross, line_total)
+			 item_code, item_name, quantity, unit_price, line_gross, item_discount, line_total,
+			 batch_number, expiry_date, tax_amount, legacy_payload)
 		VALUES ($1::uuid, $2::uuid, $3::uuid, 1, $4::uuid, $5, $6, 'Canonical Item',
-		        2, 6.25, 12.50, 12.50)
+		        2, 6.25, 12.50, 0.50, 12.00, 'B-READ', '2027-12-31', 0.50,
+		        '{"SalePrice":"7.00","DiscPerc":"4.00","itemflatdisc":"0.50","SalesTax":"0.50"}'::jsonb)
 	`, fixture.tenantID, fixture.branchID, documentID, fixture.itemID, fixture.itemLegacyID, fixture.itemLegacyID); err != nil {
 		t.Fatalf("seed canonical line: %v", err)
 	}

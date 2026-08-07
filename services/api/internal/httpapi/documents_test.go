@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -79,6 +80,155 @@ func TestDocumentCommandIdempotencyHashDistinguishesPayloads(t *testing.T) {
 	}
 	if firstHash == differentHash {
 		t.Fatal("different idempotent payload produced the same hash")
+	}
+}
+
+func TestNormalizeDocumentPaymentCapturesCashTenderedAndChange(t *testing.T) {
+	payment, paid, balance, err := normalizeDocumentPayment("cash-sale", &documentPaymentRequest{
+		Mode:     "CASH",
+		Tendered: "130.00",
+	}, pricing.Money(12345))
+	if err != nil {
+		t.Fatalf("cash payment rejected: %v", err)
+	}
+	if payment == nil || payment.Mode != "cash" || payment.Received != "123.45" || payment.Tendered != "130.00" || payment.Change != "6.55" {
+		t.Fatalf("unexpected normalized payment: %+v", payment)
+	}
+	if paid != pricing.Money(12345) || balance != 0 {
+		t.Fatalf("unexpected paid/balance amounts: paid=%d balance=%d", paid, balance)
+	}
+}
+
+func TestNormalizeDocumentPaymentDefaultsCashTenderedToTotal(t *testing.T) {
+	payment, paid, balance, err := normalizeDocumentPayment("cash-sale", nil, pricing.Money(1000))
+	if err != nil {
+		t.Fatalf("cash payment defaults rejected: %v", err)
+	}
+	if payment == nil || payment.Received != "10.00" || payment.Tendered != "10.00" || payment.Change != "0.00" {
+		t.Fatalf("unexpected default payment: %+v", payment)
+	}
+	if paid != pricing.Money(1000) || balance != 0 {
+		t.Fatalf("unexpected default paid/balance amounts: paid=%d balance=%d", paid, balance)
+	}
+}
+
+func TestNormalizeDocumentPaymentRejectsUnderTenderedAndNonCashPayment(t *testing.T) {
+	if _, _, _, err := normalizeDocumentPayment("cash-sale", &documentPaymentRequest{Tendered: "9.99"}, pricing.Money(1000)); err == nil {
+		t.Fatal("under-tendered cash payment was accepted")
+	}
+	if _, _, _, err := normalizeDocumentPayment("credit-sale", &documentPaymentRequest{Mode: "cash"}, pricing.Money(1000)); err == nil {
+		t.Fatal("payment fields on credit sale were accepted")
+	}
+}
+
+func TestWithPaymentPricingSnapshotPreservesPricingAndPayment(t *testing.T) {
+	result, err := withPaymentPricingSnapshot([]byte(`{"total":"12.00"}`), &documentPaymentResponse{
+		Mode:     "cash",
+		Received: "12.00",
+		Tendered: "15.00",
+		Change:   "3.00",
+	})
+	if err != nil {
+		t.Fatalf("payment snapshot failed: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(result, &payload); err != nil {
+		t.Fatalf("payment snapshot is invalid JSON: %v", err)
+	}
+	if payload["total"] != "12.00" {
+		t.Fatalf("pricing result was not preserved: %+v", payload)
+	}
+	payment, ok := payload["payment"].(map[string]any)
+	if !ok || payment["change"] != "3.00" {
+		t.Fatalf("payment snapshot was not preserved: %+v", payload["payment"])
+	}
+}
+
+func TestLegacyPaymentFromPayloadPreservesCapturedCashFields(t *testing.T) {
+	payment := legacyPaymentFromPayload("cash-sale", []byte(`{"PaymentMode":"CASH","CashReceived":"12.00","CashTendered":"20.00","CashBack":"8.00","PaymentAccCode":5}`), "12.00")
+	if payment == nil || payment.Mode != "cash" || payment.Received != "12.00" || payment.Tendered != "20.00" || payment.Change != "8.00" || payment.AccountCode != "5" {
+		t.Fatalf("unexpected legacy payment: %+v", payment)
+	}
+	if legacyPaymentFromPayload("credit-sale", []byte(`{"CashReceived":"12.00"}`), "12.00") != nil {
+		t.Fatal("legacy cash payment leaked into credit sale")
+	}
+	if got := legacyPayloadField([]byte(`{"CreditDays":30}`), "CreditDays"); got != "30" {
+		t.Fatalf("legacy credit term = %q, want 30", got)
+	}
+}
+
+func TestNormalizeDocumentCreditDaysBoundsPurchaseTerms(t *testing.T) {
+	for _, test := range []struct {
+		kind, input, want string
+	}{
+		{kind: "pack-purchase", input: "30", want: "30"},
+		{kind: "loose-purchase", input: "-2", want: "-2"},
+		{kind: "opening-purchase", input: "", want: ""},
+	} {
+		got, err := normalizeDocumentCreditDays(test.kind, test.input)
+		if err != nil || got != test.want {
+			t.Errorf("normalizeDocumentCreditDays(%q, %q) = %q, %v; want %q", test.kind, test.input, got, err, test.want)
+		}
+	}
+	for _, test := range []struct{ kind, input string }{
+		{kind: "pack-purchase", input: "36501"},
+		{kind: "pack-purchase", input: "1.5"},
+		{kind: "cash-sale", input: "30"},
+	} {
+		if _, err := normalizeDocumentCreditDays(test.kind, test.input); err == nil {
+			t.Errorf("normalizeDocumentCreditDays(%q, %q) accepted invalid term", test.kind, test.input)
+		}
+	}
+}
+
+func TestWithCreditDaysPricingSnapshotPreservesPricing(t *testing.T) {
+	result, err := withCreditDaysPricingSnapshot([]byte(`{"total":"12.00"}`), "30")
+	if err != nil {
+		t.Fatalf("credit term snapshot failed: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(result, &payload); err != nil {
+		t.Fatalf("credit term snapshot is invalid JSON: %v", err)
+	}
+	if payload["total"] != "12.00" || payload["creditDays"] != "30" {
+		t.Fatalf("unexpected credit term snapshot: %+v", payload)
+	}
+}
+
+func TestNormalizeDocumentDueDateOnlyAllowsCreditSales(t *testing.T) {
+	for _, test := range []struct {
+		kind, input, want string
+	}{
+		{kind: "credit-sale", input: "2026-08-31", want: "2026-08-31"},
+		{kind: "credit-sale", input: "", want: ""},
+	} {
+		got, err := normalizeDocumentDueDate(test.kind, test.input)
+		if err != nil || got != test.want {
+			t.Errorf("normalizeDocumentDueDate(%q, %q) = %q, %v; want %q", test.kind, test.input, got, err, test.want)
+		}
+	}
+	for _, test := range []struct{ kind, input string }{
+		{kind: "credit-sale", input: "2026-02-30"},
+		{kind: "credit-sale", input: "31/08/2026"},
+		{kind: "cash-sale", input: "2026-08-31"},
+	} {
+		if _, err := normalizeDocumentDueDate(test.kind, test.input); err == nil {
+			t.Errorf("normalizeDocumentDueDate(%q, %q) accepted invalid due date", test.kind, test.input)
+		}
+	}
+}
+
+func TestWithDueDatePricingSnapshotPreservesPricing(t *testing.T) {
+	result, err := withDueDatePricingSnapshot([]byte(`{"total":"12.00"}`), "2026-08-31")
+	if err != nil {
+		t.Fatalf("due-date snapshot failed: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(result, &payload); err != nil {
+		t.Fatalf("due-date snapshot is invalid JSON: %v", err)
+	}
+	if payload["total"] != "12.00" || payload["dueDate"] != "2026-08-31" {
+		t.Fatalf("unexpected due-date snapshot: %+v", payload)
 	}
 }
 

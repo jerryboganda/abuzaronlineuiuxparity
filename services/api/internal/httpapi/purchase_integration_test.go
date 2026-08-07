@@ -150,6 +150,7 @@ func TestPurchaseVerticalSliceIntegration(t *testing.T) {
 	}
 
 	validReturn := purchaseDocumentCommand("purchase-return", "save-and-post", "purchase-return-valid", fixture, supplierID, receiptResponse.Document.ID)
+	validReturn.Document.Lines[0].SourceLineID = receiptResponse.Document.Lines[0].ID
 	validReturn.Document.Lines[0].Allocations = []documentAllocationRequest{{BatchNumber: "PUR-001", Quantity: "1"}}
 	returnStatus, returnResponse, returnBody := executeDocumentHandlerStatus(t, server, operator, validReturn)
 	if returnStatus >= http.StatusBadRequest {
@@ -180,11 +181,195 @@ func TestPurchaseVerticalSliceIntegration(t *testing.T) {
 		t.Fatalf("supplier balance after return = %s, want 0.0000", payableBalance)
 	}
 
+	blockedReceiptVoid := documentCommandRequest{
+		CommandID: purchaseCommandID("purchase-receipt-void-blocked"), Kind: "pack-purchase", Action: "void",
+		IdempotencyKey: "purchase-receipt-void-blocked", OccurredAt: "2026-08-06T01:00:00Z",
+		DocumentID: receiptResponse.Document.ID, ExpectedVersion: pointerInt64(receiptResponse.Document.Version),
+		Reason: "Receipt correction",
+	}
+	beforeBlockedStock := countStockLedger(t, ctx, database, fixture.tenantID)
+	beforeBlockedJournals := countFinanceJournals(t, ctx, database, fixture.tenantID)
+	blockedStatus, _, blockedBody := executeDocumentHandlerStatus(t, server, operator, blockedReceiptVoid)
+	if blockedStatus != http.StatusConflict && blockedStatus != http.StatusUnprocessableEntity {
+		t.Fatalf("posted purchase with dependent return void status=%d body=%s; want dependency rejection", blockedStatus, blockedBody)
+	}
+	if countStockLedger(t, ctx, database, fixture.tenantID) != beforeBlockedStock || countFinanceJournals(t, ctx, database, fixture.tenantID) != beforeBlockedJournals {
+		t.Fatal("dependent purchase void rejection mutated stock or finance projections")
+	}
+
+	voidPurchaseReturn := documentCommandRequest{
+		CommandID: purchaseCommandID("purchase-return-void"), Kind: "purchase-return", Action: "void",
+		IdempotencyKey: "purchase-return-void", OccurredAt: "2026-08-06T02:00:00Z",
+		DocumentID: returnResponse.Document.ID, ExpectedVersion: pointerInt64(returnResponse.Document.Version),
+		Reason: "Purchase return correction",
+	}
+	voidReturnStatus, voidedPurchaseReturn, voidReturnBody := executeDocumentHandler(t, server, operator, voidPurchaseReturn)
+	if voidReturnStatus != http.StatusOK || !voidedPurchaseReturn.Accepted || voidedPurchaseReturn.Document.Status != "void" || voidedPurchaseReturn.Document.Finance == nil || !voidedPurchaseReturn.Document.Finance.Balanced {
+		t.Fatalf("purchase return void status=%d body=%s response=%+v; want balanced compensating reversal", voidReturnStatus, voidReturnBody, voidedPurchaseReturn)
+	}
+	if err := database.QueryRowContext(ctx, `
+		SELECT sb.on_hand::text
+		FROM stock_balances sb
+		WHERE sb.tenant_id = $1::uuid AND sb.branch_id = $2::uuid
+		  AND sb.item_legacy_id = $3
+	`, fixture.tenantID, fixture.branchID, fixture.itemLegacyID).Scan(&returnedBalance); err != nil {
+		t.Fatalf("read stock after purchase return void: %v", err)
+	}
+	if returnedBalance != "1.0000" {
+		t.Fatalf("stock after purchase return void = %s, want 1.0000", returnedBalance)
+	}
+	if err := database.QueryRowContext(ctx, `
+		SELECT balance::text FROM party_ledger_balances
+		WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND party_id = $3::uuid
+	`, fixture.tenantID, fixture.branchID, supplierID).Scan(&payableBalance); err != nil {
+		t.Fatalf("read supplier balance after purchase return void: %v", err)
+	}
+	if payableBalance != "-11.0000" {
+		t.Fatalf("supplier balance after purchase return void = %s, want -11.0000", payableBalance)
+	}
+
 	crossTenant := purchaseDocumentCommand("pack-purchase", "save", "purchase-cross-tenant", other, supplierID, "")
 	crossTenant.Document.SupplierID = supplierID
 	crossStatus, _, _ := executeDocumentHandlerStatus(t, server, otherOperator, crossTenant)
 	if crossStatus != http.StatusUnprocessableEntity {
 		t.Fatalf("cross-tenant purchase status = %d, want %d", crossStatus, http.StatusUnprocessableEntity)
+	}
+}
+
+func TestCanonicalPurchaseHistoryHydratesDocumentIdentityAndDetail(t *testing.T) {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		t.Skip("DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	database, err := sql.Open("pgx", dsn)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	defer database.Close()
+	if err := database.PingContext(ctx); err != nil {
+		t.Fatalf("ping database: %v", err)
+	}
+
+	fixture := seedStockTenant(t, ctx, database, "purchase-history-"+fmt.Sprint(time.Now().UnixNano()))
+	supplierID := seedPurchaseSupplier(t, ctx, database, fixture.tenantID, "supplier-history-"+fixture.itemLegacyID)
+	defer func() { _, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID) }()
+	operator := &sessionContext{
+		UserID: fixture.operatorID, TenantID: fixture.tenantID, BranchID: fixture.branchID,
+		CounterID: fixture.counterID, Roles: []string{"tenant_admin"},
+	}
+	server := &Server{database: database}
+	command := purchaseDocumentCommand("pack-purchase", "save", "purchase-history-detail", fixture, supplierID, "")
+	command.Document.Lines[0].DiscountPercent = "5"
+	command.Document.Lines[0].GSTRate = "18"
+	status, saved, body := executeDocumentHandlerStatus(t, server, operator, command)
+	if status >= http.StatusBadRequest {
+		t.Fatalf("purchase save status = %d, body=%s", status, body)
+	}
+
+	historyRequest := httptest.NewRequest(http.MethodGet, "/v1/transactions/pack-purchase?from=2026-08-06&to=2026-08-06", nil)
+	historyRequest.SetPathValue("kind", "pack-purchase")
+	historyRequest = historyRequest.WithContext(context.WithValue(historyRequest.Context(), sessionContextKey, operator))
+	historyRecorder := httptest.NewRecorder()
+	server.transactionHistory(historyRecorder, historyRequest)
+	if historyRecorder.Code != http.StatusOK {
+		t.Fatalf("history status = %d, body=%s", historyRecorder.Code, historyRecorder.Body.String())
+	}
+	var historyResponse struct {
+		Rows []reportRow `json:"rows"`
+	}
+	if err := json.Unmarshal(historyRecorder.Body.Bytes(), &historyResponse); err != nil {
+		t.Fatalf("decode history: %v", err)
+	}
+	var historyRow *reportRow
+	for index := range historyResponse.Rows {
+		if historyResponse.Rows[index].Document == saved.Document.DocumentNumber {
+			historyRow = &historyResponse.Rows[index]
+			break
+		}
+	}
+	if historyRow == nil || historyRow.DocumentID != saved.Document.ID {
+		t.Fatalf("history row identity = %+v, want document id %s", historyRow, saved.Document.ID)
+	}
+
+	detailRequest := httptest.NewRequest(http.MethodGet, "/v1/documents/"+saved.Document.ID, nil)
+	detailRequest.SetPathValue("id", saved.Document.ID)
+	detailRequest = detailRequest.WithContext(context.WithValue(detailRequest.Context(), sessionContextKey, operator))
+	detailRecorder := httptest.NewRecorder()
+	server.documentDetail(detailRecorder, detailRequest)
+	if detailRecorder.Code != http.StatusOK {
+		t.Fatalf("detail status = %d, body=%s", detailRecorder.Code, detailRecorder.Body.String())
+	}
+	var detail documentResponse
+	if err := json.Unmarshal(detailRecorder.Body.Bytes(), &detail); err != nil {
+		t.Fatalf("decode detail: %v", err)
+	}
+	if detail.ID != saved.Document.ID || detail.SupplierID != supplierID || len(detail.Lines) != 1 {
+		t.Fatalf("detail identity = %+v, want id/supplier/one-line", detail)
+	}
+	if detail.Lines[0].ItemID != fixture.itemID || detail.Lines[0].BatchNumber != "PUR-001" || detail.Lines[0].ExpiryDate != "2030-01-01" {
+		t.Fatalf("detail line = %+v, want canonical item/batch/expiry", detail.Lines[0])
+	}
+	if detail.Lines[0].Price.DiscountPercent != "5.00" || len(detail.Lines[0].Tax.Lines) != 1 || detail.Lines[0].Tax.Lines[0].Rate != "18.0000" {
+		t.Fatalf("detail pricing/tax = %+v, want persisted discount and GST metadata", detail.Lines[0])
+	}
+}
+
+func TestCanonicalPurchaseLoadsItemSupplierScheme(t *testing.T) {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		t.Skip("DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	database, err := sql.Open("pgx", dsn)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	defer database.Close()
+	if err := database.PingContext(ctx); err != nil {
+		t.Fatalf("ping database: %v", err)
+	}
+
+	fixture := seedStockTenant(t, ctx, database, "purchase-scheme-"+fmt.Sprint(time.Now().UnixNano()))
+	supplierID := seedPurchaseSupplier(t, ctx, database, fixture.tenantID, "supplier-scheme-"+fixture.itemLegacyID)
+	defer func() { _, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID) }()
+	if _, err := database.ExecContext(ctx, `
+		INSERT INTO item_suppliers (
+			tenant_id, item_id, supplier_id, legacy_item_id, legacy_supplier_id,
+			priority, discount_percent, quantity, bonus, payload
+		) VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, 1, 10.00, 2.00, 1.00, '{"DiscPerc":"10.00","SaleQty":2,"BonusQty":1}'::jsonb)
+	`, fixture.tenantID, fixture.itemID, supplierID, fixture.itemLegacyID, "supplier-scheme-"+fixture.itemLegacyID); err != nil {
+		t.Fatalf("seed item supplier scheme: %v", err)
+	}
+	operator := &sessionContext{
+		UserID: fixture.operatorID, TenantID: fixture.tenantID, BranchID: fixture.branchID,
+		CounterID: fixture.counterID, Roles: []string{"tenant_admin"},
+	}
+	command := purchaseDocumentCommand("pack-purchase", "save", "purchase-scheme", fixture, supplierID, "")
+	command.Document.Lines[0].Quantity = "4"
+	command.Document.Lines[0].UnitPrice = "10.00"
+	command.Document.Lines[0].UnitCost = "10.00"
+	status, response, body := executeDocumentHandlerStatus(t, &Server{database: database}, operator, command)
+	if status >= http.StatusBadRequest {
+		t.Fatalf("purchase status = %d, body=%s", status, body)
+	}
+	var supplierDiscount, lineTotal, pricingJSON string
+	if err := database.QueryRowContext(ctx, `
+		SELECT supplier_discount::text, line_total::text, pricing::text
+		FROM business_document_lines
+		WHERE tenant_id = $1::uuid AND document_id = $2::uuid AND line_number = 1
+	`, fixture.tenantID, response.Document.ID).Scan(&supplierDiscount, &lineTotal, &pricingJSON); err != nil {
+		t.Fatalf("read supplier scheme pricing: %v", err)
+	}
+	if supplierDiscount != "4.0000" || lineTotal != "36.0000" {
+		t.Fatalf("supplier scheme amounts = discount %s total %s, want 4.0000 and 36.0000", supplierDiscount, lineTotal)
+	}
+	var linePricing map[string]any
+	if err := json.Unmarshal([]byte(pricingJSON), &linePricing); err != nil {
+		t.Fatalf("decode line pricing: %v", err)
+	}
+	if linePricing["supplierBonusQuantity"] != "2" {
+		t.Fatalf("supplier bonus quantity = %#v, want 2", linePricing["supplierBonusQuantity"])
 	}
 }
 

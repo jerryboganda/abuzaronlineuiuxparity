@@ -5,6 +5,10 @@ Date: 2026-08-06
 This is a bounded Phase O implementation artifact. It does not claim exact
 legacy report parity, and the legacy application/database were not modified.
 
+Follow-up: the captured `Purchase detail` and `Purchase Return detail` leaves
+now have a bounded 12-field source-backed line contract. See
+`docs/PHASE_O_PURCHASE_LINE_DETAIL_EVIDENCE_2026-08-07.md`.
+
 ## Implemented
 
 - 24 captured leaves are registered explicitly:
@@ -34,11 +38,11 @@ legacy report parity, and the legacy application/database were not modified.
 ## Coverage accounting
 
 The captured report catalog has 153 non-submenu records, including two blank
-Listing records; the authoritative plan count is 151. Phase M/N/O now have
-explicit definitions for 4 + 68 + 24 = 96 leaves. 55 authoritative leaves
-remain for later waves. Three adjacent purchase/supplier-looking records are
-intentionally still generic: Stock Reports → Supplier Manufacturer
-Association, Listing → Supplier List, and RePrinting → Purchase.
+Listing records; the authoritative plan count is 151. The final distinct
+catalog reconciliation is 68 + 24 + 27 + 32 = 151 leaves across N/O/P/Q.
+Phase Q now explicitly labels the adjacent Listing and RePrinting records that
+were previously generic; exact Item Reports history columns remain
+unimplemented but retain their captured labels.
 
 ## Validation
 
@@ -72,3 +76,6 @@ Association, Listing → Supplier List, and RePrinting → Purchase.
 - Focused PostgreSQL evidence: `go test ./services/api/internal/httpapi -run
   'TestPurchaseReturnReportUsesCanonicalReadModel' -count=1` passed against the
   local disposable database.
+> Follow-up: the captured `Purchase detail` and `Purchase Return detail`
+> leaves now have a bounded 12-field source-backed line contract. See
+> `docs/PHASE_O_PURCHASE_LINE_DETAIL_EVIDENCE_2026-08-07.md`.

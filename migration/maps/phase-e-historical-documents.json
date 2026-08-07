@@ -47,8 +47,12 @@
         "CustRefNo": "CustRefNo",
         "PaymentMode": "PaymentMode",
         "CashReceived": "CashReceived",
+        "CashTendered": "CashTendered",
+        "CashBack": "CashBack",
+        "PaymentAccCode": "PaymentAccCode",
         "AdvanceTax": "AdvanceTax",
-        "AdvanceTaxAmt": "AdvanceTaxAmt"
+        "AdvanceTaxAmt": "AdvanceTaxAmt",
+        "DueDate": "DueDate"
       },
       "inject": {
         "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
@@ -105,8 +109,13 @@
         "PostedBy": "PostedBy",
         "CustRefNo": "CustRefNo",
         "PaymentMode": "PaymentMode",
+        "CashReceived": "CashReceived",
+        "CashTendered": "CashTendered",
+        "CashBack": "CashBack",
+        "PaymentAccCode": "PaymentAccCode",
         "AdvanceTax": "AdvanceTax",
-        "AdvanceTaxAmt": "AdvanceTaxAmt"
+        "AdvanceTaxAmt": "AdvanceTaxAmt",
+        "DueDate": "DueDate"
       },
       "inject": {
         "tenant_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
@@ -247,6 +256,7 @@
         "GRN": "GRN",
         "AdvanceTax": "AdvanceTax",
         "AdvanceTaxAmt": "AdvanceTaxAmt",
+        "CreditDays": "CreditDays",
         "POCode": "POCode"
       },
       "inject": {
@@ -303,6 +313,7 @@
         "PostedBy": "PostedBy",
         "SuppInvCode": "SuppInvCode",
         "GRN": "GRN",
+        "CreditDays": "CreditDays",
         "POCode": "POCode"
       },
       "inject": {

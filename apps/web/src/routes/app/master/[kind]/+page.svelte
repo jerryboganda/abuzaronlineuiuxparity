@@ -24,11 +24,66 @@
     godown: { title: 'Godown', fields: [{ label: 'Code' }, { label: 'Name' }, { label: 'Address' }, { label: 'Description', kind: 'textarea' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }] },
     user: { title: 'Users', fields: [{ label: 'User Code' }, { label: 'User Name' }, { label: 'Password', kind: 'text' }, { label: 'Confirm Password', kind: 'text' }, { label: 'Active', kind: 'select', value: 'YES', options: ['YES', 'NO'] }, { label: 'Group', kind: 'select', options: ['ADMIN'] }, { label: 'Phone' }, { label: 'Remarks', kind: 'textarea' }] }
   };
-  const genericMasterFields: Field[] = [{ label: 'Code' }, { label: 'Name' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }, { label: 'Remarks', kind: 'textarea' }];
-  const genericMasterTitles: Record<string, string> = {
-    'sale-promotion': 'Sale Promotion', 'customer-sector': 'Customer Sector', 'generic-item': 'Generic Item', 'item-basic-data': 'Item Basic Data', 'price-policy': 'Price Policy', 'item-alert': 'Item Alert', 'sales-tax-schedule': 'Sales Tax Schedule', 'pct-codes': 'PCT Codes', 'generic-item-type': 'Generic Item Type', 'item-thickness': 'Item Thickness', 'lock-reason': 'Lock Reason', 'category-segment': 'Category Segment', 'manufacturer-type': 'Manufacturer Type', 'sale-template': 'Sale Template', 'tax-category': 'Tax Category', template: 'Template'
+  const auxiliaryMasterDefinitions: Record<string, { title: string; fields: Field[] }> = {
+    'sale-promotion': { title: 'Sale Promotion', fields: [
+      { label: 'Code', key: 'SalePromotionCode' }, { label: 'Name', key: 'Name' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] },
+      { label: 'Customer Group', key: 'CustomerGroupCode' }, { label: 'Default Item Disc(%)', key: 'DefaultItemDiscPerc', kind: 'number' },
+      { label: 'Week Day', key: 'WeekDayCode' }, { label: 'Start Date', key: 'StartDate', kind: 'date' }, { label: 'End Date', key: 'EndDate', kind: 'date' }, { label: 'Remarks', key: 'Remarks', kind: 'textarea' }
+    ] },
+    'customer-sector': { title: 'Customer Sector', fields: [
+      { label: 'Code', key: 'CustomerSectorCode' }, { label: 'Name', key: 'Name' }, { label: 'Alias Name', key: 'AliasName' },
+      { label: 'Description', key: 'Description', kind: 'textarea' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }
+    ] },
+    'generic-item': { title: 'Generic Item', fields: [
+      { label: 'Code', key: 'GenericCode' }, { label: 'Name', key: 'Name' }, { label: 'Instruction', key: 'Instruction', kind: 'textarea' },
+      { label: 'Description', key: 'Description', kind: 'textarea' }, { label: 'Generic Item Type', key: 'GenericItemTypeCode' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }
+    ] },
+    'item-basic-data': { title: 'Item Basic Data', fields: [
+      { label: 'Code', key: 'ICode' }, { label: 'Name', key: 'Name' }, { label: 'Manufacturer', key: 'ManfCode' }, { label: 'Category', key: 'ICatCode' },
+      { label: 'Class', key: 'ICCode' }, { label: 'Location', key: 'Location' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }, { label: 'Remarks', key: 'Remarks', kind: 'textarea' }
+    ] },
+    'price-policy': { title: 'Price Policy', fields: [
+      { label: 'Code', key: 'PricePolicyCode' }, { label: 'Name', key: 'Name' }, { label: 'Item Code', key: 'ICode' },
+      { label: 'Active', kind: 'select', options: ['YES', 'NO'] }, { label: 'Remarks', key: 'Remarks', kind: 'textarea' }
+    ] },
+    'item-alert': { title: 'Item Alert', fields: [
+      { label: 'Code', key: 'ItemAlertCode' }, { label: 'Name', key: 'Name' }, { label: 'Alert Type', key: 'ItemAlertTypeCode' },
+      { label: 'Alert Detail', key: 'AlertDetail', kind: 'textarea' }, { label: 'Background Color', key: 'BGColor' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }
+    ] },
+    'sales-tax-schedule': { title: 'Sales Tax Schedule', fields: [
+      { label: 'Code', key: 'SalesTaxScheduleCode' }, { label: 'Name', key: 'Name' }, { label: 'Tax Percent', key: 'TaxPerc', kind: 'number' },
+      { label: 'Tax Type', key: 'TaxType' }, { label: 'Applicable', key: 'Applicable' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }
+    ] },
+    'pct-codes': { title: 'PCT Codes', fields: [
+      { label: 'Code', key: 'PCTCode' }, { label: 'Name', key: 'Description' }, { label: 'Remarks', key: 'Remarks', kind: 'textarea' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }
+    ] },
+    'generic-item-type': { title: 'Generic Item Type', fields: [
+      { label: 'Code', key: 'GenericItemTypeCode' }, { label: 'Name', key: 'Name' }, { label: 'Description', key: 'Description', kind: 'textarea' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }
+    ] },
+    'item-thickness': { title: 'Item Thickness', fields: [
+      { label: 'Code', key: 'ItemThicknessCode' }, { label: 'Name', key: 'Name' }, { label: 'Description', key: 'Description', kind: 'textarea' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }
+    ] },
+    'lock-reason': { title: 'Lock Reason', fields: [
+      { label: 'Code', key: 'LockReasonCode' }, { label: 'Name', key: 'Name' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }
+    ] },
+    'category-segment': { title: 'Category Segment', fields: [
+      { label: 'Code', key: 'CategorySegmentCode' }, { label: 'Name', key: 'Name' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }
+    ] },
+    'manufacturer-type': { title: 'Manufacturer Type', fields: [
+      { label: 'Code', key: 'ManufacturerTypeCode' }, { label: 'Name', key: 'Name' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }
+    ] },
+    'sale-template': { title: 'Sale Template', fields: [
+      { label: 'Code', key: 'SaleTemplateCode' }, { label: 'Name', key: 'Name' }, { label: 'Date', key: 'Date', kind: 'date' },
+      { label: 'Modified', key: 'Modified', kind: 'select', options: ['Yes', 'No'] }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }, { label: 'Remarks', key: 'Remarks', kind: 'textarea' }
+    ] },
+    'tax-category': { title: 'Tax Category', fields: [
+      { label: 'Code', key: 'TaxCategoryCode' }, { label: 'Name', key: 'Name' }, { label: 'Tax Percent', key: 'TaxPerc', kind: 'number' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }
+    ] },
+    template: { title: 'Template', fields: [
+      { label: 'Code', key: 'TemplateCode' }, { label: 'Name', key: 'Name' }, { label: 'Template Text', key: 'Template', kind: 'textarea' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }
+    ] }
   };
-  for (const [masterKind, masterTitle] of Object.entries(genericMasterTitles)) definitions[masterKind] = { title: masterTitle, fields: genericMasterFields };
+  for (const [masterKind, masterDefinition] of Object.entries(auxiliaryMasterDefinitions)) definitions[masterKind] = masterDefinition;
   const genericFields: Field[] = [{ label: 'Code' }, { label: 'Name' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }, { label: 'Remarks', kind: 'textarea' }];
   const canonicalKinds = new Set([
     'item', 'customer', 'supplier', 'manufacturer', 'item-group', 'item-class', 'category',
@@ -64,10 +119,11 @@
   $: legacyPath = $page?.url?.searchParams?.get('legacyPath') ?? '';
   $: legacyLeaf = String(legacyPath ?? '').split(' > ').at(-1)?.replace(/\t.*$/, '').replace(/&/g, '').trim() ?? '';
   $: definition = definitions[kind] ?? { title: legacyLeaf || kind.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' '), fields: genericFields };
-  $: apiKind = canonicalKinds.has(kind) ? kind : '';
+  $: apiKind = kind;
   $: isUser = kind === 'user';
   $: isCanonical = canonicalKinds.has(kind);
-  $: canEdit = isUser || isCanonical;
+  $: hasDefinition = Object.prototype.hasOwnProperty.call(definitions, kind);
+  $: canEdit = isUser || hasDefinition;
   $: values = definition.fields.map((field) => field.value ?? '');
   $: visibleRecords = records
     .filter((record) => {
@@ -193,7 +249,7 @@
       await loadOperators();
       return;
     }
-    if (!isCanonical) {
+    if (!isCanonical && !hasDefinition) {
       records = [];
       message = 'Generic compatibility surface: read-only; no canonical API is available for this master.';
       return;
@@ -257,7 +313,7 @@
       const payload: Record<string, unknown> = {};
       definition.fields.forEach((field, index) => { payload[field.key ?? field.label] = values[index] ?? ''; });
       const activeField = definition.fields.findIndex((field) => field.label === 'Active');
-      const active = activeField < 0 || values[activeField].toLowerCase() === 'yes';
+      const active = activeField < 0 || !values[activeField]?.trim() || values[activeField].toLowerCase() === 'yes';
       if (isUser) {
         const password = values[2]?.trim() ?? '';
         const confirmation = values[3]?.trim() ?? '';
@@ -304,6 +360,24 @@
     } catch (cause) { error = cause instanceof Error ? cause.message : 'The record could not be saved.'; }
     finally { busy = false; }
   }
+
+  async function deleteRecord() {
+    if (!canEdit || !selectedRecordId) {
+      message = 'Select a record before deleting it.';
+      return;
+    }
+    if (typeof window !== 'undefined' && !window.confirm(`Delete ${definition.title} record ${values[0] ?? ''}?`)) return;
+    busy = true; message = ''; error = '';
+    try {
+      await api.deleteMasterRecord(apiKind, selectedRecordId);
+      records = records.filter((record) => record.id !== selectedRecordId);
+      selectedRecordId = '';
+      supplierRows = [];
+      values = definition.fields.map((field) => field.value ?? '');
+      message = `${definition.title} record deleted from the current tenant scope.`;
+    } catch (cause) { error = cause instanceof Error ? cause.message : 'The record could not be deleted.'; }
+    finally { busy = false; }
+  }
 </script>
 
 <svelte:window onkeydown={enableInteractive} />
@@ -313,12 +387,12 @@
 <main class:legacy-master-list-tab={activeTab === 'list'} class:legacy-master-customer-baseline={kind === 'customer' && activeTab === 'detail' && !interactive} class:legacy-master-supplier-baseline={kind === 'supplier' && activeTab === 'detail' && !interactive} class:legacy-master-item-baseline={kind === 'item' && activeTab === 'detail' && !interactive} class:legacy-master-user-baseline={kind === 'user' && activeTab === 'detail' && !interactive} class="legacy-master-page" onpointerdown={enableInteractive} onfocusin={enableInteractive}><section class="legacy-master-window" aria-label={definition.title}>
   <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>{formatLegacyTitle(authenticatedUsername, clock)} : [{definition.title}]</h1></header>
   <LegacyMenuBar context={kind === 'item' ? 'item-master' : 'manage-groups'} windowId={'master-' + kind} windowLabel={definition.title} windowHref={'/app/master/' + kind} />
-  <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Master data toolbar"><button type="button" aria-label="New record" onpointerdown={() => { interactive = true; }} onclick={() => newRecord()} disabled={!canEdit}>▱</button><button type="button" aria-label="Save" onpointerdown={() => { interactive = true; }} onclick={() => { void saveRecord(); }} disabled={busy || !canEdit}>▣</button><button type="button" aria-label="Refresh records" onclick={() => { void loadRecords(); }}>⌕</button><span class="legacy-toolbar-separator"></span><button type="button" aria-label="Previous record" onclick={() => { void navigateRecord(-1); }}>◀</button><button type="button" aria-label="Next record" onclick={() => { void navigateRecord(1); }}>▶</button><span class="legacy-toolbar-caption">{canEdit ? 'Canonical master API' : 'Generic compatibility surface · read-only'}</span></div>
+  <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Master data toolbar"><button type="button" aria-label="New record" onpointerdown={() => { interactive = true; }} onclick={() => newRecord()} disabled={!canEdit}>▱</button><button type="button" aria-label="Save" onpointerdown={() => { interactive = true; }} onclick={() => { void saveRecord(); }} disabled={busy || !canEdit}>▣</button><button type="button" aria-label="Refresh records" onclick={() => { void loadRecords(); }}>⌕</button><span class="legacy-toolbar-separator"></span><button type="button" aria-label="Previous record" onclick={() => { void navigateRecord(-1); }}>◀</button><button type="button" aria-label="Next record" onclick={() => { void navigateRecord(1); }}>▶</button><span class="legacy-toolbar-caption">{isCanonical ? 'Canonical master API' : canEdit ? 'Tenant-scoped master API' : 'Generic compatibility surface · read-only'}</span></div>
   <div class="legacy-transaction-tabs"><button class:active={activeTab === 'detail'} type="button" onclick={() => { activeTab = 'detail'; }}>▦ Detail</button><button class:active={activeTab === 'list'} type="button" onclick={() => { activeTab = 'list'; void loadRecords(); }}>▦ List</button></div>
   <div class="legacy-master-body"><form class="legacy-master-form" onsubmit={(event) => { event.preventDefault(); void saveRecord(); }}>
-    {#each definition.fields as field, index}<label>{field.label}:{#if field.kind === 'textarea'}<textarea rows="3" bind:value={values[index]} disabled={!canEdit}></textarea>{:else if field.kind === 'select'}<select bind:value={values[index]} disabled={!canEdit}>{#each field.label === 'Group' ? roleOptions : field.options ?? [] as option}<option value={option}>{option}</option>{/each}</select>{:else}<input type={field.kind === 'date' ? 'date' : field.kind === 'number' ? 'number' : 'text'} bind:value={values[index]} disabled={!canEdit} />{/if}</label>{/each}
+    {#each definition.fields as field, index}<label>{field.label}:{#if field.kind === 'textarea'}<textarea rows="3" bind:value={values[index]} disabled={!canEdit}></textarea>{:else if field.kind === 'select'}<select bind:value={values[index]} disabled={!canEdit}>{#each field.label === 'Group' ? roleOptions : field.options ?? [] as option}<option value={option}>{option}</option>{/each}</select>{:else}<input type={field.kind === 'date' ? 'date' : field.kind === 'number' ? 'number' : 'text'} step={field.kind === 'number' ? 'any' : undefined} bind:value={values[index]} disabled={!canEdit} />{/if}</label>{/each}
     {#if isUser}<label>Branch:<select bind:value={selectedBranchId} onchange={(event) => { void changeUserBranch(event.currentTarget.value); }}><option value="">Default branch</option>{#each branches as branch}<option value={branch.id}>{branch.code} · {branch.name}</option>{/each}</select></label><label>Counter:<select bind:value={selectedCounterId}><option value="">Default counter</option>{#each counters as counter}<option value={counter.id}>{counter.code} · {counter.name}</option>{/each}</select></label>{/if}
-    <div class="legacy-master-actions"><button type="submit" disabled={busy || !canEdit}>Save</button><button type="button" onclick={() => cancelEdit()}>Cancel</button></div>
+    <div class="legacy-master-actions"><button type="submit" disabled={busy || !canEdit}>Save</button><button type="button" onclick={() => void deleteRecord()} disabled={busy || !canEdit || !selectedRecordId}>Delete</button><button type="button" onclick={() => cancelEdit()}>Cancel</button></div>
   </form>{#if kind === 'item'}<section class="legacy-item-suppliers" aria-label="Item suppliers"><div class="legacy-item-suppliers-heading"><strong>Suppliers</strong><button type="button" onclick={addSupplierRow} disabled={!canEdit}>Add supplier</button></div>{#if supplierRows.length === 0}<p>No supplier links for this item.</p>{:else}<table><thead><tr><th>Priority</th><th>Supplier ID</th><th>Rate</th><th>Disc%</th><th>Qty</th><th>Bonus</th><th>Days</th><th></th></tr></thead><tbody>{#each supplierRows as row, index}<tr><td><input aria-label={`Supplier priority ${index + 1}`} value={row.priority} oninput={(event) => updateSupplierRow(index, 'priority', event.currentTarget.value)} disabled={!canEdit} /></td><td><input aria-label={`Supplier legacy id ${index + 1}`} value={row.legacySupplierId} oninput={(event) => updateSupplierRow(index, 'legacySupplierId', event.currentTarget.value)} disabled={!canEdit} /></td><td><input aria-label={`Supplier rate ${index + 1}`} value={row.rate} oninput={(event) => updateSupplierRow(index, 'rate', event.currentTarget.value)} disabled={!canEdit} /></td><td><input aria-label={`Supplier discount percent ${index + 1}`} value={row.discountPercent} oninput={(event) => updateSupplierRow(index, 'discountPercent', event.currentTarget.value)} disabled={!canEdit} /></td><td><input aria-label={`Supplier quantity ${index + 1}`} value={row.quantity} oninput={(event) => updateSupplierRow(index, 'quantity', event.currentTarget.value)} disabled={!canEdit} /></td><td><input aria-label={`Supplier bonus ${index + 1}`} value={row.bonus} oninput={(event) => updateSupplierRow(index, 'bonus', event.currentTarget.value)} disabled={!canEdit} /></td><td><input aria-label={`Supplier days ${index + 1}`} value={row.days} oninput={(event) => updateSupplierRow(index, 'days', event.currentTarget.value)} disabled={!canEdit} /></td><td><button type="button" aria-label={`Remove supplier ${index + 1}`} onclick={() => removeSupplierRow(index)} disabled={!canEdit}>×</button></td></tr>{/each}</tbody></table>{/if}</section>{/if}<div class="legacy-master-list"><div class="legacy-master-list-tools"><label>Search<input aria-label="Master search" bind:value={searchQuery} onkeydown={(event) => { if (event.key === 'Enter') void loadRecords(); }} /></label><button type="button" onclick={loadRecords}>Filter / Retrieve</button><label>Sort<select aria-label="Sort criteria" bind:value={sortColumn}><option value="name">Name</option><option value="code">Code</option><option value="active">Active</option></select></label><button type="button" onclick={() => { sortDirection = sortDirection === 'asc' ? 'desc' : 'asc'; }}>{sortDirection === 'asc' ? 'Asc' : 'Desc'}</button><label>Filter<select aria-label="Filter column" bind:value={filterColumn}><option value="all">All</option><option value="code">Code</option><option value="name">Name</option><option value="active">Active</option></select></label><select aria-label="Filter operator" bind:value={filterOperator}><option value="contains">contains</option><option value="equals">equals</option></select><input aria-label="Filter value" bind:value={filterValue} /><label>Find<input aria-label="Find records" bind:value={findQuery} placeholder="Find as you type" /></label></div><div>List ({isUser ? operators.length : visibleRecords.length})</div>{#if !canEdit && !isUser}<p class="legacy-master-readonly">Generic compatibility surface — read-only; canonical API not available.</p>{/if}{#if isUser}{#if operators.length === 0}<p>No operators in the current tenant scope.</p>{:else}<table><thead><tr><th>User</th><th>Name</th><th>Group</th><th>Active</th></tr></thead><tbody>{#each operators as item}<tr><td><button type="button" onclick={() => selectOperator(item)}>{item.username}</button></td><td><button type="button" onclick={() => selectOperator(item)}>{item.displayName}</button></td><td>{item.roles.join(', ')}</td><td>{item.active ? 'YES' : 'NO'}</td></tr>{/each}</tbody></table>{/if}{:else if visibleRecords.length === 0}<p>No records in the current tenant scope.</p>{:else}<table><thead><tr><th>Code</th><th>Name</th><th>Active</th></tr></thead><tbody>{#each visibleRecords as record}<tr><td><button type="button" onclick={() => { void selectRecord(record); }}>{record.code}</button></td><td><button type="button" onclick={() => { void selectRecord(record); }}>{record.name}</button></td><td>{record.active ? 'YES' : 'NO'}</td></tr>{/each}</tbody></table>{/if}</div></div>
   <footer class="legacy-transaction-footer">{#if error}<span class="error" role="alert">{error}</span>{:else}<span role="status">{message || 'Ready'}</span>{/if}<a href="/app/legacy">Back to main window</a></footer>
 </section></main>

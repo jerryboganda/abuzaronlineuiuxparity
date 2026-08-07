@@ -17,6 +17,9 @@
   let showArguments = false;
   let showFormat = false;
   let preview = false;
+  let previewZoom = 100;
+  let previewPage = 1;
+  const previewPageSize = 24;
   let selectableArea = 'DEFAULT AREA';
   let selectedAreas: string[] = [];
   let allAreas = false;
@@ -105,10 +108,12 @@
         allAreas,
         legacyPath,
         godownId,
-        batchNumber
+        batchNumber,
+        format
       });
       rows = response.rows;
       definition = response.definition;
+      if (response.definition.selectedFormat) format = response.definition.selectedFormat;
       if (!definition.formats.some((option) => option.name === format)) {
         format = definition.formats[0]?.name ?? 'Standard';
       }
@@ -150,10 +155,29 @@
   });
   $: pageCount = serverHasMore ? reportPage + 1 : Math.max(1, reportPage);
   $: visibleRows = sortedRows;
+  $: previewPageCount = Math.max(1, Math.ceil(visibleRows.length / previewPageSize));
+  $: previewVisibleRows = visibleRows.slice((previewPage - 1) * previewPageSize, previewPage * previewPageSize);
 
   function openPreview() {
     preview = true;
+    previewPage = 1;
+    previewZoom = 100;
     status = 'Print preview is ready.';
+  }
+
+  function movePreviewPage(offset: number) {
+    previewPage = Math.max(1, Math.min(previewPageCount, previewPage + offset));
+  }
+
+  function setPreviewZoom(offset: number) {
+    previewZoom = Math.max(50, Math.min(200, previewZoom + offset));
+  }
+
+  function confirmFormat() {
+    showFormat = false;
+    dialogInteractive = false;
+    status = `${format} selected for ${title}.`;
+    if (retrieved) void retrieve(1);
   }
 
   function printReport() {
@@ -241,7 +265,29 @@
     {#if retrieved}<div class="legacy-report-pagination" role="navigation" aria-label="Report pages"><span>Rows {rows.length === 0 ? 0 : ((reportPage - 1) * pageSize) + 1}–{((reportPage - 1) * pageSize) + rows.length}{serverHasMore ? ' · More pages' : ''}</span><button type="button" onclick={() => { if (reportPage > 1) void retrieve(1); }} disabled={reportPage === 1}>|◀</button><button type="button" onclick={() => movePage(-1)} disabled={reportPage === 1}>◀</button><span>Page {reportPage}{serverHasMore ? ` of at least ${pageCount}` : ` of ${pageCount}`}</span><button type="button" onclick={() => movePage(1)} disabled={!serverHasMore}>▶</button><button type="button" onclick={() => { if (!serverHasMore) reportPage = pageCount; }} disabled={serverHasMore}>▶|</button></div>{/if}
   </div>{/if}
   {#if showArguments}<div class="legacy-report-dialog-backdrop" role="presentation"><div onpointerdown={() => { dialogInteractive = true; }} class:legacy-report-dialog-captured={!dialogInteractive} class="legacy-report-dialog" role="dialog" aria-modal="true" aria-label={definition.retrieval.title} tabindex="-1"><h2>{definition.retrieval.title}</h2><fieldset><legend>Selection List</legend><div class="legacy-report-selection-columns"><div><label for="selectable-area">Selectable Areas</label><select id="selectable-area" size="11" bind:value={selectableArea}>{#each definition.retrieval.areas as area}<option>{area}</option>{/each}</select></div><div><label for="selected-areas">Selected Areas</label><select id="selected-areas" size="11" multiple value={selectedAreas}>{#each selectedAreas as area}<option>{area}</option>{/each}</select></div></div><div class="legacy-report-selection-actions"><button type="button" onclick={addArea}>Add</button><button type="button" onclick={removeArea}>Remove</button><label for="all-areas"><input id="all-areas" type="checkbox" bind:checked={allAreas} /> All</label></div></fieldset><fieldset><legend>Date</legend><label for="report-start-date">Start Date:<input id="report-start-date" type="date" bind:value={fromDate} /></label><label for="report-end-date">End Date:<input id="report-end-date" type="date" bind:value={toDate} /></label></fieldset>{#if definition.retrieval.supportsCashCredit}<div class="legacy-report-checks"><label for="report-cash"><input id="report-cash" type="checkbox" bind:checked={cash} /> Cash</label><label for="report-credit"><input id="report-credit" type="checkbox" bind:checked={credit} /> Credit</label></div>{/if}<div class="legacy-report-dialog-actions"><button type="button" onclick={confirmArguments}>Ok</button><button type="button" onclick={() => { showArguments = false; dialogInteractive = false; }}>Cancel</button></div></div></div>{/if}
-  {#if showFormat}<div class="legacy-report-dialog-backdrop" role="presentation"><div onpointerdown={() => { dialogInteractive = true; }} class:legacy-report-format-captured={!dialogInteractive} class="legacy-report-format-dialog" role="dialog" aria-modal="true" aria-label="Select Format" tabindex="-1"><h2>Select Format</h2><fieldset><legend>Format</legend>{#each definition.formats as option, index}<label><input type="radio" name="report-format" value={option.name} bind:group={format} />{index + 1}) {option.name}</label>{/each}</fieldset><button type="button" onclick={() => { showFormat = false; dialogInteractive = false; }}>Ok</button></div></div>{/if}
-  {#if preview}<div class="legacy-report-preview-backdrop" role="presentation"><div class="legacy-report-preview" role="dialog" aria-modal="true" aria-label="Print preview"><header><strong>{title}</strong><button type="button" aria-label="Close print preview" onclick={() => { preview = false; }}>×</button></header><div class="legacy-report-preview-page"><div class="legacy-report-letterhead"><strong>{definition.letterhead.name}</strong><span>{definition.letterhead.line2} / {definition.letterhead.line3}</span><span>Phone(s): {definition.letterhead.phone}{#if definition.letterhead.fax} · Fax: {definition.letterhead.fax}{/if}</span></div><div class="legacy-report-preview-meta"><span>{fromDate} to {toDate}</span><span>Page {reportPage} of {pageCount}</span></div><table class="legacy-report-grid"><thead><tr>{#each definition.columns as column}<th>{column.label}</th>{/each}</tr></thead><tbody>{#each visibleRows as row}<tr>{#each definition.columns as column}<td>{cellValue(row, column)}</td>{/each}</tr>{/each}</tbody></table></div></div></div>{/if}
+  {#if showFormat}<div class="legacy-report-dialog-backdrop" role="presentation"><div onpointerdown={() => { dialogInteractive = true; }} class:legacy-report-format-captured={!dialogInteractive} class="legacy-report-format-dialog" role="dialog" aria-modal="true" aria-label="Select Format" tabindex="-1"><h2>Select Format</h2><fieldset><legend>Format</legend>{#each definition.formats as option, index}<label><input type="radio" name="report-format" value={option.name} bind:group={format} />{index + 1}) {option.name}</label>{/each}</fieldset><button type="button" onclick={confirmFormat}>Ok</button></div></div>{/if}
+  {#if preview}<div class="legacy-report-preview-backdrop" role="presentation"><div class="legacy-report-preview" role="dialog" aria-modal="true" aria-label="Print preview">
+    <header><div><strong>{title}</strong><small>{format}</small></div><button type="button" aria-label="Close print preview" onclick={() => { preview = false; }}>×</button></header>
+    <div class="legacy-report-preview-toolbar" role="toolbar" aria-label="Print preview toolbar">
+      <button type="button" aria-label="Preview first page" onclick={() => { previewPage = 1; }} disabled={previewPage === 1}>First</button>
+      <button type="button" aria-label="Preview previous page" onclick={() => movePreviewPage(-1)} disabled={previewPage === 1}>Prev</button>
+      <span aria-live="polite">Preview page {previewPage} of {previewPageCount}</span>
+      <button type="button" aria-label="Preview next page" onclick={() => movePreviewPage(1)} disabled={previewPage === previewPageCount}>Next</button>
+      <button type="button" aria-label="Preview last page" onclick={() => { previewPage = previewPageCount; }} disabled={previewPage === previewPageCount}>Last</button>
+      <span class="legacy-report-preview-toolbar-separator" aria-hidden="true"></span>
+      <button type="button" aria-label="Zoom out preview" onclick={() => setPreviewZoom(-10)} disabled={previewZoom <= 50}>-</button>
+      <span>{previewZoom}%</span>
+      <button type="button" aria-label="Zoom in preview" onclick={() => setPreviewZoom(10)} disabled={previewZoom >= 200}>+</button>
+      <button type="button" aria-label="Print preview report" onclick={() => { if (typeof window !== 'undefined') window.print(); }}>Print</button>
+      <button type="button" aria-label="Close print preview toolbar" onclick={() => { preview = false; }}>Close</button>
+    </div>
+    <div class="legacy-report-preview-ruler" aria-hidden="true"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span></div>
+    <div class="legacy-report-preview-status">Report page {reportPage}{serverHasMore ? ' · More records available' : ''} · {fromDate} to {toDate}</div>
+    <div class="legacy-report-preview-workspace"><div class="legacy-report-preview-page-wrap" style={`--preview-scale: ${previewZoom / 100}`}><article class="legacy-report-preview-page">
+      <div class="legacy-report-letterhead"><strong>{definition.letterhead.name}</strong><span>{definition.letterhead.line2} / {definition.letterhead.line3}</span><span>Phone(s): {definition.letterhead.phone}{#if definition.letterhead.fax} · Fax: {definition.letterhead.fax}{/if}</span></div>
+      <div class="legacy-report-preview-meta"><span>{title} · {format}</span><span>Page {reportPage} / {pageCount} · Preview {previewPage} / {previewPageCount}</span></div>
+      <table class="legacy-report-grid"><thead><tr>{#each definition.columns as column}<th>{column.label}</th>{/each}</tr></thead><tbody>{#if previewVisibleRows.length > 0}{#each previewVisibleRows as row}<tr>{#each definition.columns as column}<td>{cellValue(row, column)}</td>{/each}</tr>{/each}{:else}<tr><td colspan={definition.columns.length}>No rows loaded for this report page.</td></tr>{/if}</tbody></table>
+    </article></div></div>
+  </div></div>{/if}
   <footer class="legacy-transaction-footer"><span role="status">{status}</span><a href="/app/legacy">Back to main window</a></footer>
 </section></main>

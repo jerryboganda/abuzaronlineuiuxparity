@@ -1,7 +1,7 @@
 import { legacyMenuCatalog, type LegacyMenuCatalogItem } from '$lib/legacy-menu-catalog';
 import { contextualLegacyMenuCatalog } from '$lib/legacy-menu-contextual-catalog';
 
-export type LegacyWindowContext = 'base' | 'pack-purchase' | 'cash-sale' | 'item-master' | 'report-sale-detail' | 'manage-groups';
+export type LegacyWindowContext = 'base' | 'pack-purchase' | 'cash-sale' | 'item-master' | 'report-sale-detail' | 'manage-groups' | (string & {});
 
 export type LegacyOpenWindow = {
   id: string;

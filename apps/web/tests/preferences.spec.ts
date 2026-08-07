@@ -43,7 +43,8 @@ test('preferences round-trip, cancel, and ellipsis editing remain branch-scoped'
   await expect(alias).toBeFocused();
   await page.getByRole('button', { name: 'Save' }).click();
   expect(saved?.category).toBe('General');
-  expect((saved?.items as Array<{ caption: string; value: string }>).find((item) => item.caption === 'Enable Alias Name:')?.value).toBe('Yes');
+  expect((saved?.items as Array<{ caption: string; fieldKey: string; value: string }>).find((item) => item.caption === 'Enable Alias Name:')?.value).toBe('Yes');
+  expect((saved?.items as Array<{ caption: string; fieldKey: string; value: string }>).find((item) => item.caption === 'Enable Alias Name:')?.fieldKey).toBe('general.enable-alias-name');
   await expect(page.getByRole('status')).toContainText('current branch');
 });
 

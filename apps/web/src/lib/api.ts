@@ -75,10 +75,14 @@ export async function edgeRequest<T>(path: string, body: unknown): Promise<T> {
 }
 
 export class AbuzarApi {
-  constructor(private readonly baseUrl = configuredBaseUrl()) {}
+  constructor(private readonly baseUrl?: string) {}
+
+  private get base(): string {
+    return this.baseUrl ?? configuredBaseUrl();
+  }
 
   async request<T>(path: string, init: RequestInit = {}): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
+    const response = await fetch(`${this.base}${path}`, {
       ...init,
       credentials: 'include',
       headers: { accept: 'application/json', ...(init.body ? { 'content-type': 'application/json' } : {}), ...init.headers }

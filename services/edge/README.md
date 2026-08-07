@@ -8,6 +8,12 @@ To enable automatic central synchronization, configure `ABUZAR_EDGE_CENTRAL_URL`
 
 `GET /v1/hardware/capabilities` reports the explicit printer, barcode, cash-drawer, biometric, SMS, and email adapter states. An unavailable adapter is reported as unavailable; the edge never fakes a financial or identity device response.
 
+`GET /v1/hardware/readiness` reports the deterministic aggregate state,
+configuration validity, available/unavailable counts, and the same per-adapter
+capability details. `ready` is true only when the registry configuration is
+valid and every declared hardware category is available; `degraded` and
+`unavailable` are truthful diagnostic states, not transaction outcomes.
+
 Hardware adapters are injected into `internal/hardware.Registry` through
 `hardware.Config`; the default registry has no adapters. The package exposes
 interfaces for ESC/POS printing, barcode lookup, cash-drawer kick, biometric
@@ -21,3 +27,9 @@ adapter is absent, rather than reporting a successful print or drawer kick.
 trims scanner whitespace/CRLF and rejects remaining control characters.
 Cash-drawer adapters receive an explicit device-neutral pulse command; an
 ESC/POS adapter can translate its default `ESC p` bytes to the drawer.
+
+Adapter configuration is validated before use: a provider cannot be declared
+without a non-nil adapter, provider names cannot contain surrounding
+whitespace/control characters, and typed-nil adapters are treated as absent.
+Invalid configuration returns `503 hardware_configuration_invalid` and no
+hardware operation is attempted.

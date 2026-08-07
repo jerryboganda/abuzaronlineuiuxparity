@@ -40,11 +40,9 @@ CREATE POLICY tenant_preferences_branch_scope ON tenant_preferences
         current_setting('app.authenticating', true) = 'true'
         OR branch_id IS NULL
         OR branch_id = NULLIF(current_setting('app.branch_id', true), '')::uuid
-        OR NULLIF(current_setting('app.allow_tenant_scope', true), '') = 'true'
     )
     WITH CHECK (
         current_setting('app.authenticating', true) = 'true'
         OR branch_id IS NULL
         OR branch_id = NULLIF(current_setting('app.branch_id', true), '')::uuid
-        OR NULLIF(current_setting('app.allow_tenant_scope', true), '') = 'true'
     );

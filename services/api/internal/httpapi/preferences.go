@@ -9,12 +9,14 @@ import (
 
 type preferenceItem struct {
 	Caption  string `json:"caption"`
+	FieldKey string `json:"fieldKey,omitempty"`
 	Value    string `json:"value"`
 	Position int    `json:"position"`
 }
 
 type preferenceFieldResponse struct {
 	Caption       string              `json:"caption"`
+	FieldKey      string              `json:"fieldKey"`
 	Type          preferenceValueType `json:"type"`
 	Default       string              `json:"default"`
 	Value         string              `json:"value"`
@@ -44,7 +46,12 @@ func preferenceDefinitionMap(category string) map[string]preferenceDefinition {
 	definitions := make(map[string]preferenceDefinition)
 	for _, definition := range reviewedPreferenceRegistry() {
 		if definition.Category == category {
-			definitions[definition.Caption] = definition
+			definitions[definition.FieldKey] = definition
+			if _, exists := definitions[definition.Caption]; !exists {
+				// Caption remains an accepted read/write alias for old clients.
+				// Repeated captions intentionally resolve to their first field.
+				definitions[definition.Caption] = definition
+			}
 		}
 	}
 	return definitions
@@ -133,7 +140,11 @@ func (s *Server) savePreferences(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, item := range request.Items {
 		item.Caption = strings.TrimSpace(item.Caption)
-		definition, ok := definitions[item.Caption]
+		item.FieldKey = strings.TrimSpace(item.FieldKey)
+		definition, ok := definitions[item.FieldKey]
+		if !ok {
+			definition, ok = definitions[item.Caption]
+		}
 		if item.Caption == "" || !ok {
 			writeProblem(w, http.StatusBadRequest, "invalid_preference", "Invalid preference", "Every saved caption must be present in the reviewed category registry.")
 			return
@@ -151,7 +162,12 @@ func (s *Server) savePreferences(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 	for index, item := range request.Items {
 		item.Caption = strings.TrimSpace(item.Caption)
-		if err := upsertScopedPreference(r, tx, operator, request.Category, item.Caption, item.Value, index); err != nil {
+		item.FieldKey = strings.TrimSpace(item.FieldKey)
+		definition, ok := definitions[item.FieldKey]
+		if !ok {
+			definition = definitions[item.Caption]
+		}
+		if err := upsertScopedPreference(r, tx, operator, request.Category, definition, item.Value, index); err != nil {
 			writeProblem(w, http.StatusServiceUnavailable, "preferences_write_failed", "Unable to save preferences", "A preference value could not be stored.")
 			return
 		}
@@ -164,9 +180,14 @@ func (s *Server) savePreferences(w http.ResponseWriter, r *http.Request) {
 	}
 	auditedItems := make([]preferenceItem, 0, len(request.Items))
 	for _, item := range request.Items {
-		if definition := definitions[item.Caption]; definition.Type == preferenceSecret {
+		definition, ok := definitions[item.FieldKey]
+		if !ok {
+			definition = definitions[item.Caption]
+		}
+		if ok && definition.Type == preferenceSecret {
 			item.Value = "[redacted]"
 		}
+		item.FieldKey = definition.FieldKey
 		auditedItems = append(auditedItems, item)
 	}
 	encoded, _ := json.Marshal(auditedItems)
@@ -222,6 +243,7 @@ func readEffectivePreferences(r *http.Request, tx *sql.Tx, operator *sessionCont
 		if err := rows.Scan(&item.Caption, &item.Value, &item.Position); err != nil {
 			return nil, err
 		}
+		item = normalizeStoredPreference(category, item)
 		items = append(items, item)
 	}
 	return items, rows.Err()
@@ -230,19 +252,26 @@ func readEffectivePreferences(r *http.Request, tx *sql.Tx, operator *sessionCont
 func preferenceFields(category string, items []preferenceItem) []preferenceFieldResponse {
 	values := make(map[string]string, len(items))
 	for _, item := range items {
-		values[item.Caption] = item.Value
+		if item.FieldKey != "" {
+			values[item.FieldKey] = item.Value
+		} else {
+			values[item.Caption] = item.Value
+		}
 	}
 	result := make([]preferenceFieldResponse, 0)
 	for _, definition := range reviewedPreferenceRegistry() {
 		if definition.Category != category {
 			continue
 		}
-		value, exists := values[definition.Caption]
+		value, exists := values[definition.FieldKey]
+		if !exists {
+			value, exists = values[definition.Caption]
+		}
 		if !exists {
 			value = definition.Default
 		}
 		result = append(result, preferenceFieldResponse{
-			Caption: definition.Caption, Type: definition.Type, Default: definition.Default,
+			Caption: definition.Caption, FieldKey: definition.FieldKey, Type: definition.Type, Default: definition.Default,
 			Value: value, Allowed: definition.Allowed, Minimum: definition.Minimum,
 			Maximum: definition.Maximum, Behavior: definition.Behavior,
 			RuntimeStatus: definition.RuntimeStatus, Position: definition.Position,
@@ -251,7 +280,7 @@ func preferenceFields(category string, items []preferenceItem) []preferenceField
 	return result
 }
 
-func upsertScopedPreference(r *http.Request, tx *sql.Tx, operator *sessionContext, category, caption, value string, position int) error {
+func upsertScopedPreference(r *http.Request, tx *sql.Tx, operator *sessionContext, category string, definition preferenceDefinition, value string, position int) error {
 	// branch_id is nullable for imported tenant defaults. The API always writes
 	// the authenticated branch and therefore uses an update-then-insert path
 	// rather than relying on NULL-sensitive ON CONFLICT inference.
@@ -259,7 +288,7 @@ func upsertScopedPreference(r *http.Request, tx *sql.Tx, operator *sessionContex
 		UPDATE tenant_preferences
 		SET value = $5, position = $6, updated_at = now()
 		WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND category = $3 AND caption = $4
-	`, operator.TenantID, operator.BranchID, category, caption, value, position)
+	`, operator.TenantID, operator.BranchID, category, definition.StorageCaption, value, position)
 	if err != nil {
 		return err
 	}
@@ -271,8 +300,29 @@ func upsertScopedPreference(r *http.Request, tx *sql.Tx, operator *sessionContex
 	_, err = tx.ExecContext(r.Context(), `
 		INSERT INTO tenant_preferences (tenant_id, branch_id, category, caption, value, position, updated_at)
 		VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, now())
-	`, operator.TenantID, operator.BranchID, category, caption, value, position)
+	`, operator.TenantID, operator.BranchID, category, definition.StorageCaption, value, position)
 	return err
+}
+
+func normalizeStoredPreference(category string, item preferenceItem) preferenceItem {
+	for _, definition := range reviewedPreferenceRegistry() {
+		if definition.Category != category {
+			continue
+		}
+		if definition.StorageCaption == item.Caption {
+			item.Caption = definition.Caption
+			item.FieldKey = definition.FieldKey
+			return item
+		}
+	}
+	// A pre-field-key row is a legacy first-occurrence value.
+	for _, definition := range reviewedPreferenceRegistry() {
+		if definition.Category == category && definition.Caption == item.Caption {
+			item.FieldKey = definition.FieldKey
+			return item
+		}
+	}
+	return item
 }
 
 func writeReportPreferenceCompatibility(r *http.Request, tx *sql.Tx, operator *sessionContext, items []preferenceItem) error {

@@ -69,6 +69,10 @@ func isSourceBoundSaleReturnDocumentKind(kind string) bool {
 	return kind == "cash-return" || kind == "credit-return"
 }
 
+func isSourceBoundPurchaseReturnDocumentKind(kind string) bool {
+	return kind == "purchase-return"
+}
+
 type documentCommandRequest struct {
 	CommandID       string                `json:"commandId"`
 	Kind            string                `json:"kind"`
@@ -93,12 +97,15 @@ type documentDraftRequest struct {
 	GodownID                string                  `json:"godownId,omitempty"`
 	Reference               string                  `json:"reference,omitempty"`
 	Remarks                 string                  `json:"remarks,omitempty"`
+	CreditDays              string                  `json:"creditDays,omitempty"`
+	DueDate                 string                  `json:"dueDate,omitempty"`
 	Lines                   []documentLineRequest   `json:"lines"`
 	PriceLevel              int                     `json:"priceLevel,omitempty"`
 	FlatDiscountAmount      string                  `json:"flatDiscountAmount,omitempty"`
 	MiscAmount              *string                 `json:"miscAmount,omitempty"`
 	DocumentDiscountPercent string                  `json:"documentDiscountPercent,omitempty"`
 	Pricing                 *documentPricingRequest `json:"pricing,omitempty"`
+	Payment                 *documentPaymentRequest `json:"payment,omitempty"`
 }
 
 type documentLineRequest struct {
@@ -155,30 +162,33 @@ type documentCommandResponse struct {
 }
 
 type documentResponse struct {
-	ID                   string                  `json:"id"`
-	Kind                 string                  `json:"kind"`
-	Status               string                  `json:"status"`
-	DocumentNumber       string                  `json:"documentNumber"`
-	TenantID             string                  `json:"tenantId"`
-	BranchID             string                  `json:"branchId"`
-	CounterID            string                  `json:"counterId"`
-	OperatorID           string                  `json:"operatorId"`
-	CustomerID           string                  `json:"customerId,omitempty"`
-	SupplierID           string                  `json:"supplierId,omitempty"`
-	SourceDocumentID     string                  `json:"sourceDocumentId,omitempty"`
-	SourceDocumentNumber string                  `json:"sourceDocumentNumber,omitempty"`
-	OccurredAt           string                  `json:"occurredAt"`
-	GodownID             string                  `json:"godownId,omitempty"`
-	Reference            string                  `json:"reference,omitempty"`
-	Remarks              string                  `json:"remarks,omitempty"`
-	VoidReason           string                  `json:"voidReason,omitempty"`
-	Lines                []documentLineResponse  `json:"lines"`
-	Totals               documentTotals          `json:"totals"`
-	Pricing              json.RawMessage         `json:"pricing,omitempty"`
-	Finance              *documentFinanceSummary `json:"finance,omitempty"`
-	CreatedAt            string                  `json:"createdAt"`
-	UpdatedAt            string                  `json:"updatedAt"`
-	Version              int64                   `json:"version"`
+	ID                   string                   `json:"id"`
+	Kind                 string                   `json:"kind"`
+	Status               string                   `json:"status"`
+	DocumentNumber       string                   `json:"documentNumber"`
+	TenantID             string                   `json:"tenantId"`
+	BranchID             string                   `json:"branchId"`
+	CounterID            string                   `json:"counterId"`
+	OperatorID           string                   `json:"operatorId"`
+	CustomerID           string                   `json:"customerId,omitempty"`
+	SupplierID           string                   `json:"supplierId,omitempty"`
+	SourceDocumentID     string                   `json:"sourceDocumentId,omitempty"`
+	SourceDocumentNumber string                   `json:"sourceDocumentNumber,omitempty"`
+	OccurredAt           string                   `json:"occurredAt"`
+	GodownID             string                   `json:"godownId,omitempty"`
+	Reference            string                   `json:"reference,omitempty"`
+	Remarks              string                   `json:"remarks,omitempty"`
+	CreditDays           string                   `json:"creditDays,omitempty"`
+	DueDate              string                   `json:"dueDate,omitempty"`
+	VoidReason           string                   `json:"voidReason,omitempty"`
+	Lines                []documentLineResponse   `json:"lines"`
+	Totals               documentTotals           `json:"totals"`
+	Payment              *documentPaymentResponse `json:"payment,omitempty"`
+	Pricing              json.RawMessage          `json:"pricing,omitempty"`
+	Finance              *documentFinanceSummary  `json:"finance,omitempty"`
+	CreatedAt            string                   `json:"createdAt"`
+	UpdatedAt            string                   `json:"updatedAt"`
+	Version              int64                    `json:"version"`
 }
 
 type documentLineResponse struct {
@@ -191,6 +201,7 @@ type documentLineResponse struct {
 	ItemName     string                       `json:"itemName"`
 	Quantity     string                       `json:"quantity"`
 	Price        documentPrice                `json:"price"`
+	Tax          documentTaxSummary           `json:"tax"`
 	LineTotal    string                       `json:"lineTotal"`
 	Stock        documentStockSummary         `json:"stock"`
 	Allocations  []documentAllocationResponse `json:"allocations,omitempty"`
@@ -199,6 +210,245 @@ type documentLineResponse struct {
 	UnitCost     string                       `json:"unitCost,omitempty"`
 	TaxAmount    string                       `json:"taxAmount,omitempty"`
 	Notes        string                       `json:"notes,omitempty"`
+}
+
+type documentTaxLine struct {
+	Kind          string `json:"kind,omitempty"`
+	Rate          string `json:"rate"`
+	TaxableAmount string `json:"taxableAmount"`
+	Amount        string `json:"amount"`
+}
+
+type documentTaxSummary struct {
+	TaxableAmount string            `json:"taxableAmount"`
+	Amount        string            `json:"amount"`
+	Lines         []documentTaxLine `json:"lines"`
+}
+
+type documentLinePricingSnapshot struct {
+	DiscountPercent      string                `json:"discountPercent"`
+	CustomerDiscountRate string                `json:"customerDiscountRate"`
+	Taxes                []documentTaxSnapshot `json:"taxes"`
+}
+
+type documentTaxSnapshot struct {
+	Kind          string `json:"kind"`
+	Rate          string `json:"rate"`
+	Base          string `json:"base"`
+	TaxableAmount string `json:"taxableAmount"`
+	Amount        string `json:"amount"`
+}
+
+func isZeroDecimal(value string) bool {
+	if strings.TrimSpace(value) == "" {
+		return true
+	}
+	parsed, err := parseMoney(value)
+	return err == nil && parsed == 0
+}
+
+func firstNonZeroDecimal(values ...string) string {
+	for _, value := range values {
+		if !isZeroDecimal(value) {
+			return value
+		}
+	}
+	return "0.00"
+}
+
+func normalizeDocumentPayment(kind string, input *documentPaymentRequest, total pricing.Money) (*documentPaymentResponse, pricing.Money, pricing.Money, error) {
+	if kind != "cash-sale" {
+		if input != nil && (strings.TrimSpace(input.Mode) != "" || strings.TrimSpace(input.Received) != "" || strings.TrimSpace(input.Tendered) != "" || strings.TrimSpace(input.Change) != "" || strings.TrimSpace(input.AccountCode) != "") {
+			return nil, 0, total, errors.New("payment fields are only valid for cash-sale")
+		}
+		return nil, 0, total, nil
+	}
+	payment := &documentPaymentResponse{Mode: "cash"}
+	if input != nil && strings.TrimSpace(input.Mode) != "" {
+		payment.Mode = strings.ToLower(strings.TrimSpace(input.Mode))
+	}
+	if payment.Mode != "cash" {
+		return nil, 0, total, errors.New("cash-sale payment mode must be cash")
+	}
+	received := total
+	var err error
+	if input != nil && strings.TrimSpace(input.Received) != "" {
+		received, err = parseMoney(input.Received)
+		if err != nil {
+			return nil, 0, total, fmt.Errorf("cash received: %w", err)
+		}
+	}
+	if received != total {
+		return nil, 0, total, errors.New("cash-sale cash received must equal the calculated total")
+	}
+	tendered := received
+	if input != nil && strings.TrimSpace(input.Tendered) != "" {
+		tendered, err = parseMoney(input.Tendered)
+		if err != nil {
+			return nil, 0, total, fmt.Errorf("cash tendered: %w", err)
+		}
+	}
+	if tendered < received {
+		return nil, 0, total, errors.New("cash tendered cannot be less than the calculated total")
+	}
+	change := tendered - received
+	if input != nil && strings.TrimSpace(input.Change) != "" {
+		declaredChange, parseErr := parseMoney(input.Change)
+		if parseErr != nil {
+			return nil, 0, total, fmt.Errorf("cash back: %w", parseErr)
+		}
+		if declaredChange != change {
+			return nil, 0, total, errors.New("cash back must equal cash tendered minus the calculated total")
+		}
+	}
+	payment.Received = formatMoney(received)
+	payment.Tendered = formatMoney(tendered)
+	payment.Change = formatMoney(change)
+	payment.AccountCode = strings.TrimSpace(inputAccountCode(input))
+	return payment, received, total - received, nil
+}
+
+func normalizeDocumentCreditDays(kind, value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if !isPurchaseDocumentKind(kind) {
+		if trimmed != "" {
+			return "", errors.New("creditDays are only valid for purchase documents")
+		}
+		return "", nil
+	}
+	if trimmed == "" {
+		return "", nil
+	}
+	days, err := strconv.ParseInt(trimmed, 10, 64)
+	if err != nil || days < -36500 || days > 36500 {
+		return "", errors.New("creditDays must be a whole number between -36500 and 36500")
+	}
+	return strconv.FormatInt(days, 10), nil
+}
+
+func normalizeDocumentDueDate(kind, value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if kind != "credit-sale" {
+		if trimmed != "" {
+			return "", errors.New("dueDate is only valid for credit-sale documents")
+		}
+		return "", nil
+	}
+	if trimmed == "" {
+		return "", nil
+	}
+	if _, err := time.Parse("2006-01-02", trimmed); err != nil {
+		return "", errors.New("dueDate must be a valid ISO calendar date")
+	}
+	return trimmed, nil
+}
+
+func inputAccountCode(input *documentPaymentRequest) string {
+	if input == nil {
+		return ""
+	}
+	return input.AccountCode
+}
+
+func withPaymentPricingSnapshot(raw []byte, payment *documentPaymentResponse) ([]byte, error) {
+	if payment == nil {
+		return raw, nil
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, errors.New("posted pricing result is invalid for payment snapshot")
+	}
+	payload["payment"] = payment
+	return json.Marshal(payload)
+}
+
+func withCreditDaysPricingSnapshot(raw []byte, creditDays string) ([]byte, error) {
+	if strings.TrimSpace(creditDays) == "" {
+		return raw, nil
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, errors.New("posted pricing result is invalid for credit-term snapshot")
+	}
+	payload["creditDays"] = creditDays
+	return json.Marshal(payload)
+}
+
+func withDueDatePricingSnapshot(raw []byte, dueDate string) ([]byte, error) {
+	if strings.TrimSpace(dueDate) == "" {
+		return raw, nil
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, errors.New("posted pricing result is invalid for due-date snapshot")
+	}
+	payload["dueDate"] = dueDate
+	return json.Marshal(payload)
+}
+
+func legacyPayloadString(value any) string {
+	switch typed := value.(type) {
+	case nil:
+		return ""
+	case string:
+		return strings.TrimSpace(typed)
+	case float64:
+		return strconv.FormatFloat(typed, 'f', -1, 64)
+	case json.Number:
+		return typed.String()
+	default:
+		return strings.TrimSpace(fmt.Sprint(typed))
+	}
+}
+
+func legacyPayloadObject(raw []byte) map[string]any {
+	var payload map[string]any
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil
+	}
+	return payload
+}
+
+func legacyPayloadField(raw []byte, key string) string {
+	payload := legacyPayloadObject(raw)
+	if payload == nil {
+		return ""
+	}
+	return legacyPayloadString(payload[key])
+}
+
+func legacyPaymentFromPayload(kind string, raw []byte, total string) *documentPaymentResponse {
+	if kind != "cash-sale" || len(raw) == 0 {
+		return nil
+	}
+	payload := legacyPayloadObject(raw)
+	if payload == nil {
+		return nil
+	}
+	value := func(key string) string { return legacyPayloadString(payload[key]) }
+	mode, received, tendered, change, accountCode := value("PaymentMode"), value("CashReceived"), value("CashTendered"), value("CashBack"), value("PaymentAccCode")
+	if mode == "" && received == "" && tendered == "" && change == "" && accountCode == "" {
+		return nil
+	}
+	if mode == "" {
+		mode = "cash"
+	} else {
+		mode = strings.ToLower(mode)
+	}
+	if received == "" {
+		received = total
+	}
+	if tendered == "" {
+		tendered = received
+	}
+	if change == "" {
+		receivedAmount, receivedErr := parseMoney(received)
+		tenderedAmount, tenderedErr := parseMoney(tendered)
+		if receivedErr == nil && tenderedErr == nil && tenderedAmount >= receivedAmount {
+			change = formatMoney(tenderedAmount - receivedAmount)
+		}
+	}
+	return &documentPaymentResponse{Mode: mode, Received: received, Tendered: tendered, Change: change, AccountCode: accountCode}
 }
 
 type documentAllocationResponse struct {
@@ -230,6 +480,22 @@ type documentTotals struct {
 	TotalAmount    string `json:"totalAmount"`
 	PaidAmount     string `json:"paidAmount"`
 	BalanceAmount  string `json:"balanceAmount"`
+}
+
+type documentPaymentRequest struct {
+	Mode        string `json:"mode,omitempty"`
+	Received    string `json:"received,omitempty"`
+	Tendered    string `json:"tendered,omitempty"`
+	Change      string `json:"change,omitempty"`
+	AccountCode string `json:"accountCode,omitempty"`
+}
+
+type documentPaymentResponse struct {
+	Mode        string `json:"mode"`
+	Received    string `json:"received"`
+	Tendered    string `json:"tendered"`
+	Change      string `json:"change"`
+	AccountCode string `json:"accountCode,omitempty"`
 }
 
 type pricedDocumentLine struct {
@@ -283,6 +549,10 @@ func (s *Server) documentCommand(w http.ResponseWriter, r *http.Request) {
 		writeProblem(w, http.StatusBadRequest, "invalid_document_command", "Invalid document command", err.Error())
 		return
 	}
+	if request.Document != nil && strings.TrimSpace(request.Document.GodownID) != "" &&
+		!s.requireScope(r, w, operator, "godown", strings.TrimSpace(request.Document.GodownID)) {
+		return
+	}
 	payloadHash, err := hashDocumentCommand(request)
 	if err != nil {
 		writeProblem(w, http.StatusBadRequest, "invalid_document_command", "Invalid document command", "The command could not be normalized.")
@@ -295,6 +565,23 @@ func (s *Server) documentCommand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
+	if request.Action == "void" && request.Document == nil {
+		var godownID string
+		err := tx.QueryRowContext(r.Context(), `
+			SELECT COALESCE(godown_id::text, '')
+			FROM business_documents
+			WHERE id = $1::uuid AND tenant_id = $2::uuid AND branch_id = $3::uuid AND kind = $4
+		`, request.DocumentID, operator.TenantID, operator.BranchID, request.Kind).Scan(&godownID)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			writeProblem(w, http.StatusServiceUnavailable, "document_scope_read_failed", "Document scope could not be read", "The canonical document godown scope could not be resolved.")
+			return
+		}
+		if err == nil && godownID != "" && !scopeAllowedAtEnforcementBoundary(operator, "godown", godownID) {
+			_ = tx.Rollback()
+			s.requireScope(r, w, operator, "godown", godownID)
+			return
+		}
+	}
 
 	receiptID, duplicate, err := claimDocumentCommand(r.Context(), tx, operator, request, payloadHash)
 	if err != nil {
@@ -409,6 +696,19 @@ func (s *Server) documentCommand(w http.ResponseWriter, r *http.Request) {
 		}
 		response.Status = response.Document.Status
 	}
+	if request.Action == "void" && response.Document.Status == "void" && isReversiblePostedDocumentKind(response.Document.Kind) {
+		if err := projectPostedDocumentVoid(r.Context(), tx, operator, response.Document, eventID, request.Reason, request.OccurredAt); err != nil {
+			status, code := documentCommandErrorStatus(err)
+			writeProblem(w, status, code, "Document void rejected", err.Error())
+			return
+		}
+		response.Document, err = readBusinessDocument(r.Context(), tx, operator, documentID)
+		if err != nil {
+			writeProblem(w, http.StatusServiceUnavailable, "document_read_failed", "Document void failed", "The voided document could not be re-read after compensating reversal.")
+			return
+		}
+		response.Status = response.Document.Status
+	}
 	if err := finalizeDocumentSyncEvent(r.Context(), tx, operator, request, eventID, response.Document); err != nil {
 		writeProblem(w, http.StatusServiceUnavailable, "document_event_finalize_failed", "Document command failed", "The immutable document event could not be finalized.")
 		return
@@ -450,6 +750,56 @@ func (s *Server) documentCommand(w http.ResponseWriter, r *http.Request) {
 		status = http.StatusCreated
 	}
 	writeJSON(w, status, response)
+}
+
+// documentDetail is the read side of the canonical document lifecycle. It is
+// intentionally separate from the command route so history/population flows
+// can hydrate the complete document without granting mutation semantics.
+func (s *Server) documentDetail(w http.ResponseWriter, r *http.Request) {
+	operator := currentSession(r)
+	documentID := strings.TrimSpace(r.PathValue("id"))
+	if !documentUUIDPattern.MatchString(documentID) {
+		writeProblem(w, http.StatusBadRequest, "invalid_document_id", "Invalid document identifier", "The document identifier must be a UUID.")
+		return
+	}
+	tx, err := s.beginScopedTx(r.Context(), operator)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "database_unavailable", "Database unavailable", "The business document store could not be opened.")
+		return
+	}
+	defer tx.Rollback()
+	var kind string
+	if err := tx.QueryRowContext(r.Context(), `
+		SELECT kind
+		FROM business_documents
+		WHERE id = $1::uuid AND tenant_id = $2::uuid AND branch_id = $3::uuid
+	`, documentID, operator.TenantID, operator.BranchID).Scan(&kind); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeProblem(w, http.StatusNotFound, "document_not_found", "Document not found", "The document is outside the authenticated tenant and branch scope.")
+			return
+		}
+		writeProblem(w, http.StatusServiceUnavailable, "document_read_failed", "Document could not be read", "The canonical document identity could not be resolved.")
+		return
+	}
+	permission := "sales.read"
+	if isPurchaseDocumentKind(kind) {
+		permission = "purchases.read"
+	}
+	if !hasPermission(operator, permission) {
+		s.auditAuthorizationDenied(r, operator, permission)
+		writeProblem(w, http.StatusForbidden, "permission_required", "Permission required", "The authenticated operator does not have permission to read this document.")
+		return
+	}
+	document, err := readBusinessDocument(r.Context(), tx, operator, documentID)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "document_read_failed", "Document could not be read", "The canonical document detail could not be assembled.")
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "document_read_failed", "Document could not be read", "The canonical document read transaction could not be committed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, document)
 }
 
 func emitDocumentSyncEvent(ctx context.Context, tx *sql.Tx, operator *sessionContext, command documentCommandRequest, response documentCommandResponse) (string, error) {
@@ -537,6 +887,30 @@ func claimDocumentCommand(ctx context.Context, tx *sql.Tx, operator *sessionCont
 func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator *sessionContext, command documentCommandRequest) (string, documentCommandResponse, error) {
 	draft := command.Document
 	priced, err := s.priceDocument(ctx, tx, operator, draft)
+	if err != nil {
+		return "", documentCommandResponse{}, err
+	}
+	payment, paidAmount, balanceAmount, err := normalizeDocumentPayment(command.Kind, draft.Payment, priced.result.Total)
+	if err != nil {
+		return "", documentCommandResponse{}, err
+	}
+	creditDays, err := normalizeDocumentCreditDays(command.Kind, draft.CreditDays)
+	if err != nil {
+		return "", documentCommandResponse{}, err
+	}
+	dueDate, err := normalizeDocumentDueDate(command.Kind, draft.DueDate)
+	if err != nil {
+		return "", documentCommandResponse{}, err
+	}
+	pricingJSON, err := withPaymentPricingSnapshot(priced.pricingJSON, payment)
+	if err != nil {
+		return "", documentCommandResponse{}, err
+	}
+	pricingJSON, err = withCreditDaysPricingSnapshot(pricingJSON, creditDays)
+	if err != nil {
+		return "", documentCommandResponse{}, err
+	}
+	pricingJSON, err = withDueDatePricingSnapshot(pricingJSON, dueDate)
 	if err != nil {
 		return "", documentCommandResponse{}, err
 	}
@@ -662,14 +1036,14 @@ func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 				customer_id, supplier_id, source_document_id, source_document_number, godown_id, reference, remarks, price_level, subtotal, discount_amount, misc_amount,
 				 tax_amount, total_amount, paid_amount, balance_amount, pricing_inputs, pricing_result)
 			VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8::timestamptz,
-				NULLIF($9, '')::uuid, NULLIF($10, '')::uuid, NULLIF($11, '')::uuid, $12, NULLIF($13, '')::uuid, $14, $15, $16, $17, $18, $19, $20, $21, 0, $21, $22::jsonb, $23::jsonb)
+				NULLIF($9, '')::uuid, NULLIF($10, '')::uuid, NULLIF($11, '')::uuid, $12, NULLIF($13, '')::uuid, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24::jsonb, $25::jsonb)
 			RETURNING id::text
 		`, operator.TenantID, operator.BranchID, operator.CounterID, operator.UserID, command.Kind, documentNumber, status,
 			draft.OccurredAt, customerID, supplierID, sourceDocumentID, strings.TrimSpace(draft.SourceDocumentNumber),
 			strings.TrimSpace(draft.GodownID), strings.TrimSpace(draft.Reference), strings.TrimSpace(draft.Remarks), priced.request.PriceLevel,
 			formatMoney(priced.result.Subtotal+priced.result.LineDiscountTotal), formatMoney(priced.result.TotalDiscount),
 			formatMoney(priced.result.Misc), formatTotalTax(priced.result), formatMoney(priced.result.Total),
-			mustJSON(priced.request), priced.pricingJSON).Scan(&documentID)
+			formatMoney(paidAmount), formatMoney(balanceAmount), mustJSON(priced.request), pricingJSON).Scan(&documentID)
 		if err != nil {
 			return "", documentCommandResponse{}, err
 		}
@@ -679,15 +1053,16 @@ func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 			SET status = $1, occurred_at = $2::timestamptz, customer_id = NULLIF($3, '')::uuid,
 				supplier_id = NULLIF($4, '')::uuid, source_document_id = NULLIF($5, '')::uuid,
 				source_document_number = $6, godown_id = NULLIF($7, '')::uuid, reference = $8, remarks = $9, price_level = $10, subtotal = $11, discount_amount = $12,
-				misc_amount = $13, tax_amount = $14, total_amount = $15, paid_amount = 0,
-				balance_amount = $15, pricing_inputs = $16::jsonb, pricing_result = $17::jsonb,
+				misc_amount = $13, tax_amount = $14, total_amount = $15, paid_amount = $16,
+				balance_amount = $17, pricing_inputs = $18::jsonb, pricing_result = $19::jsonb,
 				version = version + 1, updated_at = now()
-			WHERE id = $18::uuid AND tenant_id = $19::uuid AND branch_id = $20::uuid
+			WHERE id = $20::uuid AND tenant_id = $21::uuid AND branch_id = $22::uuid
 		`, status, draft.OccurredAt, customerID, supplierID, sourceDocumentID, strings.TrimSpace(draft.SourceDocumentNumber),
 			strings.TrimSpace(draft.GodownID), strings.TrimSpace(draft.Reference), strings.TrimSpace(draft.Remarks),
 			priced.request.PriceLevel, formatMoney(priced.result.Subtotal+priced.result.LineDiscountTotal),
 			formatMoney(priced.result.TotalDiscount), formatMoney(priced.result.Misc), formatTotalTax(priced.result),
-			formatMoney(priced.result.Total), mustJSON(priced.request), priced.pricingJSON, documentID, operator.TenantID, operator.BranchID)
+			formatMoney(priced.result.Total), formatMoney(paidAmount), formatMoney(balanceAmount), mustJSON(priced.request), pricingJSON,
+			documentID, operator.TenantID, operator.BranchID)
 		if err != nil {
 			return "", documentCommandResponse{}, err
 		}
@@ -701,6 +1076,7 @@ func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 			"supplierDiscount":       formatMoney(line.result.SupplierDiscount),
 			"supplierBonusQuantity":  formatQuantity(line.result.SupplierBonusQuantity),
 			"itemDiscount":           formatMoney(line.result.ItemDiscount),
+			"discountPercent":        formatPercentOrZero(line.request.DiscountPercent),
 			"customerDiscount":       formatMoney(line.result.CustomerDiscount),
 			"customerDiscountRate":   formatPercent(line.result.CustomerDiscountRate),
 			"customerDiscountSource": customerDiscountSourceName(line.result.CustomerDiscountSource),
@@ -752,8 +1128,22 @@ func (s *Server) voidBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 	if status == "void" {
 		return "", documentCommandResponse{}, errors.New("document is already void")
 	}
-	if status == "posted" && command.Kind != "purchase-order" && command.Kind != "quotation" && command.Kind != "refused-sale" {
-		return "", documentCommandResponse{}, errors.New("posted document cannot be voided until a stock reversal workflow exists")
+	if status == "posted" && isReversiblePostedDocumentKind(command.Kind) {
+		var hasStockProjection, hasFinanceProjection bool
+		if err := tx.QueryRowContext(ctx, `
+			SELECT EXISTS (
+				SELECT 1 FROM stock_ledger
+				WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND source_document_id = $3::uuid
+			), EXISTS (
+				SELECT 1 FROM gl_journals
+				WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND source_document_id = $3::uuid
+			)
+		`, operator.TenantID, operator.BranchID, documentID).Scan(&hasStockProjection, &hasFinanceProjection); err != nil {
+			return "", documentCommandResponse{}, err
+		}
+		if !hasStockProjection || !hasFinanceProjection {
+			return "", documentCommandResponse{}, errors.New("posted document cannot be voided without completed stock and finance projections")
+		}
 	}
 	if _, err := tx.ExecContext(ctx, `
 		UPDATE business_documents SET status = 'void', void_reason = $3, updated_at = now(), version = version + 1
@@ -787,6 +1177,7 @@ func (s *Server) priceDocument(ctx context.Context, tx *sql.Tx, operator *sessio
 	}
 	priced := pricedDocument{lines: make([]pricedDocumentLine, 0, len(draft.Lines))}
 	preview := pricingPreviewRequest{PriceLevel: priceLevel, Lines: make([]pricingPreviewLine, 0, len(draft.Lines))}
+	supplierSchemeCache := make(map[string]*pricingPreviewSupplierScheme)
 	if draft.Pricing != nil {
 		preview.GroupDiscountPercent = draft.Pricing.GroupDiscountPercent
 		preview.CustomerDiscountPercent = draft.Pricing.CustomerDiscountPercent
@@ -830,13 +1221,27 @@ func (s *Server) priceDocument(ctx context.Context, tx *sql.Tx, operator *sessio
 		if err != nil {
 			return pricedDocument{}, fmt.Errorf("line %d: %w", index+1, err)
 		}
+		supplierScheme := line.SupplierScheme
+		if supplierScheme == nil && isPurchaseDocumentKind(draft.Kind) && strings.TrimSpace(draft.SupplierID) != "" {
+			cacheKey := item.ID + "|" + strings.TrimSpace(draft.SupplierID)
+			if cached, ok := supplierSchemeCache[cacheKey]; ok {
+				supplierScheme = cached
+			} else {
+				supplierScheme, err = resolveCanonicalSupplierScheme(ctx, tx, operator.TenantID, item.ID, draft.SupplierID)
+				if err != nil {
+					return pricedDocument{}, fmt.Errorf("line %d supplier scheme: %w", index+1, err)
+				}
+				supplierSchemeCache[cacheKey] = supplierScheme
+			}
+		}
 		preview.Lines = append(preview.Lines, pricingPreviewLine{
 			ID:                  item.ID,
 			Quantity:            line.Quantity,
 			Prices:              tiers,
 			ItemDiscountPercent: line.DiscountPercent,
-			SupplierScheme:      line.SupplierScheme,
+			SupplierScheme:      supplierScheme,
 		})
+		line.SupplierScheme = supplierScheme
 		priced.lines = append(priced.lines, pricedDocumentLine{request: line, itemID: item.ID, legacyID: item.LegacyID, code: item.Code, name: item.Name})
 	}
 	resolvedTaxes, err := resolveDocumentTaxPolicy(ctx, tx, operator, draft)
@@ -867,6 +1272,56 @@ func (s *Server) priceDocument(ctx context.Context, tx *sql.Tx, operator *sessio
 	priced.result = result
 	priced.pricingJSON = mustJSON(buildPricingResult(result))
 	return priced, nil
+}
+
+func resolveCanonicalSupplierScheme(ctx context.Context, tx *sql.Tx, tenantID, itemID, supplierID string) (*pricingPreviewSupplierScheme, error) {
+	var discountPercent, qualifyingQuantity, bonusQuantity string
+	err := tx.QueryRowContext(ctx, `
+		SELECT COALESCE(s.discount_percent::text, ''), COALESCE(s.quantity::text, ''), COALESCE(s.bonus::text, '')
+		FROM item_suppliers s
+		WHERE s.tenant_id = $1::uuid AND s.item_id = $2::uuid
+		  AND (s.supplier_id = $3::uuid OR s.legacy_supplier_id = (
+			SELECT legacy_id FROM master_parties
+			WHERE tenant_id = $1::uuid AND id = $3::uuid AND party_type = 'supplier'
+		  ))
+		ORDER BY s.priority NULLS LAST, s.legacy_supplier_id
+		LIMIT 1
+	`, tenantID, itemID, supplierID).Scan(&discountPercent, &qualifyingQuantity, &bonusQuantity)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(discountPercent) == "" && strings.TrimSpace(qualifyingQuantity) == "" && strings.TrimSpace(bonusQuantity) == "" {
+		return nil, nil
+	}
+	discount, err := parsePercent(discountPercent)
+	if err != nil {
+		return nil, fmt.Errorf("discount percent: %w", err)
+	}
+	qualifying, err := parseNonNegativeQuantity(qualifyingQuantity)
+	if err != nil {
+		return nil, fmt.Errorf("qualifying quantity: %w", err)
+	}
+	bonus, err := parseNonNegativeQuantity(bonusQuantity)
+	if err != nil {
+		return nil, fmt.Errorf("bonus quantity: %w", err)
+	}
+	if discount == 0 && bonus == 0 {
+		return nil, nil
+	}
+	if bonus > 0 && qualifying == 0 {
+		// A source row with a bonus but no qualifying quantity is retained in
+		// the migration tables, but cannot be promoted into a billable scheme
+		// without inventing a legacy rule.
+		return nil, nil
+	}
+	return &pricingPreviewSupplierScheme{
+		DiscountPercent:    formatPercent(discount),
+		QualifyingQuantity: formatQuantity(qualifying),
+		BonusQuantity:      formatQuantity(bonus),
+	}, nil
 }
 
 func validateDocumentCommand(request documentCommandRequest, kind string) error {
@@ -926,17 +1381,17 @@ func validateDocumentCommand(request documentCommandRequest, kind string) error 
 					return err
 				}
 			}
-			if isSourceBoundSaleReturnDocumentKind(kind) {
+			if isSourceBoundSaleReturnDocumentKind(kind) || isSourceBoundPurchaseReturnDocumentKind(kind) {
 				if strings.TrimSpace(line.SourceLineID) != "" &&
 					!documentUUIDPattern.MatchString(strings.TrimSpace(line.SourceLineID)) {
 					return fmt.Errorf("line %d sourceLineId must be a UUID", index+1)
 				}
 				if (request.Action == "post" || request.Action == "save-and-post") &&
 					strings.TrimSpace(line.SourceLineID) == "" {
-					return fmt.Errorf("line %d sourceLineId is required when posting a sale return", index+1)
+					return fmt.Errorf("line %d sourceLineId is required when posting a %s", index+1, kind)
 				}
 			} else if strings.TrimSpace(line.SourceLineID) != "" {
-				return fmt.Errorf("line %d sourceLineId is only valid for a source-bound sale return", index+1)
+				return fmt.Errorf("line %d sourceLineId is only valid for a source-bound sale or purchase return", index+1)
 			}
 			if isOpenSaleReturnDocumentKind(kind) &&
 				(request.Action == "post" || request.Action == "save-and-post") &&
@@ -1126,13 +1581,14 @@ func buildPricingResult(result pricing.Result) map[string]any {
 func readBusinessDocument(ctx context.Context, tx *sql.Tx, operator *sessionContext, documentID string) (documentResponse, error) {
 	var document documentResponse
 	var pricingJSON []byte
+	var legacyPayload []byte
 	err := tx.QueryRowContext(ctx, `
 		SELECT id::text, kind, status, document_number, tenant_id::text, branch_id::text,
 			counter_id::text, operator_id::text, COALESCE(customer_id::text, ''),
 			COALESCE(supplier_id::text, ''), COALESCE(source_document_id::text, ''),
 			source_document_number, occurred_at::text, COALESCE(godown_id::text, ''),
 			reference, remarks, void_reason,
-			pricing_result, created_at::text, updated_at::text, version,
+			pricing_result, legacy_payload, created_at::text, updated_at::text, version,
 			subtotal::text, discount_amount::text, misc_amount::text, tax_amount::text,
 			total_amount::text, paid_amount::text, balance_amount::text
 		FROM business_documents
@@ -1141,7 +1597,7 @@ func readBusinessDocument(ctx context.Context, tx *sql.Tx, operator *sessionCont
 		&document.ID, &document.Kind, &document.Status, &document.DocumentNumber, &document.TenantID,
 		&document.BranchID, &document.CounterID, &document.OperatorID, &document.CustomerID, &document.SupplierID,
 		&document.SourceDocumentID, &document.SourceDocumentNumber, &document.OccurredAt, &document.GodownID,
-		&document.Reference, &document.Remarks, &document.VoidReason, &pricingJSON, &document.CreatedAt, &document.UpdatedAt,
+		&document.Reference, &document.Remarks, &document.VoidReason, &pricingJSON, &legacyPayload, &document.CreatedAt, &document.UpdatedAt,
 		&document.Version, &document.Totals.Subtotal, &document.Totals.DiscountAmount, &document.Totals.MiscAmount,
 		&document.Totals.TaxAmount, &document.Totals.TotalAmount, &document.Totals.PaidAmount, &document.Totals.BalanceAmount,
 	)
@@ -1150,11 +1606,30 @@ func readBusinessDocument(ctx context.Context, tx *sql.Tx, operator *sessionCont
 	}
 	document.Lines = make([]documentLineResponse, 0)
 	document.Pricing = json.RawMessage(pricingJSON)
+	var pricingSnapshot struct {
+		Payment    *documentPaymentResponse `json:"payment"`
+		CreditDays string                   `json:"creditDays"`
+		DueDate    string                   `json:"dueDate"`
+	}
+	if err := json.Unmarshal(pricingJSON, &pricingSnapshot); err == nil {
+		document.Payment = pricingSnapshot.Payment
+		document.CreditDays = pricingSnapshot.CreditDays
+		document.DueDate = pricingSnapshot.DueDate
+	}
+	if document.CreditDays == "" && isPurchaseDocumentKind(document.Kind) {
+		document.CreditDays = legacyPayloadField(legacyPayload, "CreditDays")
+	}
+	if document.DueDate == "" && document.Kind == "credit-sale" {
+		document.DueDate = legacyPayloadField(legacyPayload, "DueDate")
+	}
+	if document.Payment == nil {
+		document.Payment = legacyPaymentFromPayload(document.Kind, legacyPayload, document.Totals.TotalAmount)
+	}
 	rows, err := tx.QueryContext(ctx, `
 		SELECT id::text, line_number, item_id::text, COALESCE(source_line_id::text, ''), item_legacy_id, item_code, item_name, quantity::text,
 			unit_price::text, line_gross::text, supplier_discount::text, item_discount::text,
-			customer_discount::text, line_total::text, batch_number, COALESCE(expiry_date::text, ''),
-			unit_cost::text, tax_amount::text, notes
+			customer_discount::text, line_total::text, pricing, gst_rate::text, pct_rate::text, advance_tax_rate::text,
+			batch_number, COALESCE(expiry_date::text, ''), unit_cost::text, tax_amount::text, notes
 		FROM business_document_lines
 		WHERE tenant_id = $1::uuid AND document_id = $2::uuid
 		ORDER BY line_number
@@ -1166,15 +1641,44 @@ func readBusinessDocument(ctx context.Context, tx *sql.Tx, operator *sessionCont
 	for rows.Next() {
 		var line documentLineResponse
 		var quantity, unitPrice, gross, supplierDiscount, itemDiscount, customerDiscount, total string
+		var linePricingJSON []byte
+		var gstRate, pctRate, advanceTaxRate string
 		if err := rows.Scan(&line.ID, &line.LineNumber, &line.ItemID, &line.SourceLineID, &line.ItemLegacyID, &line.ItemCode, &line.ItemName, &quantity,
 			&unitPrice, &gross, &supplierDiscount, &itemDiscount, &customerDiscount, &total,
+			&linePricingJSON, &gstRate, &pctRate, &advanceTaxRate,
 			&line.BatchNumber, &line.ExpiryDate, &line.UnitCost, &line.TaxAmount, &line.Notes); err != nil {
 			return documentResponse{}, err
 		}
+		var linePricing documentLinePricingSnapshot
+		_ = json.Unmarshal(linePricingJSON, &linePricing)
 		line.Quantity = quantity
 		line.Price = documentPrice{
-			PriceTier: 1, UnitPrice: unitPrice, GrossAmount: gross, DiscountPercent: "0.00",
-			DiscountAmount: addMoneyStrings(supplierDiscount, itemDiscount, customerDiscount), NetAmount: total,
+			PriceTier: 1, UnitPrice: unitPrice, GrossAmount: gross,
+			DiscountPercent: firstNonZeroDecimal(linePricing.DiscountPercent, linePricing.CustomerDiscountRate),
+			DiscountAmount:  addMoneyStrings(supplierDiscount, itemDiscount, customerDiscount), NetAmount: total,
+		}
+		taxLines := make([]documentTaxLine, 0, len(linePricing.Taxes))
+		for _, tax := range linePricing.Taxes {
+			taxLines = append(taxLines, documentTaxLine{
+				Kind: tax.Kind, Rate: tax.Rate,
+				TaxableAmount: firstNonZeroDecimal(tax.TaxableAmount, tax.Base, total),
+				Amount:        tax.Amount,
+			})
+		}
+		line.Tax = documentTaxSummary{TaxableAmount: total, Amount: line.TaxAmount, Lines: taxLines}
+		if len(line.Tax.Lines) == 0 {
+			for _, tax := range []struct {
+				kind, rate string
+			}{
+				{kind: "gst", rate: gstRate},
+				{kind: "pct", rate: pctRate},
+				{kind: "advance_tax", rate: advanceTaxRate},
+			} {
+				if isZeroDecimal(tax.rate) {
+					continue
+				}
+				line.Tax.Lines = append(line.Tax.Lines, documentTaxLine{Kind: tax.kind, Rate: tax.rate, TaxableAmount: total, Amount: line.TaxAmount})
+			}
 		}
 		line.Stock = documentStockSummary{Direction: "none", Quantity: quantity}
 		document.Lines = append(document.Lines, line)
@@ -1205,19 +1709,23 @@ func readDocumentFinanceSummary(ctx context.Context, tx *sql.Tx, operator *sessi
 	var summary documentFinanceSummary
 	err := tx.QueryRowContext(ctx, `
 		SELECT j.id::text,
-		       COALESCE(SUM(l.debit_amount), 0)::text,
-		       COALESCE(SUM(l.credit_amount), 0)::text,
-		       COALESCE(SUM(l.debit_amount), 0) = COALESCE(SUM(l.credit_amount), 0),
+		       j.total_debit::text,
+		       j.total_credit::text,
+		       j.total_debit = j.total_credit,
 		       COALESCE(p.id::text, ''), COALESCE(p.balance_after::text, '')
 		FROM gl_journals j
-		LEFT JOIN gl_lines l
-		  ON l.tenant_id = j.tenant_id AND l.branch_id = j.branch_id AND l.journal_id = j.id
-		LEFT JOIN party_ledger_entries p
-		  ON p.tenant_id = j.tenant_id AND p.branch_id = j.branch_id
-		 AND p.source_document_id = j.source_document_id
+		LEFT JOIN LATERAL (
+			SELECT id, balance_after
+			FROM party_ledger_entries
+			WHERE tenant_id = j.tenant_id AND branch_id = j.branch_id
+			  AND source_document_id = j.source_document_id
+			ORDER BY created_at DESC, id DESC
+			LIMIT 1
+		) p ON true
 		WHERE j.tenant_id = $1::uuid AND j.branch_id = $2::uuid
 		  AND j.source_document_id = $3::uuid
-		GROUP BY j.id, p.id, p.balance_after
+		ORDER BY j.created_at DESC, j.id DESC
+		LIMIT 1
 	`, operator.TenantID, operator.BranchID, documentID).Scan(
 		&summary.JournalID, &summary.DebitTotal, &summary.CreditTotal,
 		&summary.Balanced, &summary.PartyLedgerEntryID, &summary.PartyBalanceAfter,
@@ -1315,6 +1823,14 @@ func decimalOrZero(value string) string {
 	return strings.TrimSpace(value)
 }
 
+func formatPercentOrZero(value string) string {
+	parsed, err := parsePercent(value)
+	if err != nil {
+		return decimalOrZero(value)
+	}
+	return formatPercent(parsed)
+}
+
 func purchaseUnitCost(line pricedDocumentLine) string {
 	if strings.TrimSpace(line.request.UnitCost) != "" {
 		value, err := parseMoney(line.request.UnitCost)
@@ -1354,7 +1870,7 @@ func lineTaxSnapshot(result pricing.Result, lineIndex int) ([]map[string]any, pr
 		allocated := allocateTaxAmount(tax.Amount, result.Lines, netTotal, lineIndex, taxIndex)
 		total += allocated
 		taxes = append(taxes, map[string]any{
-			"kind": taxKindName(tax.Kind), "rate": formatPercent(tax.Rate),
+			"kind": taxKindName(tax.Kind), "rate": formatStoredTaxRate(tax.Rate),
 			"inclusive": tax.Inclusive, "base": formatMoney(result.Lines[lineIndex].Net),
 			"amount": formatMoney(allocated),
 		})

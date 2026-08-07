@@ -20,6 +20,11 @@ go run ./migration/cmd/reconcile -tenant $env:ABUZAR_RECONCILE_TENANT_ID -out pa
 
 The report compares source and target table counts and records `matched`, `mismatched`, `missing_target`, or `exception` status. When `-tenant` is supplied, PostgreSQL queries run in a tenant-wide RLS context; without it, use a dedicated privileged read-only reconciliation role. The command never writes to either database.
 
+Its bookkeeping section exposes both raw open migration-exception rows and
+distinct open source cases grouped by source schema/table, legacy ID, and
+reason. The reported bookkeeping status uses the distinct unresolved-case
+count, while raw rows remain visible so superseded retry records are auditable.
+
 For business-level reconciliation, pass a reviewed metric configuration. Each metric must be a single read-only `SELECT` returning one numeric value; the optional tolerance is an absolute difference in the source database's displayed units:
 
 ```json
@@ -228,6 +233,47 @@ Purchase-order/detail lines, sales, sale returns, stock, and ledger ranges are
 still intentionally not implied by those reports; the purchase-detail line
 range is documented by the dedicated loader below.
 
+The reviewed purchase-order map is ready for a bounded header/detail wave. Run
+the header first, then the detail range, and use the dedicated metrics so a
+partial line load cannot be mistaken for a complete order projection:
+
+```powershell
+go run ./migration/cmd/import `
+  -source $source -target $target `
+  -config migration/maps/phase-e-historical-orders.json `
+  -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -counter-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a03 `
+  -from-table 0 -to-table 1 `
+  -out parity/catalog/canonical-first-tenant-purchase-order-headers-import.json
+
+go run ./migration/cmd/import `
+  -source $source -target $target `
+  -config migration/maps/phase-e-historical-orders.json `
+  -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -counter-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a03 `
+  -from-table 1 -to-table 2 `
+  -out parity/catalog/canonical-first-tenant-purchase-order-lines-import.json
+
+go run ./migration/cmd/reconcile `
+  -source $source -target $target `
+  -config migration/maps/phase-e-historical-orders.json `
+  -metrics migration/maps/phase-e-historical-order-reconciliation-metrics.json `
+  -tenant 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -allow-canonical `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -counter-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a03 `
+  -fail-on-open-bookkeeping `
+  -out parity/catalog/canonical-first-tenant-purchase-orders-reconciliation.json
+```
+
+The canonical source connection is an acceptance boundary when it is not
+available; these commands are documented and guarded, not claimed as executed
+by the local evidence.
+
 The lookup-free canonical `PricePolicyDetail` range has a dedicated bulk
 loader because the generic savepoint importer is intentionally conservative
 for heterogeneous maps:
@@ -273,6 +319,73 @@ auditable exceptions; they are never silently changed into positive stock.
 The focused reconciliation is
 `parity/catalog/canonical-first-tenant-purchase-lines-reconciliation.json`.
 
+The corresponding high-volume canonical sales-detail slice has a dedicated
+set-based loader in `bulksalelines`:
+
+```powershell
+go run ./migration/cmd/bulksalelines `
+  -source $source -target $target -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -out parity/catalog/canonical-first-tenant-sale-lines-import.json
+```
+
+It reads only `dbo.Saledetail`, stages rows with PostgreSQL COPY, joins them
+only to the scoped `SaleLedger` headers and normalized items, and upserts by
+the reviewed `Saledetail:<SaleInvcode>:<RowID>` identity. Missing headers/items,
+invalid line numbers, missing item IDs, duplicate identities, and
+non-positive pack/loose quantities remain in `legacy_id_mappings` and
+`migration_exceptions`; no quantity is silently coerced. This command is a
+code-path safeguard only until an approved source run and count/amount
+reconciliation are performed.
+
+The reviewed purchase-order detail slice has the same bounded treatment through
+`bulkorderlines`:
+
+```powershell
+go run ./migration/cmd/bulkorderlines `
+  -source $source -target $target -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -out parity/catalog/canonical-first-tenant-purchase-order-lines-import.json
+```
+
+It reads only `dbo.PurOrderDetail`, uses the reviewed `PurOrderDetail:<POCode>:<PORowId>`
+identity, and joins only `purchase-order` documents from `PurOrderHeader` plus
+scoped canonical items. Source batch/expiry, discount, bonus, stock, receipt,
+and remarks fields remain in the line payload; invalid, duplicate, missing
+dependency, and non-positive rows are recorded as migration exceptions.
+Source execution and order count/quantity/amount reconciliation are still
+required before this wave can be accepted.
+
+The reviewed sale-return and purchase-return detail slices use the guarded
+`bulkreturnlines` loader. Select one fixed mode per run; the command never
+accepts an arbitrary source table or document kind:
+
+```powershell
+go run ./migration/cmd/bulkreturnlines `
+  -kind sale -source $source -target $target -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -out parity/catalog/canonical-first-tenant-sale-return-lines-import.json
+
+go run ./migration/cmd/bulkreturnlines `
+  -kind purchase -source $source -target $target -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -out parity/catalog/canonical-first-tenant-purchase-return-lines-import.json
+```
+
+Sale mode reads `dbo.SRdetail`, joins only `SRLedger` documents of kind
+`cash-sale-return`, and preserves the reviewed `SRdetail:<SRInvcode>:<RowId>`
+identity. Purchase mode reads `dbo.PRdetail`, joins only `PRLedger` documents
+of kind `purchase-return`, and preserves
+`PRdetail:<PRInvCode>:<PrRowId>`. Both modes use PostgreSQL COPY staging,
+scoped set-based upserts, positive-quantity validation, idempotent conflict
+handling, and auditable mappings/exceptions. Source execution and return-line
+count/quantity/amount reconciliation remain required before acceptance; see
+`docs/PHASE_E_RETURN_LINE_IMPORT_EVIDENCE_2026-08-07.md`.
+
 The two small tax-rate mappings use the generic bounded importer and
 reconciler with `-from-table 0 -to-table 2`; their focused evidence is recorded
 under `parity/catalog/canonical-first-tenant-tax-rates-*`.
@@ -283,6 +396,34 @@ canonical master-data wave, not a claim that all 763 legacy tables, documents,
 ledgers, stock/batches, reports, hardware, or pixel-level workflow captures
 are complete.
 
+## Canonical historical stock and GL wave
+
+`cmd/bulk-historical` supports the reviewed `StockReport`, `VirtualGl`,
+payment-allocation, and payment-level withholding projections
+historical projections for either the isolated reference sandbox or an
+explicitly approved canonical tenant. The canonical path is fail-closed: it
+requires `-allow-canonical`, `-tenant-id`, and `-branch-id`, validates both
+scope identifiers as UUIDs, and refuses to commit a stock batch if any source
+row lacks an imported item or godown dependency. This prevents the previous
+silent-loss behavior of an inner-join insert.
+
+The canonical invocation is:
+
+```powershell
+$source = 'sqlserver://localhost?database=FazalDinPP19DataBaseV2&trusted_connection=yes'
+$target = 'postgres://postgres@127.0.0.1:5432/abuzar_next?sslmode=disable'
+go run ./migration/cmd/bulk-historical `
+  -source $source -target $target -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -wave both
+```
+
+The loader remains read-only against SQL Server and is not evidence of a
+successful import until its source-row counts, target counts, and reviewed
+StockReport/VirtualGl totals are recorded. A failed source connection or a
+missing dependency must remain an open acceptance boundary.
+
 The reviewed security map (`maps/phase-r-security-data.json`) additionally
 declares `"upsert": true`. This is limited to the representational roles,
 legacy groups, users, memberships, rights, and allow-scope rows because the
@@ -290,3 +431,76 @@ tenancy migration seeds four role shells for every tenant. The upsert refreshes
 legacy IDs/payloads on those shells without importing source passwords; all
 other reviewed historical/master maps remain immutable (`DO NOTHING`) on a
 conflict key.
+
+## Canonical item-history and adjustment report wave
+
+`cmd/bulk-historical` also supports `-wave history`, `-wave adjustments`,
+`-wave deleted-sale-items`, and `-wave withholding`. The withholding wave
+reads the reviewed `dbo.PurPayment` payment-level `WHTax*` fields and joins
+`dbo.Purledger` only to retain supplier/invoice identity; it never derives
+withholding rows from purchase-line `AdvanceTax`. The deleted-sale-items wave
+reads the reviewed
+`dbo.DeletedSaleItem` source table in deterministic source-row order, retains
+the sale invoice, item/godown, quantity/bonus, pricing, discount/tax, machine,
+user, and raw payload fields in `historical_deleted_sale_items`, and refuses to
+commit rows missing the captured identity/date fields.
+The history wave reads the reviewed `dbo.ItemLog` snapshot stream in source
+order, retains every source column in `historical_item_changes.payload`, and
+derives separate source-backed rows for prior-observed price, name, basic-data,
+price-difference, and first-observed views. The adjustment wave reads
+`dbo.AdjHeader` plus `dbo.AdjDetail`, retains the header/detail payload, and
+does not discard a detail row merely because its current item or godown master
+is absent in PostgreSQL.
+
+Both waves are read-only against SQL Server and use the same canonical
+fail-closed opt-in and tenant/branch scope as the stock/GL loader:
+
+```powershell
+go run ./migration/cmd/bulk-historical `
+  -source $source -target $target -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -wave all
+```
+
+The report API labels these projections as normalized source-backed and keeps
+the exact PowerBuilder DataWindow columns, calculated semantics, filters,
+orientation, and print raster as open acceptance evidence until the six
+runtime captures are available.
+
+## Party payment allocation wave
+
+`-wave payments` retains source settlement rows in
+`historical_party_payment_allocations`: supplier `dbo.PurPayment`, customer
+`dbo.InstallmentReceiptDetail`, and direct SaleLedger/Purledger amount
+snapshots only when the corresponding child payment stream has no row. The
+wave resolves canonical party/document IDs when available but preserves
+legacy identities when the historical document or master import is incomplete.
+It is read-only against SQL Server and requires the same explicit canonical
+opt-in and tenant/branch scope as the other historical waves:
+
+```powershell
+go run ./migration/cmd/bulk-historical `
+  -source $source -target $target -allow-canonical `
+  -tenant-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a01 `
+  -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
+  -wave payments
+```
+
+The wave does not claim invoice allocation, SaleReceivableAdj/return
+allocation semantics, canonical interactive payment entry, or exact legacy
+statement print parity until source reconciliation and operator evidence are
+recorded.
+
+`-wave party-adjustments` separately retains `dbo.SaleReceivableAdj` debit and
+credit rows in `historical_party_ledger_adjustments`. It does not reinterpret
+those rows as payment receipts; unresolved parent invoice/date/party identity
+is retained and exact legacy adjustment posting remains an acceptance gate.
+
+`-wave return-allocations` separately retains customer
+`dbo.SRAllocationHeader/Detail` and supplier `dbo.PRAllocationHeader/Detail`
+rows in `historical_party_return_allocations`. It preserves return/invoice
+identity, allocation/outstanding amounts, posted state, and unresolved party
+links; the bounded statement/ledger projection is not used to mutate aging or
+canonical document balances until duplicate and legacy posting semantics are
+reconciled.

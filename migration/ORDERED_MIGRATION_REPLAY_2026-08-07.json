@@ -1,8 +1,8 @@
 {
   "database": "abuzar_next",
   "sourceDatabaseOpened": false,
-  "orderedFileRange": "001-026",
-  "migrationFileCount": 27,
+  "orderedFileRange": "001-028",
+  "migrationFileCount": 29,
   "runs": [
     {
       "run": 1,
@@ -19,6 +19,12 @@
       "run": 3,
       "result": "success",
       "observedOutput": "Applied 27 migrations."
+    },
+    {
+      "run": 4,
+      "result": "success",
+      "observedOutput": "Applied 29 migrations.",
+      "scope": "sequential replay including 027_historical_item_history_adjustments.sql and 028_business_document_void_reversals.sql"
     }
   ],
   "compatibilityHardening": [

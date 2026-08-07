@@ -78,3 +78,31 @@ func TestFinanceMigrationDefinesScopedBalancedPostingAndSafeSeeds(t *testing.T) 
 		t.Fatal("finance migration invents or imports historical balances")
 	}
 }
+
+func TestFinanceLedgerIncludesSourceBackedPaymentAllocations(t *testing.T) {
+	path := filepath.Join(".", "finance.go")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read finance handler: %v", err)
+	}
+	code := string(data)
+	for _, required := range []string{
+		"historical_party_payment_allocations",
+		"historical_party_ledger_adjustments",
+		"historical_party_return_allocations",
+		"running_entries AS",
+		"SUM(debit_amount - credit_amount) OVER",
+		"ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW",
+		"p.posted = true",
+		"p.payment_amount <> 0",
+		"a.posted = true",
+		"receivable-adjustment",
+		"return-allocation",
+		"UNION ALL",
+		"source_document_legacy_id",
+	} {
+		if !strings.Contains(code, required) {
+			t.Errorf("finance ledger handler is missing source payment fragment %q", required)
+		}
+	}
+}

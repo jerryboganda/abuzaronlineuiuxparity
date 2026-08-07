@@ -4,7 +4,7 @@
 **Runbook owner:** Release manager / Operations  
 **Applies to:** AbuzarNext central API, PostgreSQL, branch edge, Windows client, and
 the legacy WASEELA ABUZAR V3 fallback  
-**Decision date:** 2026-08-06
+**Decision date:** 2026-08-07
 
 > **Go-live is blocked.** Do not schedule the production switch until all open
 > S0/S1 gaps are closed, the complete canonical migration is reconciled, physical
@@ -16,17 +16,21 @@ the legacy WASEELA ABUZAR V3 fallback
 
 The following are release blockers:
 
-- **S0:** G1 data migration, G2 business logic, and G3 reports.
-- **S1:** G4 contextual menus, G5 exact rights enforcement, G6 master-data
-  parity, G7 transaction workflows, and G8 maintenance/manage workflows.
-- Full canonical migration and reconciliation: the current canonical evidence
-  covers masters/configuration, security, and bounded purchase-header slices;
-  sales, detail lines, stock/batches, ledgers, and the remaining source tables
-  remain open.
+- **S0 acceptance domains:** G1 data migration, G2 business logic, and G3
+  reports remain open despite green implementation/test gates.
+- **S1 acceptance domains:** G4 contextual commands, G5 exact rights/menu
+  gating, G6 master-data parity, G7 transaction workflows, and G8
+  maintenance/manage workflows are only partially evidenced.
+- Full canonical migration and reconciliation: current evidence covers
+  configuration, masters, security, pricing/tax, purchase and return slices.
+  Purchase-order details, sales history, full stock/batches, full GL/party
+  ledgers, remaining historical tables, and 501,456 mixed local migration
+  exceptions must not be treated as canonical completion evidence.
 - Physical printer, label printer, scanner, cash drawer, biometric, SMS, and
   SMTP acceptance.
 - Full-volume performance and the eight-hour soak.
-- Complete functional UAT and the 1936x1048 pixel sweep.
+- Exact report-column/format parity, complete functional UAT, the 1936x1048
+  pixel sweep, and the 48-hour rollback rehearsal.
 
 Do not convert a passing automated test, a bounded performance proxy, a
 deterministic ESC/POS golden, or an exact shell screenshot into a production
@@ -36,13 +40,29 @@ Authoritative status and evidence:
 
 - [Gap analysis](GAP_ANALYSIS_2026-08-06.md) and
   [implementation boundaries](IMPLEMENTATION_STATUS.md)
+- [Current acceptance evidence](ACCEPTANCE_EVIDENCE_2026-08-07.md)
 - [Phase E canonical evidence](../migration/PHASE_E_CANONICAL_STATUS_2026-08-06.md)
   and [historical-wave evidence](../migration/PHASE_E_HISTORICAL_STATUS_2026-08-06.md)
 - [Parity status](PARITY_STATUS.md), [security evidence](../tmp/phase-r-backend-evidence.md),
   and [security UI evidence](../tmp/phase-r-security-ui-evidence.md)
 - [Hardware evidence](PHASE_U_HARDWARE_EVIDENCE.md) and
-  [performance evidence](PHASE_W_PERFORMANCE_EVIDENCE_2026-08-06.md)
+  [performance evidence](PHASE_W_PERFORMANCE_EVIDENCE_2026-08-07.md)
 - [Release artifacts and hashes](RELEASE_ARTIFACTS.md)
+- [Machine-checkable go/no-go template](CUTOVER_GO_NO_GO_TEMPLATE.json)
+- [Rollback rehearsal record template](ROLLBACK_REHEARSAL_RECORD_TEMPLATE.md)
+
+### Reference validation — 2026-08-07
+
+| Reference | Validation result | Release interpretation |
+|---|---|---|
+| `db/migrations/*.sql` | 29 files, covering `001`–`028`; duplicate `009` prefixes are expected; `028_business_document_void_reversals.sql` is present | Apply and evidence all 29 files; do not infer applied state from filenames |
+| `db/migrations/README.md` | Enumerates the same 29-file order, including historical item/adjustment retention and compensating reversals | Documentation is aligned with the current migration tree |
+| `ops/postgres/apply-migrations.ps1` | Applies every `*.sql` file sorted by filename and stops on error | Use it for the target; capture successful output as evidence |
+| `020_historical_migration_wave.sql` prerequisite | The migration README records that its counter fixture expects reviewed tenant/branch parents | Prove the approved bootstrap/import environment before applying `020`; never satisfy it with ad-hoc production SQL |
+| `migration/cmd/{inspect,import,reconcile}` | Paths and flags used below exist; canonical mode remains explicit and scope-bound | Use reviewed maps/metrics only; current waves are not complete go-live evidence |
+| API `GET /v1/health`, `GET /v1/metrics` | Registered in `services/api/internal/httpapi/server.go`; metrics fields are process-local counters | Check JSON fields and protect/disable metrics at the reverse proxy |
+| Edge `GET /v1/health`, authenticated `GET /v1/sync/status`, `GET /v1/hardware/capabilities` | Registered in `services/edge/internal/syncapi/server.go` | Check health, queue disposition, and required device adapters |
+| Current evidence filenames | Linked files exist under `docs/`, `migration/`, `tmp/`, and `parity/catalog/` as referenced | Existing artifacts describe partial/representative scope; they do not clear blockers |
 
 ## 2. Roles and change control
 
@@ -78,6 +98,14 @@ Silence is HOLD.
   synchronization route.
 - Approved Windows client artifacts are available. Verify the SHA-256 values in
   [RELEASE_ARTIFACTS.md](RELEASE_ARTIFACTS.md) before installation.
+- The migration source tree contains 29 ordered SQL files covering `001`–`028`
+  (there are two distinct `009` files), ending with
+  `028_business_document_void_reversals.sql`; the target environment must prove
+  that all 29 have applied successfully.
+- Before applying `020_historical_migration_wave.sql`, the approved target
+  tenant/branch bootstrap prerequisite must be present and evidenced. A clean
+  target that cannot satisfy this reviewed prerequisite is **HOLD**; do not
+  modify a migration or inject ad-hoc production rows.
 - Every terminal has a named branch/counter, a supported Windows profile, a
   tested network path, and an assigned operator.
 
@@ -154,7 +182,53 @@ useful evidence, but do not satisfy the full-volume or complete pixel gates.
 
 1. Open the change record and record the release hashes, target scope, operator
    roster, terminal inventory, and escalation contacts.
-2. Refresh the canonical source inventory without copying credentials into the
+2. Verify the migration set before applying it:
+
+   ```powershell
+   cd D:\ABUZAR\AbuzarNext
+   $migrationFiles = @(Get-ChildItem .\db\migrations\*.sql |
+     Sort-Object Name)
+   $expectedMigrations = @(
+     '001_tenancy.sql',
+     '002_branch_scope.sql',
+     '003_auth_sessions.sql',
+     '004_migration_support.sql',
+     '005_migration_bookkeeping_rls.sql',
+     '006_master_records.sql',
+     '007_preferences.sql',
+     '008_role_permissions.sql',
+     '009_legacy_security_rights.sql',
+     '009_phase_e_master_wave.sql',
+     '010_master_normalized.sql',
+     '011_business_documents.sql',
+     '012_stock_ledger.sql',
+     '013_finance_ledgers.sql',
+     '014_purchase_documents.sql',
+     '015_sync_event_final_payload.sql',
+     '016_branch_rls_hardening.sql',
+     '017_sync_event_delete_guard.sql',
+     '018_tax_configuration.sql',
+     '019_security_data_import_adaptation.sql',
+     '020_historical_migration_wave.sql',
+     '021_scale_read_indexes.sql',
+     '022_sale_return_lifecycle.sql',
+     '023_open_sale_return_lifecycle.sql',
+     '024_preferences_branch_scope.sql',
+     '025_sale_return_reversal_contract.sql',
+     '026_historical_line_precision.sql',
+     '027_historical_item_history_adjustments.sql',
+     '028_business_document_void_reversals.sql'
+   )
+   if (($migrationFiles.Name -join '|') -cne
+       ($expectedMigrations -join '|')) {
+     throw 'Migration file set/order does not match 001-028. HOLD.'
+   }
+   ```
+
+   `ops/postgres/apply-migrations.ps1` applies every `*.sql` file in filename
+   order. This verifies the source tree; it is not evidence that a production
+   database has applied all 29 files.
+3. Refresh the canonical source inventory without copying credentials into the
    manifest:
 
    ```powershell
@@ -173,14 +247,14 @@ useful evidence, but do not satisfy the full-volume or complete pixel gates.
 
    A changed inventory is not automatically a failure, but it requires a
    reviewed map/risk decision before proceeding.
-3. Apply target migrations from a protected schema-owner shell:
+4. Apply target migrations from a protected schema-owner shell:
 
    ```powershell
    $env:ABUZAR_ADMIN_DATABASE_URL = '<protected-schema-owner-DSN>'
    powershell -ExecutionPolicy Bypass -File .\ops\postgres\apply-migrations.ps1
    ```
 
-4. Provision/verify the application role, then remove
+5. Provision/verify the application role, then remove
    `ABUZAR_ADMIN_DATABASE_URL` before starting the API:
 
    ```powershell
@@ -189,14 +263,17 @@ useful evidence, but do not satisfy the full-volume or complete pixel gates.
    Remove-Item Env:ABUZAR_ADMIN_DATABASE_URL -ErrorAction SilentlyContinue
    ```
 
-5. Run a sandbox rehearsal using only the reviewed maps bound to
+6. Run a sandbox rehearsal using only the reviewed maps bound to
    `AbuzarLegacyReference`. Do not substitute the canonical database.
-6. Rehearse the complete migration, reconciliation, terminal switch, device
+7. Rehearse the complete migration, reconciliation, terminal switch, device
    checks, incident bridge, and mechanical rollback with disposable or sandbox
    data.
-7. Verify the backup restore in a separate database. Never test restore over
+8. Verify the backup restore in a separate database. Never test restore over
    the production target.
-8. Confirm all release gates in Section 4 are green. If any S0/S1 item remains
+9. Populate `docs/CUTOVER_GO_NO_GO_TEMPLATE.json` from the actual evidence
+   locations. A validator must reject `GO` when any required check is
+   `pending`, `blocked`, or `fail`.
+10. Confirm all release gates in Section 4 are green. If any S0/S1 item remains
    open, stop and record **HOLD**.
 
 ## 6. Backup and restore
@@ -248,14 +325,32 @@ clients. Never restore over a live target while terminals are posting.
 4. Verify the target:
 
    ```powershell
-   Invoke-RestMethod 'https://<approved-api-host>/v1/health'
-   Invoke-RestMethod 'https://<approved-edge-host>/v1/health'
+   $apiHealth = Invoke-RestMethod 'https://<approved-api-host>/v1/health'
+   $edgeHealth = Invoke-RestMethod 'https://<approved-edge-host>/v1/health'
+   if ($apiHealth.status -ne 'ok' -or $apiHealth.database -ne 'ok') {
+     throw 'API health/database is not ok. HOLD.'
+   }
+   if ($edgeHealth.status -ne 'ok' -or $edgeHealth.database -ne 'ok') {
+     throw 'Edge health/database is not ok. HOLD.'
+   }
    ```
 
    Both must report `status=ok` and `database=ok`.
 5. Capture a baseline from the central `GET /v1/metrics` endpoint and the
-   provider's structured logs. `/v1/metrics` is process-local observability; it
-   is not business reconciliation evidence.
+   provider's structured logs:
+
+   ```powershell
+   $metrics = Invoke-RestMethod 'https://<approved-api-host>/v1/metrics'
+   if ($null -eq $metrics.requestsTotal -or
+       $null -eq $metrics.serverErrors -or
+       $null -eq $metrics.slowRequests) {
+     throw 'Metrics response is missing required process counters. HOLD.'
+   }
+   ```
+
+   `/v1/metrics` exposes process-local counters only. Protect it at the
+   reverse proxy or disable it with `ABUZAR_METRICS_ENABLED=0` when it is not
+   restricted; it is not business reconciliation evidence.
 6. Check the branch edge queue with the authenticated endpoint. Keep the bearer
    value in the protected environment only:
 
@@ -409,7 +504,12 @@ defect that cannot be contained within the agreed decision window.
    RLS, reconciliation, and pilot checks before repointing to AbuzarNext.
 
 Rollback is a controlled safety action, not permission to delete new rows,
-rewrite audit events, or write the legacy source.
+rewrite audit events, or write the legacy source. Record the rehearsal using
+[ROLLBACK_REHEARSAL_RECORD_TEMPLATE.md](ROLLBACK_REHEARSAL_RECORD_TEMPLATE.md).
+Repointing to AbuzarNext after a rehearsal requires a **PASS** record with
+timestamps, terminal scope, backup hash, queue state, observed results,
+evidence files, and approvals. The record must prove that the legacy executable
+was not written to and that all new events were preserved.
 
 ## 10. First 48 hours after switch
 
@@ -447,12 +547,15 @@ shared secrets, or customer payloads in the incident channel.
 Close the change only when the evidence register contains:
 
 - Signed gate matrix from Section 4.
+- Completed `CUTOVER_GO_NO_GO_TEMPLATE.json` with decision `HOLD` until every
+  required check is `pass`.
 - `final-incremental-import.json` and `final-reconciliation.json`, with the
   reviewed source snapshot and metric configuration stored securely.
 - Pre-cutover backup hash and successful restore-rehearsal result.
 - API/edge health and metrics baselines plus 48-hour monitoring export.
 - Terminal-by-terminal repoint and pilot smoke results.
 - Physical device signoff and printer/scanner/drawer evidence.
+- A **PASS** rollback rehearsal record.
 - Day-end business reconciliation and UAT approval.
 - Pixel comparison reports produced by the existing tools:
 

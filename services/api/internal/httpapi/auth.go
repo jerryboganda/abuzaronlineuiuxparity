@@ -44,6 +44,14 @@ type loginRequest struct {
 	CounterID  string `json:"counterId,omitempty"`
 }
 
+type changeUserRequest struct {
+	Username   string `json:"username,omitempty"`
+	Password   string `json:"password,omitempty"`
+	TenantCode string `json:"tenantCode,omitempty"`
+	BranchID   string `json:"branchId,omitempty"`
+	CounterID  string `json:"counterId,omitempty"`
+}
+
 type changePasswordRequest struct {
 	CurrentPassword string `json:"currentPassword"`
 	NewPassword     string `json:"newPassword"`
@@ -484,8 +492,42 @@ func scopeAllowed(operator *sessionContext, kind, key string) bool {
 	return entries["*"] || entries[key]
 }
 
+// canonicalGodownScopeAllowed only applies an imported godown allow-list when
+// its keys are already canonical UUIDs (or an explicit wildcard). The captured
+// GroupAllowedGodown source rows currently use composite legacy keys such as
+// GroupCode/GCode/Module/Priority; treating those as canonical godown IDs would
+// be an unverified mapping and could deny valid operators.
+func canonicalGodownScopeAllowed(operator *sessionContext, key string) bool {
+	if operator == nil || hasTenantAdminRole(operator.Roles) {
+		return true
+	}
+	entries, scoped := operator.Scopes["godown"]
+	if !scoped || len(entries) == 0 {
+		return true
+	}
+	canonicalEntries := false
+	for entry := range entries {
+		if entry == "*" || documentUUIDPattern.MatchString(strings.TrimSpace(entry)) {
+			canonicalEntries = true
+			break
+		}
+	}
+	if !canonicalEntries {
+		return true
+	}
+	key = strings.TrimSpace(key)
+	return entries["*"] || entries[key]
+}
+
+func scopeAllowedAtEnforcementBoundary(operator *sessionContext, kind, key string) bool {
+	if strings.EqualFold(strings.TrimSpace(kind), "godown") {
+		return canonicalGodownScopeAllowed(operator, key)
+	}
+	return scopeAllowed(operator, kind, key)
+}
+
 func (s *Server) requireScope(r *http.Request, w http.ResponseWriter, operator *sessionContext, kind, key string) bool {
-	if scopeAllowed(operator, kind, key) {
+	if scopeAllowedAtEnforcementBoundary(operator, kind, key) {
 		return true
 	}
 	s.auditAuthorizationDenied(r, operator, kind+":"+key)
@@ -551,6 +593,97 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: s.cookieSecure, SameSite: http.SameSiteLaxMode})
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) changeUser(w http.ResponseWriter, r *http.Request) {
+	if s.database == nil {
+		writeProblem(w, http.StatusServiceUnavailable, "database_not_configured", "Database is not configured", "Configure DATABASE_URL before changing user.")
+		return
+	}
+
+	var currentTenantCode string
+	if cookie, err := r.Cookie(sessionCookieName); err == nil && cookie.Value != "" {
+		var tenantCode string
+		_ = s.database.QueryRowContext(r.Context(), `
+			SELECT t.code FROM sessions se JOIN tenants t ON t.id = se.tenant_id WHERE se.token_hash = $1
+		`, hashSessionToken(cookie.Value)).Scan(&tenantCode)
+		if tenantCode != "" {
+			currentTenantCode = tenantCode
+		}
+		_, _ = s.database.ExecContext(r.Context(), `DELETE FROM sessions WHERE token_hash = $1`, hashSessionToken(cookie.Value))
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   s.cookieSecure,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	var req changeUserRequest
+	if r.Body != nil {
+		_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 32<<10)).Decode(&req)
+	}
+
+	req.Username = strings.TrimSpace(req.Username)
+	req.Password = strings.TrimSpace(req.Password)
+	req.TenantCode = strings.TrimSpace(req.TenantCode)
+	if req.TenantCode == "" {
+		req.TenantCode = currentTenantCode
+	}
+	if req.TenantCode == "" {
+		req.TenantCode = "demo"
+	}
+
+	if req.Username == "" || req.Password == "" {
+		writeJSON(w, http.StatusOK, map[string]any{"authenticated": false, "changeUser": true})
+		return
+	}
+
+	operator, err := s.authenticate(r.Context(), loginRequest{
+		Username:   req.Username,
+		Password:   req.Password,
+		TenantCode: req.TenantCode,
+		BranchID:   req.BranchID,
+		CounterID:  req.CounterID,
+	})
+	if err != nil {
+		if errors.Is(err, errAuthenticationRequired) {
+			writeProblem(w, http.StatusUnauthorized, "invalid_credentials", "Invalid credentials", "The username, password, tenant, or assignment is not valid.")
+			return
+		}
+		writeProblem(w, http.StatusServiceUnavailable, "authentication_unavailable", "Authentication unavailable", "The identity store could not be reached.")
+		return
+	}
+
+	token, tokenHash, err := newSessionToken()
+	if err != nil {
+		writeProblem(w, http.StatusInternalServerError, "session_creation_failed", "Unable to create session", "Secure session creation failed.")
+		return
+	}
+	expiresAt := time.Now().UTC().Add(s.sessionTTL)
+	if _, err := s.database.ExecContext(r.Context(), `
+		INSERT INTO sessions (token_hash, user_id, tenant_id, branch_id, counter_id, expires_at)
+		VALUES ($1, $2::uuid, $3::uuid, NULLIF($4, '')::uuid, NULLIF($5, '')::uuid, $6)
+	`, tokenHash, operator.UserID, operator.TenantID, operator.BranchID, operator.CounterID, expiresAt); err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "session_creation_failed", "Unable to create session", "The identity store rejected the new session.")
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    token,
+		Path:     "/",
+		Expires:  expiresAt,
+		MaxAge:   int(s.sessionTTL / time.Second),
+		HttpOnly: true,
+		Secure:   s.cookieSecure,
+		SameSite: http.SameSiteLaxMode,
+	})
+	writeJSON(w, http.StatusOK, map[string]any{"authenticated": true, "context": operator, "expiresAt": expiresAt.Format(time.RFC3339)})
 }
 
 func (s *Server) changePassword(w http.ResponseWriter, r *http.Request) {

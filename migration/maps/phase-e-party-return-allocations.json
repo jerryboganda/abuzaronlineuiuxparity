@@ -1,0 +1,49 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "target": {
+    "schema": "public",
+    "table": "historical_party_return_allocations"
+  },
+  "sources": [
+    {
+      "source": { "schema": "dbo", "table": "SRAllocationHeader/Detail" },
+      "returnKind": "sale",
+      "counterpartyKind": "customer",
+      "returnSource": "SRAllocationHeader.SRInvCode",
+      "invoiceSource": "SRAllocationDetail.SaleInvCode via SaleLedger",
+      "allocationCode": "SRAllocationHeader.SRAllocationCode",
+      "allocationRow": "SRAllocationDetail.SRAllocationROWID",
+      "allocationAmount": "SRAllocationDetail.Amt",
+      "outstandingAmount": "SRAllocationDetail.OutstandingAmt",
+      "debitCreditProjection": "credit_amount = Amt for bounded customer statement projection",
+      "partyLegacyId": "SaleLedger.CustCode",
+      "posted": "SRAllocationHeader.Posted",
+      "occurredAt": "SRAllocationHeader.Date",
+      "sourceIdentity": "SRAllocationDetail:<SRAllocationCode>:<SRAllocationROWID>"
+    },
+    {
+      "source": { "schema": "dbo", "table": "PRAllocationHeader/Detail" },
+      "returnKind": "purchase",
+      "counterpartyKind": "supplier",
+      "returnSource": "PRAllocationHeader.PRInvCode",
+      "invoiceSource": "PRAllocationDetail.PurInvCode via Purledger",
+      "allocationCode": "PRAllocationHeader.PRAllocationCode",
+      "allocationRow": "PRAllocationDetail.PRAllocationROWID",
+      "allocationAmount": "PRAllocationDetail.Amt",
+      "outstandingAmount": "PRAllocationDetail.OutstandingAmt",
+      "debitCreditProjection": "debit_amount = Amt for bounded supplier statement projection",
+      "partyLegacyId": "Purledger.SuppCode",
+      "posted": "PRAllocationHeader.Posted",
+      "occurredAt": "PRAllocationHeader.Date",
+      "sourceIdentity": "PRAllocationDetail:<PRAllocationCode>:<PRAllocationROWID>"
+    }
+  ],
+  "notes": [
+    "The importer preserves unresolved party and invoice identities and resolves canonical IDs opportunistically in PostgreSQL.",
+    "Return allocation debit/credit directions are a bounded reporting projection; they are not used to mutate aging balances until source reconciliation confirms legacy semantics.",
+    "ServicePRAllocationHeader/Detail and ServiceSRAllocationHeader/Detail remain separate source families outside this product-party stream."
+  ]
+}

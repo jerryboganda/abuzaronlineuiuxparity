@@ -68,6 +68,55 @@ Current order:
     tenant-default fallback.
 26. `025_sale_return_reversal_contract.sql` — canonical return-kind checks,
     source sale/line identity, reversal uniqueness, and restrictive RLS.
+27. `026_historical_line_precision.sql` — preserves up to eight decimal places
+    for imported business-document quantities whose loose-unit divisor is not a
+    power of ten.
+28. `027_historical_item_history_adjustments.sql` — retains source-backed
+    `ItemLog` snapshots and `AdjHeader`/`AdjDetail` rows for the Phase Q item
+    history and stock-adjustment report leaves. Current-item/godown joins are
+    optional so an absent current master cannot silently drop historical rows;
+    exact PowerBuilder columns and print layouts remain an acceptance boundary.
+
+29. `028_business_document_void_reversals.sql` adds append-only compensating
+    reversals for posted sales, returns, and purchases. Void status changes are
+    safe only when inverse stock movements, a reversing GL journal, and a
+    reversing party-ledger entry commit atomically with the command.
+30. `029_auxiliary_master_kinds.sql` extends the tenant-scoped
+    `master_records` compatibility store with the captured hyphenated Basic
+    Data route kinds used by the auxiliary master CRUD wave. It retains
+    source-shaped fields in `payload`; it does not claim normalized source
+    tables or recovered legacy rule semantics.
+31. `030_historical_deleted_sale_items.sql` retains the captured
+    `dbo.DeletedSaleItem` audit stream with typed item/godown, quantity/bonus,
+    pricing, discount/tax, machine/user, invoice, source-row, and raw-payload
+    fields under tenant/branch scope. Exact PowerBuilder deleted-item columns
+    and print semantics remain an acceptance boundary.
+32. `031_historical_withholding_tax.sql` retains the captured
+    `dbo.PurPayment` withholding-deduction fields separately from purchase-line
+    advance tax: payment/invoice identity, posted state, supplier identity,
+    base/rate/amount, account/check/remarks, user, and raw payload under
+    tenant/branch scope. Exact legacy grouping and print semantics remain an
+    acceptance boundary.
+33. `032_historical_party_payment_allocations.sql` retains the reviewed
+    customer and supplier settlement streams: `dbo.PurPayment`, direct
+    `dbo.Purledger` payment snapshots, `dbo.InstallmentReceiptDetail`, and
+    direct `dbo.SaleLedger` payment snapshots. Canonical party/document links
+    are nullable so unresolved legacy IDs remain auditable instead of being
+    dropped; exact adjustment-allocation and legacy print semantics remain an
+    acceptance boundary.
+34. `033_historical_party_ledger_adjustments.sql` retains the captured
+    `dbo.SaleReceivableAdj` customer debit/credit adjustment rows separately
+    from payment amounts. It preserves unresolved invoice/date/party identity,
+    account/check/remarks/user fields, and raw payload under tenant/branch
+    scope; exact legacy adjustment posting and print semantics remain an
+    acceptance boundary.
+35. `034_historical_party_return_allocations.sql` retains distinct customer
+    sale-return and supplier purchase-return allocation rows from the reviewed
+    `SRAllocationHeader/Detail` and `PRAllocationHeader/Detail` streams. Source
+    return/invoice identity, allocation and outstanding amounts, posted state,
+    and raw payload are preserved under tenant/branch scope; statement/ledger
+    visibility is bounded and these rows do not mutate aging until legacy
+    allocation semantics are reconciled.
 
 The historical `020` wave contains a counter fixture whose parent tenant and
 branch are expected from the reviewed importer/bootstrap environment. The

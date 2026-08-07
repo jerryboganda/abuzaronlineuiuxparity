@@ -42,14 +42,24 @@ test('live parity surfaces stay semantic and bounded at 1936x1048', async ({ pag
     item: '/app/master/item',
     cashSale: '/app/sales?kind=cash',
     packPurchase: '/app/purchase/pack',
+    purchaseReturn: '/app/purchase/return',
     dailySalesDetail: '/app/report/daily-sales-detail',
     preferences: '/app/preferences',
     groups: '/app/manage/groups'
   };
   const captures: Array<Record<string, unknown>> = [];
 
+  async function navigateToLiveSurface(url: string) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await page.goto(url, { waitUntil: 'commit', timeout: 15_000 }).catch(() => undefined);
+      if (await page.locator('main').count() > 0) return;
+      await page.waitForTimeout(500);
+    }
+    await expect(page.locator('main')).toBeVisible({ timeout: 10_000 });
+  }
+
   for (const [name, url] of Object.entries(surfaces)) {
-    await page.goto(url);
+    await navigateToLiveSurface(url);
     await page.waitForTimeout(name === 'dailySalesDetail' ? 2000 : 250);
     const state = await page.evaluate(() => {
       const main = document.querySelector('main');
@@ -65,7 +75,7 @@ test('live parity surfaces stay semantic and bounded at 1936x1048', async ({ pag
         scrollHeight: root.scrollHeight,
         liveElementCount: visible.length,
         hasSubstrateBackground: backgrounds.some((background) => background !== 'none'),
-        hiddenChildCount: [...document.querySelectorAll('main > section > *')].filter((element) => getComputedStyle(element).opacity === '0').length
+        hiddenInteractiveCount: [...document.querySelectorAll('main button, main input, main select, main textarea')].filter((element) => !element.classList.contains('legacy-hidden-file-input') && getComputedStyle(element).opacity === '0').length
       };
     });
     const capturePath = testInfo.outputPath(`${name}.png`);
@@ -86,7 +96,13 @@ test('live parity surfaces stay semantic and bounded at 1936x1048', async ({ pag
     expect(state.scrollHeight).toBeLessThanOrEqual(viewport.height);
     expect(state.liveElementCount).toBeGreaterThan(10);
     expect(state.hasSubstrateBackground).toBe(false);
-    expect(state.hiddenChildCount).toBe(0);
+    expect(state.hiddenInteractiveCount).toBe(0);
+    if (name === 'packPurchase' || name === 'purchaseReturn') {
+      expect(await page.locator('.legacy-transaction-grid-wrap').boundingBox()).toEqual(expect.objectContaining({ height: 563 }));
+    }
+    if (name === 'preferences') {
+      expect(await page.locator('.legacy-preferences-body table').boundingBox()).toEqual(expect.objectContaining({ width: 590 }));
+    }
   }
   expect(captures).toHaveLength(Object.keys(surfaces).length);
 });

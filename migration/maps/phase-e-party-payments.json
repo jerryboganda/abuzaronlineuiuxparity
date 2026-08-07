@@ -1,0 +1,66 @@
+{
+  "reviewed": true,
+  "sourceDatabase": "AbuzarLegacyReference",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "defaultBranchId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "target": {
+    "schema": "public",
+    "table": "historical_party_payment_allocations"
+  },
+  "sources": [
+    {
+      "source": { "schema": "dbo", "table": "PurPayment" },
+      "counterpartyKind": "supplier",
+      "paymentAmount": "PaymentAmt",
+      "netAmount": "NetAmt",
+      "outstandingAmount": "OutstandingAmt",
+      "partyLegacyId": "SuppCode via Purledger.PurInvCode",
+      "documentLegacyId": "PurInvCode via Purledger",
+      "posted": "Posted",
+      "occurredAt": "Date",
+      "sourceIdentity": "PurPayment:<PurPaymentCode>"
+    },
+    {
+      "source": { "schema": "dbo", "table": "InstallmentReceiptDetail" },
+      "counterpartyKind": "customer",
+      "paymentAmount": "AmtReceived",
+      "netAmount": "InstallmentReceipt.NetAmt",
+      "outstandingAmount": "InstallmentBalance",
+      "partyLegacyId": "CustCode via SaleLedger.SaleInvCode",
+      "documentLegacyId": "SaleInvCode via InstallmentReceipt",
+      "posted": "SaleLedger.Posted",
+      "occurredAt": "ReceivedOn",
+      "sourceIdentity": "InstallmentReceiptDetail:<ReceiptCode>:<InstallmentRowID>"
+    },
+    {
+      "source": { "schema": "dbo", "table": "SaleLedger" },
+      "counterpartyKind": "customer",
+      "condition": "CustCode <> 19, Amt <> 0, and no InstallmentReceipt row for SaleInvCode",
+      "paymentAmount": "Amt",
+      "netAmount": "Amt",
+      "outstandingAmount": "OutstandingAmt",
+      "partyLegacyId": "CustCode",
+      "documentLegacyId": "SaleInvCode",
+      "posted": "Posted",
+      "occurredAt": "COALESCE(AmtDate, date)",
+      "sourceIdentity": "SaleLedger:<SaleInvCode>"
+    },
+    {
+      "source": { "schema": "dbo", "table": "Purledger" },
+      "counterpartyKind": "supplier",
+      "condition": "Amt <> 0 and no PurPayment row for PurInvCode",
+      "paymentAmount": "Amt",
+      "netAmount": "Amt",
+      "outstandingAmount": "OutstandingAmt",
+      "partyLegacyId": "SuppCode",
+      "documentLegacyId": "PurInvCode",
+      "posted": "Posted",
+      "occurredAt": "COALESCE(AmtDate, Date)",
+      "sourceIdentity": "Purledger:<PurInvCode>"
+    }
+  ],
+  "notes": [
+    "The importer preserves unresolved party/document legacy IDs and resolves canonical IDs opportunistically in PostgreSQL.",
+    "SaleReceivableAdj, SRAllocationDetail, and PRAllocationDetail remain separate adjustment/allocation evidence rather than payment rows."
+  ]
+}

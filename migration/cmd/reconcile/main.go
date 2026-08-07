@@ -79,13 +79,28 @@ type tableResult struct {
 }
 
 type report struct {
-	GeneratedAt string         `json:"generatedAt"`
-	Source      string         `json:"source"`
-	Target      string         `json:"target"`
-	TenantID    string         `json:"tenantId,omitempty"`
-	Tables      []tableResult  `json:"tables"`
-	Metrics     []metricResult `json:"metrics,omitempty"`
+	GeneratedAt string            `json:"generatedAt"`
+	Source      string            `json:"source"`
+	Target      string            `json:"target"`
+	TenantID    string            `json:"tenantId,omitempty"`
+	Tables      []tableResult     `json:"tables"`
+	Metrics     []metricResult    `json:"metrics,omitempty"`
+	Bookkeeping bookkeepingResult `json:"bookkeeping"`
 }
+
+type bookkeepingResult struct {
+	OpenMigrationExceptions    int64  `json:"openMigrationExceptionCount"`
+	OpenMigrationExceptionRows int64  `json:"openMigrationExceptionRowCount"`
+	OpenMigrationAmbiguities   int64  `json:"openMigrationAmbiguityCount"`
+	Status                     string `json:"status"`
+}
+
+const bookkeepingMigrationExceptionQuery = `
+	SELECT COUNT(*) AS open_rows,
+	       COUNT(DISTINCT (source_schema, source_table, legacy_id, reason_code)) AS open_cases
+	FROM public.migration_exceptions
+	WHERE status = 'open'
+	  AND ($1 = '' OR tenant_id::text = $1)`
 
 type metricCheck struct {
 	Name        string  `json:"name"`
@@ -121,6 +136,7 @@ func main() {
 	fromTable := flag.Int("from-table", 0, "zero-based first mapping table to reconcile")
 	toTable := flag.Int("to-table", -1, "exclusive mapping table limit; -1 reconciles through the end")
 	out := flag.String("out", filepath.Join("parity", "catalog", "migration-reconciliation.json"), "report output path")
+	failOnOpenBookkeeping := flag.Bool("fail-on-open-bookkeeping", false, "fail after writing the report when target migration exceptions or ambiguities remain open")
 	flag.Parse()
 	if *source == "" || *target == "" {
 		fatal("source and target are required; provide protected environment variables or flags")
@@ -229,7 +245,19 @@ func main() {
 	if err != nil {
 		fatal(err.Error())
 	}
-	result := report{GeneratedAt: time.Now().UTC().Format(time.RFC3339Nano), Source: "redacted SQL Server connection", Target: "redacted PostgreSQL connection", TenantID: strings.TrimSpace(*tenant), Tables: results, Metrics: metricResults}
+	bookkeeping, err := readBookkeeping(ctx, targetTx, strings.TrimSpace(*tenant))
+	if err != nil {
+		fatal(fmt.Sprintf("read target migration bookkeeping: %v", err))
+	}
+	result := report{
+		GeneratedAt: time.Now().UTC().Format(time.RFC3339Nano),
+		Source:      "redacted SQL Server connection",
+		Target:      "redacted PostgreSQL connection",
+		TenantID:    strings.TrimSpace(*tenant),
+		Tables:      results,
+		Metrics:     metricResults,
+		Bookkeeping: bookkeeping,
+	}
 	if err := os.MkdirAll(filepath.Dir(*out), 0o755); err != nil {
 		fatal(err.Error())
 	}
@@ -246,7 +274,36 @@ func main() {
 	if err := targetTx.Rollback(); err != nil && err != sql.ErrTxDone {
 		fatal(fmt.Sprintf("rollback target reconciliation transaction: %v", err))
 	}
-	fmt.Printf("Wrote reconciliation for %d tables to %s\n", len(results), *out)
+	fmt.Printf("Wrote reconciliation for %d tables to %s (bookkeeping: %s, open exception cases: %d, open exception rows: %d, open ambiguities: %d)\n", len(results), *out, bookkeeping.Status, bookkeeping.OpenMigrationExceptions, bookkeeping.OpenMigrationExceptionRows, bookkeeping.OpenMigrationAmbiguities)
+	if *failOnOpenBookkeeping && bookkeeping.Status != "clear" {
+		fatal("target migration bookkeeping is not clear")
+	}
+}
+
+func readBookkeeping(ctx context.Context, target queryer, tenant string) (bookkeepingResult, error) {
+	result := bookkeepingResult{}
+	if err := target.QueryRowContext(ctx, bookkeepingMigrationExceptionQuery, tenant).Scan(
+		&result.OpenMigrationExceptionRows, &result.OpenMigrationExceptions,
+	); err != nil {
+		return bookkeepingResult{}, fmt.Errorf("count open migration exceptions: %w", err)
+	}
+	const ambiguityQuery = `
+		SELECT COUNT(*)
+		FROM public.migration_ambiguous_records
+		WHERE status = 'open'
+		  AND ($1 = '' OR tenant_id::text = $1)`
+	if err := target.QueryRowContext(ctx, ambiguityQuery, tenant).Scan(&result.OpenMigrationAmbiguities); err != nil {
+		return bookkeepingResult{}, fmt.Errorf("count open migration ambiguities: %w", err)
+	}
+	result.Status = bookkeepingStatus(result.OpenMigrationExceptions, result.OpenMigrationAmbiguities)
+	return result, nil
+}
+
+func bookkeepingStatus(openExceptions, openAmbiguities int64) string {
+	if openExceptions == 0 && openAmbiguities == 0 {
+		return "clear"
+	}
+	return "review_required"
 }
 
 func reconcileMappings(ctx context.Context, source, target queryer, mappings []tableMapping, tenant string) []tableResult {

@@ -1,0 +1,115 @@
+{
+  "capturedAt": "2026-08-07T01:16:03.514+05:00",
+  "viewport": {
+    "width": 1936,
+    "height": 1048,
+    "deviceScaleFactor": 1
+  },
+  "productionParityApproved": false,
+  "independentLegacyPair": false,
+  "stack": {
+    "status": "healthy",
+    "database": "local supervised PostgreSQL only",
+    "legacyDatabaseTouched": false
+  },
+  "remediationMetrics": {
+    "purchaseDetailGridHeight": 563,
+    "purchaseReturnDetailGridHeight": 563,
+    "preferencesTableWidth": 590,
+    "preferencesBody": [1, 55, 1934, 960],
+    "preferencesFooter": [1, 1015, 1934, 32],
+    "groupsBody": [8, 65, 1920, 955],
+    "targetScrollSize": [1936, 1048],
+    "targetSubstrateBackground": "none"
+  },
+  "candidateCaptures": [
+    "tmp/visual-remediation-runtime-20260807-final/candidate-shell.png",
+    "tmp/visual-remediation-runtime-20260807-final/candidate-customer.png",
+    "tmp/visual-remediation-runtime-20260807-final/candidate-item.png",
+    "tmp/visual-remediation-runtime-20260807-final/candidate-cash-sale.png",
+    "tmp/visual-remediation-runtime-20260807-final/candidate-pack-purchase.png",
+    "tmp/visual-remediation-runtime-20260807-final/candidate-purchase-return.png",
+    "tmp/visual-remediation-runtime-20260807-final/candidate-daily-sales-detail.png",
+    "tmp/visual-remediation-runtime-20260807-final/candidate-preferences-general.png",
+    "tmp/visual-remediation-runtime-20260807-final/candidate-preferences-sale.png",
+    "tmp/visual-remediation-runtime-20260807-final/candidate-groups-rights.png"
+  ],
+  "comparisons": [
+    {
+      "surface": "Login only",
+      "differentPixels": 173,
+      "maxChannelDelta": 145,
+      "result": "fail",
+      "evidence": "tmp/visual-remediation-runtime-20260806/login-compare.json",
+      "note": "Only same-size fresh legacy/browser pair available; not a target-screen approval."
+    },
+    {
+      "surface": "Customer",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "exception": "Legacy automation remains blocked at Login; stored reference is 1922x970."
+    },
+    {
+      "surface": "Item",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "exception": "Legacy automation remains blocked at Login; stored reference is 1922x970."
+    },
+    {
+      "surface": "Cash Sale",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "exception": "Legacy automation remains blocked at Login; stored reference is 1922x970."
+    },
+    {
+      "surface": "Pack Purchase",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "exception": "Legacy automation remains blocked at Login; stored reference is 1922x970."
+    },
+    {
+      "surface": "Purchase Return",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "exception": "No same-size legacy capture; legacy automation remains blocked at Login."
+    },
+    {
+      "surface": "Daily Sales Detail",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "exception": "Stored report capture is 1922x970 and not an independent 1936x1048 pair."
+    },
+    {
+      "surface": "Preferences",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "exception": "Stored preference capture is 1536x972 and legacy automation remains blocked."
+    },
+    {
+      "surface": "Groups rights",
+      "differentPixels": null,
+      "maxChannelDelta": null,
+      "result": "blocked",
+      "exception": "No approved Groups rights baseline; legacy automation remains blocked."
+    }
+  ],
+  "verification": {
+    "visualTest": "apps/web/tests/visual-remediation.spec.ts",
+    "visualTestResult": "passed",
+    "purchaseAndRightsTests": "9 passed",
+    "svelteCheck": "passed",
+    "webBuild": "passed"
+  },
+  "exceptions": [
+    "No legacy baselines were overwritten.",
+    "No target-screen pixel pass is claimed.",
+    "Legacy sandbox login/main-shell automation block remains documented in runtime-capture-blocked-2026-08-06.json."
+  ]
+}

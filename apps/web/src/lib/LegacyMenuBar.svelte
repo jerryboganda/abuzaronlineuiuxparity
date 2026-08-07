@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import {
     buildLegacyMenusForContext,
@@ -23,6 +24,8 @@
   let openMenu = '';
   let openSubmenu = '';
   let notice = '';
+  let changeUserOpen = false;
+  let changeUserInteractive = false;
   let menuAccess: MenuAccess = { tenantAdmin: false, permissions: [], scopes: {}, loaded: false };
   const api = new AbuzarApi();
 
@@ -51,6 +54,17 @@
     notice = '';
   }
 
+  function enableChangeUserInteractive() {
+    changeUserInteractive = true;
+  }
+
+  async function confirmChangeUser() {
+    enableChangeUserInteractive();
+    legacyWindowRegistry.clear();
+    await api.logout().catch(() => undefined);
+    window.location.assign('/login?changeUser=1');
+  }
+
   function toggleMenu(label: string) {
     openMenu = openMenu === label ? '' : label;
     openSubmenu = '';
@@ -70,13 +84,18 @@
     setStatus(action.label);
     openMenu = '';
     openSubmenu = '';
+    if (action.label === 'Change User') {
+      changeUserOpen = true;
+      changeUserInteractive = false;
+      return;
+    }
     if (onCommand?.(action)) return;
     if (action.windowCommand) {
       if (action.windowCommand === 'activate' && action.windowId) {
         const target = registryWindows.find((window) => window.id === action.windowId);
         if (target) {
           legacyWindowRegistry.activate(target.id);
-          window.location.assign(target.href);
+          navigate(target.href);
         }
         return;
       }
@@ -90,14 +109,14 @@
       // workbench preserves the legacy path/command id so the workflow can be
       // implemented and audited without losing the user's selected command.
       if (action.href) {
-        window.location.assign(action.href);
+        navigate(action.href);
         return;
       }
       notice = `${action.label} is not wired to a destination yet.`;
       status = notice;
       return;
     }
-    if (action.href) window.location.assign(action.href);
+    if (action.href) navigate(action.href);
   }
 
   function shortcutAction(shortcut: string): MenuAction | undefined {
@@ -106,6 +125,13 @@
 
   function phaseFor(windowContext: LegacyWindowContext): string {
     return windowContext === 'base' ? 'C' : 'H';
+  }
+
+  function navigate(href: string) {
+    void goto(href).catch(() => {
+      // Keep the command usable if a client-side route cannot be loaded.
+      window.location.assign(href);
+    });
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -179,13 +205,22 @@
 
 <div class="legacy-mdi-tabs" data-layout={$legacyWindowRegistry.layout} role="tablist" aria-label="Open document windows">
   {#each registryWindows as item, index}
-    <button
-      type="button"
-      role="tab"
-      aria-selected={$legacyWindowRegistry.activeId === item.id}
-      class:active={$legacyWindowRegistry.activeId === item.id}
-      onclick={() => { legacyWindowRegistry.activate(item.id); window.location.assign(item.href); }}
-    >{index + 1}. {item.label}</button>
+    <div class="legacy-mdi-tab-item" class:active={$legacyWindowRegistry.activeId === item.id}>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={$legacyWindowRegistry.activeId === item.id}
+        class:active={$legacyWindowRegistry.activeId === item.id}
+        onclick={() => { legacyWindowRegistry.activate(item.id); navigate(item.href); }}
+      >{index + 1}. {item.label}</button>
+      <button
+        type="button"
+        class="legacy-mdi-tab-close"
+        aria-label={`Close ${item.label}`}
+        title={`Close ${item.label}`}
+        onclick={(event) => { event.stopPropagation(); legacyWindowRegistry.close(item.id); }}
+      >×</button>
+    </div>
   {/each}
 </div>
 
@@ -197,3 +232,13 @@
   </span>
   {/if}
 </div>
+
+{#if changeUserOpen}
+  <div class="legacy-shell-modal-backdrop" role="presentation" onclick={(event) => { if (event.currentTarget === event.target) changeUserOpen = false; }}>
+    <div class:legacy-change-user-captured={!changeUserInteractive} class="legacy-change-user-dialog" role="alertdialog" aria-modal="true" aria-label="Change User">
+      <h2>Change User</h2><p>Are you sure you want to change current user with another?</p>
+      <button type="button" onclick={confirmChangeUser} onpointerdown={enableChangeUserInteractive}>Yes</button>
+      <button type="button" onclick={() => { enableChangeUserInteractive(); changeUserOpen = false; }} onpointerdown={enableChangeUserInteractive}>No</button>
+    </div>
+  </div>
+{/if}

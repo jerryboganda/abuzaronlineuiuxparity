@@ -38,6 +38,7 @@ func NewWithHardware(localStore *store.Store, version, sharedSecret string, regi
 	mux.HandleFunc("GET /v1/health", server.health)
 	mux.HandleFunc("GET /v1/sync/status", server.status)
 	mux.HandleFunc("GET /v1/hardware/capabilities", server.hardwareCapabilities)
+	mux.HandleFunc("GET /v1/hardware/readiness", server.hardwareReadiness)
 	mux.HandleFunc("POST /v1/hardware/print/sale-slip", server.printSaleSlip)
 	mux.HandleFunc("POST /v1/hardware/print/purchase-labels", server.printPurchaseLabels)
 	mux.HandleFunc("POST /v1/hardware/barcode/normalize", server.normalizeBarcode)
@@ -107,6 +108,10 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) hardwareCapabilities(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"capabilities": s.hardware.Capabilities(r.Context())})
+}
+
+func (s *Server) hardwareReadiness(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, s.hardware.Readiness(r.Context()))
 }
 
 func (s *Server) printSaleSlip(w http.ResponseWriter, r *http.Request) {
@@ -185,6 +190,8 @@ func writeHardwareProblem(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, hardware.ErrAdapterUnavailable):
 		writeProblem(w, http.StatusServiceUnavailable, "hardware_adapter_unavailable", "Hardware adapter unavailable", "No physical hardware adapter is configured for this branch.")
+	case errors.Is(err, hardware.ErrInvalidConfiguration):
+		writeProblem(w, http.StatusServiceUnavailable, "hardware_configuration_invalid", "Hardware configuration invalid", "The branch hardware configuration is invalid; no hardware operation was attempted.")
 	case errors.Is(err, hardware.ErrInvalidBarcode), errors.Is(err, hardware.ErrInvalidPrintJob):
 		writeProblem(w, http.StatusBadRequest, "invalid_hardware_request", "Invalid hardware request", err.Error())
 	default:

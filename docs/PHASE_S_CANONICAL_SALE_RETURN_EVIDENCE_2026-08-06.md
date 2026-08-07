@@ -21,7 +21,8 @@ behavior.
   explicit allocation, the source sale's allocations are consumed in stable
   expiry/batch order.
 - Stock balances are restored with immutable `stock_ledger` `in` movements and
-  `stock_allocations` rows; replay is idempotent.
+  `stock_allocations` rows; replay is idempotent and leaves stock, GL, party
+  ledger, and reversal counts unchanged.
 - Finance reverses cash/receivable settlement, revenue, output tax, inventory,
   and COGS, and records a `sale-return` party-ledger entry.
 - `025_sale_return_reversal_contract.sql` enforces canonical kind/source/line
@@ -29,19 +30,20 @@ behavior.
 
 ## Focused evidence
 
-- `go test ./services/api/internal/httpapi -run 'TestSaleReturnLifecycleIntegration' -count=1` ? passed against the disposable local PostgreSQL database.
+- `go test ./services/api/internal/httpapi -run 'TestSaleReturnLifecycleIntegration' -count=1` — passed against the disposable local PostgreSQL database. It covers source-bound/open replay idempotency, active over-return rejection, posted-return compensating void, and cross-tenant source/godown rejection. The broader void evidence is recorded in `docs/PHASE_T_VOID_REVERSAL_EVIDENCE_2026-08-07.md`.
 - `go test ./services/api/internal/httpapi -run 'Canonical|FinanceMigration|StockMigration|PurchaseMigration|ReportDefinition|FallbackReportDefinition' -count=1` ? passed.
 - `pnpm --filter @abuzar/web check` ? passed with 0 errors and 0 warnings.
 - `pnpm --filter @abuzar/web exec playwright test tests/phase-cd.spec.ts --workers=1 --reporter=line --grep "cash sale return"` ? 1 passed.
 - Local API, edge, and web health probes were rechecked after the source and
   binary restart; see the handoff status output for the current process IDs.
 
-## Explicit boundary
+## Explicit boundary — verified fail-closed
 
-Posted source-bound and open sale returns are not voidable. A future
-compensating-reversal workflow must reverse both the restored stock and the
-finance reversal before that action can be enabled safely. The distinct open
-return implementation is documented separately in
+Posted canonical sales and source-bound/open sale returns now use the atomic
+compensating-reversal workflow documented in Phase T. They remain fail-closed
+when stock/finance projections are incomplete or when posted dependent
+documents exist; no source projection row is deleted or mutated. The distinct
+open return implementation is documented in
 `docs/PHASE_H_OPEN_SALE_RETURN_EVIDENCE_2026-08-06.md`.
 
 ## Remaining exact legacy parity
@@ -49,9 +51,8 @@ return implementation is documented separately in
 - Legacy return windows still have compatibility/event paths outside this
   canonical API slice; their full historical field/layout and invoice-source
   replay comparison is not yet signed off.
-- No posted sale or posted return can be voided. The new system intentionally
-  fails closed rather than deleting or mutating stock/GL/party-ledger history;
-  enabling legacy-equivalent void requires a compensating reversal command and
-  an acceptance comparison against the sandbox/reference workflow.
+- Canonical posted sale and return void is now implemented as an append-only
+  stock/GL/party-ledger reversal. Exact legacy-equivalent void semantics and
+  PowerBuilder acceptance comparison remain open.
 - Quotation/refused canonical documents remain stock/GL-neutral, but their
   legacy refusal/quotation print and downstream workflow parity is still open.

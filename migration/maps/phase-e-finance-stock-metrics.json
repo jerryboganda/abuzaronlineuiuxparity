@@ -1,0 +1,76 @@
+{
+  "metrics": [
+    {
+      "name": "stock_report_snapshot_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.StockReport",
+      "targetQuery": "SELECT COUNT(*) FROM public.historical_stock_snapshots WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'",
+      "tolerance": 0
+    },
+    {
+      "name": "virtual_gl_distinct_identity_count",
+      "sourceQuery": "SELECT COUNT(*) FROM (SELECT DocumentCode,VRow,AccCode FROM dbo.VirtualGl GROUP BY DocumentCode,VRow,AccCode) q",
+      "targetQuery": "SELECT COUNT(*) FROM public.historical_gl_entries WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'",
+      "tolerance": 0
+    },
+    {
+      "name": "stock_ledger_total_count",
+      "sourceQuery": "SELECT (SELECT COUNT(*) FROM dbo.Saledetail) + (SELECT COUNT(*) FROM dbo.Purdetail) + (SELECT COUNT(*) FROM dbo.SRdetail) + (SELECT COUNT(*) FROM dbo.PRdetail)",
+      "targetQuery": "SELECT COUNT(*) FROM public.stock_ledger WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_stock_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Saledetail",
+      "targetQuery": "SELECT COUNT(*) FROM public.stock_ledger l JOIN public.business_documents d ON d.tenant_id=l.tenant_id AND d.id=l.source_document_id WHERE l.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'SaleLedger' AND l.direction = 'out'",
+      "tolerance": 0
+    },
+    {
+      "name": "purchase_stock_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Purdetail",
+      "targetQuery": "SELECT COUNT(*) FROM public.stock_ledger l JOIN public.business_documents d ON d.tenant_id=l.tenant_id AND d.id=l.source_document_id WHERE l.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'Purledger' AND l.direction = 'in'",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_return_stock_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.SRdetail",
+      "targetQuery": "SELECT COUNT(*) FROM public.stock_ledger l JOIN public.business_documents d ON d.tenant_id=l.tenant_id AND d.id=l.source_document_id WHERE l.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'SRLedger' AND l.direction = 'in'",
+      "tolerance": 0
+    },
+    {
+      "name": "purchase_return_stock_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.PRdetail",
+      "targetQuery": "SELECT COUNT(*) FROM public.stock_ledger l JOIN public.business_documents d ON d.tenant_id=l.tenant_id AND d.id=l.source_document_id WHERE l.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'PRLedger' AND l.direction = 'out'",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_party_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.SaleLedger WHERE InvTotal > 0",
+      "targetQuery": "SELECT COUNT(*) FROM public.party_ledger_entries p JOIN public.business_documents d ON d.tenant_id=p.tenant_id AND d.id=p.source_document_id WHERE p.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'SaleLedger'",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_return_party_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.SRLedger WHERE invtotal > 0",
+      "targetQuery": "SELECT COUNT(*) FROM public.party_ledger_entries p JOIN public.business_documents d ON d.tenant_id=p.tenant_id AND d.id=p.source_document_id WHERE p.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'SRLedger'",
+      "tolerance": 0
+    },
+    {
+      "name": "purchase_party_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Purledger WHERE InvTotal > 0",
+      "targetQuery": "SELECT COUNT(*) FROM public.party_ledger_entries p JOIN public.business_documents d ON d.tenant_id=p.tenant_id AND d.id=p.source_document_id WHERE p.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'Purledger'",
+      "tolerance": 0
+    },
+    {
+      "name": "purchase_return_party_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.PRLedger WHERE invtotal > 0",
+      "targetQuery": "SELECT COUNT(*) FROM public.party_ledger_entries p JOIN public.business_documents d ON d.tenant_id=p.tenant_id AND d.id=p.source_document_id WHERE p.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'PRLedger'",
+      "tolerance": 0
+    },
+    {
+      "name": "open_bookkeeping_record_count",
+      "sourceQuery": "SELECT 0",
+      "targetQuery": "SELECT (SELECT COUNT(*) FROM public.migration_exceptions WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND status = 'open') + (SELECT COUNT(*) FROM public.migration_ambiguous_records WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND status = 'open')",
+      "tolerance": 0
+    }
+  ]
+}

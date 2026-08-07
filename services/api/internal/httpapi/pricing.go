@@ -200,11 +200,11 @@ func (input pricingPreviewRequest) toPricingRequest() (pricing.Request, error) {
 			if schemeErr != nil {
 				return pricing.Request{}, fmt.Errorf("line %q supplier discount: %w", id, schemeErr)
 			}
-			qualifying, schemeErr := parseQuantity(line.SupplierScheme.QualifyingQuantity)
+			qualifying, schemeErr := parseNonNegativeQuantity(line.SupplierScheme.QualifyingQuantity)
 			if schemeErr != nil {
 				return pricing.Request{}, fmt.Errorf("line %q supplier qualifying quantity: %w", id, schemeErr)
 			}
-			bonus, schemeErr := parseQuantity(line.SupplierScheme.BonusQuantity)
+			bonus, schemeErr := parseNonNegativeQuantity(line.SupplierScheme.BonusQuantity)
 			if schemeErr != nil {
 				return pricing.Request{}, fmt.Errorf("line %q supplier bonus quantity: %w", id, schemeErr)
 			}
@@ -283,6 +283,18 @@ func parseQuantity(value string) (pricing.Quantity, error) {
 	return pricing.Quantity(rat.Num().Int64()), nil
 }
 
+func parseNonNegativeQuantity(value string) (pricing.Quantity, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, nil
+	}
+	rat, ok := new(big.Rat).SetString(value)
+	if !ok || !rat.IsInt() || rat.Sign() < 0 || !rat.Num().IsInt64() {
+		return 0, fmt.Errorf("%q must be a non-negative whole quantity", value)
+	}
+	return pricing.Quantity(rat.Num().Int64()), nil
+}
+
 func formatMoney(value pricing.Money) string {
 	minor := int64(value)
 	return fmt.Sprintf("%d.%02d", minor/100, minor%100)
@@ -290,6 +302,10 @@ func formatMoney(value pricing.Money) string {
 
 func formatPercent(value pricing.BasisPoints) string {
 	return fmt.Sprintf("%d.%02d", int64(value)/100, int64(value)%100)
+}
+
+func formatStoredTaxRate(value pricing.BasisPoints) string {
+	return fmt.Sprintf("%d.%04d", int64(value)/100, (int64(value)%100)*100)
 }
 
 func formatQuantity(value pricing.Quantity) string {

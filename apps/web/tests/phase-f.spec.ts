@@ -31,7 +31,9 @@ async function mockItemPage(page: Page, suppliers: unknown[] = []) {
 
 test('item master searches canonical records and loads the detail payload', async ({ page }) => {
   const getSearch = await mockItemPage(page, []);
+  const initialList = page.waitForResponse((response) => response.url().endsWith('/v1/master/item') && response.request().method() === 'GET');
   await page.goto('/app/master/item');
+  await initialList;
   await page.getByLabel('Master search').fill('CANONICAL');
   await page.getByRole('button', { name: 'Filter / Retrieve' }).click({ force: true });
   await expect.poll(getSearch).toBe('CANONICAL');
@@ -112,13 +114,55 @@ test('master API errors are shown without a generic success fallback', async ({ 
   await expect(page.locator('.legacy-transaction-footer')).not.toContainText('saved successfully');
 });
 
-test('empty canonical masters have no demo rows and unsupported kinds are truthful read-only', async ({ page }) => {
+test('empty canonical masters have no demo rows and auxiliary masters are writable', async ({ page }) => {
   await page.route('**/v1/master/godown', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ records: [] }) }));
   await page.goto('/app/master/godown');
   await expect(page.getByText('No records in the current tenant scope.')).toBeVisible();
   await expect(page.getByText(/SACHETS|DEMO|DEFAULT GENERIC/i)).toHaveCount(0);
 
+  let savedBody: Record<string, unknown> | undefined;
+  await page.route('**/v1/master/price-policy', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ records: [] }) });
+      return;
+    }
+    if (route.request().method() === 'DELETE') {
+      await route.fulfill({ status: 204 });
+      return;
+    }
+    savedBody = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({
+      ...record('price-policy', 'PP-1', 'Retail Policy', { PricePolicyCode: 'PP-1', ICode: 'ITEM-1' }),
+      id: 'price-policy-created'
+    }) });
+  });
+  await page.route('**/v1/master/price-policy/*', async (route) => {
+    if (route.request().method() === 'DELETE') {
+      await route.fulfill({ status: 204 });
+      return;
+    }
+    await route.fallback();
+  });
+  const pricePolicyList = page.waitForResponse((response) => response.url().includes('/v1/master/price-policy') && response.request().method() === 'GET');
   await page.goto('/app/master/price-policy');
+  await pricePolicyList;
+  await expect(page.getByLabel('Item Code:')).toBeVisible();
+  await page.getByRole('textbox', { name: 'Code:', exact: true }).fill('PP-1');
+  await page.getByRole('textbox', { name: 'Name:', exact: true }).fill('Retail Policy');
+  await page.getByRole('textbox', { name: 'Item Code:', exact: true }).fill('ITEM-1');
+  const saveRequest = page.waitForRequest((request) => request.url().includes('/v1/master/price-policy') && request.method() === 'POST');
+  await page.locator('form.legacy-master-form').getByRole('button', { name: 'Save' }).click();
+  await saveRequest;
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('created in the current tenant scope');
+  expect(savedBody).toEqual(expect.objectContaining({ code: 'PP-1', name: 'Retail Policy', active: true }));
+  expect(savedBody?.payload).toEqual(expect.objectContaining({ PricePolicyCode: 'PP-1', ICode: 'ITEM-1' }));
+  page.once('dialog', (dialog) => dialog.accept());
+  const deleteRequest = page.waitForRequest((request) => request.url().includes('/v1/master/price-policy/') && request.method() === 'DELETE');
+  await page.locator('form.legacy-master-form').getByRole('button', { name: 'Delete' }).click();
+  await deleteRequest;
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('deleted from the current tenant scope');
+
+  await page.goto('/app/master/unsupported-legacy-master');
   await expect(page.getByText(/read-only; no canonical API is available/i)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' }).last()).toBeDisabled();
 });

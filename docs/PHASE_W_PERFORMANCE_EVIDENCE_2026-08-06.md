@@ -93,3 +93,48 @@ recheck in this shared folder was blocked by unrelated concurrent edits in
 type mismatch). Those business-document/stock edits were not changed by Phase
 W, in line with the scope boundary. The Phase W command itself still compiles
 and the recorded performance artifact remains valid.
+
+## Continuation run — 2026-08-07
+
+The opt-in full-volume attempt was made with approximately 474 GB free disk
+and 17.7 GB free memory. It loaded the 30,050 synthetic items and batches, then
+the PostgreSQL 18.3 backend terminated abnormally during the 3,231,846-row
+stock source-event/ledger phase. The postmaster entered crash recovery; the
+database became ready again after recovery and the retained disposable
+database `abuzar_phasew_20260807013517` was explicitly dropped.
+
+Blocker artifact:
+[`tmp/phase-w-blocker-20260807-014759.json`](../tmp/phase-w-blocker-20260807-014759.json).
+The blocker records `fullVolumeRequested: true`, the seed phase, and resource
+state. This is not a full-volume measurement and no 3.2M/1M acceptance claim
+is made. Full-volume runs are now guarded by `-AllowSharedCluster`; only an
+isolated PostgreSQL service/cluster should use that override.
+
+Safe non-executing `EXPLAIN (COSTS OFF)` checks after recovery found all nine
+Phase W indexes. The party-ledger probe used
+`idx_party_ledger_read_020`; the GL probe used the existing scoped journal
+index with incremental sorting; the stock probe used scoped primary-key scans
+because its placeholder tenant had no matching fixture rows. These checks did
+not execute or mutate data.
+
+Additional cold-start probes:
+
+- Browser launch plus `/login` navigation: p95 **649.885 ms**, observed below
+  the 3-second browser probe budget.
+  Artifact: [`tmp/phase-w-browser-cold-start-20260807-015353.json`](../tmp/phase-w-browser-cold-start-20260807-015353.json)
+- API process to `/v1/health`: **3073.167 ms**, `pending_review` against the
+  3-second limit.
+  Artifact: [`tmp/phase-w-cold-start-20260807-015401.json`](../tmp/phase-w-cold-start-20260807-015401.json)
+
+Document post latency was not run: the harness intentionally generates no
+business writes and no authenticated disposable post fixture was supplied.
+The `<1s` post gate remains pending. The eight-hour soak also remains
+configured but unrun.
+
+Continuation validation:
+
+- `go test ./services/api/... ./services/edge/... ./migration/...` — passed.
+- Web check — passed with 0 errors/warnings.
+- Web Playwright — **67 passed**.
+- Web production build — passed.
+- Phase W PowerShell script parsing — passed.

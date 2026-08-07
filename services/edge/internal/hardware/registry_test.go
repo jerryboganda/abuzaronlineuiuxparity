@@ -2,6 +2,7 @@ package hardware
 
 import (
 	"context"
+	"errors"
 	"testing"
 )
 
@@ -14,6 +15,33 @@ func TestRegistryReportsExplicitUnavailableAdapters(t *testing.T) {
 		if capability.Name == "" || capability.Provider == "" || capability.Available {
 			t.Fatalf("invalid capability: %+v", capability)
 		}
+	}
+}
+
+func TestRegistryReadinessIsExplicitWhenNoAdaptersAreConfigured(t *testing.T) {
+	readiness := New().Readiness(context.Background())
+	if readiness.Ready || readiness.Status != "unavailable" || !readiness.ConfigurationValid {
+		t.Fatalf("readiness = %+v, want valid unavailable state", readiness)
+	}
+	if readiness.AvailableCount != 0 || readiness.TotalCount != 6 || len(readiness.Unavailable) != 6 {
+		t.Fatalf("readiness counts = %+v, want 0/6 and six unavailable capabilities", readiness)
+	}
+}
+
+func TestValidateConfigRejectsAmbiguousAdapterConfiguration(t *testing.T) {
+	var typedNilPrinter *testPrinter
+	for _, config := range []Config{
+		{PrinterProvider: "printer-without-adapter"},
+		{PrinterProvider: " printer"},
+		{PrinterProvider: "printer\n"},
+		{Printer: typedNilPrinter, PrinterProvider: "typed-nil-printer"},
+	} {
+		if err := ValidateConfig(config); !errors.Is(err, ErrInvalidConfiguration) {
+			t.Fatalf("ValidateConfig(%+v) = %v, want invalid configuration", config, err)
+		}
+	}
+	if err := ValidateConfig(Config{Printer: &testPrinter{}}); err != nil {
+		t.Fatalf("valid injected adapter rejected: %v", err)
 	}
 }
 

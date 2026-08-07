@@ -125,6 +125,9 @@ func (s *Server) canonicalMasterRecords(w http.ResponseWriter, r *http.Request, 
 			writeProblem(w, http.StatusServiceUnavailable, "master_read_failed", "Unable to read master data", "The normalized master-data response could not be decoded.")
 			return
 		}
+		if spec.kind == "godown" && !canonicalGodownScopeAllowed(operator, item.ID) {
+			continue
+		}
 		item.Kind = canonicalResponseKind(spec)
 		records = append(records, item)
 	}
@@ -261,6 +264,9 @@ func (s *Server) canonicalMasterDetail(w http.ResponseWriter, r *http.Request, k
 	if !s.requirePermission(r, w, operator, "master.read") || !s.requireCanonicalMasterScope(r, w, operator) {
 		return
 	}
+	if spec.kind == "godown" && !s.requireScope(r, w, operator, "godown", r.PathValue("id")) {
+		return
+	}
 	tx, err := s.beginScopedTx(r.Context(), operator)
 	if err != nil {
 		writeProblem(w, http.StatusServiceUnavailable, "database_unavailable", "Database unavailable", "The normalized master-data store could not be opened.")
@@ -294,6 +300,9 @@ func (s *Server) updateCanonicalMasterRecord(w http.ResponseWriter, r *http.Requ
 	spec, _ := canonicalMasterSpec(kind)
 	operator := currentSession(r)
 	if !s.requirePermission(r, w, operator, "master.write") || !s.requireCanonicalMasterScope(r, w, operator) {
+		return
+	}
+	if spec.kind == "godown" && !s.requireScope(r, w, operator, "godown", r.PathValue("id")) {
 		return
 	}
 	var request masterRecordRequest
@@ -446,6 +455,9 @@ func (s *Server) deleteMasterRecord(w http.ResponseWriter, r *http.Request) {
 func (s *Server) deleteCanonicalMasterRecord(w http.ResponseWriter, r *http.Request, spec canonicalMasterDefinition) {
 	operator := currentSession(r)
 	if !s.requirePermission(r, w, operator, "master.write") || !s.requireCanonicalMasterScope(r, w, operator) {
+		return
+	}
+	if spec.kind == "godown" && !s.requireScope(r, w, operator, "godown", r.PathValue("id")) {
 		return
 	}
 	tx, err := s.beginScopedTx(r.Context(), operator)

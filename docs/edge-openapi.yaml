@@ -24,6 +24,16 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/HardwareCapabilitiesResponse' }
         '401': { description: Edge shared secret required }
+  /v1/hardware/readiness:
+    get:
+      security: [{ edgeBearer: [] }]
+      responses:
+        '200':
+          description: Deterministic hardware capability and configuration readiness
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HardwareReadiness' }
+        '401': { description: Edge shared secret required }
   /v1/hardware/print/sale-slip:
     post:
       security: [{ edgeBearer: [] }]
@@ -39,7 +49,7 @@ paths:
         '400': { description: Invalid print job }
         '401': { description: Edge shared secret required }
         '503':
-          description: No printer adapter is configured
+          description: No printer adapter is configured or hardware configuration is invalid
           content:
             application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } }
   /v1/hardware/print/purchase-labels:
@@ -57,7 +67,7 @@ paths:
         '400': { description: Invalid print job }
         '401': { description: Edge shared secret required }
         '503':
-          description: No printer adapter is configured
+          description: No printer adapter is configured or hardware configuration is invalid
           content:
             application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } }
   /v1/hardware/barcode/normalize:
@@ -94,7 +104,7 @@ paths:
         '400': { description: Empty or unsafe barcode input }
         '401': { description: Edge shared secret required }
         '503':
-          description: No barcode lookup adapter is configured
+          description: No barcode lookup adapter is configured or hardware configuration is invalid
           content:
             application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } }
   /v1/hardware/cash-drawer/kick:
@@ -112,7 +122,7 @@ paths:
                   kicked: { type: boolean, const: true }
         '401': { description: Edge shared secret required }
         '503':
-          description: No cash-drawer adapter is configured
+          description: No cash-drawer adapter is configured or hardware configuration is invalid
           content:
             application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } }
   /v1/transactions/sales:
@@ -243,6 +253,22 @@ components:
       type: object
       required: [capabilities]
       properties:
+        capabilities:
+          type: array
+          items: { $ref: '#/components/schemas/HardwareCapability' }
+    HardwareReadiness:
+      type: object
+      required: [ready, status, configurationValid, availableCount, totalCount, unavailable, capabilities]
+      properties:
+        ready: { type: boolean }
+        status: { type: string, enum: [ready, degraded, unavailable, invalid_configuration] }
+        configurationValid: { type: boolean }
+        configurationError: { type: string }
+        availableCount: { type: integer, minimum: 0 }
+        totalCount: { type: integer, minimum: 0 }
+        unavailable:
+          type: array
+          items: { type: string }
         capabilities:
           type: array
           items: { $ref: '#/components/schemas/HardwareCapability' }

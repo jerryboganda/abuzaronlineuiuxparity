@@ -27,6 +27,9 @@ func (s *Server) inventoryBalance(w http.ResponseWriter, r *http.Request) {
 		writeProblem(w, http.StatusBadRequest, "stock_scope_required", "Stock scope required", "Provide godownId; stock is never selected across godowns implicitly.")
 		return
 	}
+	if !s.requireScope(r, w, operator, "godown", godownID) {
+		return
+	}
 	tx, err := s.beginScopedTx(r.Context(), operator)
 	if err != nil {
 		writeProblem(w, http.StatusServiceUnavailable, "database_unavailable", "Database unavailable", "The inventory store could not be opened.")
