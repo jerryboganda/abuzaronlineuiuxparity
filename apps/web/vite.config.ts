@@ -1,7 +1,7 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
-// Force Vite cache reload after fixing Svelte 5 event handlers
+// Force Vite cache reload after converting to Svelte 5 event handlers
 export default defineConfig({
   plugins: [sveltekit()],
   server: {

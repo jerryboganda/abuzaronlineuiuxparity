@@ -899,7 +899,7 @@ test('Opening Stock posts a canonical inbound inventory event', async ({ page })
     contentType: 'application/json',
     body: JSON.stringify({ records: [{ id: '22222222-2222-4222-8222-222222222222', kind: 'godown', code: 'G1', name: 'Godown 1', payload: {}, active: true }] })
   }));
-  await page.route(/\/v1\/items\/lookup/, async (route) => {
+  await page.route('**/v1/items/lookup**', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -923,6 +923,8 @@ test('Opening Stock posts a canonical inbound inventory event', async ({ page })
   await expect(itemInput).toBeVisible();
   await itemInput.fill('Canonical');
   await page.getByRole('button', { name: 'Lookup adjustment item' }).click();
+  await page.waitForTimeout(500);
+  console.log('FORM HTML AFTER LOOKUP CLICK:', await page.locator('form').innerHTML());
   await expect(page.getByRole('button', { name: 'Canonical Item (ITEM-1)' })).toBeVisible();
   await page.getByRole('button', { name: 'Canonical Item (ITEM-1)' }).click();
   await page.getByLabel('Quantity:').fill('2.5');

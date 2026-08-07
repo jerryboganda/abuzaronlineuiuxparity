@@ -259,6 +259,7 @@
       adjustmentItemResults = [...lookup.items.filter((item) => item.active && item.id)];
     } catch (cause) {
       adjustmentItemResults = [];
+      console.error('[searchAdjustmentItems ERROR]', cause);
       error = cause instanceof ApiError ? cause.problem?.detail ?? cause.message : 'Active items could not be searched for stock adjustment.';
     } finally {
       adjustmentItemBusy = false;
@@ -711,7 +712,7 @@
     <div class="legacy-workflow-body">
       <form class="legacy-workflow-form" onsubmit={(event) => { event.preventDefault(); run(); }}>
         <label>Reference / code:<input bind:value={reference} /></label>
-        {#if adjustment}<label for="adjustment-item-input">Item:</label><input id="adjustment-item-input" bind:value={itemName} required onkeydown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void searchAdjustmentItems(); } }} /><button type="button" aria-label="Lookup adjustment item" onclick={() => void searchAdjustmentItems()}>Lookup</button>{#if adjustmentItemBusy}<p role="status">Searching active canonical items...</p>{:else if adjustmentItemResults.length}<div class="legacy-adjustment-item-results" aria-label="Adjustment item results">{#each adjustmentItemResults as item}<button type="button" onclick={() => chooseAdjustmentItem(item)}>{item.name} ({item.legacyId})</button>{/each}</div>{/if}<label for="adjustment-quantity-input">Quantity:</label><input id="adjustment-quantity-input" type="number" min="0.0001" step="0.0001" bind:value={quantity} required />{/if}
+        {#if adjustment}<label for="adjustment-item-input">Item:</label><input id="adjustment-item-input" bind:value={itemName} required onkeydown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void searchAdjustmentItems(); } }} /><button type="button" aria-label="Lookup adjustment item" onclick={searchAdjustmentItems}>Lookup</button>{#if adjustmentItemBusy}<p role="status">Searching active canonical items...</p>{:else if adjustmentItemResults.length}<div class="legacy-adjustment-item-results" aria-label="Adjustment item results">{#each adjustmentItemResults as item}<button type="button" onclick={() => chooseAdjustmentItem(item)}>{item.name} ({item.legacyId})</button>{/each}</div>{/if}<label for="adjustment-quantity-input">Quantity:</label><input id="adjustment-quantity-input" type="number" min="0.0001" step="0.0001" bind:value={quantity} required />{/if}
         {#if kind === 'cashier-job'}<label>Shift action:<select bind:value={shiftAction}><option value="open">Open shift</option><option value="close">Close shift</option></select></label><label>Amount:<input type="number" step="0.01" bind:value={amount} /></label>{/if}
         {#if kind === 'change-password'}<label>Current password:<input type="password" bind:value={currentPassword} required /></label><label>New password:<input type="password" bind:value={newPassword} required /></label><label>Confirm password:<input type="password" bind:value={confirmPassword} required /></label>{/if}
           {#each workflowFields as field}

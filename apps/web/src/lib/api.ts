@@ -25,7 +25,8 @@ import type {
   PricingPreviewRequest,
   PricingPreviewResponse,
   AccessResponse,
-  RoleRightsResponse
+  RoleRightsResponse,
+  Document
 } from '@abuzar/contracts';
 
 export class ApiError extends Error {
@@ -128,6 +129,10 @@ export class AbuzarApi {
     return this.request(`/v1/master/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`);
   }
 
+  deleteMasterRecord(kind: string, id: string): Promise<void> {
+    return this.request(`/v1/master/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  }
+
   itemLookup(query: string): Promise<{ items: ItemLookupResult[] }> {
     const trimmed = query.trim();
     if (!trimmed) return Promise.resolve({ items: [] });
@@ -153,7 +158,7 @@ export class AbuzarApi {
     return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/suppliers`);
   }
 
-  report(kind: string, from = '', to = '', filter = '', options: { page?: number; pageSize?: number; cash?: boolean; credit?: boolean; areas?: string[]; allAreas?: boolean; legacyPath?: string; godownId?: string; batchNumber?: string } = {}): Promise<ReportResponse> {
+  report(kind: string, from = '', to = '', filter = '', options: { page?: number; pageSize?: number; cash?: boolean; credit?: boolean; areas?: string[]; allAreas?: boolean; legacyPath?: string; godownId?: string; batchNumber?: string; format?: string } = {}): Promise<ReportResponse> {
     const params = new URLSearchParams({ from, to, filter });
     if (options.page) params.set('page', String(options.page));
     if (options.pageSize) params.set('pageSize', String(options.pageSize));
@@ -164,12 +169,17 @@ export class AbuzarApi {
     if (options.legacyPath) params.set('legacyPath', options.legacyPath);
     if (options.godownId) params.set('godownId', options.godownId);
     if (options.batchNumber) params.set('batchNumber', options.batchNumber);
+    if (options.format) params.set('format', options.format);
     return this.request(`/v1/reports/${encodeURIComponent(kind)}?${params.toString()}`);
   }
 
   transactions(kind: string, from = '', to = '', filter = ''): Promise<{ kind: string; rows: ReportRow[] }> {
     const params = new URLSearchParams({ from, to, filter });
     return this.request(`/v1/transactions/${encodeURIComponent(kind)}?${params.toString()}`);
+  }
+
+  document(id: string): Promise<Document> {
+    return this.request(`/v1/documents/${encodeURIComponent(id)}`);
   }
 
   previewPricing(request: PricingPreviewRequest): Promise<PricingPreviewResponse> {
@@ -200,7 +210,7 @@ export class AbuzarApi {
   preferences(category: string): Promise<{
     category: string;
     scope?: { tenantId: string; branchId: string };
-    items: Array<{ caption: string; value: string; position: number }>;
+    items: Array<{ caption: string; fieldKey?: string; value: string; position: number }>;
     registry?: Array<{
       caption: string;
       type: string;
@@ -218,7 +228,7 @@ export class AbuzarApi {
     return this.request(`/v1/preferences?category=${encodeURIComponent(category)}`);
   }
 
-  savePreferences(category: string, items: Array<{ caption: string; value: string; position?: number }>): Promise<{ category: string; saved: number }> {
+  savePreferences(category: string, items: Array<{ caption: string; fieldKey?: string; value: string; position?: number }>): Promise<{ category: string; saved: number }> {
     return this.request('/v1/preferences', { method: 'PUT', body: JSON.stringify({ category, items }) });
   }
 
