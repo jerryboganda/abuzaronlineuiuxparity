@@ -886,9 +886,6 @@ test('Lock Item Batches submits the captured batch state to the maintenance endp
 });
 
 test('Opening Stock posts a canonical inbound inventory event', async ({ page }) => {
-  page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
-  page.on('request', (req) => console.log('REQ:', req.url()));
-  await page.addInitScript(() => localStorage.removeItem('abuzar.apiBaseUrl'));
   await page.route('**/v1/session', async (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -918,13 +915,13 @@ test('Opening Stock posts a canonical inbound inventory event', async ({ page })
     requestBody = route.request().postDataJSON() as Record<string, unknown>;
     await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ accepted: true }) });
   });
+  const godownResponse = page.waitForResponse((res) => res.url().includes('/v1/master/godown'));
   await page.goto('/app/maintenance/opening-stock');
+  await godownResponse;
   const itemInput = page.locator('#adjustment-item-input');
   await expect(itemInput).toBeVisible();
   await itemInput.fill('Canonical');
   await page.getByRole('button', { name: 'Lookup adjustment item' }).click();
-  await page.waitForTimeout(500);
-  console.log('FORM HTML AFTER LOOKUP CLICK:', await page.locator('form').innerHTML());
   await expect(page.getByRole('button', { name: 'Canonical Item (ITEM-1)' })).toBeVisible();
   await page.getByRole('button', { name: 'Canonical Item (ITEM-1)' }).click();
   await page.getByLabel('Quantity:').fill('2.5');
