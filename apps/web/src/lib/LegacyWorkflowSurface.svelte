@@ -160,6 +160,7 @@
   let adjustmentItemBusy = false;
   let maintenanceItemResults: ItemLookupResult[] = [];
   let maintenanceItemBusy = false;
+  let hydrated = false;
   let configuredKind = '';
   let savedWorkflow: { reference: string; notes: string; itemName: string; quantity: string; amount: string; shiftAction: 'open' | 'close'; extraValues: Record<string, string> } | null = null;
   let operationId = '';
@@ -228,6 +229,7 @@
   }
 
   onMount(() => {
+    hydrated = true;
     const clockTimer = window.setInterval(() => { clock = new Date(); }, 1000);
     online = navigator.onLine;
     const update = () => (online = navigator.onLine);
@@ -278,6 +280,7 @@
       return;
     }
     maintenanceItemBusy = true;
+    message = 'Searching active canonical items...';
     try {
       const lookup = await api.itemLookup(query);
       maintenanceItemResults = lookup.items.filter((item) => item.active && item.id);
@@ -591,7 +594,7 @@
 
 <svelte:head><title>WASEELA · ABUZAR V3 · {title}</title></svelte:head>
 
-<main class:legacy-integrity-baseline={isIntegrity && !interactive && checks.length === 0} class="legacy-workflow-page" onpointerdown={enableInteractive} onfocusin={enableInteractive}>
+<main class:legacy-integrity-baseline={isIntegrity && !interactive && checks.length === 0} class="legacy-workflow-page" data-hydrated={hydrated ? 'true' : 'false'} onpointerdown={enableInteractive} onfocusin={enableInteractive}>
   {#if isBackup}
     <section class="legacy-captured-dialog-canvas" aria-label="Backup Database">
       {#if backupDialog === 'database'}

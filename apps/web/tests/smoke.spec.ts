@@ -946,15 +946,18 @@ test('canonical item maintenance uses active item lookup before saving', async (
       return;
     }
     const body = route.request().postDataJSON() as Record<string, unknown>;
-    expect(body).toMatchObject({ itemCode: 'ITEM-1', priceType: 'Sale Price', price: '12.50' });
+    expect(body).toMatchObject({ itemCode: 'ITEM-1', priceType: 'Sale Price', price: 12.5 });
     await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ kind: 'change-items-price', status: 'completed', message: 'Sale Price for item ITEM-1 updated in the canonical item master.' }) });
   });
-  await page.route('**/v1/items/lookup**', async (route) => route.fulfill({
+  await page.route('**/v1/items/lookup**', async (route) => {
+    await route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify({ items: [{ id: '11111111-1111-4111-8111-111111111111', legacyId: 'ITEM-1', code: 'ITEM-1', name: 'Canonical Item', payload: {}, active: true, aliases: [] }] })
-  }));
+    });
+  });
   await page.goto('/app/maintenance/change-items-price');
+  await expect(page.locator('main[data-hydrated="true"]')).toBeVisible();
   await page.locator('#maintenance-item-input').fill('Canonical');
   await page.getByRole('button', { name: 'Lookup maintenance item' }).click();
   await expect(page.getByRole('button', { name: 'Canonical Item (ITEM-1)' })).toBeVisible();
