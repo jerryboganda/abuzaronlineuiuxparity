@@ -29,6 +29,27 @@ function access(overrides: Record<string, unknown> = {}) {
   };
 }
 
+test('Groups captured File commands drive the canonical role editor', async ({ page }) => {
+  await page.route('**/v1/session', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(session()) }));
+  await page.route('**/v1/access', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(access()) }));
+  await page.route('**/v1/roles', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ roles: [{ id: 'role-1', code: 'OPERATOR', name: 'Operator', memberCount: 1, permissions: ['sales.read'] }] })
+  }));
+  await page.goto('/app/manage/groups');
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true');
+
+  await page.getByRole('button', { name: 'File', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'New', exact: true }).click();
+  await expect(page.locator('section[aria-label="Groups"] footer [role="status"]')).toHaveText('New group ready.');
+
+  await page.getByRole('button', { name: 'OPERATOR', exact: true }).click();
+  await page.getByRole('button', { name: 'File', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Detail', exact: true }).click();
+  await expect(page.locator('section[aria-label="Groups"] footer [role="status"]')).toHaveText('Group detail is ready.');
+});
+
 test('Groups rights matrix edits imported denies without losing normalized permissions', async ({ page }) => {
   await page.route('**/v1/session', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(session()) }));
   await page.route('**/v1/access', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(access()) }));

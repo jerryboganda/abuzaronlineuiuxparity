@@ -2,7 +2,7 @@
   import { page } from '$app/stores';
   import { beforeNavigate } from '$app/navigation';
   import { onMount } from 'svelte';
-  import type { Document, DocumentCommandForKind, InventoryAvailableBatch, ItemLookupResult, MasterRecord, PurchaseDocumentKind, SessionResponse, SyncEnvelope, ReportRow } from '@abuzar/contracts';
+  import type { ApplyItemGSTRequest, Document, DocumentCommandForKind, InventoryAvailableBatch, ItemLookupResult, MasterRecord, PurchaseDocumentKind, SessionResponse, SyncEnvelope, ReportRow } from '@abuzar/contracts';
   import { AbuzarApi, ApiError, OfflineQueue, edgeRequest, newEventId } from '$lib/api';
   import LegacyMenuBar from '$lib/LegacyMenuBar.svelte';
   import type { MenuAction } from '$lib/legacy-menu';
@@ -107,6 +107,7 @@
   let message = '';
   let error = '';
   let rows: PurchaseRow[] = [blankRow()];
+  let focusedRowIndex = 0;
   let activeTab: 'detail' | 'list' = 'detail';
   let interactive = false;
 	let history: ReportRow[] = [];
@@ -201,6 +202,7 @@
         returnAllocations = {};
         creditDays = '';
         rows = [{ ...blankRow(), itemName: row.item || '', quantity: row.quantity || '1', total: row.amount || '0.00' }];
+        focusedRowIndex = 0;
         activeTab = 'detail';
         message = `${title} ${invoiceNumber || 'document'} loaded from the compatibility history summary.`;
         return;
@@ -223,6 +225,7 @@
       sourceDocumentNumber = sourceDocument?.documentNumber || document.sourceDocumentNumber || '';
       creditDays = sourceDocument?.creditDays ?? document.creditDays ?? '';
       rows = purchaseRowsFromDocument(document, historyMode === 'populate-return');
+      focusedRowIndex = 0;
       if (historyMode === 'populate-return') await prepareReturnSourceBatches(document);
       if (requestRevision !== workflowRevision || requestId !== historySelectionRequestId) return;
       businessDocumentId = populating ? '' : document.id;
@@ -312,6 +315,11 @@
     void loadHistory(requestedKind);
   }
 
+  function itemHistoryFilter(): string {
+    const row = rows[focusedRowIndex];
+    return row?.itemLegacyId.trim() || row?.itemName.trim() || row?.quickSearch.trim() || '';
+  }
+
   function enableInteractive(event?: Event) {
     const target = event?.target;
     if (target instanceof Element && target.closest('.legacy-transaction-tabs, .legacy-menu-bar, .legacy-mdi-tabs')) return;
@@ -338,6 +346,17 @@
         return true;
       case 'Save And Post':
         void savePurchase('save-and-post');
+        return true;
+      case 'Delete':
+        void deletePurchase();
+        return true;
+      case 'Edit Purchase Order':
+        if (kind === 'order') {
+          openHistory('browse', 'purchase-order');
+          message = 'Edit Purchase Order: select a purchase order to edit.';
+        } else {
+          window.location.assign('/app/purchase/order');
+        }
         return true;
       case 'Print':
       case 'Purchase Slip':
@@ -384,17 +403,7 @@
         message = attachments.length ? `Document Gallery: ${attachments.length} attachment${attachments.length === 1 ? '' : 's'} selected.` : 'Document Gallery: no attachments selected.';
         return true;
       case 'Apply Item GST %':
-        if (!itemGstRate.trim()) {
-          message = 'Apply Item GST %: enter a rate in the transaction adjustments first.';
-          return true;
-        }
-        let gstApplied = 0;
-        rows = rows.map((row) => {
-          if (!row.itemName.trim() && !row.quickSearch.trim()) return row;
-          gstApplied += 1;
-          return { ...row, gstRate: itemGstRate.trim() };
-        });
-        message = gstApplied ? `Apply Item GST %: ${itemGstRate.trim()}% applied to populated lines.` : 'Apply Item GST %: no populated lines to update.';
+        void applyCanonicalItemGST();
         return true;
       case 'Apply Item Discount %':
         if (!itemDiscountRate.trim()) {
@@ -425,8 +434,16 @@
         autoGenerateBatches();
         return true;
       case 'Item Purchase History':
+        {
+          const itemFilter = itemHistoryFilter();
+          if (!itemFilter) {
+            message = 'Item Purchase History: select or populate an item row first.';
+            return true;
+          }
+          historyFilter = itemFilter;
+        }
         openHistory();
-        message = 'Item Purchase History: filtered transaction list ready.';
+        message = `Item Purchase History: filtered transaction list ready for ${historyFilter}.`;
         return true;
       case 'Sort Items':
         {
@@ -450,10 +467,26 @@
         message = 'Item row restored.';
         return true;
       case 'View Item Info':
-        window.location.assign('/app/master/item');
+        {
+          const item = rows[focusedRowIndex];
+          if (!item?.itemId || !item.itemLegacyId.trim()) {
+            message = 'View Item Info: select an active canonical item row first.';
+            return true;
+          }
+          window.location.assign(`/app/master/item?legacyId=${encodeURIComponent(item.itemLegacyId.trim())}`);
+        }
         return true;
       case 'Supplier Info.':
-        window.location.assign('/app/master/supplier');
+        {
+          const supplierRecord = supplierRecords.find((record) => record.id === supplierId && record.active)
+            ?? supplierRecords.find((record) => record.name.trim().toLowerCase() === supplier.trim().toLowerCase() || record.code.trim().toLowerCase() === supplier.trim().toLowerCase() || record.legacyId?.trim().toLowerCase() === supplier.trim().toLowerCase());
+          const supplierLegacyId = supplierRecord?.legacyId?.trim() || supplierRecord?.code?.trim();
+          if (!supplierRecord || !supplierLegacyId) {
+            message = 'Supplier Info.: select an active canonical supplier first.';
+            return true;
+          }
+          window.location.assign(`/app/master/supplier?legacyId=${encodeURIComponent(supplierLegacyId)}`);
+        }
         return true;
       case 'New Item':
         window.location.assign('/app/master/item');
@@ -611,6 +644,45 @@
     }
   }
 
+  async function applyCanonicalItemGST() {
+    const rate = itemGstRate.trim();
+    if (!rate) {
+      message = 'Apply Item GST %: enter a rate in the transaction adjustments first.';
+      return;
+    }
+    const populatedRows = rows.filter((row) => row.itemName.trim() || row.quickSearch.trim());
+    if (!populatedRows.length) {
+      message = 'Apply Item GST %: no populated lines to update.';
+      return;
+    }
+    if (populatedRows.some((row) => !row.itemId)) {
+      error = 'Apply Item GST %: select every populated line from the active canonical item list first.';
+      return;
+    }
+    const itemIds = Array.from(new Set(populatedRows.map((row) => row.itemId).filter((itemId): itemId is string => Boolean(itemId))));
+    busy = true;
+    message = '';
+    error = '';
+    try {
+      const request: ApplyItemGSTRequest = {
+        rate,
+        inclusive: false,
+        effectiveFrom: transactionDate,
+        itemIds,
+        sourceTable: 'PowerBuilder.FileCommand',
+        sourceLegacyId: 'Apply Item GST %'
+      };
+      const result = await api.applyItemGST(request);
+      rows = rows.map((row) => row.itemId && itemIds.includes(row.itemId) ? { ...row, gstRate: rate } : row);
+      const applied = result.itemsApplied;
+      message = `Apply Item GST %: ${rate}% assigned to ${applied} canonical item${applied === 1 ? '' : 's'}; draft line rates updated.`;
+    } catch (cause) {
+      error = cause instanceof ApiError ? cause.problem?.detail ?? cause.message : cause instanceof Error ? cause.message : 'Apply Item GST %: the canonical item tax assignment could not be saved.';
+    } finally {
+      busy = false;
+    }
+  }
+
   async function lookupItems(value: string): Promise<ItemLookupResult[]> {
     const query = value.trim();
     const generation = ++itemLookupGeneration;
@@ -659,9 +731,24 @@
 
   function addRow() {
     rows = [...rows, blankRow()];
+    focusedRowIndex = rows.length - 1;
+  }
+
+  function focusRow(index: number) {
+    if (index >= 0 && index < rows.length) focusedRowIndex = index;
+  }
+
+  function focusRowFromEvent(event: FocusEvent) {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const row = target.closest('tbody > tr');
+    const table = target.closest('table');
+    if (!row || !table) return;
+    focusRow(Array.from(table.querySelectorAll('tbody > tr')).indexOf(row));
   }
 
   function updateRow(index: number, key: keyof PurchaseRow, value: string) {
+    focusRow(index);
     rows = rows.map((row, rowIndex) => {
       if (rowIndex !== index) return row;
       const next = { ...row, [key]: value };
@@ -839,6 +926,7 @@
     availableBatches = {};
     returnAllocations = {};
     rows = templateRows;
+    focusedRowIndex = 0;
     invoiceNumber = '';
     businessDocumentId = '';
     businessDocumentVersion = 0;
@@ -929,8 +1017,10 @@
   }
 
   function removeRow(index: number) {
-    rows = rows.filter((_, rowIndex) => rowIndex !== index);
-    if (!rows.length) rows = [blankRow()];
+    const nextRows = rows.filter((_, rowIndex) => rowIndex !== index);
+    rows = nextRows.length ? nextRows : [blankRow()];
+    if (!nextRows.length) focusedRowIndex = 0;
+    else focusedRowIndex = Math.min(index < focusedRowIndex ? focusedRowIndex - 1 : focusedRowIndex, nextRows.length - 1);
     returnAllocations = Object.fromEntries(Object.entries(returnAllocations)
       .filter(([key]) => Number(key) !== index)
       .map(([key, value]) => [Number(key) > index ? Number(key) - 1 : Number(key), value]));
@@ -1119,6 +1209,47 @@
     }
   }
 
+  async function deletePurchase() {
+    busy = true;
+    message = '';
+    error = '';
+    try {
+      if (!isCanonicalPurchaseKind()) throw new Error('This purchase route is not available in the canonical document lifecycle.');
+      if (!businessDocumentId) {
+        newDocument();
+        message = 'Current unsaved purchase draft discarded.';
+        return;
+      }
+      const documentKind = purchaseDocumentKind();
+      const reason = 'Deleted from purchase workflow';
+      const signature = JSON.stringify({ documentKind, action: 'delete', documentId: businessDocumentId, version: businessDocumentVersion, reason });
+      if (signature !== canonicalCommandSignature) {
+        canonicalCommandSignature = signature;
+        canonicalCommandId = newEventId();
+        canonicalIdempotencyKey = `canonical:${documentKind}:delete:${businessDocumentId}:${businessDocumentVersion}`;
+      }
+      const command: DocumentCommandForKind<PurchaseDocumentKind> = {
+        commandId: canonicalCommandId,
+        kind: documentKind,
+        action: 'delete',
+        idempotencyKey: canonicalIdempotencyKey,
+        occurredAt: localDateAtNoonUtc(transactionDate),
+        expectedVersion: businessDocumentVersion,
+        documentId: businessDocumentId,
+        reason
+      } as DocumentCommandForKind<PurchaseDocumentKind>;
+      const response = await api.documentCommand(documentKind, command);
+      if (!response.accepted) throw new Error(response.errors.map((item) => item.message).join('; ') || 'The canonical delete command was rejected.');
+      if (response.status !== 'draft' || !response.document.deletedAt) throw new Error('Canonical purchase delete did not return a deleted draft.');
+      newDocument();
+      message = `${title} draft deleted successfully.`;
+    } catch (cause) {
+      error = cause instanceof Error ? cause.message : 'The canonical purchase draft could not be deleted.';
+    } finally {
+      busy = false;
+    }
+  }
+
   async function savePurchase(action: 'save' | 'post' | 'save-and-post' = 'save-and-post') {
     const requestRevision = workflowRevision;
     busy = true;
@@ -1173,6 +1304,7 @@
     remarks = '';
     creditDays = '';
     rows = [blankRow()];
+    focusedRowIndex = 0;
     availableBatches = {};
     returnAllocations = {};
     supplierId = '';
@@ -1220,7 +1352,7 @@
   });
 </script>
 
-<svelte:window onkeydown={enableInteractive} />
+<svelte:window onkeydown={enableInteractive} onfocusin={focusRowFromEvent} />
 
 <svelte:head><title>WASEELA · ABUZAR V3 · {title}</title></svelte:head>
 

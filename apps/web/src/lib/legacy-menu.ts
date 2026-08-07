@@ -71,7 +71,9 @@ function isNavigable(path: string[]): boolean {
     || (top === 'Help' && leaf === 'About');
 }
 
-function implementationFor(path: string[]): MenuAction['implementation'] {
+function implementationFor(path: string[], context: LegacyWindowContext): MenuAction['implementation'] {
+  const leaf = path.at(-1);
+  if (context === 'item-master' && ['Set Alternate Item Alias Names', 'Set Item Image(s)', 'Set Item Notes', 'Set Item Associations', 'Set Item Author(s)', 'Select Models', 'Set Item Price Policy', 'Populate Item Registration Request', 'Populate Item', 'Show Un-Posted Transaction Report'].includes(leaf ?? '')) return 'implemented';
   return isNavigable(path) ? 'implemented' : 'not_implemented';
 }
 
@@ -93,9 +95,11 @@ function requirementFor(path: string[], context: LegacyWindowContext): Pick<Menu
   if (top === 'Manage' && leaf === 'Users') return { requiredPermission: 'manage.users', mappingStatus: 'unambiguous' };
   if (top === 'Manage' && leaf === 'Groups') return { requiredPermission: 'manage.groups', mappingStatus: 'unambiguous' };
   if (top === 'File') {
-    const writeCommands = ['Save', 'Post', 'Save And Post', 'Populate Items', 'Auto Batch Generation',
-      'Apply Item GST %', 'Apply Item Discount %', 'Print Purchase Labels'];
+    if (context === 'item-master' && ['Populate Item', 'Show Un-Posted Transaction Report'].includes(leaf ?? '')) return { requiredPermission: 'master.read', mappingStatus: 'unambiguous' };
+    const writeCommands = ['Save', 'Post', 'Save And Post', 'Delete', 'Populate Items', 'Auto Batch Generation',
+      'Apply Item GST %', 'Apply Item Discount %', 'Print Purchase Labels', 'Set Alternate Item Alias Names', 'Set Item Image(s)', 'Set Item Notes', 'Set Item Associations', 'Set Item Author(s)', 'Select Models', 'Set Item Price Policy', 'Populate Item Registration Request', 'Update Item Prices in Active Quotations'];
     if (writeCommands.includes(leaf)) {
+      if (leaf === 'Apply Item GST %') return { requiredPermission: 'tax.write', mappingStatus: 'unambiguous' };
       const permission = context === 'pack-purchase' ? 'purchases.write'
         : context === 'cash-sale' ? 'sales.write'
         : context === 'item-master' ? 'master.write'
@@ -231,7 +235,7 @@ export function buildLegacyMenus(items: LegacyMenuCatalogItem[] = legacyMenuCata
       if (index === visibleSegments.length - 1 && !item.hasSubmenu) {
         action.commandId = item.commandId;
         action.href = hrefFor(path, item.commandId);
-        action.implementation = implementationFor(path);
+        action.implementation = implementationFor(path, context);
         Object.assign(action, requirementFor(path, context));
         if (action.implementation === 'not_implemented') action.phase = path[0] === 'File' ? 'H' : 'F';
         if (shortcut) action.shortcut = shortcut;
@@ -249,10 +253,32 @@ export function buildLegacyMenus(items: LegacyMenuCatalogItem[] = legacyMenuCata
   return menus.map((menu) => ({ ...menu, actions: cleanActions(menu.actions) }));
 }
 
+function correctCashSaleFileLabels(menus: LegacyMenu[]): LegacyMenu[] {
+  const fileMenu = menus.find((menu) => menu.label === 'File');
+  if (!fileMenu) return menus;
+  const corrections: Record<string, string> = {
+    'Item Purchase History': 'Item Sale History',
+    'Purchase Slip': 'Sale Slip'
+  };
+  for (const action of fileMenu.actions) {
+    const correctedLabel = corrections[action.label];
+    if (!correctedLabel) continue;
+    action.label = correctedLabel;
+    action.key = `File > ${correctedLabel}`;
+    action.legacyPath = `File > ${correctedLabel}`;
+    action.href = undefined;
+    action.mappingStatus = 'unambiguous';
+    action.requiredPermission = 'sales.read';
+    action.phase = undefined;
+  }
+  return menus;
+}
+
 export function buildLegacyMenusForContext(context: LegacyWindowContext, windows: LegacyOpenWindow[] = []): LegacyMenu[] {
   if (context === 'base') return buildLegacyMenus(legacyMenuCatalog, windows, context);
   const captured = contextualMenus.contexts.find((entry) => entry.windowType === context);
-  return buildLegacyMenus(captured?.items ?? legacyMenuCatalog, windows, context);
+  const menus = buildLegacyMenus(captured?.items ?? legacyMenuCatalog, windows, context);
+  return context === 'cash-sale' ? correctCashSaleFileLabels(menus) : menus;
 }
 
 export type MenuAccess = {

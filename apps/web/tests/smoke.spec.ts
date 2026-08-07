@@ -357,6 +357,86 @@ test('Daily Sale Detail retrieves through the report definition and exports prev
   await expect((await download).suggestedFilename()).toMatch(/daily-sales-detail-.*\.xls$/);
 });
 
+test('report File menu commands use the live report handlers', async ({ page }) => {
+  await page.route('**/v1/session', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, context: { tenantId: 'tenant-1', tenantCode: 'TENANT', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' } })
+  }));
+  await page.route('**/v1/access', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ tenantAdmin: true, permissions: [], legacyRights: [], scopes: {}, scopeRows: [], exceptions: [] })
+  }));
+  let reportRequests = 0;
+  await page.route('**/v1/reports/sale-detail*', async (route) => {
+    reportRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        kind: 'sale-detail',
+        rows: [],
+        page: 1,
+        pageSize: 50,
+        hasMore: false,
+        definition: {
+          kind: 'sale-detail',
+          title: 'Sale detail',
+          projectionStatus: 'real',
+          columns: [{ key: 'document', label: 'Document', dataType: 'text', sortable: true }],
+          formats: [{ id: 'standard', name: 'Standard', source: 'default' }],
+          retrieval: { title: 'Specify Retrieval Arguements', areas: ['DEFAULT AREA'], supportsCashCredit: false },
+          letterhead: { name: "Fazal Din's Pharma Plus", line2: 'NRY Pacific', line3: "Franchise Fazal Din's", phone: '055 3252501', fax: '', source: 'default' },
+          exports: [
+            { format: 'csv', status: 'available', label: 'CSV', message: 'CSV export is available.' },
+            { format: 'pdf', status: 'available', label: 'PDF', message: 'PDF export is available.' },
+            { format: 'excel', status: 'available', label: 'Excel', message: 'Excel export is available.' }
+          ]
+        }
+      })
+    });
+  });
+  await page.goto('/app/report/sale-detail');
+  await expect(page.getByRole('button', { name: 'File', exact: true })).toBeVisible();
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true', { timeout: 10_000 });
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Retrieve', exact: true }).click();
+  const argumentsDialog = page.getByRole('dialog', { name: 'Specify Retrieval Arguements' });
+  await expect(argumentsDialog).toBeVisible();
+  await argumentsDialog.dispatchEvent('pointerdown');
+  await argumentsDialog.getByRole('button', { name: 'Ok' }).evaluate((element) => (element as HTMLButtonElement).click());
+  await expect.poll(() => reportRequests).toBe(1);
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Preview', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Print preview' })).toBeVisible();
+});
+
+test('report dialogs and print preview close with Escape like the legacy window', async ({ page }) => {
+  await page.route('**/v1/session', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, context: { tenantId: 'tenant-1', tenantCode: 'TENANT', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' } })
+  }));
+  await page.route('**/v1/access', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ tenantAdmin: true, permissions: [], legacyRights: [], scopes: {}, scopeRows: [], exceptions: [] })
+  }));
+  await page.goto('/app/report/sale-detail');
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true', { timeout: 10_000 });
+  await page.getByRole('button', { name: 'Retrieve', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Specify Retrieval Arguements' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Specify Retrieval Arguements' })).toBeHidden();
+
+  await page.getByRole('button', { name: 'Preview report' }).click();
+  await expect(page.getByRole('dialog', { name: 'Print preview' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Print preview' })).toBeHidden();
+  await expect(page.getByText('Report dialog closed.', { exact: true })).toBeVisible();
+});
+
 test('fallback report identifies its projection and keeps workbook exports available', async ({ page }) => {
   await page.route('**/v1/reports/unclassified-captured-report*', async (route) => route.fulfill({
     status: 200,
@@ -561,6 +641,58 @@ test('purchase return, supplier, and purchase-order report leaves retain mapped 
     await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
     await expect(page.getByText('PUR-RET-100')).toBeVisible();
   }
+});
+
+test('P/O disparity report renders linked order and receipt variance columns', async ({ page }) => {
+  await page.route('**/v1/reports/p-o-based-purchase-disparity*', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      kind: 'p-o-based-purchase-disparity',
+      rows: [{
+        document: 'PO-100', occurredAt: '2026-08-06', party: 'SUPPLIER 1', item: 'CANONICAL ITEM',
+        orderedQuantity: '10.0000', receivedQuantity: '7.0000', disparityQuantity: '3.0000',
+        orderedAmount: '100.00', receivedAmount: '70.00', disparityAmount: '30.00'
+      }],
+      page: 1,
+      pageSize: 50,
+      hasMore: false,
+      definition: {
+        kind: 'p-o-based-purchase-disparity',
+        title: 'P/O Based Purchase Disparity',
+        projectionStatus: 'real',
+        projectionNote: 'Canonical posted purchase-order lines are compared with posted purchase receipts linked by source document ID or source document number; unlinked legacy receipts, source reconciliation, exact PowerBuilder disparity, tax, profit, and print calculations remain open.',
+        columns: [
+          { key: 'document', label: 'Purchase Order', dataType: 'text', sortable: true },
+          { key: 'occurredAt', label: 'Order Date', dataType: 'date', sortable: true },
+          { key: 'party', label: 'Supplier', dataType: 'text', sortable: true },
+          { key: 'item', label: 'Item', dataType: 'text', sortable: true },
+          { key: 'orderedQuantity', label: 'Ordered Qty', dataType: 'number', sortable: true },
+          { key: 'receivedQuantity', label: 'Received Qty', dataType: 'number', sortable: true },
+          { key: 'disparityQuantity', label: 'Disparity Qty', dataType: 'number', sortable: true },
+          { key: 'orderedAmount', label: 'Ordered Amount', dataType: 'currency', sortable: true },
+          { key: 'receivedAmount', label: 'Received Amount', dataType: 'currency', sortable: true },
+          { key: 'disparityAmount', label: 'Disparity Amount', dataType: 'currency', sortable: true }
+        ],
+        formats: [{ id: 'standard', name: 'Standard', source: 'default' }],
+        retrieval: { title: 'Specify Retrieval Arguements', areas: ['DEFAULT AREA', 'ALL AREAS'], supportsCashCredit: false, supportsDateRange: true, supportsTextFilter: true, scope: 'tenant, branch, posted-only, purchase-order date, text, canonical purchase lines from purchase orders, and linked posted purchase receipts' },
+        letterhead: { name: "Fazal Din's Pharma Plus", line2: 'NRY Pacific', line3: "Franchise Fazal Din's", phone: '055 3252501', fax: '', source: 'default' },
+        exports: [
+          { format: 'csv', status: 'available', label: 'CSV', message: 'CSV export is available.' },
+          { format: 'pdf', status: 'available', label: 'PDF', message: 'PDF export is available.' },
+          { format: 'excel', status: 'available', label: 'Excel', message: 'Excel export is available.' }
+        ]
+      }
+    })
+  }));
+  await page.goto('/app/report/p-o-based-purchase-disparity');
+  await page.waitForTimeout(2000);
+  await page.getByRole('button', { name: 'Refresh report' }).click({ force: true });
+  await expect(page.getByRole('heading', { name: 'P/O Based Purchase Disparity', exact: true })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Ordered Qty', exact: true })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Disparity Amount', exact: true })).toBeVisible();
+  await expect(page.getByText('PO-100')).toBeVisible();
+  await expect(page.getByText(/source reconciliation/)).toBeVisible();
 });
 
 function stockReportDefinition(kind: string, title: string, movement = false) {
@@ -946,15 +1078,18 @@ test('canonical item maintenance uses active item lookup before saving', async (
       return;
     }
     const body = route.request().postDataJSON() as Record<string, unknown>;
-    expect(body).toMatchObject({ itemCode: 'ITEM-1', priceType: 'Sale Price', price: '12.50' });
+    expect(body).toMatchObject({ itemCode: 'ITEM-1', priceType: 'Sale Price', price: 12.5 });
     await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ kind: 'change-items-price', status: 'completed', message: 'Sale Price for item ITEM-1 updated in the canonical item master.' }) });
   });
-  await page.route('**/v1/items/lookup**', async (route) => route.fulfill({
+  await page.route('**/v1/items/lookup**', async (route) => {
+    await route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify({ items: [{ id: '11111111-1111-4111-8111-111111111111', legacyId: 'ITEM-1', code: 'ITEM-1', name: 'Canonical Item', payload: {}, active: true, aliases: [] }] })
-  }));
+    });
+  });
   await page.goto('/app/maintenance/change-items-price');
+  await expect(page.locator('main[data-hydrated="true"]')).toBeVisible();
   await page.locator('#maintenance-item-input').fill('Canonical');
   await page.getByRole('button', { name: 'Lookup maintenance item' }).click();
   await expect(page.getByRole('button', { name: 'Canonical Item (ITEM-1)' })).toBeVisible();
@@ -962,6 +1097,46 @@ test('canonical item maintenance uses active item lookup before saving', async (
   await page.getByLabel('New Price:').fill('12.50');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Sale Price for item ITEM-1 updated in the canonical item master.')).toBeVisible();
+});
+
+test('canonical item supplier maintenance uses active item and supplier lookup before saving', async ({ page }) => {
+  await page.route('**/v1/session', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, context: { tenantId: 'tenant-1', tenantCode: 'TENANT', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' } })
+  }));
+  await page.route('**/v1/maintenance/update-item-suppliers', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ kind: 'update-item-suppliers', items: [], operations: [] }) });
+      return;
+    }
+    const body = route.request().postDataJSON() as Record<string, unknown>;
+    expect(body).toMatchObject({ itemCode: 'ITEM-1', supplier: 'SUP-1', purchasePrice: 8.25, priority: 2 });
+    await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ kind: 'update-item-suppliers', status: 'completed', message: 'Supplier SUP-1 linked to item ITEM-1 in the canonical item supplier grid.' }) });
+  });
+  await page.route('**/v1/items/lookup**', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: [{ id: '11111111-1111-4111-8111-111111111111', legacyId: 'ITEM-1', code: 'ITEM-1', name: 'Canonical Item', payload: {}, active: true, aliases: [] }] })
+  }));
+  await page.route('**/v1/master/supplier*', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [{ id: '55555555-5555-4555-8555-555555555555', kind: 'supplier', legacyId: 'SUP-1', code: 'SUP-1', name: 'Canonical Supplier', payload: {}, active: true }] })
+  }));
+  await page.goto('/app/maintenance/update-item-suppliers');
+  await expect(page.locator('main[data-hydrated="true"]')).toBeVisible();
+  await page.locator('#maintenance-item-input').fill('Canonical');
+  await page.getByRole('button', { name: 'Lookup maintenance item' }).click();
+  await page.getByRole('button', { name: 'Canonical Item (ITEM-1)' }).click();
+  await page.locator('#maintenance-supplier-input').fill('Canonical');
+  await page.getByRole('button', { name: 'Lookup maintenance supplier' }).click();
+  await expect(page.getByRole('button', { name: 'Canonical Supplier (SUP-1)' })).toBeVisible();
+  await page.getByRole('button', { name: 'Canonical Supplier (SUP-1)' }).click();
+  await page.getByLabel('Purchase Price:').fill('8.25');
+  await page.getByLabel('Priority:').fill('2');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText('Supplier SUP-1 linked to item ITEM-1 in the canonical item supplier grid.')).toBeVisible();
 });
 
 test('captured preference form tabs expose their native legacy layouts after interaction', async ({ page }) => {

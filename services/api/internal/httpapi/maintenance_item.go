@@ -24,7 +24,7 @@ type canonicalMaintenanceMutation struct {
 
 func isCanonicalItemMaintenanceKind(kind string) bool {
 	switch kind {
-	case "change-items-price", "change-item-discount", "update-item-basic-data", "change-item-reorder-qty":
+	case "change-items-price", "change-item-discount", "update-item-basic-data", "change-item-reorder-qty", "update-item-suppliers":
 		return true
 	default:
 		return false
@@ -156,6 +156,37 @@ func validateCanonicalItemMaintenancePayload(kind string, payload map[string]any
 		}
 		if !reorder && !minimum {
 			return errors.New("reorderQty or minimumQty is required")
+		}
+	case "update-item-suppliers":
+		supplier, err := maintenancePayloadText(payload, "supplier")
+		if err != nil || supplier == "" {
+			if err != nil {
+				return err
+			}
+			return errors.New("supplier is required")
+		}
+		if value, exists := payload["purchasePrice"]; exists {
+			priceText, priceErr := maintenanceNumericPayloadText(map[string]any{"purchasePrice": value}, "purchasePrice")
+			if priceErr != nil {
+				return priceErr
+			}
+			if strings.TrimSpace(priceText) != "" {
+				if _, priceErr := parseMoney(priceText); priceErr != nil {
+					return fmt.Errorf("purchasePrice: %w", priceErr)
+				}
+			}
+		}
+		if value, exists := payload["priority"]; exists {
+			priorityText, priorityErr := maintenanceNumericPayloadText(map[string]any{"priority": value}, "priority")
+			if priorityErr != nil {
+				return priorityErr
+			}
+			if strings.TrimSpace(priorityText) != "" {
+				priority, priorityErr := strconv.Atoi(priorityText)
+				if priorityErr != nil || priority < 0 {
+					return errors.New("priority must be a non-negative integer")
+				}
+			}
 		}
 	}
 	return nil
@@ -383,11 +414,106 @@ func applyCanonicalItemMaintenance(ctx context.Context, tx *sql.Tx, operator *se
 		}
 		auditPayload["fields"] = changed
 		message = fmt.Sprintf("Reorder settings for item %s updated in the canonical item master.", code)
+	case "update-item-suppliers":
+		return applyItemSupplierMaintenance(ctx, tx, operator, itemID, code, legacyID, payload)
 	}
 	if err := updateMaintenanceItem(ctx, tx, operator, itemID, newName, fields, updateName); err != nil {
 		return canonicalMaintenanceMutation{}, err
 	}
 	return canonicalMaintenanceMutation{status: "completed", message: message, auditPayload: auditPayload}, nil
+}
+
+func applyItemSupplierMaintenance(ctx context.Context, tx *sql.Tx, operator *sessionContext, itemID, code, legacyID string, payload map[string]any) (canonicalMaintenanceMutation, error) {
+	supplierIdentifier, _ := maintenancePayloadText(payload, "supplier")
+	var supplierID, supplierLegacyID string
+	err := tx.QueryRowContext(ctx, `
+		SELECT id::text, COALESCE(NULLIF(legacy_id, ''), code)
+		FROM master_parties
+		WHERE tenant_id = $1::uuid
+		  AND party_type = 'supplier'
+		  AND active
+		  AND (legacy_id = $2 OR code = $2)
+		ORDER BY CASE WHEN legacy_id = $2 THEN 0 ELSE 1 END
+		LIMIT 1
+	`, operator.TenantID, supplierIdentifier).Scan(&supplierID, &supplierLegacyID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return canonicalMaintenanceMutation{}, fmt.Errorf("active canonical supplier %q was not found", supplierIdentifier)
+	}
+	if err != nil {
+		return canonicalMaintenanceMutation{}, err
+	}
+
+	var previousRate string
+	var previousPriority sql.NullInt64
+	previousErr := tx.QueryRowContext(ctx, `
+		SELECT COALESCE(rate::text, ''), priority
+		FROM item_suppliers
+		WHERE tenant_id = $1::uuid AND legacy_item_id = $2 AND legacy_supplier_id = $3
+	`, operator.TenantID, legacyID, supplierLegacyID).Scan(&previousRate, &previousPriority)
+	if previousErr != nil && !errors.Is(previousErr, sql.ErrNoRows) {
+		return canonicalMaintenanceMutation{}, previousErr
+	}
+
+	rateText := ""
+	if value, exists := payload["purchasePrice"]; exists {
+		valueText, valueErr := maintenanceNumericPayloadText(map[string]any{"purchasePrice": value}, "purchasePrice")
+		if valueErr != nil {
+			return canonicalMaintenanceMutation{}, valueErr
+		}
+		if strings.TrimSpace(valueText) != "" {
+			price, priceErr := parseMoney(valueText)
+			if priceErr != nil {
+				return canonicalMaintenanceMutation{}, fmt.Errorf("purchasePrice: %w", priceErr)
+			}
+			rateText = formatMoney(price)
+		}
+	}
+	priorityText := ""
+	if value, exists := payload["priority"]; exists {
+		valueText, valueErr := maintenanceNumericPayloadText(map[string]any{"priority": value}, "priority")
+		if valueErr != nil {
+			return canonicalMaintenanceMutation{}, valueErr
+		}
+		priorityText = strings.TrimSpace(valueText)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO item_suppliers (
+			tenant_id, item_id, supplier_id, legacy_item_id, legacy_supplier_id,
+			priority, rate, payload
+		)
+		VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5,
+			NULLIF($6, '')::integer, NULLIF($7, '')::numeric, '{}'::jsonb)
+		ON CONFLICT (tenant_id, legacy_item_id, legacy_supplier_id) DO UPDATE
+		SET item_id = EXCLUDED.item_id,
+		    supplier_id = EXCLUDED.supplier_id,
+		    priority = COALESCE(EXCLUDED.priority, item_suppliers.priority),
+		    rate = COALESCE(EXCLUDED.rate, item_suppliers.rate),
+		    updated_at = now()
+	`, operator.TenantID, itemID, supplierID, legacyID, supplierLegacyID, priorityText, rateText); err != nil {
+		return canonicalMaintenanceMutation{}, err
+	}
+
+	auditPayload := copyMaintenancePayload(payload)
+	auditPayload["itemId"] = itemID
+	auditPayload["canonicalCode"] = code
+	auditPayload["canonicalLegacyId"] = legacyID
+	auditPayload["supplierId"] = supplierID
+	auditPayload["supplierLegacyId"] = supplierLegacyID
+	auditPayload["previousValue"] = map[string]any{
+		"priority": func() any {
+			if previousPriority.Valid {
+				return previousPriority.Int64
+			}
+			return nil
+		}(),
+		"purchasePrice": previousRate,
+	}
+	auditPayload["newValue"] = map[string]any{"priority": priorityText, "purchasePrice": rateText}
+	return canonicalMaintenanceMutation{
+		status:       "completed",
+		message:      fmt.Sprintf("Supplier %s linked to item %s in the canonical item supplier grid.", supplierLegacyID, code),
+		auditPayload: auditPayload,
+	}, nil
 }
 
 func applyBatchLockMaintenance(ctx context.Context, tx *sql.Tx, operator *sessionContext, payload map[string]any) (canonicalMaintenanceMutation, error) {

@@ -39,6 +39,12 @@ type reportRow struct {
 	ReorderQuantity      string `json:"reorderQuantity,omitempty"`
 	OptimumQuantity      string `json:"optimumQuantity,omitempty"`
 	MinimumQuantity      string `json:"minimumQuantity,omitempty"`
+	OrderedQuantity      string `json:"orderedQuantity,omitempty"`
+	ReceivedQuantity     string `json:"receivedQuantity,omitempty"`
+	DisparityQuantity    string `json:"disparityQuantity,omitempty"`
+	OrderedAmount        string `json:"orderedAmount,omitempty"`
+	ReceivedAmount       string `json:"receivedAmount,omitempty"`
+	DisparityAmount      string `json:"disparityAmount,omitempty"`
 }
 
 type reportColumn struct {
@@ -337,7 +343,7 @@ var phaseOReportRegistry = func() map[string]reportSpec {
 		{"purchase-return-detail", "Purchase Return detail", "se.aggregate = 'return'", "line-detail"},
 		{"purchase-return-summary", "Purchase Return summary", "se.aggregate = 'return'", "invoice-summary"},
 		{"purchase-order-summary", "Purchase Order Summary", "se.aggregate = 'purchase_order'", "invoice-summary"},
-		{"p-o-based-purchase-disparity", "P/O Based Purchase Disparity", "se.aggregate = 'purchase_order'", "detail"},
+		{"p-o-based-purchase-disparity", "P/O Based Purchase Disparity", "se.aggregate = 'purchase_order'", "po-disparity"},
 		{"periodic-purchases", "Periodic Purchases", "se.aggregate = 'receiving'", "month-summary"},
 		{"purchase-order", "Purchase Order", "se.aggregate = 'purchase_order'", "invoice-summary"},
 		{"supplier-wise-detail", "Detail", "se.aggregate = 'receiving'", "detail"},
@@ -1310,7 +1316,7 @@ func salesProjectionModeNote(mode string) string {
 func reportDefinitionForKey(kind, registryKey string) reportDefinition {
 	dailySaleDetail := kind == "daily-sales-detail"
 	spec, explicitEventProjection := reportSpecForKey(registryKey)
-	concreteProjection := dailySaleDetail || kind == "stock" || kind == "item" || kind == "purchase-return"
+	concreteProjection := dailySaleDetail || kind == "stock" || kind == "item" || kind == "purchase-return" || spec.purchaseMode == "po-disparity"
 	formatNames := []string{"Event ledger projection"}
 	if concreteProjection && !dailySaleDetail {
 		formatNames = []string{"Standard"}
@@ -1433,6 +1439,10 @@ func reportDefinitionForKey(kind, registryKey string) reportDefinition {
 				projectionNote = "Canonical posted purchase business-document lines expose document, supplier, item, quantity, purchase price, discount, tax, amount, expiry, and batch values; compatibility receiving/return events are expanded when no canonical document identity matches. Exact legacy grouping, tax, profit, purchase-order, and print calculations remain unverified."
 				retrievalScope = "tenant, branch, posted-only, date, text, supplier, canonical purchase lines, stock allocations, and compatibility receiving/return events"
 				columns = purchaseLineDetailColumns()
+			} else if spec.purchaseMode == "po-disparity" {
+				projectionNote = purchaseProjectionModeNote(spec.purchaseMode)
+				retrievalScope = "tenant, branch, posted-only, purchase-order date, text, canonical purchase lines from purchase orders, and linked posted purchase receipts"
+				columns = purchaseSummaryReportColumns(spec.purchaseMode)
 			} else if isPurchaseSummaryMode(spec.purchaseMode) {
 				projectionNote = "Canonical and compatibility purchase rows use the explicit " + spec.purchaseMode + " projection; " + purchaseProjectionModeNote(spec.purchaseMode) + "."
 				retrievalScope = "tenant, branch, posted-only, date, text, canonical purchase documents/lines, supplier party ledger, and compatibility receiving/return events with " + spec.purchaseMode + " grouping"
@@ -1532,7 +1542,9 @@ func reportDefinitionForKey(kind, registryKey string) reportDefinition {
 	}
 	if concreteProjection {
 		projectionStatus = "real"
-		projectionNote = ""
+		if spec.purchaseMode != "po-disparity" {
+			projectionNote = ""
+		}
 	}
 	if kind == "stock" || kind == "item" {
 		projectionNote = "Scoped stock_ledger movement projection with stock_balances as the normalized balance cache; inventory_movements is used only as a labeled compatibility fallback when no normalized rows exist for the requested item scope."
@@ -1712,6 +1724,7 @@ func salesReadModelQuery(aggregateCondition, pagination string, includeIdentity 
 			                                       'cash-sale-return', 'open-sale-return')
 			                     THEN 'CASH' ELSE '' END),
 			       COALESCE(bl.item_name, ''),
+			       COALESCE(bl.item_legacy_id, ''),
 			       COALESCE(bl.quantity::text, ''),
 			       bd.total_amount::text
 			FROM business_documents bd
@@ -1735,6 +1748,7 @@ func salesReadModelQuery(aggregateCondition, pagination string, includeIdentity 
 			       bd.occurred_at,
 			       COALESCE(mp.name, CASE WHEN bd.kind = 'cash-sale' THEN 'CASH' ELSE '' END) AS party,
 			       COALESCE(bl.item_name, '') AS item,
+			       COALESCE(bl.item_legacy_id, '') AS item_legacy_id,
 			       COALESCE(bl.quantity::text, '') AS quantity,
 			       bd.total_amount::text AS amount
 			FROM business_documents bd
@@ -1756,6 +1770,7 @@ func salesReadModelQuery(aggregateCondition, pagination string, includeIdentity 
 			       sd.occurred_at,
 			       COALESCE(se.payload->>'customerName', se.payload->>'customer', 'CASH'),
 			       COALESCE(se.payload->>'itemName', se.payload->'rows'->0->>'itemName', ''),
+			       COALESCE(se.payload->>'itemLegacyId', se.payload->'rows'->0->>'itemLegacyId', ''),
 			       COALESCE(se.payload->>'quantity', se.payload->'rows'->0->>'quantity', ''),
 			       sd.total_amount::text
 			FROM sales_documents sd
@@ -1781,6 +1796,7 @@ func salesReadModelQuery(aggregateCondition, pagination string, includeIdentity 
 			       COALESCE(se.payload->>'customerName', se.payload->>'customer',
 			                se.payload->>'supplierName', se.payload->>'supplier', se.aggregate),
 			       COALESCE(se.payload->>'itemName', se.payload->'rows'->0->>'itemName', ''),
+			       COALESCE(se.payload->>'itemLegacyId', se.payload->'rows'->0->>'itemLegacyId', ''),
 			       COALESCE(se.payload->>'quantity', se.payload->'rows'->0->>'quantity', ''),
 			       COALESCE(se.payload->>'totalAmount', se.payload->>'amount', '')
 			FROM sync_events se
@@ -1809,7 +1825,8 @@ func salesReadModelQuery(aggregateCondition, pagination string, includeIdentity 
 		  AND occurred_at < ($4::date + INTERVAL '1 day')
 		  AND ($5 = '' OR document ILIKE '%' || $5 || '%'
 		       OR party ILIKE '%' || $5 || '%'
-		       OR item ILIKE '%' || $5 || '%')
+		       OR item ILIKE '%' || $5 || '%'
+		       OR item_legacy_id ILIKE '%' || $5 || '%')
 		ORDER BY occurred_at DESC, document, item ` + pagination
 }
 
@@ -2978,6 +2995,19 @@ func purchaseSummaryReportColumns(mode string) []reportColumn {
 			{Key: "quantity", Label: "Quantity", DataType: "number", Sortable: true},
 			{Key: "amount", Label: "Amount", DataType: "currency", Sortable: true},
 		}
+	case "po-disparity":
+		return []reportColumn{
+			{Key: "document", Label: "Purchase Order", DataType: "text", Sortable: true},
+			{Key: "occurredAt", Label: "Order Date", DataType: "date", Sortable: true},
+			{Key: "party", Label: "Supplier", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Item", DataType: "text", Sortable: true},
+			{Key: "orderedQuantity", Label: "Ordered Qty", DataType: "number", Sortable: true},
+			{Key: "receivedQuantity", Label: "Received Qty", DataType: "number", Sortable: true},
+			{Key: "disparityQuantity", Label: "Disparity Qty", DataType: "number", Sortable: true},
+			{Key: "orderedAmount", Label: "Ordered Amount", DataType: "currency", Sortable: true},
+			{Key: "receivedAmount", Label: "Received Amount", DataType: "currency", Sortable: true},
+			{Key: "disparityAmount", Label: "Disparity Amount", DataType: "currency", Sortable: true},
+		}
 	default:
 		return reportColumns()
 	}
@@ -3004,6 +3034,8 @@ func purchaseProjectionModeNote(mode string) string {
 		return "canonical and compatibility purchase lines are grouped by item and supplier with numeric quantity and amount totals; exact category joins, tax, return, profit, and calculated columns remain open"
 	case "supplier-summary":
 		return "canonical and compatibility purchase documents are grouped by supplier with numeric quantity and amount totals; exact PowerBuilder supplier, manufacturer, tax, profit, and return calculations remain open"
+	case "po-disparity":
+		return "canonical posted purchase-order lines are compared with posted purchase receipts linked by source document ID or source document number; unlinked legacy receipts, source reconciliation, exact PowerBuilder disparity, tax, profit, and print calculations remain open"
 	default:
 		return "captured legacy purchase grouping and calculated numeric fields are not implemented"
 	}
@@ -3185,9 +3217,87 @@ func purchaseReadModelQueryMode(aggregateCondition, mode, pagination string) str
 		return purchaseItemSummaryReadModelQuery(aggregateCondition, pagination)
 	case "supplier-summary":
 		return purchaseSupplierSummaryReadModelQuery(aggregateCondition, pagination)
+	case "po-disparity":
+		return purchaseOrderDisparityReadModelQuery(pagination)
 	default:
 		return purchaseReadModelQuery(aggregateCondition, mode, pagination)
 	}
+}
+
+// purchaseOrderDisparityReadModelQuery compares canonical posted purchase
+// orders with canonical posted receipts that explicitly identify the order by
+// source_document_id or source_document_number. It intentionally excludes
+// unlinked legacy receipts instead of guessing their order relationship.
+func purchaseOrderDisparityReadModelQuery(pagination string) string {
+	return `
+	WITH purchase_orders AS (
+		SELECT d.id AS order_id,
+		       d.document_number AS document,
+		       d.occurred_at,
+		       COALESCE(mp.name, '') AS party,
+		       l.id AS line_id,
+		       l.item_id,
+		       l.item_legacy_id,
+		       l.item_name AS item,
+		       l.quantity AS ordered_quantity,
+		       l.line_total AS ordered_amount
+		FROM business_documents d
+		JOIN business_document_lines l
+		  ON l.tenant_id = d.tenant_id AND l.branch_id = d.branch_id
+		 AND l.document_id = d.id
+		LEFT JOIN master_parties mp
+		  ON mp.tenant_id = d.tenant_id AND mp.id = d.supplier_id
+		 AND mp.party_type = 'supplier'
+		WHERE d.tenant_id = $1::uuid AND d.branch_id = $2::uuid
+		  AND d.kind = 'purchase-order' AND d.status = 'posted'
+	), receipt_lines AS (
+		SELECT r.source_document_id,
+		       NULLIF(r.source_document_number, '') AS source_document_number,
+		       l.item_id,
+		       l.item_legacy_id,
+		       l.quantity AS received_quantity,
+		       l.line_total AS received_amount
+		FROM business_documents r
+		JOIN business_document_lines l
+		  ON l.tenant_id = r.tenant_id AND l.branch_id = r.branch_id
+		 AND l.document_id = r.id
+		WHERE r.tenant_id = $1::uuid AND r.branch_id = $2::uuid
+		  AND r.kind IN ('pack-purchase', 'loose-purchase', 'opening-purchase')
+		  AND r.status = 'posted'
+		  AND (r.source_document_id IS NOT NULL OR NULLIF(r.source_document_number, '') IS NOT NULL)
+	), disparity AS (
+		SELECT o.document,
+		       o.occurred_at,
+		       o.party,
+		       o.item,
+		       o.ordered_quantity,
+		       COALESCE(SUM(r.received_quantity), 0) AS received_quantity,
+		       o.ordered_amount,
+		       COALESCE(SUM(r.received_amount), 0) AS received_amount
+		FROM purchase_orders o
+		LEFT JOIN receipt_lines r
+		  ON (r.source_document_id = o.order_id OR r.source_document_number = o.document)
+		 AND (r.item_id = o.item_id OR r.item_legacy_id = o.item_legacy_id)
+		GROUP BY o.order_id, o.line_id, o.document, o.occurred_at, o.party,
+		         o.item, o.ordered_quantity, o.ordered_amount
+	)
+	SELECT document,
+	       occurred_at::text,
+	       party,
+	       item,
+	       ordered_quantity::numeric(19,4)::text,
+	       received_quantity::numeric(19,4)::text,
+	       (ordered_quantity - received_quantity)::numeric(19,4)::text,
+	       ordered_amount::numeric(19,4)::text,
+	       received_amount::numeric(19,4)::text,
+	       (ordered_amount - received_amount)::numeric(19,4)::text
+	FROM disparity
+	WHERE occurred_at >= $3::date
+	  AND occurred_at < ($4::date + INTERVAL '1 day')
+	  AND ($5 = '' OR document ILIKE '%' || $5 || '%'
+	       OR party ILIKE '%' || $5 || '%'
+	       OR item ILIKE '%' || $5 || '%')
+	ORDER BY occurred_at DESC, document, item ` + pagination
 }
 
 func purchaseCalendarSummaryReadModelQuery(aggregateCondition, mode, pagination string) string {
@@ -4814,6 +4924,27 @@ func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 		}
 		return result.Err()
 	}
+	appendPurchaseOrderDisparityRows := func(query string, args ...any) error {
+		result, queryErr := tx.QueryContext(reportCtx, query, args...)
+		if queryErr != nil {
+			return queryErr
+		}
+		defer result.Close()
+		for result.Next() {
+			var row reportRow
+			if scanErr := result.Scan(
+				&row.Document, &row.OccurredAt, &row.Party, &row.Item,
+				&row.OrderedQuantity, &row.ReceivedQuantity, &row.DisparityQuantity,
+				&row.OrderedAmount, &row.ReceivedAmount, &row.DisparityAmount,
+			); scanErr != nil {
+				return scanErr
+			}
+			row.Quantity = row.OrderedQuantity
+			row.Amount = row.OrderedAmount
+			rows = append(rows, row)
+		}
+		return result.Err()
+	}
 	appendHistoricalStockRows := func(query string, args ...any) error {
 		result, queryErr := tx.QueryContext(reportCtx, query, args...)
 		if queryErr != nil {
@@ -5001,6 +5132,8 @@ func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 			if spec.purchaseMode == "line-detail" {
 				query = purchaseLineDetailReadModelQuery(spec.aggregateCondition, "LIMIT $6 OFFSET $7")
 				appendPurchaseRows = appendPurchaseLineDetailRows
+			} else if spec.purchaseMode == "po-disparity" {
+				appendPurchaseRows = appendPurchaseOrderDisparityRows
 			}
 			if err = appendPurchaseRows(query, operator.TenantID, operator.BranchID, from, to, filter, pageSize+1, (page-1)*pageSize); err != nil {
 				writeProblem(w, http.StatusServiceUnavailable, "report_read_failed", "Unable to read report", "The purchase report query failed.")

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -46,5 +47,38 @@ func TestPurchaseLineExceptionDetailsPreserveSourceQuantityInputs(t *testing.T) 
 func TestPurchaseLineExceptionDetailsRejectShortRows(t *testing.T) {
 	if _, err := purchaseLineExceptionDetails(make([]any, 26), "1:1", "invalid"); err == nil {
 		t.Fatal("short source row was accepted")
+	}
+}
+
+func TestPurchaseLineSourceWindowUsesStableOrderingAndExclusiveEnd(t *testing.T) {
+	query, args, err := sourceRowsQuery(2000, 3500)
+	if err != nil {
+		t.Fatalf("source window rejected: %v", err)
+	}
+	for _, want := range []string{"ORDER BY pur_inv_code", "TRY_CONVERT(bigint, pur_row_id)", "OFFSET ? ROWS", "FETCH NEXT ? ROWS ONLY"} {
+		if !strings.Contains(query, want) {
+			t.Fatalf("source window query does not contain %q", want)
+		}
+	}
+	if len(args) != 2 || args[0] != 2000 || args[1] != 1500 {
+		t.Fatalf("source window args = %#v, want [2000 1500]", args)
+	}
+}
+
+func TestPurchaseLineSourceWindowPreservesFullRunAndRejectsInvalidBounds(t *testing.T) {
+	query, args, err := sourceRowsQuery(0, -1)
+	if err != nil {
+		t.Fatalf("full source window rejected: %v", err)
+	}
+	if query != sourceQuery || len(args) != 0 {
+		t.Fatalf("full source window changed the unbounded query or args")
+	}
+	for _, bounds := range [][2]int{{-1, 10}, {10, 10}, {10, 5}} {
+		if _, _, err := sourceRowsQuery(bounds[0], bounds[1]); err == nil {
+			t.Fatalf("invalid source window %#v was accepted", bounds)
+		}
+	}
+	if rowWindowEnd(-1) != "end" || rowWindowEnd(3500) != "3500" {
+		t.Fatal("source row window display is not deterministic")
 	}
 }

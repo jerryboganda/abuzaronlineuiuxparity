@@ -17,6 +17,11 @@ are retained in `legacy_id_mappings` and `migration_exceptions`.
 The command refuses the protected canonical source without explicit opt-in,
 canonical tenant/branch scope, and a URL naming `FazalDinPP19DataBaseV2`.
 
+It also accepts deterministic zero-based `-from-row`/`-to-row` windows with an
+exclusive end. Bounded runs use stable purchase-order/row/item ordering before
+SQL Server `OFFSET`/`FETCH`, and the redacted report records the selected
+window for auditable retries.
+
 ## Focused verification
 
 Passed without a source or target database connection:
@@ -27,7 +32,8 @@ go test ./migration/cmd/bulkorderlines -count=1
 
 Tests verify the actual implementation source/dependency/target safeguards,
 exception payload preservation, short-row rejection, and positive-quantity
-eligibility.
+eligibility. They also verify the full-run query remains unchanged, bounded
+window arguments are exclusive, and invalid bounds fail closed.
 
 ## Acceptance boundary still open
 

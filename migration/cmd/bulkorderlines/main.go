@@ -33,6 +33,8 @@ type tableReport struct {
 	SourceTable      string         `json:"sourceTable"`
 	TargetSchema     string         `json:"targetSchema"`
 	TargetTable      string         `json:"targetTable"`
+	FromRow          int            `json:"fromRow"`
+	ToRow            int            `json:"toRow"`
 	Read             int            `json:"read"`
 	Imported         int            `json:"imported"`
 	Duplicates       int            `json:"duplicates"`
@@ -104,6 +106,8 @@ func main() {
 	tenant := flag.String("tenant-id", "", "dedicated target tenant UUID")
 	branch := flag.String("branch-id", canonicalBranch, "dedicated target branch UUID")
 	allowCanonical := flag.Bool("allow-canonical", false, "explicitly allow the protected canonical source")
+	fromRow := flag.Int("from-row", 0, "zero-based source row offset after stable ordering")
+	toRow := flag.Int("to-row", -1, "exclusive source row offset; -1 reads through the end")
 	out := flag.String("out", filepath.Join("parity", "catalog", "canonical-first-tenant-purchase-order-lines-import.json"), "report path")
 	flag.Parse()
 	if strings.TrimSpace(*sourceURL) == "" || strings.TrimSpace(*targetURL) == "" {
@@ -120,6 +124,9 @@ func main() {
 	}
 	if !strings.Contains(strings.ToLower(*sourceURL), "database="+strings.ToLower(canonicalDatabase)) {
 		fatal("source URL must name the canonical database")
+	}
+	if *fromRow < 0 || (*toRow != -1 && *toRow <= *fromRow) {
+		fatal("source row window must satisfy from-row >= 0 and to-row > from-row, or to-row=-1")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Hour)
@@ -138,7 +145,7 @@ func main() {
 	}
 	defer target.Close(ctx)
 
-	rows, duplicates, invalid, err := readRows(ctx, source)
+	rows, duplicates, invalid, err := readRows(ctx, source, *fromRow, *toRow)
 	if err != nil {
 		fatal(err.Error())
 	}
@@ -147,6 +154,8 @@ func main() {
 		SourceTable:      "PurOrderDetail",
 		TargetSchema:     "public",
 		TargetTable:      targetTable,
+		FromRow:          *fromRow,
+		ToRow:            *toRow,
 		Read:             len(rows) + duplicates + len(invalid),
 		Duplicates:       duplicates,
 		ExceptionReasons: make(map[string]int),
@@ -275,11 +284,15 @@ func main() {
 		fatal(fmt.Sprintf("commit purchase-order lines: %v", err))
 	}
 	writeReport(*out, report{GeneratedAt: time.Now().UTC().Format(time.RFC3339Nano), Source: "redacted SQL Server connection", Target: "redacted PostgreSQL connection", TenantID: *tenant, Tables: []tableReport{result}})
-	fmt.Printf("Bulk processed %d purchase-order lines for tenant %s; imported %d, exceptions %d; report: %s\n", result.Read, *tenant, result.Imported, result.Exceptions, *out)
+	fmt.Printf("Bulk processed purchase-order rows %d-%s for tenant %s; read %d, imported %d, exceptions %d; report: %s\n", *fromRow, rowWindowEnd(*toRow), *tenant, result.Read, result.Imported, result.Exceptions, *out)
 }
 
-func readRows(ctx context.Context, source *sql.DB) ([]sourceRow, int, []exceptionRow, error) {
-	rows, err := source.QueryContext(ctx, sourceQuery)
+func readRows(ctx context.Context, source *sql.DB, fromRow, toRow int) ([]sourceRow, int, []exceptionRow, error) {
+	query, args, err := sourceRowsQuery(fromRow, toRow)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+	rows, err := source.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, 0, nil, fmt.Errorf("read dbo.PurOrderDetail: %w", err)
 	}
@@ -357,6 +370,36 @@ func readRows(ctx context.Context, source *sql.DB) ([]sourceRow, int, []exceptio
 		return nil, 0, nil, fmt.Errorf("read PurOrderDetail rows: %w", err)
 	}
 	return result, duplicates, exceptions, nil
+}
+
+func sourceRowsQuery(fromRow, toRow int) (string, []any, error) {
+	if fromRow < 0 || (toRow != -1 && toRow <= fromRow) {
+		return "", nil, errors.New("source row window must satisfy from-row >= 0 and to-row > from-row, or to-row=-1")
+	}
+	if fromRow == 0 && toRow == -1 {
+		return sourceQuery, nil, nil
+	}
+	query := `SELECT * FROM (
+` + sourceQuery + `
+) AS source_rows
+ORDER BY po_code,
+         TRY_CONVERT(bigint, po_row_id),
+         po_row_id,
+         item_legacy_id
+OFFSET ? ROWS`
+	args := []any{fromRow}
+	if toRow != -1 {
+		query += "\nFETCH NEXT ? ROWS ONLY"
+		args = append(args, toRow-fromRow)
+	}
+	return query, args, nil
+}
+
+func rowWindowEnd(toRow int) string {
+	if toRow == -1 {
+		return "end"
+	}
+	return strconv.Itoa(toRow)
 }
 
 func dependencyExceptions(ctx context.Context, tx pgx.Tx, tenant, branch string) ([]exceptionRow, error) {

@@ -19,6 +19,12 @@ branch, stage rows with PostgreSQL COPY, join only scoped target documents and
 items, upsert by the reviewed import key, and record invalid/dependency rows in
 `legacy_id_mappings` and `migration_exceptions`.
 
+Both modes now accept deterministic zero-based `-from-row` and exclusive
+`-to-row` windows. The source query applies stable return-id, numeric/text row,
+and item ordering before SQL Server `OFFSET`/`FETCH`, and the report records the
+requested window. This makes the deferred return waves restartable without
+claiming that a source window has been executed.
+
 ## Focused verification
 
 The following checks passed without opening SQL Server or PostgreSQL:
@@ -30,8 +36,8 @@ go vet ./migration/cmd/bulkreturnlines
 ```
 
 The tests verify the fixed source/target contracts, both mode bindings,
-mode-specific exception/payload keys, short-row rejection, and positive
-quantity enforcement.
+mode-specific exception/payload keys, short-row rejection, positive quantity
+enforcement, and bounded-window query validation for both modes.
 
 ## Acceptance still open
 

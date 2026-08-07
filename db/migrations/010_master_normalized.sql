@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS master_aliases (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     item_id uuid NOT NULL REFERENCES master_items(id) ON DELETE CASCADE,
-    alias_kind text NOT NULL CHECK (alias_kind IN ('alias', 'barcode', 'legacy_id')),
+    alias_kind text NOT NULL CHECK (alias_kind IN ('alias', 'alternate_alias', 'barcode', 'legacy_id')),
     alias_value text NOT NULL,
     normalized_value text NOT NULL,
     active boolean NOT NULL DEFAULT true,

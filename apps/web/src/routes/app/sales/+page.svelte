@@ -2,7 +2,7 @@
   import { page } from '$app/stores';
   import { beforeNavigate } from '$app/navigation';
   import { onMount } from 'svelte';
-  import type { Document, ItemLookupResult, InventoryAvailableBatch, MasterRecord, SessionResponse, SyncEnvelope, ReportRow, PricingPreviewResponse, PricingPreviewRequest, DocumentCommandForKind } from '@abuzar/contracts';
+  import type { ApplyItemGSTRequest, Document, ItemLookupResult, InventoryAvailableBatch, MasterRecord, SessionResponse, SyncEnvelope, ReportRow, PricingPreviewResponse, PricingPreviewRequest, DocumentCommandForKind } from '@abuzar/contracts';
   import { AbuzarApi, ApiError, OfflineQueue, edgeRequest, newEventId } from '$lib/api';
   import LegacyMenuBar from '$lib/LegacyMenuBar.svelte';
   import type { MenuAction } from '$lib/legacy-menu';
@@ -106,6 +106,7 @@
   let lookupResults: ItemLookupResult[] = [];
   let availableLookupItems: LookupItem[] = [];
   let rows: SaleRow[] = [blankRow()];
+  let focusedRowIndex = 0;
   $: kind = $page?.url?.searchParams?.get('kind') ?? 'cash';
   $: if (kind !== activeWorkflowKind) switchWorkflow(kind);
   $: workflowTitle = ({ cash: 'Cash Sale', credit: 'Credit Sale', 'cash-return': 'Cash Sale Return', 'credit-return': 'Credit Sale Return', 'open-cash-return': 'Open Cash Sale Return', 'open-credit-return': 'Open Credit Sale Return', quotation: 'Quotation', refused: 'Refused Sales' } as Record<string, string>)[kind] ?? 'Cash Sale';
@@ -207,6 +208,7 @@
         pricingPreview = null;
         customer = row.party || customer;
         rows = [{ ...blankRow(), itemName: row.item || '', quantity: row.quantity || '1', salePrice: row.amount || '0.00', total: row.amount || '0.00' }];
+        focusedRowIndex = 0;
         activeTab = 'detail';
         message = `${workflowTitle} ${documentNumber || 'document'} loaded from the compatibility history summary.`;
         return;
@@ -233,6 +235,7 @@
       cashTendered = document.kind === 'cash-sale' ? document.payment?.tendered ?? document.totals.totalAmount ?? '' : '';
       pricingPreview = document.pricing ?? null;
       rows = saleRowsFromDocument(document);
+      focusedRowIndex = 0;
       businessDocumentId = document.id;
       businessDocumentVersion = document.version;
       canonicalCommandSignature = '';
@@ -308,6 +311,51 @@
     return cause instanceof ApiError ? cause.problem?.detail ?? cause.message : cause instanceof Error ? cause.message : fallback;
   }
 
+  function resetSaleDraft() {
+    rows = [blankRow()];
+    focusedRowIndex = 0;
+    documentNumber = '';
+    businessDocumentId = '';
+    businessDocumentVersion = 0;
+    customerId = '';
+    godownId = '';
+    sourceDocumentId = '';
+    sourceDocumentNumber = '';
+    dueDate = '';
+    cashTendered = '';
+    pricingPreview = null;
+    canonicalCommandSignature = '';
+    canonicalCommandId = '';
+    canonicalIdempotencyKey = '';
+    activeTab = 'detail';
+  }
+
+  async function openSupplierInfo() {
+    const item = rows[focusedRowIndex];
+    if (!item?.itemId) {
+      message = 'Supplier Info.: select an active canonical item row first.';
+      return;
+    }
+    try {
+      const [itemDetail, supplierResult] = await Promise.all([
+        api.masterRecord('item', item.itemId),
+        api.masterRecords('supplier')
+      ]);
+      const supplierRecords = supplierResult.records.filter((record) => record.active);
+      const linkedSupplier = (itemDetail.suppliers ?? []).find((candidate) => candidate.supplierId || candidate.legacySupplierId.trim());
+      const supplierRecord = supplierRecords.find((record) => record.id === linkedSupplier?.supplierId)
+        ?? supplierRecords.find((record) => record.legacyId?.trim().toLowerCase() === linkedSupplier?.legacySupplierId.trim().toLowerCase() || record.code.trim().toLowerCase() === linkedSupplier?.legacySupplierId.trim().toLowerCase());
+      const supplierLegacyId = supplierRecord?.legacyId?.trim() || supplierRecord?.code?.trim();
+      if (!supplierRecord || !supplierLegacyId) {
+        message = 'Supplier Info.: the selected canonical item has no active linked supplier.';
+        return;
+      }
+      window.location.assign(`/app/master/supplier?legacyId=${encodeURIComponent(supplierLegacyId)}`);
+    } catch (cause) {
+      message = apiErrorMessage(cause, 'Supplier Info.: canonical supplier context could not be loaded.');
+    }
+  }
+
   function handleMenuCommand(action: MenuAction): boolean {
     if (busy) {
       message = 'Wait for the active document command to finish.';
@@ -315,17 +363,7 @@
     }
     switch (action.label) {
       case 'New':
-        rows = [blankRow()];
-        documentNumber = '';
-        businessDocumentId = '';
-        businessDocumentVersion = 0;
-        customerId = '';
-        godownId = '';
-        sourceDocumentId = '';
-        sourceDocumentNumber = '';
-        dueDate = '';
-        cashTendered = '';
-        pricingPreview = null;
+        resetSaleDraft();
         message = 'New sale ready.';
         return true;
       case 'List':
@@ -340,6 +378,10 @@
         return true;
       case 'Save And Post':
         void submitSale('posted', 'save-and-post');
+        return true;
+      case 'Delete':
+        busy = true;
+        void deleteBusinessDocument().catch((cause) => { error = apiErrorMessage(cause, 'The canonical sale draft could not be deleted.'); }).finally(() => { busy = false; });
         return true;
       case 'Void':
         busy = true;
@@ -362,9 +404,18 @@
         void navigateHistoryTo(-1);
         return true;
       case 'Item Sale History':
+        {
+          const item = rows[focusedRowIndex];
+          const itemFilter = item?.itemLegacyId?.trim() || item?.itemName?.trim();
+          if (!itemFilter) {
+            message = 'Item Sale History: select or populate the focused item row first.';
+            return true;
+          }
+          historyFilter = itemFilter;
+        }
         activeTab = 'list';
         void loadHistory();
-        message = 'Sale history loaded for the current item context.';
+        message = `Sale history loaded for the focused item context: ${historyFilter}.`;
         return true;
       case 'Populate Items':
         if (!rows.some((row) => row.itemName.trim()) && availableLookupItems[0]) void chooseLookupItem(availableLookupItems[0]);
@@ -382,17 +433,7 @@
         return true;
       }
       case 'Apply Item GST %': {
-        if (!itemGstRate.trim()) {
-          message = 'Apply Item GST %: enter a rate in the transaction adjustments first.';
-          return true;
-        }
-        let applied = 0;
-        rows = rows.map((row) => {
-          if (!row.itemName.trim()) return row;
-          applied += 1;
-          return { ...row, gstRate: itemGstRate.trim() };
-        });
-        message = applied ? `Apply Item GST %: ${itemGstRate.trim()}% applied to populated lines.` : 'Apply Item GST %: no populated lines to update.';
+        void applyCanonicalItemGST();
         return true;
       }
       case 'Apply Item Discount %': {
@@ -432,7 +473,17 @@
         message = 'Item row restored.';
         return true;
       case 'View Item Info':
-        window.location.assign('/app/master/item');
+        {
+          const item = rows[focusedRowIndex];
+          if (!item?.itemId || !item.itemLegacyId?.trim()) {
+            message = 'View Item Info: select an active canonical item row first.';
+            return true;
+          }
+          window.location.assign(`/app/master/item?legacyId=${encodeURIComponent(item.itemLegacyId?.trim() ?? '')}`);
+        }
+        return true;
+      case 'Supplier Info.':
+        void openSupplierInfo();
         return true;
       case 'Customer Info.':
       case 'New Customer':
@@ -454,10 +505,67 @@
 
   function blankAllocation(quantity = '0'): SaleAllocation { return { batchId: '', quantity }; }
   function blankRow(): SaleRow { return { itemName: '', stock: '', availabilityLoaded: false, availableBatches: [], allocations: [blankAllocation('1')], purchasePrice: '', salePrice: '', manufacturer: '', pieces: '', location: '', quantity: '1', discountPercent: '', gstRate: '', batchNumber: '', expiryDate: '', unitCost: '', total: '0.00' }; }
+
+  async function applyCanonicalItemGST() {
+    const rate = itemGstRate.trim();
+    if (!rate) {
+      message = 'Apply Item GST %: enter a rate in the transaction adjustments first.';
+      return;
+    }
+    const populatedRows = rows.filter((row) => row.itemName.trim());
+    if (!populatedRows.length) {
+      message = 'Apply Item GST %: no populated lines to update.';
+      return;
+    }
+    if (populatedRows.some((row) => !row.itemId)) {
+      error = 'Apply Item GST %: select every populated line from the active canonical item list first.';
+      return;
+    }
+    const itemIds = Array.from(new Set(populatedRows.map((row) => row.itemId).filter((itemId): itemId is string => Boolean(itemId))));
+    busy = true;
+    message = '';
+    error = '';
+    try {
+      const request: ApplyItemGSTRequest = {
+        rate,
+        inclusive: false,
+        effectiveFrom: transactionDate,
+        itemIds,
+        sourceTable: 'PowerBuilder.FileCommand',
+        sourceLegacyId: 'Apply Item GST %'
+      };
+      const result = await api.applyItemGST(request);
+      rows = rows.map((row) => row.itemId && itemIds.includes(row.itemId) ? { ...row, gstRate: rate } : row);
+      const applied = result.itemsApplied;
+      message = `Apply Item GST %: ${rate}% assigned to ${applied} canonical item${applied === 1 ? '' : 's'}; draft line rates updated.`;
+    } catch (cause) {
+      error = apiErrorMessage(cause, 'Apply Item GST %: the canonical item tax assignment could not be saved.');
+    } finally {
+      busy = false;
+    }
+  }
+
   function rowAllocations(row: SaleRow): SaleAllocation[] { return row.allocations?.length ? row.allocations : [blankAllocation(row.quantity || '1')]; }
-  function addRow() { rows = [...rows, blankRow()]; }
-  function removeRow(index: number) { rows = rows.filter((_, rowIndex) => rowIndex !== index); if (!rows.length) rows = [blankRow()]; }
+  function focusRow(index: number) {
+    if (index >= 0 && index < rows.length) focusedRowIndex = index;
+  }
+  function focusRowFromEvent(event: FocusEvent) {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const row = target.closest('tbody > tr');
+    const table = target.closest('table');
+    if (!row || !table) return;
+    focusRow(Array.from(table.querySelectorAll('tbody > tr')).indexOf(row));
+  }
+  function addRow() { rows = [...rows, blankRow()]; focusedRowIndex = rows.length - 1; }
+  function removeRow(index: number) {
+    const nextRows = rows.filter((_, rowIndex) => rowIndex !== index);
+    rows = nextRows.length ? nextRows : [blankRow()];
+    if (!nextRows.length) focusedRowIndex = 0;
+    else focusedRowIndex = Math.min(index < focusedRowIndex ? focusedRowIndex - 1 : focusedRowIndex, nextRows.length - 1);
+  }
   function updateRow(index: number, key: keyof SaleRow, value: string) {
+    focusRow(index);
     rows = rows.map((row, rowIndex) => {
       if (rowIndex !== index) return row;
       const next = { ...row, [key]: value };
@@ -728,6 +836,7 @@
     }
     let index = rows.findIndex((row) => !row.itemName.trim());
     if (index < 0) { rows = [...rows, blankRow()]; index = rows.length - 1; }
+    focusedRowIndex = index;
     rows = rows.map((row, rowIndex) => rowIndex === index ? { ...row, itemId: item.id, itemLegacyId: item.legacyId, itemName: item.name, stock: godownId ? 'Loading…' : 'Select godown', availabilityLoaded: false, availableBatches: [], allocations: [blankAllocation(row.quantity || '1')], stockError: undefined, purchasePrice: item.purchasePrice, salePrice: item.salePrice, salePrices: [...item.salePrices], manufacturer: item.manufacturer, pieces: item.pieces, location: item.location, quantity: row.quantity || '1', total: '0.00' } : row);
     queuePricingPreview();
     await refreshRowAvailability(index);
@@ -1023,6 +1132,38 @@
     message = `${workflowTitle} voided successfully.`;
   }
 
+  async function deleteBusinessDocument() {
+    const documentKind = businessDocumentKind();
+    if (!businessDocumentId) {
+      resetSaleDraft();
+      message = 'Current unsaved sale draft discarded.';
+      return;
+    }
+    if (!documentKind) throw new Error('Canonical sales document kind is unavailable.');
+    const reason = 'Deleted from sales workflow';
+    const signature = JSON.stringify({ documentKind, action: 'delete', documentId: businessDocumentId, version: businessDocumentVersion, reason });
+    if (signature !== canonicalCommandSignature) {
+      canonicalCommandSignature = signature;
+      canonicalCommandId = newEventId();
+      canonicalIdempotencyKey = `canonical:${documentKind}:delete:${businessDocumentId}:${businessDocumentVersion}`;
+    }
+    const command: DocumentCommandForKind<'cash-sale' | 'credit-sale' | 'cash-return' | 'credit-return' | 'open-cash-return' | 'open-credit-return' | 'quotation' | 'refused-sale'> = {
+      commandId: canonicalCommandId,
+      kind: documentKind,
+      action: 'delete',
+      idempotencyKey: canonicalIdempotencyKey,
+      occurredAt: localDateAtNoonUtc(transactionDate),
+      expectedVersion: businessDocumentVersion,
+      documentId: businessDocumentId,
+      reason
+    } as DocumentCommandForKind<'cash-sale' | 'credit-sale' | 'cash-return' | 'credit-return' | 'open-cash-return' | 'open-credit-return' | 'quotation' | 'refused-sale'>;
+    const response = await api.documentCommand(documentKind, command);
+    if (!response.accepted) throw new Error(response.errors.map((item) => item.message).join('; ') || 'The canonical delete command was rejected.');
+    if (response.status !== 'draft' || !response.document.deletedAt) throw new Error('Canonical sale delete did not return a deleted draft.');
+    resetSaleDraft();
+    message = `${workflowTitle} draft deleted successfully.`;
+  }
+
   async function submitSale(status: 'draft' | 'posted' = 'posted', action?: 'save' | 'post' | 'save-and-post') {
     const requestRevision = workflowRevision;
     busy = true; message = ''; error = '';
@@ -1078,7 +1219,7 @@
   }
 </script>
 
-<svelte:window onkeydown={enableInteractive} />
+<svelte:window onkeydown={enableInteractive} onfocusin={focusRowFromEvent} />
 
 <svelte:head><title>WASEELA · ABUZAR V3 · {workflowTitle}</title></svelte:head>
 
@@ -1087,7 +1228,7 @@
 <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1 aria-label={kind === 'cash' ? 'New sale' : workflowTitle}>{transactionWindowTitle}</h1></header>
     <LegacyMenuBar context="cash-sale" windowId={'sales-' + kind} windowLabel={workflowTitle} windowHref={'/app/sales?kind=' + kind} navigationBlocked={busy} onCommand={handleMenuCommand} />
     <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Sale toolbar">
-      <button type="button" aria-label="New sale" onclick={() => { rows = [blankRow()]; documentNumber = ''; businessDocumentId = ''; businessDocumentVersion = 0; dueDate = ''; cashTendered = ''; pricingPreview = null; message = 'New sale ready.'; }} disabled={busy} title="New">▱</button>
+      <button type="button" aria-label="New sale" onclick={() => { rows = [blankRow()]; focusedRowIndex = 0; documentNumber = ''; businessDocumentId = ''; businessDocumentVersion = 0; dueDate = ''; cashTendered = ''; pricingPreview = null; message = 'New sale ready.'; }} disabled={busy} title="New">▱</button>
       <button type="button" aria-label="Post sale" onclick={() => { void submitSale('posted', businessDocumentId ? 'post' : 'save-and-post'); }} disabled={busy} title="Post sale">▣</button>
       <button type="button" aria-label="Void sale" onclick={() => { busy = true; error = ''; void submitBusinessVoid().catch((cause) => { error = apiErrorMessage(cause, 'The canonical sale could not be voided.'); }).finally(() => { busy = false; }); }} disabled={busy || !businessDocumentId} title="Void sale">⊘</button>
       <button type="button" aria-label="Print sale" onclick={() => { void printSaleSlip(); }} title="Print">▤</button>

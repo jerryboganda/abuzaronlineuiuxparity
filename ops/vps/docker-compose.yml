@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  api:
+    image: alpine:latest
+    container_name: abuzarnext-api
+    restart: always
+    working_dir: /app
+    volumes:
+      - ./abuzarnext-api:/app/abuzarnext-api:ro
+    environment:
+      - HTTP_LISTEN_ADDR=:8080
+      - DATABASE_URL=postgres://platform_admin:84786c5d336ccea442b9323c57df9346acd6d9dcc9e18585@platform-postgres:5432/abuzarnext?sslmode=disable
+      - APP_ENV=production
+    command: ["/app/abuzarnext-api"]
+    networks:
+      - platform
+
+  web:
+    image: nginx:alpine
+    container_name: abuzarnext-web
+    restart: always
+    ports:
+      - "127.0.0.1:8095:80"
+    volumes:
+      - ./build:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+    networks:
+      - platform
+
+networks:
+  platform:
+    external: true

@@ -1,0 +1,3417 @@
+{
+  "generatedAt": "2026-08-07T10:04:50.8456947Z",
+  "manifest": "tmp\\canonical-sqlserver-schema.json",
+  "mapsDirectory": "migration\\maps",
+  "manifestTableCount": 763,
+  "reviewedMappingEntryCount": 74,
+  "mappedTableCount": 49,
+  "unmappedTableCount": 714,
+  "overlappingMappingEntryCount": 25,
+  "mappedTables": [
+    {
+      "schema": "dbo",
+      "table": "AdditionalTaxRule"
+    },
+    {
+      "schema": "dbo",
+      "table": "Area"
+    },
+    {
+      "schema": "dbo",
+      "table": "CompanyHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ConfigSetting"
+    },
+    {
+      "schema": "dbo",
+      "table": "Customer"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerGroup"
+    },
+    {
+      "schema": "dbo",
+      "table": "ExtraTaxRule"
+    },
+    {
+      "schema": "dbo",
+      "table": "Godown"
+    },
+    {
+      "schema": "dbo",
+      "table": "GodownGroup"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupAllowedGodown"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupAllowedGroups"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupAllowedHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupAllowedPrice"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupAllowedRecipient"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupAllowedServiceCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupAllowedStartupRight"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupCashAccount"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupRights"
+    },
+    {
+      "schema": "dbo",
+      "table": "Groups"
+    },
+    {
+      "schema": "dbo",
+      "table": "IncomeTaxRule"
+    },
+    {
+      "schema": "dbo",
+      "table": "Item"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemGroup"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemSuppliers"
+    },
+    {
+      "schema": "dbo",
+      "table": "Manufacturer"
+    },
+    {
+      "schema": "dbo",
+      "table": "ManufacturerCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "PRdetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "Preferences"
+    },
+    {
+      "schema": "dbo",
+      "table": "PricePolicy"
+    },
+    {
+      "schema": "dbo",
+      "table": "PricePolicyDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "PRLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "Purdetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "Purledger"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurOrderDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurOrderHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "Saledetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "SalesTaxSchedule"
+    },
+    {
+      "schema": "dbo",
+      "table": "SRdetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "SRLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "StockReport"
+    },
+    {
+      "schema": "dbo",
+      "table": "Supplier"
+    },
+    {
+      "schema": "dbo",
+      "table": "SupplierCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "TaxCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "UnitSalesTaxRules"
+    },
+    {
+      "schema": "dbo",
+      "table": "UserGroups"
+    },
+    {
+      "schema": "dbo",
+      "table": "Users"
+    },
+    {
+      "schema": "dbo",
+      "table": "VirtualGl"
+    }
+  ],
+  "unmappedTables": [
+    {
+      "schema": "dbo",
+      "table": "_HeaderTabMaxKey"
+    },
+    {
+      "schema": "dbo",
+      "table": "_TABMAXKEY"
+    },
+    {
+      "schema": "dbo",
+      "table": "_Utn"
+    },
+    {
+      "schema": "dbo",
+      "table": "A"
+    },
+    {
+      "schema": "dbo",
+      "table": "ABD_US"
+    },
+    {
+      "schema": "dbo",
+      "table": "AccountBalanceLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "AccountGodown"
+    },
+    {
+      "schema": "dbo",
+      "table": "Accounts"
+    },
+    {
+      "schema": "dbo",
+      "table": "ActivityMonitor"
+    },
+    {
+      "schema": "dbo",
+      "table": "AdjBufferDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "AdjBufferHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "AdjCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "AdjDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "AdjHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "AdmittedPatientRecurringServices"
+    },
+    {
+      "schema": "dbo",
+      "table": "AdvPurDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "AdvPurHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "AdvSaleDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "AdvSaleLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "AgingInterval"
+    },
+    {
+      "schema": "dbo",
+      "table": "AgingIntervalDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "Alert"
+    },
+    {
+      "schema": "dbo",
+      "table": "AlertType"
+    },
+    {
+      "schema": "dbo",
+      "table": "AlternateItemAlias"
+    },
+    {
+      "schema": "dbo",
+      "table": "AlternateItemAliasRequest"
+    },
+    {
+      "schema": "dbo",
+      "table": "AppointmentMethod"
+    },
+    {
+      "schema": "dbo",
+      "table": "AppointmentStatus"
+    },
+    {
+      "schema": "dbo",
+      "table": "AppVersion"
+    },
+    {
+      "schema": "dbo",
+      "table": "AppVersionDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "AssocAdvSaleInvList"
+    },
+    {
+      "schema": "dbo",
+      "table": "AssociatedItemPart"
+    },
+    {
+      "schema": "dbo",
+      "table": "AssocSaleInvList"
+    },
+    {
+      "schema": "dbo",
+      "table": "Author"
+    },
+    {
+      "schema": "dbo",
+      "table": "AutoSaleLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "AvgPriceAdjDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "AvgPriceAdjHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "BillSummary"
+    },
+    {
+      "schema": "dbo",
+      "table": "BillSummaryDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "BillSummaryType"
+    },
+    {
+      "schema": "dbo",
+      "table": "BioMetricMachine"
+    },
+    {
+      "schema": "dbo",
+      "table": "BirthCertificate"
+    },
+    {
+      "schema": "dbo",
+      "table": "BonusPolicy"
+    },
+    {
+      "schema": "dbo",
+      "table": "BonusPolicyDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CABG"
+    },
+    {
+      "schema": "dbo",
+      "table": "CashAccAllowedModule"
+    },
+    {
+      "schema": "dbo",
+      "table": "CashierActivity"
+    },
+    {
+      "schema": "dbo",
+      "table": "CashierJob"
+    },
+    {
+      "schema": "dbo",
+      "table": "CashierJobModule"
+    },
+    {
+      "schema": "dbo",
+      "table": "CashierShift"
+    },
+    {
+      "schema": "dbo",
+      "table": "CashierShiftCashCount"
+    },
+    {
+      "schema": "dbo",
+      "table": "CashierShiftUsers"
+    },
+    {
+      "schema": "dbo",
+      "table": "CashierTemplate"
+    },
+    {
+      "schema": "dbo",
+      "table": "CashierWindow"
+    },
+    {
+      "schema": "dbo",
+      "table": "CategoryAccounts"
+    },
+    {
+      "schema": "dbo",
+      "table": "CategorySegment"
+    },
+    {
+      "schema": "dbo",
+      "table": "CheckListItem"
+    },
+    {
+      "schema": "dbo",
+      "table": "Class"
+    },
+    {
+      "schema": "dbo",
+      "table": "ClassGraduation"
+    },
+    {
+      "schema": "dbo",
+      "table": "ClassGraduationDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ClassMedium"
+    },
+    {
+      "schema": "dbo",
+      "table": "ClassPromotion"
+    },
+    {
+      "schema": "dbo",
+      "table": "ClassPromotionDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ClassType"
+    },
+    {
+      "schema": "dbo",
+      "table": "ClientInstance"
+    },
+    {
+      "schema": "dbo",
+      "table": "ClientSetup"
+    },
+    {
+      "schema": "dbo",
+      "table": "cmh_accounts"
+    },
+    {
+      "schema": "dbo",
+      "table": "cmh_area"
+    },
+    {
+      "schema": "dbo",
+      "table": "cmh_customer"
+    },
+    {
+      "schema": "dbo",
+      "table": "cmh_custtype"
+    },
+    {
+      "schema": "dbo",
+      "table": "cmh_godown"
+    },
+    {
+      "schema": "dbo",
+      "table": "cmh_iclass"
+    },
+    {
+      "schema": "dbo",
+      "table": "cmh_item"
+    },
+    {
+      "schema": "dbo",
+      "table": "cmh_itemcat"
+    },
+    {
+      "schema": "dbo",
+      "table": "cmh_manufact"
+    },
+    {
+      "schema": "dbo",
+      "table": "CMH_messages"
+    },
+    {
+      "schema": "dbo",
+      "table": "cmh_packing"
+    },
+    {
+      "schema": "dbo",
+      "table": "cmh_region"
+    },
+    {
+      "schema": "dbo",
+      "table": "cmh_salesman"
+    },
+    {
+      "schema": "dbo",
+      "table": "cmh_supplier"
+    },
+    {
+      "schema": "dbo",
+      "table": "ColumnEditStyle"
+    },
+    {
+      "schema": "dbo",
+      "table": "ColumnPreferences"
+    },
+    {
+      "schema": "dbo",
+      "table": "ContactCard"
+    },
+    {
+      "schema": "dbo",
+      "table": "ContactGroup"
+    },
+    {
+      "schema": "dbo",
+      "table": "ContactGroupDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ContactPolicy"
+    },
+    {
+      "schema": "dbo",
+      "table": "ContactPolicyDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CoronoryAngiogram"
+    },
+    {
+      "schema": "dbo",
+      "table": "CoronoryAngioplasty"
+    },
+    {
+      "schema": "dbo",
+      "table": "County"
+    },
+    {
+      "schema": "dbo",
+      "table": "CrossTab_ReportData"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Accounts"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_AdjDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_AdjHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Area"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_CashierWindow"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_CategoryAccounts"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_ClientInstance"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_ClientList"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_County"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Currency"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Customer"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_CustomerCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_CustomerSegment"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_DataTransferLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_DataTransferLogDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Department"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Disease"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Doctors"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_DueSatisfyDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_DueSatisfyHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_GLDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Glheader"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Godown"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_GodownDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_GodownGroup"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_GoodsCompany"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_GuaranteePerson"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_IssueCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_IssueDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_IssueHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_IssueType"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_MainAccounts"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_MasterCashWin"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Message"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Notes"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_NotesDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Patient"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_PatientCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_PRDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_PRLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_ProformaPurDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_PurchaseType"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_PurDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_PurExp"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_PurLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_ReceiptCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_ReceiptDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_ReceiptHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Region"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_SaleDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_SaleInvDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_SaleLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_SalesMan"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_SaleType"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Section"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_SRDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_SRLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_SubAccounts"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_SubArea"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Supplier"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_SupplierCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_TDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_THeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_TransactionDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_TransactionHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Transactions"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_TransferableData"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_Users"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_VirtualGl"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_VirtualGlTemp"
+    },
+    {
+      "schema": "dbo",
+      "table": "CRS_VocherCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "CTAngiogram"
+    },
+    {
+      "schema": "dbo",
+      "table": "Currency"
+    },
+    {
+      "schema": "dbo",
+      "table": "CurrencyDenomination"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustAllowedServices"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustBalances"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustGuaranteePerson"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustItemCatAssociation"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustItemCatWiseSaleDiscount"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustLicCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomDutyRule"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerComments"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerConfig"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerDeployment"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerDeploymentDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerGroupCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerGroupDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerLicense"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerLicRequest"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerSector"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerSegment"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerServiceTemplate"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerServiceTemplateDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerStudentServiceTemplate"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustomerStudentServiceTemplateDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustQualPerson"
+    },
+    {
+      "schema": "dbo",
+      "table": "CustWiseItemCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "DataImportLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "DataTransferDate"
+    },
+    {
+      "schema": "dbo",
+      "table": "DataTransferLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "DataTransferLogDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_ExpiryIntimation"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_ExpiryIntimationDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_IssueDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_IssueHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_PRdetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_PRLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_Purdetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_Purledger"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_PurOrderDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_PurOrderHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_Saledetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_SaleLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_SRdetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "DB_SRLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "DBCC_History"
+    },
+    {
+      "schema": "dbo",
+      "table": "DBRepairLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "DeathCertificate"
+    },
+    {
+      "schema": "dbo",
+      "table": "DeletedSaleItem"
+    },
+    {
+      "schema": "dbo",
+      "table": "Department"
+    },
+    {
+      "schema": "dbo",
+      "table": "DiagnosticItem"
+    },
+    {
+      "schema": "dbo",
+      "table": "DiagnosticItemType"
+    },
+    {
+      "schema": "dbo",
+      "table": "DiagnosticUnit"
+    },
+    {
+      "schema": "dbo",
+      "table": "DischargePrescription"
+    },
+    {
+      "schema": "dbo",
+      "table": "DischargeReason"
+    },
+    {
+      "schema": "dbo",
+      "table": "DischargeRefferal"
+    },
+    {
+      "schema": "dbo",
+      "table": "DiscountPolicy"
+    },
+    {
+      "schema": "dbo",
+      "table": "DiscountPolicyDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "Disease"
+    },
+    {
+      "schema": "dbo",
+      "table": "DiseaseTreatmentTemp"
+    },
+    {
+      "schema": "dbo",
+      "table": "DiseaseTreatmentTempDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "DiseaseType"
+    },
+    {
+      "schema": "dbo",
+      "table": "DispatchDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "DispatchHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "DoctorCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "DoctorDutyRoster"
+    },
+    {
+      "schema": "dbo",
+      "table": "DoctorDutyRosterDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "Doctors"
+    },
+    {
+      "schema": "dbo",
+      "table": "Dosage"
+    },
+    {
+      "schema": "dbo",
+      "table": "DosageUnit"
+    },
+    {
+      "schema": "dbo",
+      "table": "DropData"
+    },
+    {
+      "schema": "dbo",
+      "table": "dtproperties"
+    },
+    {
+      "schema": "dbo",
+      "table": "DueAdjDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "DueAdjHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "DueDeleteDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "DueSatisfyDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "DueSatisfyHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ECG"
+    },
+    {
+      "schema": "dbo",
+      "table": "Echo"
+    },
+    {
+      "schema": "dbo",
+      "table": "EmailTemplate"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Advance"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Allowance"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Attendance"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_AttendanceStatus"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Category"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Certification"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Deduction"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Department"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_DepartmentTiming"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Designation"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Education"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_EmpCertification"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_EmpEducation"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Employee"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_EmpSkill"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Finger"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_FingerPrint"
+    },
+    {
+      "schema": "dbo",
+      "table": "Emp_Holiday"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Image"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_JobExp"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Pay"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_PayAllowance"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_PayDeduction"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Payroll"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_PayrollAllowances"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_PayrollDeductions"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Project"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Reference"
+    },
+    {
+      "schema": "dbo",
+      "table": "EMP_Skill"
+    },
+    {
+      "schema": "dbo",
+      "table": "EmrLabInvestRec"
+    },
+    {
+      "schema": "dbo",
+      "table": "EventLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "ExpiryIntimation"
+    },
+    {
+      "schema": "dbo",
+      "table": "ExpiryIntimationDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "EyeVision"
+    },
+    {
+      "schema": "dbo",
+      "table": "FBR_DI_DocType"
+    },
+    {
+      "schema": "dbo",
+      "table": "FBR_DI_Scenario"
+    },
+    {
+      "schema": "dbo",
+      "table": "FBR_DI_TransactionType"
+    },
+    {
+      "schema": "dbo",
+      "table": "FBR_DI_UOM"
+    },
+    {
+      "schema": "dbo",
+      "table": "Fzcity"
+    },
+    {
+      "schema": "dbo",
+      "table": "GenericItem"
+    },
+    {
+      "schema": "dbo",
+      "table": "GenericItemType"
+    },
+    {
+      "schema": "dbo",
+      "table": "Gestation"
+    },
+    {
+      "schema": "dbo",
+      "table": "GLDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "GLDocument"
+    },
+    {
+      "schema": "dbo",
+      "table": "Glheader"
+    },
+    {
+      "schema": "dbo",
+      "table": "Global"
+    },
+    {
+      "schema": "dbo",
+      "table": "GodownDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "GodownItemSetting"
+    },
+    {
+      "schema": "dbo",
+      "table": "GoodsCompany"
+    },
+    {
+      "schema": "dbo",
+      "table": "GPE"
+    },
+    {
+      "schema": "dbo",
+      "table": "Grade"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupPurExpTemplate"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupSummaryAccount"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupSupplierCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupVoucherCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "GroupWiseImpExpTemplate"
+    },
+    {
+      "schema": "dbo",
+      "table": "GSTRules"
+    },
+    {
+      "schema": "dbo",
+      "table": "GSTType"
+    },
+    {
+      "schema": "dbo",
+      "table": "GuaranteePerson"
+    },
+    {
+      "schema": "dbo",
+      "table": "Guest"
+    },
+    {
+      "schema": "dbo",
+      "table": "GuestCheckin"
+    },
+    {
+      "schema": "dbo",
+      "table": "GuestCheckInService"
+    },
+    {
+      "schema": "dbo",
+      "table": "GuestRoom"
+    },
+    {
+      "schema": "dbo",
+      "table": "GuestRoomFloor"
+    },
+    {
+      "schema": "dbo",
+      "table": "GuestRoomService"
+    },
+    {
+      "schema": "dbo",
+      "table": "GuestRoomStatus"
+    },
+    {
+      "schema": "dbo",
+      "table": "GuestRoomType"
+    },
+    {
+      "schema": "dbo",
+      "table": "GuestTransfer"
+    },
+    {
+      "schema": "dbo",
+      "table": "GYN_US"
+    },
+    {
+      "schema": "dbo",
+      "table": "HeaderLogo"
+    },
+    {
+      "schema": "dbo",
+      "table": "HPC"
+    },
+    {
+      "schema": "dbo",
+      "table": "ICDList"
+    },
+    {
+      "schema": "dbo",
+      "table": "IMP_AdvSaleDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "IMP_AdvSaleLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "IMP_CashierWindow"
+    },
+    {
+      "schema": "dbo",
+      "table": "IMP_MasterCashWin"
+    },
+    {
+      "schema": "dbo",
+      "table": "IMP_Saledetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "IMP_SaleLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "IMP_SRDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "IMP_SRLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "ImpPurDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ImpPurExp"
+    },
+    {
+      "schema": "dbo",
+      "table": "ImpPurHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "IncentiveSheet"
+    },
+    {
+      "schema": "dbo",
+      "table": "IncentiveSheetDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "InstallmentDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "InstallmentGuarantor"
+    },
+    {
+      "schema": "dbo",
+      "table": "InstallmentHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "InstallmentReceipt"
+    },
+    {
+      "schema": "dbo",
+      "table": "InstallmentReceiptDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "InstallmentSecurity"
+    },
+    {
+      "schema": "dbo",
+      "table": "Instruction"
+    },
+    {
+      "schema": "dbo",
+      "table": "InterfaceSetting"
+    },
+    {
+      "schema": "dbo",
+      "table": "IntimationType"
+    },
+    {
+      "schema": "dbo",
+      "table": "InvDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "InvLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "IOLPower"
+    },
+    {
+      "schema": "dbo",
+      "table": "IssueCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "IssueCategoryAccounts"
+    },
+    {
+      "schema": "dbo",
+      "table": "IssueDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "IssueHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "IssueReqDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "IssueReqHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "IssueType"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemAlert"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemAlertType"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemAllowedMeter"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemAssociation"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemAuthor"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemBatches"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemBatchPricing"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemBrand"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemCategoryWiseUpdation"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemClass"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemColour"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemColourAndSize"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemConversionDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemConversionEffect"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemConversionHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemCostHistory"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemDesign"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemFabric"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemGroupDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemImage"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemInModel"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemInquiry"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemInquiryDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemMeter"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemMeterLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemNotes"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemPacking"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemPart"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemPartInModel"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemPurExpTemplate"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemReceiptExpTemplate"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemRegRequest"
+    },
+    {
+      "schema": "dbo",
+      "table": "items_corrupted"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemsGroupCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemSize"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemSleeve"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemStyle"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemThickness"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemType"
+    },
+    {
+      "schema": "dbo",
+      "table": "ItemYarn"
+    },
+    {
+      "schema": "dbo",
+      "table": "LabInvestRec"
+    },
+    {
+      "schema": "dbo",
+      "table": "LastPurchaseHistory"
+    },
+    {
+      "schema": "dbo",
+      "table": "License"
+    },
+    {
+      "schema": "dbo",
+      "table": "LicenseCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "LicRequestStatus"
+    },
+    {
+      "schema": "dbo",
+      "table": "Locker"
+    },
+    {
+      "schema": "dbo",
+      "table": "LockerCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "LockReason"
+    },
+    {
+      "schema": "dbo",
+      "table": "LoyaltyCard"
+    },
+    {
+      "schema": "dbo",
+      "table": "LoyaltyCardLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "LoyaltyPointAdjustment"
+    },
+    {
+      "schema": "dbo",
+      "table": "LoyaltyPolicy"
+    },
+    {
+      "schema": "dbo",
+      "table": "LoyaltyPolicyDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "LoyaltyRedemption"
+    },
+    {
+      "schema": "dbo",
+      "table": "MainAccounts"
+    },
+    {
+      "schema": "dbo",
+      "table": "ManufacturerType"
+    },
+    {
+      "schema": "dbo",
+      "table": "MasterCashWin"
+    },
+    {
+      "schema": "dbo",
+      "table": "MeasuringUnit"
+    },
+    {
+      "schema": "dbo",
+      "table": "MembershipRenewal"
+    },
+    {
+      "schema": "dbo",
+      "table": "Message"
+    },
+    {
+      "schema": "dbo",
+      "table": "Model"
+    },
+    {
+      "schema": "dbo",
+      "table": "Module"
+    },
+    {
+      "schema": "dbo",
+      "table": "ModuleEvent"
+    },
+    {
+      "schema": "dbo",
+      "table": "MotorVehicle"
+    },
+    {
+      "schema": "dbo",
+      "table": "MotorVehicleType"
+    },
+    {
+      "schema": "dbo",
+      "table": "NewManufacturer"
+    },
+    {
+      "schema": "dbo",
+      "table": "Notes"
+    },
+    {
+      "schema": "dbo",
+      "table": "NotesCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "NotesDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "OBS_US"
+    },
+    {
+      "schema": "dbo",
+      "table": "old_MembershipRenewal"
+    },
+    {
+      "schema": "dbo",
+      "table": "Organ"
+    },
+    {
+      "schema": "dbo",
+      "table": "p_manufacturer1"
+    },
+    {
+      "schema": "dbo",
+      "table": "PackingCaseCapacity"
+    },
+    {
+      "schema": "dbo",
+      "table": "PackingJob"
+    },
+    {
+      "schema": "dbo",
+      "table": "PackingJobDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "PackingJobPending"
+    },
+    {
+      "schema": "dbo",
+      "table": "PackingJobSource"
+    },
+    {
+      "schema": "dbo",
+      "table": "PackingLayout"
+    },
+    {
+      "schema": "dbo",
+      "table": "Patient"
+    },
+    {
+      "schema": "dbo",
+      "table": "PatientAdmission"
+    },
+    {
+      "schema": "dbo",
+      "table": "PatientCatAllowedModule"
+    },
+    {
+      "schema": "dbo",
+      "table": "PatientCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "PatientFirstContact"
+    },
+    {
+      "schema": "dbo",
+      "table": "PatientFirstContactOptions"
+    },
+    {
+      "schema": "dbo",
+      "table": "PatientImage"
+    },
+    {
+      "schema": "dbo",
+      "table": "PatientLocation"
+    },
+    {
+      "schema": "dbo",
+      "table": "PatientModule"
+    },
+    {
+      "schema": "dbo",
+      "table": "PatientRecServices"
+    },
+    {
+      "schema": "dbo",
+      "table": "PatientTransfer"
+    },
+    {
+      "schema": "dbo",
+      "table": "pbcatcol"
+    },
+    {
+      "schema": "dbo",
+      "table": "pbcatedt"
+    },
+    {
+      "schema": "dbo",
+      "table": "pbcatfmt"
+    },
+    {
+      "schema": "dbo",
+      "table": "pbcattbl"
+    },
+    {
+      "schema": "dbo",
+      "table": "pbcatvld"
+    },
+    {
+      "schema": "dbo",
+      "table": "PC"
+    },
+    {
+      "schema": "dbo",
+      "table": "PCT"
+    },
+    {
+      "schema": "dbo",
+      "table": "PhysicalExam"
+    },
+    {
+      "schema": "dbo",
+      "table": "POPolicy"
+    },
+    {
+      "schema": "dbo",
+      "table": "POPolicyDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "PostedInvoiceEditingLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "PRAllocationDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "PRAllocationHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "Precaution"
+    },
+    {
+      "schema": "dbo",
+      "table": "PreferencesCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "PreferencesSubCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "PreSaleDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "PreSaleHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "PrescriptionDeleteDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "PrescriptionDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "PrescriptionDetailLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "PrescriptionHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "PrescriptionHeaderLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "PrevAbnormalLabs"
+    },
+    {
+      "schema": "dbo",
+      "table": "PreviousSaleHistory"
+    },
+    {
+      "schema": "dbo",
+      "table": "PriceChanges"
+    },
+    {
+      "schema": "dbo",
+      "table": "PriceType"
+    },
+    {
+      "schema": "dbo",
+      "table": "ProdBuffer"
+    },
+    {
+      "schema": "dbo",
+      "table": "ProdDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ProdHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ProdNote"
+    },
+    {
+      "schema": "dbo",
+      "table": "ProdNoteIssue"
+    },
+    {
+      "schema": "dbo",
+      "table": "ProdNoteReceipt"
+    },
+    {
+      "schema": "dbo",
+      "table": "Product"
+    },
+    {
+      "schema": "dbo",
+      "table": "ProductPurpose"
+    },
+    {
+      "schema": "dbo",
+      "table": "ProductType"
+    },
+    {
+      "schema": "dbo",
+      "table": "ProformaPurDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ProspectiveCustomer"
+    },
+    {
+      "schema": "dbo",
+      "table": "ProvDiag"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurchaseDocument"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurchaseType"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurdetailMod"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurExp"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurledgerMod"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurOrderCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurPayment"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurQuotationDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurQuotationHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurRegister"
+    },
+    {
+      "schema": "dbo",
+      "table": "PurRegisterDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "QualifiedPerson"
+    },
+    {
+      "schema": "dbo",
+      "table": "QualifiedPersonImage"
+    },
+    {
+      "schema": "dbo",
+      "table": "QuotationDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "QuotationHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "Rank"
+    },
+    {
+      "schema": "dbo",
+      "table": "ReceiptCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "ReceiptCategoryAccounts"
+    },
+    {
+      "schema": "dbo",
+      "table": "ReceiptDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ReceiptHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "Recipe"
+    },
+    {
+      "schema": "dbo",
+      "table": "RecipeDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "Recipient"
+    },
+    {
+      "schema": "dbo",
+      "table": "RefusedSaleDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "RefusedSaleHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "Region"
+    },
+    {
+      "schema": "dbo",
+      "table": "Relation"
+    },
+    {
+      "schema": "dbo",
+      "table": "ReportData"
+    },
+    {
+      "schema": "dbo",
+      "table": "ReportFilter"
+    },
+    {
+      "schema": "dbo",
+      "table": "ReportTitles"
+    },
+    {
+      "schema": "dbo",
+      "table": "Resource"
+    },
+    {
+      "schema": "dbo",
+      "table": "ResourceCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "Rights"
+    },
+    {
+      "schema": "dbo",
+      "table": "RightsCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "Rightsclone"
+    },
+    {
+      "schema": "dbo",
+      "table": "Route"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaledetailDump"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaledetailLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleDetailModified"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleDocument"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleInterface"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleInvDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleInvGroup"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleInvGroupDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleLedgerDump"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleLedgerLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleLedgerModified"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleOrderCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleOrderDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleOrderHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleOrderItemStatus"
+    },
+    {
+      "schema": "dbo",
+      "table": "salepricecategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "SalePromotion"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleReceivableAdj"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleRefusalReason"
+    },
+    {
+      "schema": "dbo",
+      "table": "SalesDiscountPolicy"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleSetsDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleSetsHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleSetsOrigDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "SalesMan"
+    },
+    {
+      "schema": "dbo",
+      "table": "SalesManScope"
+    },
+    {
+      "schema": "dbo",
+      "table": "SalesTeam"
+    },
+    {
+      "schema": "dbo",
+      "table": "SalesTeamMember"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleTemplateDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleTemplateHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "SaleType"
+    },
+    {
+      "schema": "dbo",
+      "table": "SampleDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "Samples"
+    },
+    {
+      "schema": "dbo",
+      "table": "SampleType"
+    },
+    {
+      "schema": "dbo",
+      "table": "SBuffer"
+    },
+    {
+      "schema": "dbo",
+      "table": "SBufferDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "School"
+    },
+    {
+      "schema": "dbo",
+      "table": "SchoolBranch"
+    },
+    {
+      "schema": "dbo",
+      "table": "SchoolLeaving"
+    },
+    {
+      "schema": "dbo",
+      "table": "SE"
+    },
+    {
+      "schema": "dbo",
+      "table": "Section"
+    },
+    {
+      "schema": "dbo",
+      "table": "Sequence"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServerDate"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServerDateMonth"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServerDateMonthPur"
+    },
+    {
+      "schema": "dbo",
+      "table": "Service"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceBreakUp"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceComponent"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceComponentComment"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceComponentOption"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceComponentRefValue"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceComponentSaleDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceComponentSaleHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceComponentType"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceComponentUnit"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceConsumableItem"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceInvPurTempDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceInvPurTempHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceInvType"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceIssueRequest"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceIssueRequestDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceLockerDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceODetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceOHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceOrderStatus"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServicePRAllocationDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServicePRAllocationHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServicePRDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServicePRHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServicePricePolicy"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServicePricePolicyDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServicePurDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServicePurHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServicePurTempDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServicePurTempHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceRDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceResultDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceResultHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceResultStamp"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceResultStyle"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceRHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceSampleRequirement"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceSRAllocationDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceSRAllocationHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceTemplateDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceTemplateHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceTicket"
+    },
+    {
+      "schema": "dbo",
+      "table": "ServiceType"
+    },
+    {
+      "schema": "dbo",
+      "table": "Setup"
+    },
+    {
+      "schema": "dbo",
+      "table": "SeverityLevel"
+    },
+    {
+      "schema": "dbo",
+      "table": "Shift"
+    },
+    {
+      "schema": "dbo",
+      "table": "Site"
+    },
+    {
+      "schema": "dbo",
+      "table": "SMS_AssociatedRecipient"
+    },
+    {
+      "schema": "dbo",
+      "table": "SMS_Center"
+    },
+    {
+      "schema": "dbo",
+      "table": "SMS_DataDefinition"
+    },
+    {
+      "schema": "dbo",
+      "table": "SMS_Status"
+    },
+    {
+      "schema": "dbo",
+      "table": "SMS_Template"
+    },
+    {
+      "schema": "dbo",
+      "table": "SMS_Type"
+    },
+    {
+      "schema": "dbo",
+      "table": "SOCheckListItem"
+    },
+    {
+      "schema": "dbo",
+      "table": "SoftwarePreferences"
+    },
+    {
+      "schema": "dbo",
+      "table": "SOReceipt"
+    },
+    {
+      "schema": "dbo",
+      "table": "SpecialRight"
+    },
+    {
+      "schema": "dbo",
+      "table": "SPO"
+    },
+    {
+      "schema": "dbo",
+      "table": "SPOTeam"
+    },
+    {
+      "schema": "dbo",
+      "table": "SPOTeamCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "SPOTeamMember"
+    },
+    {
+      "schema": "dbo",
+      "table": "SPOTeamSubArea"
+    },
+    {
+      "schema": "dbo",
+      "table": "SRAllocationDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "SRAllocationHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "SRBufferDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "SRBufferLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "StartupRight"
+    },
+    {
+      "schema": "dbo",
+      "table": "StateProvince"
+    },
+    {
+      "schema": "dbo",
+      "table": "StockLedger"
+    },
+    {
+      "schema": "dbo",
+      "table": "Student"
+    },
+    {
+      "schema": "dbo",
+      "table": "StudentClass"
+    },
+    {
+      "schema": "dbo",
+      "table": "StudentClassTransfer"
+    },
+    {
+      "schema": "dbo",
+      "table": "StudentFeeSheet"
+    },
+    {
+      "schema": "dbo",
+      "table": "StudentFeeSheetDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "StudentImage"
+    },
+    {
+      "schema": "dbo",
+      "table": "StudentServiceTemplate"
+    },
+    {
+      "schema": "dbo",
+      "table": "StudentServiceTemplateDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "SubAccounts"
+    },
+    {
+      "schema": "dbo",
+      "table": "SubArea"
+    },
+    {
+      "schema": "dbo",
+      "table": "SummaryAccount"
+    },
+    {
+      "schema": "dbo",
+      "table": "SummaryAccountDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "SupplierManufacturers"
+    },
+    {
+      "schema": "dbo",
+      "table": "Surgery"
+    },
+    {
+      "schema": "dbo",
+      "table": "SurgeryProcedure"
+    },
+    {
+      "schema": "dbo",
+      "table": "SurveyDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "SurveyHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "Symptom"
+    },
+    {
+      "schema": "dbo",
+      "table": "SymptomType"
+    },
+    {
+      "schema": "dbo",
+      "table": "syscatelog"
+    },
+    {
+      "schema": "dbo",
+      "table": "syscommants"
+    },
+    {
+      "schema": "dbo",
+      "table": "systextcatalog"
+    },
+    {
+      "schema": "dbo",
+      "table": "Tdetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "temp_GroupRights"
+    },
+    {
+      "schema": "dbo",
+      "table": "temp_saleinvcode"
+    },
+    {
+      "schema": "dbo",
+      "table": "TestMachine"
+    },
+    {
+      "schema": "dbo",
+      "table": "ThaliumScan"
+    },
+    {
+      "schema": "dbo",
+      "table": "Theader"
+    },
+    {
+      "schema": "dbo",
+      "table": "TimeSlot"
+    },
+    {
+      "schema": "dbo",
+      "table": "TransactionCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "TransactionDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "TransactionHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "TransactionType"
+    },
+    {
+      "schema": "dbo",
+      "table": "TransferableData"
+    },
+    {
+      "schema": "dbo",
+      "table": "TransferableData_ExportRestrictedColumns"
+    },
+    {
+      "schema": "dbo",
+      "table": "TransferableData_RestrictedColumns"
+    },
+    {
+      "schema": "dbo",
+      "table": "TransferRequisitionDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "TransferRequisitionHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "TransferType"
+    },
+    {
+      "schema": "dbo",
+      "table": "TransportRoute"
+    },
+    {
+      "schema": "dbo",
+      "table": "TreatmentGiven"
+    },
+    {
+      "schema": "dbo",
+      "table": "TryDueSatisfyDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "TryDueSatisfyHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "Unit"
+    },
+    {
+      "schema": "dbo",
+      "table": "UserAllowedDoctor"
+    },
+    {
+      "schema": "dbo",
+      "table": "UserAttendance"
+    },
+    {
+      "schema": "dbo",
+      "table": "UserAuthenticationInfo"
+    },
+    {
+      "schema": "dbo",
+      "table": "UserAuthenticationInfo_CodexBackup_20260804"
+    },
+    {
+      "schema": "dbo",
+      "table": "UserGroupsLog"
+    },
+    {
+      "schema": "dbo",
+      "table": "UserRights"
+    },
+    {
+      "schema": "dbo",
+      "table": "VaccineSchedule"
+    },
+    {
+      "schema": "dbo",
+      "table": "VaccineStatus"
+    },
+    {
+      "schema": "dbo",
+      "table": "Vehicle"
+    },
+    {
+      "schema": "dbo",
+      "table": "VehicleRoute"
+    },
+    {
+      "schema": "dbo",
+      "table": "VehicleType"
+    },
+    {
+      "schema": "dbo",
+      "table": "VirtualGlTemp"
+    },
+    {
+      "schema": "dbo",
+      "table": "Visit"
+    },
+    {
+      "schema": "dbo",
+      "table": "VisitAppointment"
+    },
+    {
+      "schema": "dbo",
+      "table": "VisitDiagnostics"
+    },
+    {
+      "schema": "dbo",
+      "table": "VisitICD"
+    },
+    {
+      "schema": "dbo",
+      "table": "VisitPhysicalExam"
+    },
+    {
+      "schema": "dbo",
+      "table": "VisitPrecaution"
+    },
+    {
+      "schema": "dbo",
+      "table": "VisitPrescription"
+    },
+    {
+      "schema": "dbo",
+      "table": "VisitStatus"
+    },
+    {
+      "schema": "dbo",
+      "table": "VisitSymptoms"
+    },
+    {
+      "schema": "dbo",
+      "table": "VisitType"
+    },
+    {
+      "schema": "dbo",
+      "table": "VisitVitals"
+    },
+    {
+      "schema": "dbo",
+      "table": "VocherCategory"
+    },
+    {
+      "schema": "dbo",
+      "table": "VocherCategoryDetail"
+    },
+    {
+      "schema": "dbo",
+      "table": "VocherCategoryHeader"
+    },
+    {
+      "schema": "dbo",
+      "table": "Ward"
+    },
+    {
+      "schema": "dbo",
+      "table": "WeekDays"
+    },
+    {
+      "schema": "dbo",
+      "table": "WeekOfMonth"
+    },
+    {
+      "schema": "dbo",
+      "table": "WeighingScale"
+    },
+    {
+      "schema": "dbo",
+      "table": "WindowType"
+    },
+    {
+      "schema": "dbo",
+      "table": "WorkOrder"
+    },
+    {
+      "schema": "dbo",
+      "table": "WorkOrderAccount"
+    },
+    {
+      "schema": "dbo",
+      "table": "WorkOrderAssessment"
+    },
+    {
+      "schema": "dbo",
+      "table": "WorkOrderResource"
+    },
+    {
+      "schema": "dbo",
+      "table": "WorkOrderType"
+    },
+    {
+      "schema": "dbo",
+      "table": "wrongitemtable"
+    },
+    {
+      "schema": "dbo",
+      "table": "XRay"
+    },
+    {
+      "schema": "dbo",
+      "table": "Zone"
+    },
+    {
+      "schema": "dbo",
+      "table": "ZoneAreas"
+    },
+    {
+      "schema": "dbo",
+      "table": "ZoneContactGroup"
+    }
+  ],
+  "files": [
+    {
+      "file": "phase-e-core-masters.json",
+      "mappingEntries": 7,
+      "uniqueSourceTables": 7,
+      "sourceTables": [
+        {
+          "schema": "dbo",
+          "table": "Customer"
+        },
+        {
+          "schema": "dbo",
+          "table": "Godown"
+        },
+        {
+          "schema": "dbo",
+          "table": "Item"
+        },
+        {
+          "schema": "dbo",
+          "table": "ItemSuppliers"
+        },
+        {
+          "schema": "dbo",
+          "table": "Manufacturer"
+        },
+        {
+          "schema": "dbo",
+          "table": "PricePolicy"
+        },
+        {
+          "schema": "dbo",
+          "table": "Supplier"
+        }
+      ]
+    },
+    {
+      "file": "phase-e-enterprise-config.json",
+      "mappingEntries": 11,
+      "uniqueSourceTables": 11,
+      "sourceTables": [
+        {
+          "schema": "dbo",
+          "table": "Area"
+        },
+        {
+          "schema": "dbo",
+          "table": "CompanyHeader"
+        },
+        {
+          "schema": "dbo",
+          "table": "ConfigSetting"
+        },
+        {
+          "schema": "dbo",
+          "table": "CustomerCategory"
+        },
+        {
+          "schema": "dbo",
+          "table": "CustomerGroup"
+        },
+        {
+          "schema": "dbo",
+          "table": "GodownGroup"
+        },
+        {
+          "schema": "dbo",
+          "table": "ItemCategory"
+        },
+        {
+          "schema": "dbo",
+          "table": "ItemGroup"
+        },
+        {
+          "schema": "dbo",
+          "table": "ManufacturerCategory"
+        },
+        {
+          "schema": "dbo",
+          "table": "Preferences"
+        },
+        {
+          "schema": "dbo",
+          "table": "SupplierCategory"
+        }
+      ]
+    },
+    {
+      "file": "phase-e-historical-documents.json",
+      "mappingEntries": 10,
+      "uniqueSourceTables": 8,
+      "sourceTables": [
+        {
+          "schema": "dbo",
+          "table": "PRdetail"
+        },
+        {
+          "schema": "dbo",
+          "table": "PRLedger"
+        },
+        {
+          "schema": "dbo",
+          "table": "Purdetail"
+        },
+        {
+          "schema": "dbo",
+          "table": "Purledger"
+        },
+        {
+          "schema": "dbo",
+          "table": "Saledetail"
+        },
+        {
+          "schema": "dbo",
+          "table": "SaleLedger"
+        },
+        {
+          "schema": "dbo",
+          "table": "SRdetail"
+        },
+        {
+          "schema": "dbo",
+          "table": "SRLedger"
+        }
+      ]
+    },
+    {
+      "file": "phase-e-historical-gl.json",
+      "mappingEntries": 1,
+      "uniqueSourceTables": 1,
+      "sourceTables": [
+        {
+          "schema": "dbo",
+          "table": "VirtualGl"
+        }
+      ]
+    },
+    {
+      "file": "phase-e-historical-orders.json",
+      "mappingEntries": 2,
+      "uniqueSourceTables": 2,
+      "sourceTables": [
+        {
+          "schema": "dbo",
+          "table": "PurOrderDetail"
+        },
+        {
+          "schema": "dbo",
+          "table": "PurOrderHeader"
+        }
+      ]
+    },
+    {
+      "file": "phase-e-party-ledger.json",
+      "mappingEntries": 5,
+      "uniqueSourceTables": 4,
+      "sourceTables": [
+        {
+          "schema": "dbo",
+          "table": "PRLedger"
+        },
+        {
+          "schema": "dbo",
+          "table": "Purledger"
+        },
+        {
+          "schema": "dbo",
+          "table": "SaleLedger"
+        },
+        {
+          "schema": "dbo",
+          "table": "SRLedger"
+        }
+      ]
+    },
+    {
+      "file": "phase-e-purchase-category-completion.json",
+      "mappingEntries": 2,
+      "uniqueSourceTables": 1,
+      "sourceTables": [
+        {
+          "schema": "dbo",
+          "table": "Purledger"
+        }
+      ]
+    },
+    {
+      "file": "phase-e-stock-finance.json",
+      "mappingEntries": 10,
+      "uniqueSourceTables": 10,
+      "sourceTables": [
+        {
+          "schema": "dbo",
+          "table": "PRdetail"
+        },
+        {
+          "schema": "dbo",
+          "table": "PRLedger"
+        },
+        {
+          "schema": "dbo",
+          "table": "Purdetail"
+        },
+        {
+          "schema": "dbo",
+          "table": "Purledger"
+        },
+        {
+          "schema": "dbo",
+          "table": "PurOrderHeader"
+        },
+        {
+          "schema": "dbo",
+          "table": "Saledetail"
+        },
+        {
+          "schema": "dbo",
+          "table": "SaleLedger"
+        },
+        {
+          "schema": "dbo",
+          "table": "SRdetail"
+        },
+        {
+          "schema": "dbo",
+          "table": "SRLedger"
+        },
+        {
+          "schema": "dbo",
+          "table": "StockReport"
+        }
+      ]
+    },
+    {
+      "file": "phase-e-stock-ledger.json",
+      "mappingEntries": 4,
+      "uniqueSourceTables": 4,
+      "sourceTables": [
+        {
+          "schema": "dbo",
+          "table": "PRdetail"
+        },
+        {
+          "schema": "dbo",
+          "table": "Purdetail"
+        },
+        {
+          "schema": "dbo",
+          "table": "Saledetail"
+        },
+        {
+          "schema": "dbo",
+          "table": "SRdetail"
+        }
+      ]
+    },
+    {
+      "file": "phase-e-tax-rates.json",
+      "mappingEntries": 9,
+      "uniqueSourceTables": 8,
+      "sourceTables": [
+        {
+          "schema": "dbo",
+          "table": "AdditionalTaxRule"
+        },
+        {
+          "schema": "dbo",
+          "table": "ExtraTaxRule"
+        },
+        {
+          "schema": "dbo",
+          "table": "IncomeTaxRule"
+        },
+        {
+          "schema": "dbo",
+          "table": "Item"
+        },
+        {
+          "schema": "dbo",
+          "table": "PricePolicyDetail"
+        },
+        {
+          "schema": "dbo",
+          "table": "SalesTaxSchedule"
+        },
+        {
+          "schema": "dbo",
+          "table": "TaxCategory"
+        },
+        {
+          "schema": "dbo",
+          "table": "UnitSalesTaxRules"
+        }
+      ]
+    },
+    {
+      "file": "phase-r-security-data.json",
+      "mappingEntries": 13,
+      "uniqueSourceTables": 12,
+      "sourceTables": [
+        {
+          "schema": "dbo",
+          "table": "GroupAllowedGodown"
+        },
+        {
+          "schema": "dbo",
+          "table": "GroupAllowedGroups"
+        },
+        {
+          "schema": "dbo",
+          "table": "GroupAllowedHeader"
+        },
+        {
+          "schema": "dbo",
+          "table": "GroupAllowedPrice"
+        },
+        {
+          "schema": "dbo",
+          "table": "GroupAllowedRecipient"
+        },
+        {
+          "schema": "dbo",
+          "table": "GroupAllowedServiceCategory"
+        },
+        {
+          "schema": "dbo",
+          "table": "GroupAllowedStartupRight"
+        },
+        {
+          "schema": "dbo",
+          "table": "GroupCashAccount"
+        },
+        {
+          "schema": "dbo",
+          "table": "GroupRights"
+        },
+        {
+          "schema": "dbo",
+          "table": "Groups"
+        },
+        {
+          "schema": "dbo",
+          "table": "UserGroups"
+        },
+        {
+          "schema": "dbo",
+          "table": "Users"
+        }
+      ]
+    }
+  ]
+}

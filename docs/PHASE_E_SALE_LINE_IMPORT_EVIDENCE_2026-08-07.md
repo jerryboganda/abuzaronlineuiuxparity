@@ -16,6 +16,11 @@ header/item dependencies plus invalid or non-positive source rows in
 caller supplies `-allow-canonical`, the provisioned tenant/branch, and a URL
 that names `FazalDinPP19DataBaseV2`.
 
+The loader now accepts deterministic source windows through `-from-row` and
+`-to-row` (zero-based, exclusive end). Bounded runs use stable invoice/row/item
+ordering before SQL Server `OFFSET`/`FETCH`; the redacted report records the
+selected window so a failed slice can be retried independently.
+
 ## Focused verification
 
 Passed without a source or target database connection:
@@ -24,6 +29,10 @@ Passed without a source or target database connection:
 go test ./migration/cmd/bulksalelines -count=1
 go test ./migration/cmd/import -run 'TestImportConfigAcceptsHistoricalExpressionsAndRangeFeatures|TestStableUUIDIsRestartSafeAndScoped' -count=1
 ```
+
+The focused package test also verifies the full-run query remains unchanged,
+bounded windows preserve the expected exclusive range, and invalid bounds fail
+closed.
 
 The new tests verify the actual implementation contains the `Saledetail`
 source, `SaleLedger` dependency, canonical target, legacy mapping,

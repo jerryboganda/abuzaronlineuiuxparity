@@ -122,6 +122,15 @@ func TestMaintenanceManageOperationsIntegration(t *testing.T) {
 		`, tenantID, itemCode).Scan(&itemID); err != nil {
 			t.Fatalf("seed maintenance item: %v", err)
 		}
+		supplierLegacyID := "SUP-" + formatTestSuffix(suffix)
+		var supplierID string
+		if err := database.QueryRowContext(ctx, `
+			INSERT INTO master_parties (tenant_id, party_type, legacy_id, code, name)
+			VALUES ($1::uuid, 'supplier', $2, $2, 'Maintenance Supplier')
+			RETURNING id::text
+		`, tenantID, supplierLegacyID).Scan(&supplierID); err != nil {
+			t.Fatalf("seed maintenance supplier: %v", err)
+		}
 		var godownID, otherBranchID string
 		if err := database.QueryRowContext(ctx, `
 			INSERT INTO master_godowns (tenant_id, legacy_id, code, name)
@@ -227,6 +236,7 @@ func TestMaintenanceManageOperationsIntegration(t *testing.T) {
 		run("change-item-discount", fmt.Sprintf(`{"itemCode":%q,"discountType":"Percent","discount":5.5}`, itemCode))
 		run("update-item-basic-data", fmt.Sprintf(`{"itemCode":%q,"field":"Name","value":"Renamed Maintenance Item"}`, itemCode))
 		run("change-item-reorder-qty", fmt.Sprintf(`{"itemCode":%q,"reorderQty":12.5,"minimumQty":3}`, itemCode))
+		supplierAudit := run("update-item-suppliers", fmt.Sprintf(`{"itemCode":%q,"supplier":%q,"purchasePrice":8.25,"priority":2}`, itemCode, supplierLegacyID))
 		var name, saleDiscount, legacyDiscount, reorder, minimum string
 		if err := database.QueryRowContext(ctx, `
 		SELECT name, payload->>'SaleDiscPercent', payload->>'DiscPerc', payload->>'ReorderQuantity', payload->>'MinimumQuantity'
@@ -236,6 +246,25 @@ func TestMaintenanceManageOperationsIntegration(t *testing.T) {
 		}
 		if name != "Renamed Maintenance Item" || saleDiscount != "5.50" || legacyDiscount != "5.50" || reorder != "12.5" || minimum != "3" {
 			t.Fatalf("canonical item maintenance result = %s/%s/%s/%s/%s", name, saleDiscount, legacyDiscount, reorder, minimum)
+		}
+		var linkedSupplierID, supplierRate string
+		var supplierPriority int
+		if err := database.QueryRowContext(ctx, `
+			SELECT supplier_id::text, priority, rate::text
+			FROM item_suppliers
+			WHERE tenant_id = $1::uuid AND legacy_item_id = $2 AND legacy_supplier_id = $3
+		`, tenantID, itemCode, supplierLegacyID).Scan(&linkedSupplierID, &supplierPriority, &supplierRate); err != nil {
+			t.Fatalf("read canonical item supplier maintenance result: %v", err)
+		}
+		if linkedSupplierID != supplierID || supplierPriority != 2 || supplierRate != "8.2500" {
+			t.Fatalf("canonical item supplier result = %s/%d/%s", linkedSupplierID, supplierPriority, supplierRate)
+		}
+		var supplierAuditField string
+		if err := database.QueryRowContext(ctx, `SELECT payload->>'supplierLegacyId' FROM audit_events WHERE id = $1::uuid`, supplierAudit).Scan(&supplierAuditField); err != nil {
+			t.Fatalf("read item supplier audit: %v", err)
+		}
+		if supplierAuditField != supplierLegacyID {
+			t.Fatalf("item supplier audit supplierLegacyId = %q, want %q", supplierAuditField, supplierLegacyID)
 		}
 	})
 }

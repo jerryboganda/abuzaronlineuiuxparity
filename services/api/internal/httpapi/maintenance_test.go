@@ -81,6 +81,10 @@ func TestCanonicalItemMaintenanceValidation(t *testing.T) {
 	if err := validateCanonicalItemMaintenancePayload("change-items-price", numeric); err != nil {
 		t.Fatalf("numeric browser price maintenance rejected: %v", err)
 	}
+	supplier := map[string]any{"itemCode": "ITEM-1", "supplier": "SUP-1", "purchasePrice": 12.5, "priority": 1}
+	if err := validateCanonicalItemMaintenancePayload("update-item-suppliers", supplier); err != nil {
+		t.Fatalf("numeric supplier maintenance rejected: %v", err)
+	}
 	invalidCases := []struct {
 		kind    string
 		payload map[string]any
@@ -89,6 +93,8 @@ func TestCanonicalItemMaintenanceValidation(t *testing.T) {
 		{"change-item-discount", map[string]any{"itemCode": "ITEM-1", "discountType": "Percent", "discount": "100.01"}},
 		{"update-item-basic-data", map[string]any{"itemCode": "ITEM-1", "field": "Unsupported", "value": "x"}},
 		{"change-item-reorder-qty", map[string]any{"itemCode": "ITEM-1", "reorderQty": "-1"}},
+		{"update-item-suppliers", map[string]any{"itemCode": "ITEM-1", "supplier": "SUP-1", "purchasePrice": "12.501"}},
+		{"update-item-suppliers", map[string]any{"itemCode": "ITEM-1", "supplier": "SUP-1", "priority": -1}},
 	}
 	for _, testCase := range invalidCases {
 		if err := validateCanonicalItemMaintenancePayload(testCase.kind, testCase.payload); err == nil {

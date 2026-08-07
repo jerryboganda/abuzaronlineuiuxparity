@@ -633,7 +633,11 @@ func TestPhaseOReportRegistryCoversCapturedPurchaseLeaves(t *testing.T) {
 				}
 				return
 			}
-			if definition.ProjectionStatus != "event-ledger" {
+			if spec.purchaseMode == "po-disparity" {
+				if definition.ProjectionStatus != "real" {
+					t.Fatalf("projection status = %q, want real for the canonical order/receipt comparison", definition.ProjectionStatus)
+				}
+			} else if definition.ProjectionStatus != "event-ledger" {
 				t.Fatalf("projection status = %q, want event-ledger", definition.ProjectionStatus)
 			}
 			if definition.Title != spec.title {
@@ -648,6 +652,10 @@ func TestPhaseOReportRegistryCoversCapturedPurchaseLeaves(t *testing.T) {
 			if spec.purchaseMode == "line-detail" {
 				if len(definition.Columns) != 12 || definition.Columns[5].Label != "Purchase Price" {
 					t.Fatalf("columns do not describe source-backed purchase line detail: %+v", definition.Columns)
+				}
+			} else if spec.purchaseMode == "po-disparity" {
+				if len(definition.Columns) != 10 || definition.Columns[0].Label != "Purchase Order" || definition.Columns[6].Label != "Disparity Qty" {
+					t.Fatalf("columns do not describe the canonical purchase-order disparity projection: %+v", definition.Columns)
 				}
 			} else if isPurchaseSummaryMode(spec.purchaseMode) {
 				if len(definition.Columns) != 6 || definition.Columns[2].Label != "Supplier" {
@@ -728,6 +736,33 @@ func TestPurchaseReadModelUsesCanonicalLedgersPostedFiltersAndPagination(t *test
 	}
 	if !strings.Contains(purchaseReadModelQuery("se.aggregate = 'return'", "summary", "LIMIT $6 OFFSET $7"), "d.kind IN ('purchase-return')") {
 		t.Fatal("purchase return report did not select the canonical purchase-return kind")
+	}
+}
+
+func TestPurchaseOrderDisparityReadModelComparesLinkedOrderAndReceiptLines(t *testing.T) {
+	spec, ok := reportSpecForKey("p-o-based-purchase-disparity")
+	if !ok || spec.purchaseMode != "po-disparity" || !spec.purchaseReadModel {
+		t.Fatalf("P/O disparity spec = %+v (ok=%v), want canonical purchase projection", spec, ok)
+	}
+	query := purchaseReadModelQueryMode(spec.aggregateCondition, spec.purchaseMode, "LIMIT $6 OFFSET $7")
+	for _, fragment := range []string{
+		"d.kind = 'purchase-order'",
+		"r.kind IN ('pack-purchase', 'loose-purchase', 'opening-purchase')",
+		"r.source_document_id = o.order_id OR r.source_document_number = o.document",
+		"r.item_id = o.item_id OR r.item_legacy_id = o.item_legacy_id",
+		"ordered_quantity - received_quantity",
+		"ordered_amount - received_amount",
+		"LIMIT $6 OFFSET $7",
+	} {
+		if !strings.Contains(query, fragment) {
+			t.Errorf("P/O disparity query is missing %q", fragment)
+		}
+	}
+	definition := reportDefinitionFor("p-o-based-purchase-disparity")
+	if definition.ProjectionStatus != "real" || len(definition.Columns) != 10 ||
+		!strings.Contains(definition.ProjectionNote, "source reconciliation") ||
+		!strings.Contains(definition.Retrieval.Scope, "linked posted purchase receipts") {
+		t.Fatalf("P/O disparity definition is not explicit and truthful: %+v", definition)
 	}
 }
 

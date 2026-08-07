@@ -9,6 +9,21 @@ go run ./migration/cmd/inspect -out parity/catalog/sqlserver-schema.json
 
 The inspector writes metadata only: it never copies credentials into the manifest and never modifies the source SQL Server database. Subsequent migration waves will add table-specific transforms, legacy-ID mappings, branch assignment reports, and reconciliation checks.
 
+To audit reviewed-map coverage without opening either database, compare the
+manifest with every JSON map in `migration/maps`:
+
+```powershell
+go run ./migration/cmd/auditcoverage `
+  -manifest tmp/canonical-sqlserver-schema.json `
+  -maps migration/maps `
+  -out parity/catalog/phase-e-map-coverage.json
+```
+
+The report lists mapped and unmapped base tables plus overlapping reviewed map
+entries. `-fail-on-unmapped` writes the report and exits non-zero until every
+manifest table has a reviewed mapping; it is therefore a gate, not a claim
+that a map has been imported or reconciled.
+
 After the target schema is provisioned, run the read-only count reconciliation command with protected connection strings:
 
 ```powershell
@@ -316,8 +331,19 @@ go run ./migration/cmd/bulkpurchaselines `
 It uses a read-only SQL Server cursor, PostgreSQL COPY, and set-based joins to
 the imported purchase headers and items. Non-positive legacy quantities remain
 auditable exceptions; they are never silently changed into positive stock.
+The loader accepts deterministic zero-based `-from-row` and exclusive `-to-row`
+windows (`-to-row -1` reads through the end) and records the window in its
+redacted report. Stable purchase-invoice/numeric-row/text-row/item ordering is
+applied before SQL Server `OFFSET`/`FETCH`, so the deferred 113k-row wave can
+be retried in bounded slices after a capacity or dependency failure.
 The focused reconciliation is
 `parity/catalog/canonical-first-tenant-purchase-lines-reconciliation.json`.
+
+The Item Form's `Set Alternate Item Alias Names` command uses the canonical
+`master_aliases` store with the separate `alternate_alias` kind. The bounded
+`/v1/master/item/{id}/aliases` GET/PUT contract replaces only alternate names,
+retains the primary alias/barcode rows, and updates item payload metadata for
+repeatable migration and later master saves.
 
 The corresponding high-volume canonical sales-detail slice has a dedicated
 set-based loader in `bulksalelines`:
@@ -329,6 +355,15 @@ go run ./migration/cmd/bulksalelines `
   -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
   -out parity/catalog/canonical-first-tenant-sale-lines-import.json
 ```
+
+The high-volume loader can be resumed in deterministic, zero-based source-row
+windows without changing the reviewed legacy identity. For example, a bounded
+slice of 50,000 rows is selected with `-from-row 100000 -to-row 150000`; the
+report records both bounds. The source query orders by invoice, numeric row
+number, text row number, and item identifier before applying SQL Server
+`OFFSET`/`FETCH`, so a failed slice can be retried without opening the entire
+620k-row wave in one run. Use the unbounded defaults only after the bounded
+source/target capacity check is approved.
 
 It reads only `dbo.Saledetail`, stages rows with PostgreSQL COPY, joins them
 only to the scoped `SaleLedger` headers and normalized items, and upserts by
@@ -349,6 +384,12 @@ go run ./migration/cmd/bulkorderlines `
   -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
   -out parity/catalog/canonical-first-tenant-purchase-order-lines-import.json
 ```
+
+The order-line loader also accepts deterministic `-from-row` and `-to-row`
+windows (zero-based, exclusive end) and records the window in its redacted
+report. Stable purchase-order/row/item ordering is applied before SQL Server
+`OFFSET`/`FETCH`, so the deferred 113k-row wave can be retried in bounded
+slices after a capacity or dependency failure.
 
 It reads only `dbo.PurOrderDetail`, uses the reviewed `PurOrderDetail:<POCode>:<PORowId>`
 identity, and joins only `purchase-order` documents from `PurOrderHeader` plus
@@ -375,6 +416,12 @@ go run ./migration/cmd/bulkreturnlines `
   -branch-id 6f25fd3e-5f66-4b4e-a31d-254c9e6b0a02 `
   -out parity/catalog/canonical-first-tenant-purchase-return-lines-import.json
 ```
+
+Both modes also accept deterministic zero-based `-from-row` and exclusive
+`-to-row` windows; `-to-row -1` reads through the end. The window is recorded
+in the redacted report and applied after stable return-id/numeric-row/item
+ordering, so either return wave can be resumed in bounded slices after a
+capacity or dependency failure.
 
 Sale mode reads `dbo.SRdetail`, joins only `SRLedger` documents of kind
 `cash-sale-return`, and preserves the reviewed `SRdetail:<SRInvcode>:<RowId>`
