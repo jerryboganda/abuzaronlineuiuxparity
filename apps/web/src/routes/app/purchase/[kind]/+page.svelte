@@ -250,6 +250,11 @@
     void loadHistory(requestedKind);
   }
 
+  function itemHistoryFilter(): string {
+    const row = rows.find((candidate) => candidate.itemLegacyId.trim() || candidate.itemName.trim() || candidate.quickSearch.trim());
+    return row?.itemLegacyId.trim() || row?.itemName.trim() || row?.quickSearch.trim() || '';
+  }
+
   function enableInteractive(event?: Event) {
     const target = event?.target;
     if (target instanceof Element && target.closest('.legacy-transaction-tabs, .legacy-menu-bar, .legacy-mdi-tabs')) return;
@@ -359,8 +364,16 @@
         autoGenerateBatches();
         return true;
       case 'Item Purchase History':
+        {
+          const itemFilter = itemHistoryFilter();
+          if (!itemFilter) {
+            message = 'Item Purchase History: select or populate an item row first.';
+            return true;
+          }
+          historyFilter = itemFilter;
+        }
         openHistory();
-        message = 'Item Purchase History: filtered transaction list ready.';
+        message = `Item Purchase History: filtered transaction list ready for ${historyFilter}.`;
         return true;
       case 'Sort Items':
         {
@@ -384,10 +397,26 @@
         message = 'Item row restored.';
         return true;
       case 'View Item Info':
-        window.location.assign('/app/master/item');
+        {
+          const item = rows.find((candidate) => candidate.itemId && candidate.itemLegacyId.trim());
+          if (!item) {
+            message = 'View Item Info: select an active canonical item row first.';
+            return true;
+          }
+          window.location.assign(`/app/master/item?legacyId=${encodeURIComponent(item.itemLegacyId.trim())}`);
+        }
         return true;
       case 'Supplier Info.':
-        window.location.assign('/app/master/supplier');
+        {
+          const supplierRecord = supplierRecords.find((record) => record.id === supplierId && record.active)
+            ?? supplierRecords.find((record) => record.name.trim().toLowerCase() === supplier.trim().toLowerCase() || record.code.trim().toLowerCase() === supplier.trim().toLowerCase() || record.legacyId?.trim().toLowerCase() === supplier.trim().toLowerCase());
+          const supplierLegacyId = supplierRecord?.legacyId?.trim() || supplierRecord?.code?.trim();
+          if (!supplierRecord || !supplierLegacyId) {
+            message = 'Supplier Info.: select an active canonical supplier first.';
+            return true;
+          }
+          window.location.assign(`/app/master/supplier?legacyId=${encodeURIComponent(supplierLegacyId)}`);
+        }
         return true;
       case 'New Item':
         window.location.assign('/app/master/item');

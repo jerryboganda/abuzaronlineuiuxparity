@@ -286,3 +286,59 @@ test('purchase List loads scoped canonical history and restores a document', asy
   await page.locator('.legacy-purchase-list button').click();
   await expect(page.getByLabel('Invoice No:')).toHaveValue('PUR-000001');
 });
+
+test('Item Purchase History filters by the populated canonical item identity', async ({ page }) => {
+  await mockCanonicalContext(page);
+  await page.route('**/v1/transactions/pack-purchase*', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ kind: 'pack-purchase', rows: [] })
+  }));
+  await page.goto('/app/purchase/pack');
+  await waitForPurchaseReady(page);
+  await page.getByRole('combobox', { name: 'Quick search 1' }).fill('ITEM-1');
+  await page.getByRole('button', { name: 'Lookup item 1' }).click({ force: true });
+  await expect(page.getByRole('combobox', { name: 'Item name 1' })).toHaveValue('CANONICAL ITEM');
+  const filteredRequest = page.waitForRequest((request) => {
+    if (!request.url().includes('/v1/transactions/pack-purchase')) return false;
+    return new URL(request.url()).searchParams.get('filter') === 'ITEM-1';
+  });
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Item Purchase History', exact: true }).click();
+  await filteredRequest;
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('filtered transaction list ready for ITEM-1');
+});
+
+test('View Item Info carries the populated canonical item identity to Item master', async ({ page }) => {
+  await mockCanonicalContext(page);
+  await page.route('**/v1/master/item*', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [{ id: itemId, legacyId: 'ITEM-1', code: 'ITEM-1', name: 'CANONICAL ITEM', active: true, payload: {}, suppliers: [] }] })
+  }));
+  await page.goto('/app/purchase/pack');
+  await waitForPurchaseReady(page);
+  await page.getByRole('combobox', { name: 'Quick search 1' }).fill('ITEM-1');
+  await page.getByRole('button', { name: 'Lookup item 1' }).click({ force: true });
+  await expect(page.getByRole('combobox', { name: 'Item name 1' })).toHaveValue('CANONICAL ITEM');
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'View Item Info', exact: true }).click();
+  await page.waitForURL('**/app/master/item?legacyId=ITEM-1');
+  await expect(page.getByRole('textbox', { name: 'Name:', exact: true })).toHaveValue('CANONICAL ITEM');
+});
+
+test('Supplier Info carries the active canonical supplier identity to Supplier master', async ({ page }) => {
+  await mockCanonicalContext(page);
+  await page.route('**/v1/master/supplier*', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [{ id: supplierId, legacyId: 'SUP-1', code: 'SUP-1', name: 'SUPPLIER 1', active: true, payload: {} }] })
+  }));
+  await page.goto('/app/purchase/pack');
+  await waitForPurchaseReady(page);
+  await page.getByLabel('Supplier').fill('SUPPLIER 1');
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Supplier Info.', exact: true }).click();
+  await page.waitForURL('**/app/master/supplier?legacyId=SUP-1');
+  await expect(page.getByRole('textbox', { name: 'Name:', exact: true })).toHaveValue('SUPPLIER 1');
+});

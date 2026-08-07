@@ -160,6 +160,8 @@
   let adjustmentItemBusy = false;
   let maintenanceItemResults: ItemLookupResult[] = [];
   let maintenanceItemBusy = false;
+  let maintenanceSupplierResults: MasterRecord[] = [];
+  let maintenanceSupplierBusy = false;
   let hydrated = false;
   let configuredKind = '';
   let savedWorkflow: { reference: string; notes: string; itemName: string; quantity: string; amount: string; shiftAction: 'open' | 'close'; extraValues: Record<string, string> } | null = null;
@@ -175,7 +177,7 @@
   $: workflowWindowId = `${section}-${kind}`;
   $: workflowWindowHref = `/app/${section}/${kind}`;
   $: adjustment = section === 'maintenance' && ['increase', 'decrease', 'stock-adjustment', 'opening-stock'].includes(kind);
-  $: canonicalItemMaintenance = section === 'maintenance' && ['change-items-price', 'change-item-discount', 'update-item-basic-data', 'change-item-reorder-qty'].includes(kind);
+  $: canonicalItemMaintenance = section === 'maintenance' && ['change-items-price', 'change-item-discount', 'update-item-basic-data', 'change-item-reorder-qty', 'update-item-suppliers'].includes(kind);
   $: isBackup = section === 'maintenance' && kind === 'backup-database';
   $: isIntegrity = section === 'maintenance' && kind === 'check-database-integrity';
   $: isGroups = section === 'manage' && kind === 'groups';
@@ -192,6 +194,7 @@
     configuredKind = kind;
     extraValues = Object.fromEntries(workflowFields.map((field) => [field.key, field.value ?? '']));
     maintenanceItemResults = [];
+    maintenanceSupplierResults = [];
   }
 
   function enableInteractive() {
@@ -297,6 +300,33 @@
     maintenanceItemResults = [];
     error = '';
     message = `Canonical item ${item.name} selected for maintenance.`;
+  }
+
+  async function searchMaintenanceSuppliers() {
+    const inputEl = typeof document !== 'undefined' ? (document.getElementById('maintenance-supplier-input') as HTMLInputElement | null) : null;
+    const query = String(inputEl?.value || extraValues.supplier || '').trim();
+    if (!query) {
+      maintenanceSupplierResults = [];
+      return;
+    }
+    maintenanceSupplierBusy = true;
+    message = 'Searching active canonical suppliers...';
+    try {
+      const lookup = await api.masterRecords('supplier', query);
+      maintenanceSupplierResults = lookup.records.filter((record) => record.active && (record.legacyId || record.code));
+    } catch (cause) {
+      maintenanceSupplierResults = [];
+      error = cause instanceof ApiError ? cause.problem?.detail ?? cause.message : 'Active suppliers could not be searched for maintenance.';
+    } finally {
+      maintenanceSupplierBusy = false;
+    }
+  }
+
+  function chooseMaintenanceSupplier(record: MasterRecord) {
+    extraValues = { ...extraValues, supplier: record.legacyId || record.code };
+    maintenanceSupplierResults = [];
+    error = '';
+    message = `Canonical supplier ${record.name} selected for item maintenance.`;
   }
 
   function chooseAdjustmentItem(item: ItemLookupResult) {
@@ -749,7 +779,7 @@
         {#if kind === 'cashier-job'}<label>Shift action:<select bind:value={shiftAction}><option value="open">Open shift</option><option value="close">Close shift</option></select></label><label>Amount:<input type="number" step="0.01" bind:value={amount} /></label>{/if}
         {#if kind === 'change-password'}<label>Current password:<input type="password" bind:value={currentPassword} required /></label><label>New password:<input type="password" bind:value={newPassword} required /></label><label>Confirm password:<input type="password" bind:value={confirmPassword} required /></label>{/if}
           {#each workflowFields as field}
-          <label for={`workflow-field-${field.key}`}>{field.label}:</label>{#if canonicalItemMaintenance && field.key === 'itemCode'}<div class="legacy-maintenance-item-lookup"><input id="maintenance-item-input" bind:value={extraValues[field.key]} required /><button type="button" aria-label="Lookup maintenance item" onclick={searchMaintenanceItems} disabled={maintenanceItemBusy}>Lookup</button></div>{#if maintenanceItemBusy}<p role="status">Searching active canonical items...</p>{:else if maintenanceItemResults.length}<div class="legacy-adjustment-item-results" aria-label="Maintenance item results">{#each maintenanceItemResults as item}<button type="button" onclick={() => chooseMaintenanceItem(item)}>{item.name} ({item.legacyId})</button>{/each}</div>{/if}{:else if adjustment && field.key === 'godownId'}<select id={`workflow-field-${field.key}`} bind:value={extraValues[field.key]}><option value="">Select active godown</option>{#each adjustmentGodowns as godown}<option value={godown.id}>{godown.name}</option>{/each}</select>{:else if adjustment && field.key === 'itemLegacyId'}<input id={`workflow-field-${field.key}`} value={extraValues[field.key] ?? ''} readonly />{:else if field.kind === 'select'}<select id={`workflow-field-${field.key}`} bind:value={extraValues[field.key]}>{#each field.options ?? [] as option}<option value={option}>{option}</option>{/each}</select>{:else}<input id={`workflow-field-${field.key}`} type={field.kind === 'date' ? 'date' : field.kind === 'number' ? 'number' : 'text'} step={field.kind === 'number' ? 'any' : undefined} bind:value={extraValues[field.key]} />{/if}
+          <label for={canonicalItemMaintenance && field.key === 'itemCode' ? 'maintenance-item-input' : kind === 'update-item-suppliers' && field.key === 'supplier' ? 'maintenance-supplier-input' : `workflow-field-${field.key}`}>{field.label}:</label>{#if canonicalItemMaintenance && field.key === 'itemCode'}<div class="legacy-maintenance-item-lookup"><input id="maintenance-item-input" bind:value={extraValues[field.key]} required /><button type="button" aria-label="Lookup maintenance item" onclick={searchMaintenanceItems} disabled={maintenanceItemBusy}>Lookup</button></div>{#if maintenanceItemBusy}<p role="status">Searching active canonical items...</p>{:else if maintenanceItemResults.length}<div class="legacy-adjustment-item-results" aria-label="Maintenance item results">{#each maintenanceItemResults as item}<button type="button" onclick={() => chooseMaintenanceItem(item)}>{item.name} ({item.legacyId})</button>{/each}</div>{/if}{:else if kind === 'update-item-suppliers' && field.key === 'supplier'}<div class="legacy-maintenance-item-lookup"><input id="maintenance-supplier-input" bind:value={extraValues[field.key]} required /><button type="button" aria-label="Lookup maintenance supplier" onclick={searchMaintenanceSuppliers} disabled={maintenanceSupplierBusy}>Lookup</button></div>{#if maintenanceSupplierBusy}<p role="status">Searching active canonical suppliers...</p>{:else if maintenanceSupplierResults.length}<div class="legacy-adjustment-item-results" aria-label="Maintenance supplier results">{#each maintenanceSupplierResults as supplier}<button type="button" onclick={() => chooseMaintenanceSupplier(supplier)}>{supplier.name} ({supplier.legacyId || supplier.code})</button>{/each}</div>{/if}{:else if adjustment && field.key === 'godownId'}<select id={`workflow-field-${field.key}`} bind:value={extraValues[field.key]}><option value="">Select active godown</option>{#each adjustmentGodowns as godown}<option value={godown.id}>{godown.name}</option>{/each}</select>{:else if adjustment && field.key === 'itemLegacyId'}<input id={`workflow-field-${field.key}`} value={extraValues[field.key] ?? ''} readonly />{:else if field.kind === 'select'}<select id={`workflow-field-${field.key}`} bind:value={extraValues[field.key]}>{#each field.options ?? [] as option}<option value={option}>{option}</option>{/each}</select>{:else}<input id={`workflow-field-${field.key}`} type={field.kind === 'date' ? 'date' : field.kind === 'number' ? 'number' : 'text'} step={field.kind === 'number' ? 'any' : undefined} bind:value={extraValues[field.key]} />{/if}
         {/each}
         <label>Notes:<textarea rows="5" bind:value={notes}></textarea></label>
         <div class="legacy-master-actions"><button type="submit" disabled={busy}>Save</button><button type="button" onclick={cancelWorkflow}>Cancel</button></div>

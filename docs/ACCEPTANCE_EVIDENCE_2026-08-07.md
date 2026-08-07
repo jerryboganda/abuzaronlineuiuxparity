@@ -650,3 +650,88 @@ This proves the representative web workflow against mocked authenticated APIs;
 exact PowerBuilder dialogs, price/discount calculation rules, source item
 selection, live database effects, print/raster parity, and operator UAT remain
 open.
+
+## Update Item Suppliers canonical workflow - 2026-08-07
+
+`Maintenance > Update Item Suppliers` now resolves both the item and supplier
+against active canonical tenant data before saving. The Go mutation validates
+the supplier scope, upserts only the selected item/supplier link, preserves
+other links, and records previous/new priority and purchase-rate values in the
+maintenance audit payload.
+
+Focused evidence:
+
+- `cmd /c go test ./services/api/internal/httpapi -run TestCanonicalItemMaintenanceValidation -count=1` passed.
+- `cmd /c pnpm --filter @abuzar/web check` passed with 0 errors and 0 warnings.
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/smoke.spec.ts --workers=1 --retries=0 --reporter=line --timeout=12000 --global-timeout=30000 --grep "canonical item supplier maintenance"` passed 1/1.
+
+The PostgreSQL integration case was not executed because `DATABASE_URL` was not
+configured in this run. Exact PowerBuilder supplier-selection semantics,
+source reconciliation, and operator acceptance remain open.
+
+## Item Purchase History identity filter - 2026-08-07
+
+`File > Item Purchase History` now derives the first populated purchase-row
+item identity and forwards it as the authenticated history filter. The
+canonical purchase-history query matches both `business_document_lines.item_legacy_id`
+and the displayed item name, while retaining tenant, branch, document-kind,
+and date scope.
+
+Focused evidence:
+
+- `cmd /c pnpm --filter @abuzar/web check` passed with 0 errors and 0 warnings.
+- `cmd /c go test ./services/api/internal/httpapi -run TestCanonicalPurchaseHistoryQuerySupportsItemIdentityFiltering -count=1` passed.
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/purchase-canonical.spec.ts --workers=1 --retries=0 --reporter=line --timeout=12000 --global-timeout=30000 --grep "Item Purchase History filters"` passed 1/1.
+
+The browser assertion used mocked authenticated APIs; live PostgreSQL history
+results, exact PowerBuilder cursor/focus behavior, full purchase workflow
+semantics, and print/UAT parity remain open.
+
+## Purchase View Item Info identity handoff - 2026-08-07
+
+`File > View Item Info` now fails closed unless a populated row has an active
+canonical item identity, then opens Item master with the item legacy ID. Item
+master consumes that identity and preselects the matching tenant-scoped item,
+including its canonical detail/supplier load.
+
+Focused evidence:
+
+- `cmd /c pnpm --filter @abuzar/web check` passed with 0 errors and 0 warnings.
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/purchase-canonical.spec.ts --workers=1 --retries=0 --reporter=line --timeout=12000 --global-timeout=30000 --grep "View Item Info carries"` passed 1/1.
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/phase-f.spec.ts --workers=1 --retries=0 --reporter=line --timeout=12000 --global-timeout=30000 --grep "preselects the canonical item"` passed 1/1.
+
+These are mocked authenticated browser checks. Exact PowerBuilder current-row
+focus behavior, live source data, and full master-screen raster/CRUD parity
+remain open.
+
+The adjacent `File > Supplier Info.` command now carries the active canonical
+supplier legacy ID to Supplier master and uses the same preselection contract;
+its focused browser coverage is included in the purchase-canonical and Phase F
+suites.
+
+## Phase E reviewed-map coverage auditor - 2026-08-07
+
+Added the read-only `migration/cmd/auditcoverage` command. It compares the
+authoritative `tmp/canonical-sqlserver-schema.json` table inventory with every
+JSON map in `migration/maps`, normalizes schema/table casing, reports mapping
+overlaps, and can fail closed with `-fail-on-unmapped`. It does not open either
+database or alter source/mapping files.
+
+Fresh artifact:
+
+- `parity/catalog/phase-e-map-coverage-2026-08-07.json`
+- Manifest tables: 763
+- Unique mapped tables: 49
+- Unmapped tables: 714
+- Reviewed mapping entries: 74
+- Overlapping mapping entries: 25
+
+Focused evidence:
+
+- `cmd /c go test ./migration/cmd/auditcoverage -count=1` passed.
+- `cmd /c go run ./migration/cmd/auditcoverage -manifest tmp/canonical-sqlserver-schema.json -maps migration/maps -out parity/catalog/phase-e-map-coverage-2026-08-07.json` completed and emitted the counts above.
+
+This is an audit/control improvement, not a migration completion claim. The
+714 unmapped tables, canonical source execution, 32 canonical Purdetail
+quarantines, 16 sandbox tax ambiguities, business reconciliation, and all
+downstream acceptance gates remain open.

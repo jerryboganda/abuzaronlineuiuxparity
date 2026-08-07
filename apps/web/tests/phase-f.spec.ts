@@ -42,6 +42,24 @@ test('item master searches canonical records and loads the detail payload', asyn
   await expect(page.getByLabel('Alias Name:')).toHaveValue('CANONICAL-ALIAS');
 });
 
+test('item master preselects the canonical item requested by legacy identity', async ({ page }) => {
+  await mockItemPage(page, []);
+  await page.goto('/app/master/item?legacyId=ITEM-1');
+  await expect(page.getByRole('textbox', { name: 'Code/No.:', exact: true })).toHaveValue('ITEM-1');
+  await expect(page.getByRole('textbox', { name: 'Name:', exact: true })).toHaveValue('CANONICAL ITEM');
+});
+
+test('supplier master preselects the canonical supplier requested by legacy identity', async ({ page }) => {
+  await page.route('**/v1/master/supplier*', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [record('supplier', 'SUP-1', 'SUPPLIER 1')] })
+  }));
+  await page.goto('/app/master/supplier?legacyId=SUP-1');
+  await expect(page.getByRole('textbox', { name: 'Code:', exact: true })).toHaveValue('SUP-1');
+  await expect(page.getByRole('textbox', { name: 'Name:', exact: true })).toHaveValue('SUPPLIER 1');
+});
+
 test('item supplier grid saves and reloads through the canonical API', async ({ page }) => {
   const savedSupplier = { id: 'link-1', legacySupplierId: 'SUP-1', supplierId, priority: 1, rate: '4.00', discountPercent: '2.00', quantity: '10', bonus: '1', days: 30 };
   await mockItemPage(page, []);

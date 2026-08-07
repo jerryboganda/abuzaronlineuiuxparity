@@ -967,6 +967,46 @@ test('canonical item maintenance uses active item lookup before saving', async (
   await expect(page.getByText('Sale Price for item ITEM-1 updated in the canonical item master.')).toBeVisible();
 });
 
+test('canonical item supplier maintenance uses active item and supplier lookup before saving', async ({ page }) => {
+  await page.route('**/v1/session', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, context: { tenantId: 'tenant-1', tenantCode: 'TENANT', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' } })
+  }));
+  await page.route('**/v1/maintenance/update-item-suppliers', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ kind: 'update-item-suppliers', items: [], operations: [] }) });
+      return;
+    }
+    const body = route.request().postDataJSON() as Record<string, unknown>;
+    expect(body).toMatchObject({ itemCode: 'ITEM-1', supplier: 'SUP-1', purchasePrice: 8.25, priority: 2 });
+    await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ kind: 'update-item-suppliers', status: 'completed', message: 'Supplier SUP-1 linked to item ITEM-1 in the canonical item supplier grid.' }) });
+  });
+  await page.route('**/v1/items/lookup**', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: [{ id: '11111111-1111-4111-8111-111111111111', legacyId: 'ITEM-1', code: 'ITEM-1', name: 'Canonical Item', payload: {}, active: true, aliases: [] }] })
+  }));
+  await page.route('**/v1/master/supplier*', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [{ id: '55555555-5555-4555-8555-555555555555', kind: 'supplier', legacyId: 'SUP-1', code: 'SUP-1', name: 'Canonical Supplier', payload: {}, active: true }] })
+  }));
+  await page.goto('/app/maintenance/update-item-suppliers');
+  await expect(page.locator('main[data-hydrated="true"]')).toBeVisible();
+  await page.locator('#maintenance-item-input').fill('Canonical');
+  await page.getByRole('button', { name: 'Lookup maintenance item' }).click();
+  await page.getByRole('button', { name: 'Canonical Item (ITEM-1)' }).click();
+  await page.locator('#maintenance-supplier-input').fill('Canonical');
+  await page.getByRole('button', { name: 'Lookup maintenance supplier' }).click();
+  await expect(page.getByRole('button', { name: 'Canonical Supplier (SUP-1)' })).toBeVisible();
+  await page.getByRole('button', { name: 'Canonical Supplier (SUP-1)' }).click();
+  await page.getByLabel('Purchase Price:').fill('8.25');
+  await page.getByLabel('Priority:').fill('2');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText('Supplier SUP-1 linked to item ITEM-1 in the canonical item supplier grid.')).toBeVisible();
+});
+
 test('captured preference form tabs expose their native legacy layouts after interaction', async ({ page }) => {
   await page.goto('/app/preferences');
   await page.waitForTimeout(500);

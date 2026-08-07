@@ -22,6 +22,31 @@ func isCanonicalPurchaseHistoryKind(kind string) bool {
 	}
 }
 
+func canonicalPurchaseHistoryQuery() string {
+	return `
+		SELECT d.id::text, d.document_number, d.occurred_at::text,
+		       COALESCE(mp.name, ''), COALESCE(line.item_name, ''),
+		       COALESCE(line.quantity::text, ''), d.total_amount::text
+		FROM business_documents d
+		LEFT JOIN master_parties mp
+		  ON mp.tenant_id = d.tenant_id AND mp.id = d.supplier_id AND mp.party_type = 'supplier'
+		LEFT JOIN LATERAL (
+			SELECT item_legacy_id, item_name, quantity
+			FROM business_document_lines l
+			WHERE l.tenant_id = d.tenant_id AND l.branch_id = d.branch_id AND l.document_id = d.id
+			ORDER BY line_number
+			LIMIT 1
+		) line ON true
+		WHERE d.tenant_id = $1::uuid AND d.branch_id = $2::uuid AND d.kind = $3
+		  AND d.occurred_at >= $4::date
+		  AND d.occurred_at < ($5::date + INTERVAL '1 day')
+		  AND ($6 = '' OR d.document_number ILIKE '%' || $6 || '%'
+		       OR COALESCE(mp.name, '') ILIKE '%' || $6 || '%'
+		       OR COALESCE(line.item_legacy_id, '') ILIKE '%' || $6 || '%'
+		       OR COALESCE(line.item_name, '') ILIKE '%' || $6 || '%')
+		ORDER BY d.occurred_at DESC LIMIT $7`
+}
+
 func (s *Server) transactionHistory(w http.ResponseWriter, r *http.Request) {
 	kind := strings.TrimSpace(r.PathValue("kind"))
 	if _, ok := historyAggregates[kind]; !ok {
@@ -89,27 +114,7 @@ func (s *Server) transactionHistory(w http.ResponseWriter, r *http.Request) {
 		query = documentReadModelQuery(documentKind, kind, "", "LIMIT $6", true)
 		args = []any{operator.TenantID, operator.BranchID, from, to, filter, limit}
 	} else if isCanonicalPurchaseHistoryKind(kind) {
-		query = `
-			SELECT d.id::text, d.document_number, d.occurred_at::text,
-			       COALESCE(mp.name, ''), COALESCE(line.item_name, ''),
-			       COALESCE(line.quantity::text, ''), d.total_amount::text
-			FROM business_documents d
-			LEFT JOIN master_parties mp
-			  ON mp.tenant_id = d.tenant_id AND mp.id = d.supplier_id AND mp.party_type = 'supplier'
-			LEFT JOIN LATERAL (
-				SELECT item_name, quantity
-				FROM business_document_lines l
-				WHERE l.tenant_id = d.tenant_id AND l.branch_id = d.branch_id AND l.document_id = d.id
-				ORDER BY line_number
-				LIMIT 1
-			) line ON true
-			WHERE d.tenant_id = $1::uuid AND d.branch_id = $2::uuid AND d.kind = $3
-			  AND d.occurred_at >= $4::date
-			  AND d.occurred_at < ($5::date + INTERVAL '1 day')
-			  AND ($6 = '' OR d.document_number ILIKE '%' || $6 || '%'
-			       OR COALESCE(mp.name, '') ILIKE '%' || $6 || '%'
-			       OR COALESCE(line.item_name, '') ILIKE '%' || $6 || '%')
-			ORDER BY d.occurred_at DESC LIMIT $7`
+		query = canonicalPurchaseHistoryQuery()
 		args = []any{operator.TenantID, operator.BranchID, kind, from, to, filter, limit}
 	} else {
 		query = `

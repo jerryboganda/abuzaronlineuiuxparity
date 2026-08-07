@@ -256,6 +256,15 @@
     }
     try {
       records = (await api.masterRecords(apiKind, searchQuery)).records;
+      const requestedLegacyId = (kind === 'item' || kind === 'supplier') ? ($page?.url?.searchParams?.get('legacyId') ?? '').trim().toLowerCase() : '';
+      if (requestedLegacyId) {
+        const requested = records.find((record) => record.legacyId?.trim().toLowerCase() === requestedLegacyId || record.code.trim().toLowerCase() === requestedLegacyId);
+        if (requested) {
+          await selectRecord(requested);
+        } else {
+          message = `Item ${requestedLegacyId} was not found in the current tenant scope.`;
+        }
+      }
       error = '';
     } catch (cause) {
       if (!(cause instanceof ApiError && cause.status === 401)) error = cause instanceof ApiError ? cause.problem?.detail ?? cause.message : 'Master data could not be loaded.';

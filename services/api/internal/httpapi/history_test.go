@@ -40,3 +40,16 @@ func TestSalesHistoryQueriesExposeCanonicalDocumentIdentity(t *testing.T) {
 		}
 	}
 }
+
+func TestCanonicalPurchaseHistoryQuerySupportsItemIdentityFiltering(t *testing.T) {
+	query := canonicalPurchaseHistoryQuery()
+	for _, fragment := range []string{
+		"SELECT item_legacy_id, item_name, quantity",
+		"COALESCE(line.item_legacy_id, '') ILIKE '%' || $6 || '%'",
+		"d.kind = $3",
+	} {
+		if !strings.Contains(query, fragment) {
+			t.Errorf("canonical purchase history query is missing %q", fragment)
+		}
+	}
+}
