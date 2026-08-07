@@ -1375,3 +1375,99 @@ tbody tr:last-child td { border-bottom: 0; }
     opacity: 1 !important;
   }
 }
+
+.legacy-purchase-lookup {
+  margin: 6px 8px;
+  border: 1px solid #aaa;
+  background: #fcfcfc;
+  padding: 6px;
+  font: 12px Tahoma, Arial, sans-serif;
+}
+.legacy-purchase-lookup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 10px;
+}
+.legacy-purchase-lookup-header label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  font-weight: bold;
+}
+.legacy-purchase-lookup-header input {
+  flex: 1;
+  padding: 3px 6px;
+  border: 1px solid #777;
+  border-radius: 2px;
+  font: 12px Tahoma, Arial, sans-serif;
+}
+.legacy-inventory-popup-toggle {
+  background: #005a9e;
+  color: #fff;
+  border: 1px solid #004578;
+  padding: 3px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.legacy-inventory-popup-toggle:hover {
+  background: #004578;
+}
+.legacy-purchase-lookup table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+.legacy-purchase-lookup th, .legacy-purchase-lookup td {
+  border: 1px solid #ccc;
+  padding: 3px 6px;
+  text-align: left;
+}
+.legacy-purchase-lookup th {
+  background: #e8e8e8;
+  font-weight: bold;
+}
+.legacy-purchase-lookup td button {
+  background: none;
+  border: none;
+  color: #005a9e;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 0;
+  text-align: left;
+}
+.legacy-purchase-inventory-window {
+  width: 850px;
+  max-width: 95vw;
+  background: #f0f0f0;
+  border: 2px solid #005a9e;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+}
+.legacy-purchase-lookup-table-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  background: #fff;
+  margin-top: 8px;
+}
+.legacy-purchase-lookup-table-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.legacy-purchase-lookup-table-scroll th {
+  position: sticky;
+  top: 0;
+  background: #005a9e;
+  color: #fff;
+  padding: 5px 8px;
+  border: 1px solid #004578;
+}
+.legacy-purchase-lookup-table-scroll td {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+}
+

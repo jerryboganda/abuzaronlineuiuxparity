@@ -130,6 +130,10 @@
   let showExpenses = false;
   let attachmentInput: HTMLInputElement | null = null;
   let attachments: Array<{ name: string; size: number }> = [];
+  let lookupQuery = '';
+  let showInventoryWindow = false;
+  type LookupItem = ItemLookupResult & { stock: string; purchasePrice: string; salePrice: string; salePrices: string[]; manufacturer: string; pieces: string; location: string };
+  let availableLookupItems: LookupItem[] = [];
 
   $: kind = $page?.params?.kind ?? 'pack';
   $: if (kind !== activeWorkflowKind) switchWorkflow(kind);
@@ -137,6 +141,25 @@
   $: historyKind = kind === 'return' ? 'purchase-return' : kind === 'order' ? 'purchase-order' : kind === 'loose' ? 'loose-purchase' : kind === 'opening' ? 'opening-purchase' : 'pack-purchase';
   $: historyRequestKind = historyQueryKind || historyKind;
   $: transactionWindowTitle = `${formatLegacyTitle(authenticatedUsername, clock)} - [${title}]`;
+  $: availableLookupItems = itemRecords.map((record) => {
+    const payload = (record.payload ?? {}) as Record<string, unknown>;
+    const value = (...keys: string[]) => keys.map((key) => payload[key]).find((candidate) => candidate !== undefined && candidate !== null && String(candidate).trim() !== '');
+    const text = (keys: string[], fallback = '') => String(value(...keys) ?? fallback);
+    const salePrices = Array.from({ length: 10 }, (_, index) => {
+      const level = index + 1;
+      return text([`SalePrice${level}`, `salePrice${level}`, ...(level === 1 ? ['SalePrice', 'salePrice'] : []), 'DefaultSalePrice', 'defaultSalePrice']);
+    });
+    return {
+      ...record,
+      stock: '',
+      purchasePrice: text(['PurPrice', 'purPrice', 'PurchasePrice', 'purchasePrice', 'AvgPrice', 'AveragePrice']),
+      salePrice: salePrices[0] ?? '',
+      salePrices,
+      manufacturer: text(['Manufacturer', 'manufacturer', 'ManfCode', 'manfCode']),
+      pieces: text(['PackUnits', 'packUnits', 'Pieces', 'pieces', 'Pcs', 'pcs'], '1'),
+      location: text(['Location', 'location', 'Location1', 'location1', 'ItemLocation', 'itemLocation'])
+    };
+  });
   function isCanonicalPurchaseKind(): boolean {
     return supportedPurchaseRouteKinds.includes(kind);
   }
@@ -327,6 +350,8 @@
   }
 
   function handleMenuCommand(action: MenuAction): boolean {
+    // The footer is a status bar: a new command supersedes the previous error.
+    error = '';
     if (busy) {
       message = 'Wait for the active document command to finish.';
       return true;
@@ -792,6 +817,29 @@
     const allocations = returnAllocationsFor(index, row).filter((_, candidateIndex) => candidateIndex !== allocationIndex);
     const nextAllocations = allocations.length ? allocations : [{ batchId: '', batchNumber: '', quantity: row.quantity || '1' }];
     returnAllocations = { ...returnAllocations, [index]: nextAllocations };
+  }
+
+  function chooseLookupItem(item: LookupItem) {
+    const targetIndex = focusedRowIndex;
+    updateRow(targetIndex, 'itemName', item.name);
+    updateRow(targetIndex, 'quickSearch', item.name);
+    rows = rows.map((row, index) => {
+      if (index !== targetIndex) return row;
+      return {
+        ...row,
+        itemId: item.id,
+        itemLegacyId: item.legacyId || item.code || item.id,
+        itemName: item.name,
+        quickSearch: item.name,
+        purchasePrice: item.purchasePrice || row.purchasePrice,
+        batchSalePrice: item.salePrice || row.batchSalePrice,
+        packing: item.pieces || row.packing,
+        packUnits: item.pieces || row.packUnits,
+        location: item.location || row.location,
+        godown: godownId ? (godownRecords.find((g) => g.id === godownId)?.name || row.godown) : row.godown
+      };
+    });
+    message = `Item '${item.name}' selected for purchase line ${targetIndex + 1}.`;
   }
 
   async function chooseItem(index: number, value: string): Promise<boolean> {
@@ -1385,6 +1433,17 @@
          {#if kind === 'pack' || kind === 'loose' || kind === 'opening'}<label>Credit Days:<input aria-label="Credit days" inputmode="numeric" bind:value={creditDays} /></label>{/if}
          {#if kind === 'return'}<label>Source Document ID:<input aria-label="Source document ID" bind:value={sourceDocumentId} /></label><label>Source Document #:<input aria-label="Source document number" bind:value={sourceDocumentNumber} /></label>{/if}
       </div>
+      <div class="legacy-purchase-lookup" aria-label="Purchase item lookup list">
+        <div class="legacy-purchase-lookup-header">
+          <label>Item Lookup / Search:
+            <input aria-label="Item lookup query" bind:value={lookupQuery} oninput={(event) => void lookupItems((event.currentTarget as HTMLInputElement).value)} onkeydown={(event) => { if (event.key === 'Enter') void lookupItems((event.currentTarget as HTMLInputElement).value); }} placeholder="Search medicine, code, barcode, manufacturer..." />
+          </label>
+          <button type="button" class="legacy-inventory-popup-toggle" onclick={() => { showInventoryWindow = !showInventoryWindow; }}>Item Lookup Window [F2]</button>
+        </div>
+        <table><thead><tr><th>Name</th><th>Purchase Price</th><th>Sale Price</th><th>Manufacturer</th><th>P/Pcs.</th><th>Location</th></tr></thead><tbody>
+          {#if itemLookupBusy}<tr><td colspan="6">Looking up active canonical items…</td></tr>{:else if availableLookupItems.length === 0}<tr><td colspan="6">Search by item name, alias, barcode, or code. 10,200 active inventory items available.</td></tr>{:else}{#each availableLookupItems as item}<tr><td><button type="button" onclick={() => chooseLookupItem(item)}>{item.name}</button></td><td>{item.purchasePrice}</td><td>{item.salePrice}</td><td>{item.manufacturer}</td><td>{item.pieces}</td><td>{item.location}</td></tr>{/each}{/if}
+        </tbody></table>
+      </div>
       <div class="legacy-transaction-grid-wrap">
         <table class="legacy-transaction-grid" class:legacy-pack-purchase-grid={kind === 'pack'}>
           <thead>{#if kind === 'pack'}<tr>{#each packHeaders as header}<th>{header}</th>{/each}</tr>{:else}<tr><th>No.</th><th>Quick Search</th><th>Alias Name</th><th>Alternate Alias Name</th><th>Item Name</th><th>Pack Units</th><th>Packing</th><th>Item Location</th><th>Godown</th><th>Batch</th><th>Mfg. Date</th><th>Expiry</th><th>Batch Sale Price</th><th>Quantity</th><th>Purchase Price</th><th>Total</th><th></th>{#if kind === 'return'}<th>Source Batch ID</th>{/if}</tr>{/if}</thead>
@@ -1472,6 +1531,52 @@
     <input class="legacy-hidden-file-input" type="file" multiple bind:this={attachmentInput} onchange={onAttachmentsSelected} aria-label="Attach purchase documents" />
     {#if showExpenses}<div class="legacy-dialog-backdrop" role="presentation" inert={busy}><div class="legacy-simple-dialog" role="dialog" aria-modal="true" aria-label="Purchase Expenses"><h2>Purchase Expenses</h2><label>Misc (+)<input aria-label="Purchase expenses dialog value" bind:value={miscAmount} /></label><p>Expenses are carried into the canonical document pricing snapshot.</p><div><button type="button" onclick={() => { showExpenses = false; }}>Ok</button><button type="button" onclick={() => { showExpenses = false; }}>Cancel</button></div></div></div>{/if}
     {#if showSaleTemplatePicker}<div class="legacy-dialog-backdrop" role="presentation" inert={busy}><div class="legacy-simple-dialog legacy-sale-template-dialog" role="dialog" aria-modal="true" aria-label="Sale Templates"><h2>Populate From Sale Template</h2>{#if saleTemplateBusy}<p>Loading active sale templates...</p>{:else if saleTemplates.length === 0}<p>No active sale templates are available in the current tenant scope.</p>{:else}<table><thead><tr><th>Code</th><th>Name</th><th>Updated</th><th></th></tr></thead><tbody>{#each saleTemplates as template}<tr><td>{template.code}</td><td>{template.name}</td><td>{template.updatedAt.slice(0, 10)}</td><td><button type="button" data-testid={`sale-template-${template.id}`} onclick={() => { void applySaleTemplate(template); }}>Use template</button></td></tr>{/each}</tbody></table>{/if}<div><button type="button" onclick={() => { showSaleTemplatePicker = false; }}>Cancel</button></div></div></div>{/if}
+    {#if showInventoryWindow}
+      <div class="legacy-dialog-backdrop" role="presentation" inert={busy}>
+        <div class="legacy-dialog legacy-purchase-inventory-window" role="dialog" aria-modal="true" aria-label="Inventory Item Lookup">
+          <header class="legacy-dialog-titlebar">
+            <h2>Inventory Item Lookup Catalog [Realtime]</h2>
+            <button class="legacy-dialog-close" type="button" aria-label="Close" onclick={() => { showInventoryWindow = false; }}>×</button>
+          </header>
+          <div class="legacy-dialog-body">
+            <div class="legacy-purchase-lookup-header">
+              <label>Search Item:
+                <input aria-label="Modal item lookup query" bind:value={lookupQuery} oninput={(event) => void lookupItems((event.currentTarget as HTMLInputElement).value)} placeholder="Type name, brand, code, location..." />
+              </label>
+            </div>
+            <div class="legacy-purchase-lookup-table-scroll">
+              <table>
+                <thead>
+                  <tr><th>Code</th><th>Name</th><th>Purchase Price</th><th>Sale Price 1</th><th>Manufacturer</th><th>Location</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                  {#if itemLookupBusy}
+                    <tr><td colspan="7">Searching inventory catalog...</td></tr>
+                  {:else if availableLookupItems.length === 0}
+                    <tr><td colspan="7">No matching items found. Enter search query above.</td></tr>
+                  {:else}
+                    {#each availableLookupItems as item}
+                      <tr>
+                        <td>{item.code || item.legacyId}</td>
+                        <td><strong>{item.name}</strong></td>
+                        <td>{item.purchasePrice}</td>
+                        <td>{item.salePrice}</td>
+                        <td>{item.manufacturer}</td>
+                        <td>{item.location}</td>
+                        <td><button type="button" onclick={() => { chooseLookupItem(item); showInventoryWindow = false; }}>Select Item</button></td>
+                      </tr>
+                    {/each}
+                  {/if}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <footer class="legacy-dialog-footer">
+            <button class="legacy-dialog-ok" type="button" onclick={() => { showInventoryWindow = false; }}>Close [Esc]</button>
+          </footer>
+        </div>
+      </div>
+    {/if}
     <div class="legacy-transaction-footer">
       {#if error}<span class="error" role="alert">{error}</span>{:else if message}<span role="status">{message}</span>{:else}<span>Ready</span>{/if}
       <button type="button" class="legacy-sync-button" onclick={flushQueue} disabled={busy || pending === 0}>Sync queue ({pending})</button>
