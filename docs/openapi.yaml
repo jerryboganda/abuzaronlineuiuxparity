@@ -414,6 +414,322 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+  /v1/master/item/{id}/aliases:
+    get:
+      operationId: listItemAlternateAliases
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Tenant-scoped alternate aliases for the Item Form
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemAlternateAliases' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: replaceItemAlternateAliases
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ItemAlternateAliases' }
+      responses:
+        '200':
+          description: Replaced only the item's alternate aliases
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemAlternateAliases' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/master/item/{id}/images:
+    get:
+      operationId: listItemImages
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Tenant-scoped ItemImage collection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemImages' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: replaceItemImages
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ItemImages' }
+      responses:
+        '200':
+          description: Replaced the selected item's image collection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemImages' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/master/item/{id}/notes:
+    get:
+      operationId: getItemNotes
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Tenant-scoped opaque ItemNotes blob
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemNotes' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: replaceItemNotes
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ItemNotes' }
+      responses:
+        '200':
+          description: Replaced the selected item's opaque notes blob
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemNotes' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+  /v1/master/item/{id}/associations:
+    get:
+      operationId: listItemAssociations
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Tenant-scoped ItemAssociation pairs
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemAssociations' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: replaceItemAssociations
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [legacyItemIds]
+              properties:
+                legacyItemIds: { type: array, maxItems: 100, items: { type: string, minLength: 1, maxLength: 160 } }
+      responses:
+        '200':
+          description: Replaced the selected item's association pairs
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemAssociations' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+  /v1/master/item/{id}/authors:
+    get:
+      operationId: listItemAuthors
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Tenant-scoped ItemAuthor relationships
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemAuthors' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: replaceItemAuthors
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [authors]
+              properties:
+                authors: { type: array, maxItems: 50, items: { $ref: '#/components/schemas/ItemAuthor' } }
+      responses:
+        '200':
+          description: Replaced the selected item's author relationships
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemAuthors' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+  /v1/master/item/{id}/models:
+    get:
+      operationId: listItemModels
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Tenant-scoped ItemInModel membership
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemModels' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: replaceItemModels
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [modelCodes]
+              properties:
+                modelCodes: { type: array, maxItems: 100, items: { type: integer, minimum: -32768, maximum: 32767 } }
+      responses:
+        '200':
+          description: Replaced the selected item's model membership
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemModels' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+  /v1/master/item/{id}/price-policy:
+    get:
+      operationId: getItemPricePolicy
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Tenant-scoped PricePolicy header and PricePolicyDetail tiers
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemPricePolicy' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: replaceItemPricePolicy
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [policyCode, tiers]
+              properties:
+                policyCode: { type: string, minLength: 1, maxLength: 160 }
+                tiers: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/ItemPricePolicyTier' } }
+      responses:
+        '200':
+          description: Replaced the selected item's source-backed PricePolicyDetail tiers
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemPricePolicy' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+  /v1/master/item/{id}/registration-request:
+    get:
+      operationId: getItemRegistrationRequest
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Latest tenant-scoped ItemRegRequest snapshot, when present
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemRegistrationRequestResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: populateItemRegistrationRequest
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '201':
+          description: Newly populated local ItemRegRequest snapshot
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemRegistrationRequestResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+  /v1/master/item/{id}/unposted-transactions:
+    get:
+      operationId: listItemUnpostedTransactions
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Bounded tenant/branch-scoped canonical draft lines for the selected item
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemUnpostedTransactions' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
   /v1/transactions/sales:
     post:
       operationId: createSale
@@ -599,8 +915,10 @@ paths:
         pack-purchase, loose-purchase, opening-purchase, purchase-return, and
         purchase-order. Sale returns require a posted source sale and restore its
         source batches before reversing finance projections. Save, post,
-        save-and-post, and void are idempotent by
-        commandId/idempotencyKey and use optimistic document revisions.
+        save-and-post, void, and draft delete are idempotent by
+        commandId/idempotencyKey and use optimistic document revisions. Delete
+        is a non-destructive, audited soft-delete limited to draft documents;
+        posted documents must use void/reversal semantics.
       security: [{ sessionCookie: [] }]
       parameters:
         - name: kind
@@ -1042,6 +1360,162 @@ components:
         name: { type: string, maxLength: 240 }
         payload: { type: object, additionalProperties: true }
         active: { type: boolean }
+    ItemAlternateAliases:
+      type: object
+      required: [aliases]
+      properties:
+        aliases:
+          type: array
+          maxItems: 100
+          items: { type: string, minLength: 1, maxLength: 160 }
+    ItemImages:
+      type: object
+      required: [images]
+      properties:
+        images:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/ItemImage' }
+    ItemImage:
+      type: object
+      required: [rowId, imageDescription, imageData, imageType]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        rowId: { type: integer, minimum: 1 }
+        imageDescription: { type: string, maxLength: 240 }
+        imageData: { type: string, description: Base64-encoded image blob, maxLength: 8388608 }
+        imageType: { type: string, maxLength: 100 }
+    ItemNotes:
+      type: object
+      required: [notesData]
+      properties:
+        notesData:
+          type: string
+          description: Base64-encoded bytes from dbo.ItemNotes. Empty means no notes; decoded size is bounded to 8 MiB.
+          maxLength: 11184812
+    ItemAssociations:
+      type: object
+      required: [associations]
+      properties:
+        associations:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/ItemAssociation' }
+    ItemAssociation:
+      type: object
+      required: [legacyItemId]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        legacyItemId: { type: string, maxLength: 160 }
+        code: { type: string, readOnly: true }
+        name: { type: string, readOnly: true }
+    ItemAuthors:
+      type: object
+      required: [authors]
+      properties:
+        authors:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/ItemAuthor' }
+    ItemAuthor:
+      type: object
+      required: [authorCode, priority, rowId]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        authorCode: { type: integer, minimum: 1 }
+        priority: { type: integer, minimum: 0, maximum: 255 }
+        rowId: { type: integer, minimum: 1 }
+    ItemModels:
+      type: object
+      required: [models]
+      properties:
+        models:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/ItemModel' }
+    ItemModel:
+      type: object
+      required: [modelCode]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        modelCode: { type: integer, minimum: -32768, maximum: 32767 }
+    ItemPricePolicy:
+      type: object
+      required: [policy, tiers]
+      properties:
+        policy:
+          anyOf:
+            - $ref: '#/components/schemas/ItemPricePolicyHeader'
+            - type: 'null'
+        tiers:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/ItemPricePolicyTier' }
+    ItemPricePolicyHeader:
+      type: object
+      required: [policyCode, name, legacyItemId]
+      properties:
+        policyCode: { type: string }
+        name: { type: string }
+        legacyItemId: { type: string }
+    ItemPricePolicyTier:
+      type: object
+      required: [quantityLimit, price, expiryDate, flatDiscount, discountPercent]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        quantityLimit: { type: integer }
+        price: { type: string, description: Exact decimal source Price value, maxLength: 64 }
+        expiryDate: { type: string, description: ISO date; empty means no target date, maxLength: 10 }
+        flatDiscount: { type: string, description: Exact decimal source ItemFlatDisc value, maxLength: 64 }
+        discountPercent: { type: string, description: Exact decimal source DiscPerc value, maxLength: 64 }
+    ItemRegistrationRequestResponse:
+      type: object
+      required: [request]
+      properties:
+        request:
+          anyOf:
+            - $ref: '#/components/schemas/ItemRegistrationRequest'
+            - type: 'null'
+    ItemRegistrationRequest:
+      type: object
+      required: [id, requestCode, legacyItemId, requestedAt, serverName, machineName, sent, sentOn, payload]
+      properties:
+        id: { type: string, format: uuid }
+        requestCode: { type: integer }
+        legacyItemId: { type: string }
+        requestedAt: { type: string, format: date-time }
+        serverName: { type: string }
+        machineName: { type: string }
+        sent: { type: string, enum: [Y, N] }
+        sentOn: { type: string }
+        sentBy: { type: integer }
+        serverRequestCode: { type: integer }
+        payload: { type: object, additionalProperties: true, description: Source-shaped ItemRegRequest fields preserved from the item payload }
+    ItemUnpostedTransactions:
+      type: object
+      required: [itemId, transactions, truncated]
+      properties:
+        itemId: { type: string, format: uuid }
+        transactions:
+          type: array
+          maxItems: 200
+          items: { $ref: '#/components/schemas/ItemUnpostedTransaction' }
+        truncated: { type: boolean, description: True when more than 200 canonical draft lines matched }
+    ItemUnpostedTransaction:
+      type: object
+      required: [id, kind, documentNumber, status, occurredAt, lineNumber, itemLegacyId, itemName, quantity, unitPrice, lineTotal]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string }
+        documentNumber: { type: string }
+        status: { type: string, enum: [draft] }
+        occurredAt: { type: string, format: date-time }
+        lineNumber: { type: integer, minimum: 1 }
+        itemLegacyId: { type: string }
+        itemName: { type: string }
+        quantity: { type: string }
+        unitPrice: { type: string }
+        lineTotal: { type: string }
     ItemSupplier:
       type: object
       required: [legacySupplierId]
@@ -1143,7 +1617,9 @@ components:
       description: |
         Lifecycle command for a sale or purchase document. Save creates or
         revises a draft; post transitions an existing draft to posted;
-        save-and-post creates and posts atomically. Void is supported for
+        save-and-post creates and posts atomically. Delete soft-deletes only
+        drafts and preserves the canonical row for audit/revision/event history.
+        Void is supported for
         drafts and stock/GL-neutral purchase orders, and for canonical posted
         sales, purchases, and returns when completed projections exist; those
         posted voids append compensating stock/GL/party-ledger projections in
@@ -1287,7 +1763,7 @@ components:
         - purchase-order
     DocumentAction:
       type: string
-      enum: [save, post, save-and-post, void]
+      enum: [save, post, save-and-post, void, delete]
     DocumentStatus:
       type: string
       enum: [draft, posted, void]
@@ -1341,6 +1817,7 @@ components:
         creditDays: { type: string, description: Retained supplier credit term in days for purchase aging. }
         dueDate: { type: string, format: date, description: Retained SaleLedger due date for credit-sale receivables aging. }
         voidReason: { type: string }
+        deletedAt: { type: string, format: date-time, description: Present when an audited draft delete has soft-deleted the document from normal reads. }
         lines: { type: array, items: { $ref: '#/components/schemas/DocumentLine' } }
         totals: { $ref: '#/components/schemas/DocumentTotals' }
         payment: { $ref: '#/components/schemas/DocumentPayment' }

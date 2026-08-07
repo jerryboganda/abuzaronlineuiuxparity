@@ -1,8 +1,18 @@
 import { expect, test } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/v1/access', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ tenantAdmin: true, permissions: [], legacyRights: [], scopes: {}, scopeRows: [], exceptions: [] })
+  }));
+});
+
 const itemId = '11111111-1111-4111-8111-111111111111';
 const godownId = '22222222-2222-4222-8222-222222222222';
 const customerId = '33333333-3333-4333-8333-333333333333';
+const supplierId = '44444444-4444-4444-8444-444444444444';
+const saleDocumentId = '55555555-5555-4555-8555-555555555555';
 
 async function mockSession(page: import('@playwright/test').Page) {
   await page.route('**/v1/session', (route) => route.fulfill({
@@ -35,6 +45,156 @@ test('cash sale has no demo fallback and searches the canonical item lookup', as
   await expect(page.getByText(/No demo items are available/)).toBeVisible();
   await expect.poll(() => lookupQuery).toBe('PARA');
   await expect(page.getByText('SACHETS 10S')).toHaveCount(0);
+});
+
+test('View Item Info carries the populated canonical item identity to Item master', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/v1/master/godown', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ records: [] }) }));
+  await page.route('**/v1/items/lookup*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: [{ id: itemId, legacyId: 'ITEM-1', code: 'ITEM-1', name: 'Canonical Item', payload: {}, active: true, aliases: [] }] })
+  }));
+  await page.route('**/v1/master/item*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [{ id: itemId, legacyId: 'ITEM-1', code: 'ITEM-1', name: 'Canonical Item', payload: {}, active: true, suppliers: [] }] })
+  }));
+  await page.goto('/app/sales?kind=cash');
+  await waitForSalesReady(page);
+  await page.getByLabel('Item lookup query').fill('ITEM-1');
+  await page.getByLabel('Item lookup query').press('Enter');
+  await page.getByRole('button', { name: 'Canonical Item' }).click();
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'View Item Info', exact: true }).click();
+  await page.waitForURL('**/app/master/item?legacyId=ITEM-1');
+  await expect(page.getByRole('textbox', { name: 'Name:', exact: true })).toHaveValue('Canonical Item');
+});
+
+test('View Item Info follows the focused second sale line', async ({ page }) => {
+  const secondItemId = '66666666-6666-4666-8666-666666666666';
+  await mockSession(page);
+  await page.route('**/v1/master/godown', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ records: [] }) }));
+  await page.route('**/v1/items/lookup*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: [
+      { id: itemId, legacyId: 'ITEM-1', code: 'ITEM-1', name: 'First Canonical Item', payload: {}, active: true, aliases: [] },
+      { id: secondItemId, legacyId: 'ITEM-2', code: 'ITEM-2', name: 'Second Canonical Item', payload: {}, active: true, aliases: [] }
+    ] })
+  }));
+  await page.route('**/v1/master/item*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [
+      { id: itemId, legacyId: 'ITEM-1', code: 'ITEM-1', name: 'First Canonical Item', payload: {}, active: true, suppliers: [] },
+      { id: secondItemId, legacyId: 'ITEM-2', code: 'ITEM-2', name: 'Second Canonical Item', payload: {}, active: true, suppliers: [] }
+    ] })
+  }));
+  await page.goto('/app/sales?kind=cash');
+  await waitForSalesReady(page);
+  await page.getByLabel('Item lookup query').fill('ITEM');
+  await page.getByLabel('Item lookup query').press('Enter');
+  await page.getByRole('button', { name: 'First Canonical Item' }).click();
+  await page.getByRole('button', { name: 'Second Canonical Item' }).click();
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'View Item Info', exact: true }).click();
+  await page.waitForURL('**/app/master/item?legacyId=ITEM-2');
+  await expect(page.getByRole('textbox', { name: 'Name:', exact: true })).toHaveValue('Second Canonical Item');
+});
+
+test('Item Sale History filters by the focused canonical item identity', async ({ page }) => {
+  const secondItemId = '66666666-6666-4666-8666-666666666666';
+  let requestedFilter = '';
+  await mockSession(page);
+  await page.route('**/v1/master/godown', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ records: [] }) }));
+  await page.route('**/v1/items/lookup*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: [
+      { id: itemId, legacyId: 'ITEM-1', code: 'ITEM-1', name: 'First Canonical Item', payload: {}, active: true, aliases: [] },
+      { id: secondItemId, legacyId: 'ITEM-2', code: 'ITEM-2', name: 'Second Canonical Item', payload: {}, active: true, aliases: [] }
+    ] })
+  }));
+  await page.route('**/v1/transactions/sale*', async (route) => {
+    requestedFilter = new URL(route.request().url()).searchParams.get('filter') ?? '';
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ kind: 'sale', rows: [] }) });
+  });
+  await page.goto('/app/sales?kind=cash');
+  await waitForSalesReady(page);
+  await page.getByLabel('Item lookup query').fill('ITEM');
+  await page.getByLabel('Item lookup query').press('Enter');
+  await page.getByRole('button', { name: 'First Canonical Item' }).click();
+  await page.getByRole('button', { name: 'Second Canonical Item' }).click();
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Item Sale History', exact: true }).click();
+  await expect.poll(() => requestedFilter).toBe('ITEM-2');
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('focused item context: ITEM-2');
+});
+
+test('Apply Item GST persists the canonical item assignment before updating sale lines', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/v1/master/godown', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ records: [] }) }));
+  await page.route('**/v1/items/lookup*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: [{ id: itemId, legacyId: 'ITEM-1', code: 'ITEM-1', name: 'Canonical Item', payload: {}, active: true, aliases: [] }] })
+  }));
+  let payload: Record<string, any> | undefined;
+  await page.route('**/v1/tax-assignments/apply-item-gst', async (route) => {
+    payload = route.request().postDataJSON() as Record<string, any>;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ rateId: '77777777-7777-4777-8777-777777777777', itemsApplied: 1, effectiveFrom: '2026-08-07' })
+    });
+  });
+  await page.goto('/app/sales?kind=cash');
+  await waitForSalesReady(page);
+  await page.getByLabel('Item lookup query').fill('ITEM-1');
+  await page.getByLabel('Item lookup query').press('Enter');
+  await page.getByRole('button', { name: 'Canonical Item' }).click();
+  await page.getByLabel('Item GST percent').fill('18');
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Apply Item GST %', exact: true }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('18% assigned to 1 canonical item', { timeout: 7000 });
+  expect(payload).toMatchObject({
+    rate: '18',
+    inclusive: false,
+    effectiveFrom: '2026-08-07',
+    itemIds: [itemId],
+    sourceTable: 'PowerBuilder.FileCommand',
+    sourceLegacyId: 'Apply Item GST %'
+  });
+});
+
+test('Supplier Info carries the selected item linked supplier identity to Supplier master', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/v1/master/godown', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ records: [] }) }));
+  await page.route('**/v1/items/lookup*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: [{ id: itemId, legacyId: 'ITEM-1', code: 'ITEM-1', name: 'Canonical Item', payload: {}, active: true, aliases: [] }] })
+  }));
+  await page.route(`**/v1/master/item/${itemId}`, (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ id: itemId, kind: 'item', legacyId: 'ITEM-1', code: 'ITEM-1', name: 'Canonical Item', payload: {}, active: true, suppliers: [{ id: '55555555-5555-4555-8555-555555555555', legacySupplierId: 'SUP-1', supplierId }] })
+  }));
+  await page.route('**/v1/master/supplier*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [{ id: supplierId, legacyId: 'SUP-1', code: 'SUP-1', name: 'Canonical Supplier', payload: {}, active: true }] })
+  }));
+  await page.goto('/app/sales?kind=cash');
+  await waitForSalesReady(page);
+  await page.getByLabel('Item lookup query').fill('ITEM-1');
+  await page.getByLabel('Item lookup query').press('Enter');
+  await page.getByRole('button', { name: 'Canonical Item' }).click();
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Supplier Info.', exact: true }).click();
+  await page.waitForURL('**/app/master/supplier?legacyId=SUP-1');
+  await expect(page.getByRole('textbox', { name: 'Name:', exact: true })).toHaveValue('Canonical Supplier');
 });
 
 test('sales history hydrates a canonical return with source identity and saved batch allocations', async ({ page }) => {
@@ -157,6 +317,52 @@ test('cash sale sends canonical item, godown, pricing, lifecycle, and idempotenc
   expect(payment.received).toBe('13.50');
   expect(payment.tendered).toBe('20.00');
   expect(payment.change).toBe('6.50');
+});
+
+test('File Delete submits a canonical sale draft delete and clears the editor', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/v1/master/godown', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ records: [] }) }));
+  await page.route('**/v1/transactions/sale*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ kind: 'sale', rows: [{ documentId: saleDocumentId, document: 'SALE-000001', occurredAt: '2026-08-07', party: 'CASH', item: 'CANONICAL ITEM', quantity: '1', amount: '12.50' }] })
+  }));
+  await page.route(`**/v1/documents/${saleDocumentId}`, (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      id: saleDocumentId,
+      kind: 'cash-sale',
+      status: 'draft',
+      documentNumber: 'SALE-000001',
+      occurredAt: '2026-08-07T12:00:00.000Z',
+      customer: { id: customerId, name: 'CASH' },
+      lines: [{
+        id: '66666666-6666-4666-8666-666666666666', itemId, itemLegacyId: 'ITEM-1', itemCode: 'ITEM-1', itemName: 'CANONICAL ITEM', quantity: '1',
+        price: { unitPrice: '12.50', grossAmount: '12.50', discountPercent: '0.00', discountAmount: '0.00', netAmount: '12.50' },
+        tax: { lines: [], taxableAmount: '12.50', amount: '0.00' }, allocations: [], lineTotal: '12.50', stock: { direction: 'none', quantity: '1' }
+      }],
+      totals: { subtotal: '12.50', discountAmount: '0.00', miscAmount: '0.00', taxAmount: '0.00', totalAmount: '12.50', paidAmount: '12.50', balanceAmount: '0.00' },
+      version: 1
+    })
+  }));
+  let payload: Record<string, any> | undefined;
+  await page.route('**/v1/documents/cash-sale', async (route) => {
+    payload = route.request().postDataJSON() as Record<string, any>;
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      accepted: true, duplicate: false, eventId: '77777777-7777-4777-8777-777777777777', aggregateId: saleDocumentId,
+      kind: 'cash-sale', action: 'delete', status: 'draft', document: { id: saleDocumentId, kind: 'cash-sale', status: 'draft', version: 2, deletedAt: '2026-08-07T12:01:00.000Z' }
+    }) });
+  });
+  await page.goto('/app/sales?kind=cash');
+  await waitForSalesReady(page);
+  await page.getByTestId('sales-list-tab').click();
+  await expect(page.getByRole('button', { name: 'SALE-000001' })).toBeVisible();
+  await page.getByRole('button', { name: 'SALE-000001' }).click();
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Delete', exact: true }).click();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('Cash Sale draft deleted successfully.', { timeout: 7000 });
+  expect(payload).toMatchObject({ action: 'delete', documentId: saleDocumentId, expectedVersion: 1, reason: 'Deleted from sales workflow' });
 });
 
 test('canonical sale rejects an unselected item and then a missing godown without posting', async ({ page }) => {

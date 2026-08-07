@@ -119,3 +119,36 @@ func TestReturnLineQuantityMustBePositive(t *testing.T) {
 		t.Fatal("positive fractional quantity was rejected")
 	}
 }
+
+func TestReturnLineSourceWindowUsesStableOrderingAndExclusiveEnd(t *testing.T) {
+	query, args, err := sourceRowsQuery(returnModes["sale"], 2000, 3500)
+	if err != nil {
+		t.Fatalf("source window rejected: %v", err)
+	}
+	for _, want := range []string{"ORDER BY return_id", "TRY_CONVERT(bigint, row_id_text)", "OFFSET ? ROWS", "FETCH NEXT ? ROWS ONLY"} {
+		if !strings.Contains(query, want) {
+			t.Fatalf("source window query does not contain %q", want)
+		}
+	}
+	if len(args) != 2 || args[0] != 2000 || args[1] != 1500 {
+		t.Fatalf("source window args = %#v, want [2000 1500]", args)
+	}
+}
+
+func TestReturnLineSourceWindowPreservesModeQueriesAndRejectsInvalidBounds(t *testing.T) {
+	query, args, err := sourceRowsQuery(returnModes["purchase"], 0, -1)
+	if err != nil {
+		t.Fatalf("full source window rejected: %v", err)
+	}
+	if query != purchaseReturnSourceQuery || len(args) != 0 {
+		t.Fatalf("full purchase-return window changed the unbounded query or args")
+	}
+	for _, bounds := range [][2]int{{-1, 10}, {10, 10}, {10, 5}} {
+		if _, _, err := sourceRowsQuery(returnModes["sale"], bounds[0], bounds[1]); err == nil {
+			t.Fatalf("invalid source window %#v was accepted", bounds)
+		}
+	}
+	if rowWindowEnd(-1) != "end" || rowWindowEnd(3500) != "3500" {
+		t.Fatal("source row window display is not deterministic")
+	}
+}

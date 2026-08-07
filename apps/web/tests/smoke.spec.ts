@@ -357,6 +357,86 @@ test('Daily Sale Detail retrieves through the report definition and exports prev
   await expect((await download).suggestedFilename()).toMatch(/daily-sales-detail-.*\.xls$/);
 });
 
+test('report File menu commands use the live report handlers', async ({ page }) => {
+  await page.route('**/v1/session', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, context: { tenantId: 'tenant-1', tenantCode: 'TENANT', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' } })
+  }));
+  await page.route('**/v1/access', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ tenantAdmin: true, permissions: [], legacyRights: [], scopes: {}, scopeRows: [], exceptions: [] })
+  }));
+  let reportRequests = 0;
+  await page.route('**/v1/reports/sale-detail*', async (route) => {
+    reportRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        kind: 'sale-detail',
+        rows: [],
+        page: 1,
+        pageSize: 50,
+        hasMore: false,
+        definition: {
+          kind: 'sale-detail',
+          title: 'Sale detail',
+          projectionStatus: 'real',
+          columns: [{ key: 'document', label: 'Document', dataType: 'text', sortable: true }],
+          formats: [{ id: 'standard', name: 'Standard', source: 'default' }],
+          retrieval: { title: 'Specify Retrieval Arguements', areas: ['DEFAULT AREA'], supportsCashCredit: false },
+          letterhead: { name: "Fazal Din's Pharma Plus", line2: 'NRY Pacific', line3: "Franchise Fazal Din's", phone: '055 3252501', fax: '', source: 'default' },
+          exports: [
+            { format: 'csv', status: 'available', label: 'CSV', message: 'CSV export is available.' },
+            { format: 'pdf', status: 'available', label: 'PDF', message: 'PDF export is available.' },
+            { format: 'excel', status: 'available', label: 'Excel', message: 'Excel export is available.' }
+          ]
+        }
+      })
+    });
+  });
+  await page.goto('/app/report/sale-detail');
+  await expect(page.getByRole('button', { name: 'File', exact: true })).toBeVisible();
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true', { timeout: 10_000 });
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Retrieve', exact: true }).click();
+  const argumentsDialog = page.getByRole('dialog', { name: 'Specify Retrieval Arguements' });
+  await expect(argumentsDialog).toBeVisible();
+  await argumentsDialog.dispatchEvent('pointerdown');
+  await argumentsDialog.getByRole('button', { name: 'Ok' }).evaluate((element) => (element as HTMLButtonElement).click());
+  await expect.poll(() => reportRequests).toBe(1);
+  await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Preview', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Print preview' })).toBeVisible();
+});
+
+test('report dialogs and print preview close with Escape like the legacy window', async ({ page }) => {
+  await page.route('**/v1/session', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, context: { tenantId: 'tenant-1', tenantCode: 'TENANT', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' } })
+  }));
+  await page.route('**/v1/access', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ tenantAdmin: true, permissions: [], legacyRights: [], scopes: {}, scopeRows: [], exceptions: [] })
+  }));
+  await page.goto('/app/report/sale-detail');
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true', { timeout: 10_000 });
+  await page.getByRole('button', { name: 'Retrieve', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Specify Retrieval Arguements' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Specify Retrieval Arguements' })).toBeHidden();
+
+  await page.getByRole('button', { name: 'Preview report' }).click();
+  await expect(page.getByRole('dialog', { name: 'Print preview' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Print preview' })).toBeHidden();
+  await expect(page.getByText('Report dialog closed.', { exact: true })).toBeVisible();
+});
+
 test('fallback report identifies its projection and keeps workbook exports available', async ({ page }) => {
   await page.route('**/v1/reports/unclassified-captured-report*', async (route) => route.fulfill({
     status: 200,
@@ -561,6 +641,58 @@ test('purchase return, supplier, and purchase-order report leaves retain mapped 
     await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
     await expect(page.getByText('PUR-RET-100')).toBeVisible();
   }
+});
+
+test('P/O disparity report renders linked order and receipt variance columns', async ({ page }) => {
+  await page.route('**/v1/reports/p-o-based-purchase-disparity*', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      kind: 'p-o-based-purchase-disparity',
+      rows: [{
+        document: 'PO-100', occurredAt: '2026-08-06', party: 'SUPPLIER 1', item: 'CANONICAL ITEM',
+        orderedQuantity: '10.0000', receivedQuantity: '7.0000', disparityQuantity: '3.0000',
+        orderedAmount: '100.00', receivedAmount: '70.00', disparityAmount: '30.00'
+      }],
+      page: 1,
+      pageSize: 50,
+      hasMore: false,
+      definition: {
+        kind: 'p-o-based-purchase-disparity',
+        title: 'P/O Based Purchase Disparity',
+        projectionStatus: 'real',
+        projectionNote: 'Canonical posted purchase-order lines are compared with posted purchase receipts linked by source document ID or source document number; unlinked legacy receipts, source reconciliation, exact PowerBuilder disparity, tax, profit, and print calculations remain open.',
+        columns: [
+          { key: 'document', label: 'Purchase Order', dataType: 'text', sortable: true },
+          { key: 'occurredAt', label: 'Order Date', dataType: 'date', sortable: true },
+          { key: 'party', label: 'Supplier', dataType: 'text', sortable: true },
+          { key: 'item', label: 'Item', dataType: 'text', sortable: true },
+          { key: 'orderedQuantity', label: 'Ordered Qty', dataType: 'number', sortable: true },
+          { key: 'receivedQuantity', label: 'Received Qty', dataType: 'number', sortable: true },
+          { key: 'disparityQuantity', label: 'Disparity Qty', dataType: 'number', sortable: true },
+          { key: 'orderedAmount', label: 'Ordered Amount', dataType: 'currency', sortable: true },
+          { key: 'receivedAmount', label: 'Received Amount', dataType: 'currency', sortable: true },
+          { key: 'disparityAmount', label: 'Disparity Amount', dataType: 'currency', sortable: true }
+        ],
+        formats: [{ id: 'standard', name: 'Standard', source: 'default' }],
+        retrieval: { title: 'Specify Retrieval Arguements', areas: ['DEFAULT AREA', 'ALL AREAS'], supportsCashCredit: false, supportsDateRange: true, supportsTextFilter: true, scope: 'tenant, branch, posted-only, purchase-order date, text, canonical purchase lines from purchase orders, and linked posted purchase receipts' },
+        letterhead: { name: "Fazal Din's Pharma Plus", line2: 'NRY Pacific', line3: "Franchise Fazal Din's", phone: '055 3252501', fax: '', source: 'default' },
+        exports: [
+          { format: 'csv', status: 'available', label: 'CSV', message: 'CSV export is available.' },
+          { format: 'pdf', status: 'available', label: 'PDF', message: 'PDF export is available.' },
+          { format: 'excel', status: 'available', label: 'Excel', message: 'Excel export is available.' }
+        ]
+      }
+    })
+  }));
+  await page.goto('/app/report/p-o-based-purchase-disparity');
+  await page.waitForTimeout(2000);
+  await page.getByRole('button', { name: 'Refresh report' }).click({ force: true });
+  await expect(page.getByRole('heading', { name: 'P/O Based Purchase Disparity', exact: true })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Ordered Qty', exact: true })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Disparity Amount', exact: true })).toBeVisible();
+  await expect(page.getByText('PO-100')).toBeVisible();
+  await expect(page.getByText(/source reconciliation/)).toBeVisible();
 });
 
 function stockReportDefinition(kind: string, title: string, movement = false) {

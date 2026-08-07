@@ -70,6 +70,8 @@ type tableReport struct {
 	SourceTable      string         `json:"sourceTable"`
 	TargetSchema     string         `json:"targetSchema"`
 	TargetTable      string         `json:"targetTable"`
+	FromRow          int            `json:"fromRow"`
+	ToRow            int            `json:"toRow"`
 	Read             int            `json:"read"`
 	Imported         int            `json:"imported"`
 	Duplicates       int            `json:"duplicates"`
@@ -116,28 +118,28 @@ type exceptionRow struct {
 // phase-e-historical-documents.json; mode-specific fields occupy columns 20/21.
 const saleReturnSourceQuery = `
 SELECT
-  CONVERT(varchar(100), d.SRInvcode),
-  CONVERT(varchar(30), d.RowId),
-  CONVERT(varchar(100), d.Icode),
-  q.quantity,
-  CAST(COALESCE(d.SRPrice, 0) AS decimal(19,4)),
-  CAST(CAST(COALESCE(d.SRPrice, 0) AS decimal(19,4)) * q.quantity AS decimal(19,4)),
-  CAST(CAST(COALESCE(d.SRPrice, 0) AS decimal(19,4)) * q.quantity AS decimal(19,4)),
-  CAST(COALESCE(d.AvgPrice, 0) AS decimal(19,4)),
-  CAST(COALESCE(d.GSTPerc, 0) AS decimal(9,4)),
-  CAST(COALESCE(d.ItemAdvanceTaxPerc, 0) AS decimal(9,4)),
-  CAST(CAST(COALESCE(d.UnitSalesTax, 0) AS decimal(19,4)) * q.quantity AS decimal(19,4)),
-  CONVERT(varchar(200), d.Batch),
-  CONVERT(varchar(10), d.Expiry, 23),
-  d.Gcode,
-  d.PackQty,
-  d.LooseQty,
-  d.PackUnits,
-  d.SRPrice,
-  d.DiscPerc,
-  d.SalesTax,
-  d.RowId,
-  d.SaleRowId
+  CONVERT(varchar(100), d.SRInvcode) AS return_id,
+  CONVERT(varchar(30), d.RowId) AS row_id_text,
+  CONVERT(varchar(100), d.Icode) AS item_legacy_id,
+  q.quantity AS quantity,
+  CAST(COALESCE(d.SRPrice, 0) AS decimal(19,4)) AS unit_price,
+  CAST(CAST(COALESCE(d.SRPrice, 0) AS decimal(19,4)) * q.quantity AS decimal(19,4)) AS line_gross,
+  CAST(CAST(COALESCE(d.SRPrice, 0) AS decimal(19,4)) * q.quantity AS decimal(19,4)) AS line_total,
+  CAST(COALESCE(d.AvgPrice, 0) AS decimal(19,4)) AS unit_cost,
+  CAST(COALESCE(d.GSTPerc, 0) AS decimal(9,4)) AS gst_rate,
+  CAST(COALESCE(d.ItemAdvanceTaxPerc, 0) AS decimal(9,4)) AS advance_tax_rate,
+  CAST(CAST(COALESCE(d.UnitSalesTax, 0) AS decimal(19,4)) * q.quantity AS decimal(19,4)) AS tax_amount,
+  CONVERT(varchar(200), d.Batch) AS batch_number,
+  CONVERT(varchar(10), d.Expiry, 23) AS expiry_date,
+  d.Gcode AS gcode,
+  d.PackQty AS pack_qty,
+  d.LooseQty AS loose_qty,
+  d.PackUnits AS pack_units,
+  d.SRPrice AS source_price,
+  d.DiscPerc AS discount_percent,
+  d.SalesTax AS sales_tax,
+  d.RowId AS row_id_source,
+  d.SaleRowId AS sale_row_id
 FROM dbo.SRdetail AS d
 CROSS APPLY (
   SELECT CAST(COALESCE(d.PackQty, 0) AS decimal(19,8)) +
@@ -150,28 +152,28 @@ CROSS APPLY (
 
 const purchaseReturnSourceQuery = `
 SELECT
-  CONVERT(varchar(100), d.PRInvCode),
-  CONVERT(varchar(30), d.PrRowId),
-  CONVERT(varchar(100), d.ICode),
-  q.quantity,
-  CAST(COALESCE(d.PRPrice, 0) AS decimal(19,4)),
-  CAST(CAST(COALESCE(d.PRPrice, 0) AS decimal(19,4)) * q.quantity AS decimal(19,4)),
-  CAST(CAST(COALESCE(d.PRPrice, 0) AS decimal(19,4)) * q.quantity AS decimal(19,4)),
-  CAST(COALESCE(d.AvgPrice, 0) AS decimal(19,4)),
-  CAST(COALESCE(d.GSTPerc, 0) AS decimal(9,4)),
-  CAST(0 AS decimal(9,4)),
-  CAST(CAST(COALESCE(d.UnitSalesTax, 0) AS decimal(19,4)) * q.quantity AS decimal(19,4)),
-  CONVERT(varchar(200), d.Batch),
-  CONVERT(varchar(10), d.Expiry, 23),
-  d.Gcode,
-  d.PackQty,
-  d.LooseQty,
-  d.PackUnits,
-  d.PRPrice,
-  d.DiscPerc,
-  d.UnitSalesTax,
-  d.PrRowId,
-  d.HistoricalBatch
+  CONVERT(varchar(100), d.PRInvCode) AS return_id,
+  CONVERT(varchar(30), d.PrRowId) AS row_id_text,
+  CONVERT(varchar(100), d.ICode) AS item_legacy_id,
+  q.quantity AS quantity,
+  CAST(COALESCE(d.PRPrice, 0) AS decimal(19,4)) AS unit_price,
+  CAST(CAST(COALESCE(d.PRPrice, 0) AS decimal(19,4)) * q.quantity AS decimal(19,4)) AS line_gross,
+  CAST(CAST(COALESCE(d.PRPrice, 0) AS decimal(19,4)) * q.quantity AS decimal(19,4)) AS line_total,
+  CAST(COALESCE(d.AvgPrice, 0) AS decimal(19,4)) AS unit_cost,
+  CAST(COALESCE(d.GSTPerc, 0) AS decimal(9,4)) AS gst_rate,
+  CAST(0 AS decimal(9,4)) AS advance_tax_rate,
+  CAST(CAST(COALESCE(d.UnitSalesTax, 0) AS decimal(19,4)) * q.quantity AS decimal(19,4)) AS tax_amount,
+  CONVERT(varchar(200), d.Batch) AS batch_number,
+  CONVERT(varchar(10), d.Expiry, 23) AS expiry_date,
+  d.Gcode AS gcode,
+  d.PackQty AS pack_qty,
+  d.LooseQty AS loose_qty,
+  d.PackUnits AS pack_units,
+  d.PRPrice AS source_price,
+  d.DiscPerc AS discount_percent,
+  d.UnitSalesTax AS unit_sales_tax,
+  d.PrRowId AS row_id_source,
+  d.HistoricalBatch AS historical_batch
 FROM dbo.PRdetail AS d
 CROSS APPLY (
   SELECT CAST(COALESCE(d.PackQty, 0) AS decimal(19,8)) +
@@ -189,6 +191,8 @@ func main() {
 	tenant := flag.String("tenant-id", "", "dedicated target tenant UUID")
 	branch := flag.String("branch-id", canonicalBranch, "dedicated target branch UUID")
 	allowCanonical := flag.Bool("allow-canonical", false, "explicitly allow the protected canonical source")
+	fromRow := flag.Int("from-row", 0, "zero-based source row offset after stable ordering")
+	toRow := flag.Int("to-row", -1, "exclusive source row offset; -1 reads through the end")
 	out := flag.String("out", "", "report path; defaults to a mode-specific parity report")
 	flag.Parse()
 	mode, ok := returnModes[strings.ToLower(strings.TrimSpace(*kind))]
@@ -209,6 +213,9 @@ func main() {
 	}
 	if !strings.Contains(strings.ToLower(*sourceURL), "database="+strings.ToLower(canonicalDatabase)) {
 		fatal("source URL must name the canonical database")
+	}
+	if *fromRow < 0 || (*toRow != -1 && *toRow <= *fromRow) {
+		fatal("source row window must satisfy from-row >= 0 and to-row > from-row, or to-row=-1")
 	}
 	outPath := strings.TrimSpace(*out)
 	if outPath == "" {
@@ -231,7 +238,7 @@ func main() {
 	}
 	defer target.Close(ctx)
 
-	rows, duplicates, invalid, err := readRows(ctx, source, mode)
+	rows, duplicates, invalid, err := readRows(ctx, source, mode, *fromRow, *toRow)
 	if err != nil {
 		fatal(err.Error())
 	}
@@ -240,6 +247,8 @@ func main() {
 		SourceTable:      mode.sourceTable,
 		TargetSchema:     "public",
 		TargetTable:      targetTable,
+		FromRow:          *fromRow,
+		ToRow:            *toRow,
 		Read:             len(rows) + duplicates + len(invalid),
 		Duplicates:       duplicates,
 		ExceptionReasons: make(map[string]int),
@@ -371,11 +380,15 @@ func main() {
 		fatal(fmt.Sprintf("commit return lines: %v", err))
 	}
 	writeReport(outPath, report{GeneratedAt: time.Now().UTC().Format(time.RFC3339Nano), Source: "redacted SQL Server connection", Target: "redacted PostgreSQL connection", TenantID: *tenant, Tables: []tableReport{result}})
-	fmt.Printf("Bulk processed %d %s return lines for tenant %s; imported %d, exceptions %d; report: %s\n", result.Read, mode.name, *tenant, result.Imported, result.Exceptions, outPath)
+	fmt.Printf("Bulk processed %s return rows %d-%s for tenant %s; read %d, imported %d, exceptions %d; report: %s\n", mode.name, *fromRow, rowWindowEnd(*toRow), *tenant, result.Read, result.Imported, result.Exceptions, outPath)
 }
 
-func readRows(ctx context.Context, source *sql.DB, mode returnMode) ([]sourceRow, int, []exceptionRow, error) {
-	rows, err := source.QueryContext(ctx, mode.sourceQuery)
+func readRows(ctx context.Context, source *sql.DB, mode returnMode, fromRow, toRow int) ([]sourceRow, int, []exceptionRow, error) {
+	query, args, err := sourceRowsQuery(mode, fromRow, toRow)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+	rows, err := source.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, 0, nil, fmt.Errorf("read dbo.%s: %w", mode.sourceTable, err)
 	}
@@ -441,6 +454,36 @@ func readRows(ctx context.Context, source *sql.DB, mode returnMode) ([]sourceRow
 		return nil, 0, nil, fmt.Errorf("read %s rows: %w", mode.sourceTable, err)
 	}
 	return result, duplicates, exceptions, nil
+}
+
+func sourceRowsQuery(mode returnMode, fromRow, toRow int) (string, []any, error) {
+	if fromRow < 0 || (toRow != -1 && toRow <= fromRow) {
+		return "", nil, errors.New("source row window must satisfy from-row >= 0 and to-row > from-row, or to-row=-1")
+	}
+	if fromRow == 0 && toRow == -1 {
+		return mode.sourceQuery, nil, nil
+	}
+	query := `SELECT * FROM (
+` + mode.sourceQuery + `
+) AS source_rows
+ORDER BY return_id,
+         TRY_CONVERT(bigint, row_id_text),
+         row_id_text,
+         item_legacy_id
+OFFSET ? ROWS`
+	args := []any{fromRow}
+	if toRow != -1 {
+		query += "\nFETCH NEXT ? ROWS ONLY"
+		args = append(args, toRow-fromRow)
+	}
+	return query, args, nil
+}
+
+func rowWindowEnd(toRow int) string {
+	if toRow == -1 {
+		return "end"
+	}
+	return strconv.Itoa(toRow)
 }
 
 func returnPayload(values []any, mode returnMode) ([]byte, error) {

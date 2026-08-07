@@ -101,6 +101,18 @@ const purchaseSummaryColumns = (mode: string) => {
     { key: 'quantity', label: 'Quantity', dataType: 'number' as const, sortable: true },
     { key: 'amount', label: 'Amount', dataType: 'currency' as const, sortable: true }
   ];
+  if (mode === 'po-disparity') return [
+    { key: 'document', label: 'Purchase Order', dataType: 'text' as const, sortable: true },
+    { key: 'occurredAt', label: 'Order Date', dataType: 'date' as const, sortable: true },
+    { key: 'party', label: 'Supplier', dataType: 'text' as const, sortable: true },
+    { key: 'item', label: 'Item', dataType: 'text' as const, sortable: true },
+    { key: 'orderedQuantity', label: 'Ordered Qty', dataType: 'number' as const, sortable: true },
+    { key: 'receivedQuantity', label: 'Received Qty', dataType: 'number' as const, sortable: true },
+    { key: 'disparityQuantity', label: 'Disparity Qty', dataType: 'number' as const, sortable: true },
+    { key: 'orderedAmount', label: 'Ordered Amount', dataType: 'currency' as const, sortable: true },
+    { key: 'receivedAmount', label: 'Received Amount', dataType: 'currency' as const, sortable: true },
+    { key: 'disparityAmount', label: 'Disparity Amount', dataType: 'currency' as const, sortable: true }
+  ];
   return salesInvoiceSummaryColumns;
 };
 
@@ -324,6 +336,7 @@ const purchaseSummaryReportModes: Record<string, string> = {
   'purchase-summary2': 'invoice-summary',
   'purchase-return-summary': 'invoice-summary',
   'purchase-order-summary': 'invoice-summary',
+  'p-o-based-purchase-disparity': 'po-disparity',
   'purchase-order': 'invoice-summary',
   'periodic-purchases': 'month-summary',
   'manufacturer-wise-monthly-stock-movement': 'month-summary',
@@ -776,6 +789,7 @@ export function defaultReportDefinition(kind: string, title?: string, legacyPath
   const isPurchaseLineDetail = scopedKind === 'purchase-detail' || scopedKind === 'purchase-return-detail';
   const purchaseSummaryMode = purchaseSummaryReportModes[scopedKind];
   const isPurchaseSummaryProjection = Boolean(purchaseSummaryMode);
+  const isPurchaseOrderDisparityProjection = purchaseSummaryMode === 'po-disparity';
   const isReprintSaleDetailProjection = reprintSaleDetailReportKinds.has(scopedKind);
   const isReprintSaleSummaryProjection = reprintSaleSummaryReportKinds.has(scopedKind);
   const isReprintPurchaseDetailProjection = reprintPurchaseDetailReportKinds.has(scopedKind);
@@ -799,7 +813,7 @@ export function defaultReportDefinition(kind: string, title?: string, legacyPath
   const hasHistoricalProjection = Boolean(qMode?.startsWith('history-'));
   const hasFinanceProjection = Boolean(qMode && !['compatibility', 'sales', 'purchases', 'admin', 'adjustment', 'empty-fallback', 'document-line-detail', 'document-invoice-summary', 'header-summary'].includes(qMode) && !hasHistoricalProjection);
   const hasQProjection = Object.prototype.hasOwnProperty.call(phaseQReportModes, scopedKind);
-  const hasConcreteProjection = isDailySaleDetail || kind === 'stock' || kind === 'item' || kind === 'purchase-return' || hasStockProjection || hasFinanceProjection || qMode === 'admin' || qMode === 'adjustment' || hasHistoricalProjection || isDocumentProjection || isHeaderProjection || hasReprintProjection;
+  const hasConcreteProjection = isDailySaleDetail || kind === 'stock' || kind === 'item' || kind === 'purchase-return' || hasStockProjection || hasFinanceProjection || qMode === 'admin' || qMode === 'adjustment' || hasHistoricalProjection || isDocumentProjection || isHeaderProjection || hasReprintProjection || isPurchaseOrderDisparityProjection;
   const reportTitle = title ?? ({
     'daily-sales-detail': 'Daily Sales Detail',
     stock: 'Stock Reports',
@@ -876,6 +890,8 @@ export function defaultReportDefinition(kind: string, title?: string, legacyPath
         ? 'Canonical posted sale/return business_document lines expose a source-backed line-detail contract with alias, item, price, quantity, discounts, tax, amount, expiry, and batch values; compatibility rows are expanded when no canonical identity matches. Exact legacy grouping, format calculations, and print output remain unverified.'
       : isPurchaseLineDetail
         ? 'Canonical posted purchase business-document lines expose document, supplier, item, quantity, purchase price, discount, tax, amount, expiry, and batch values; compatibility receiving/return events are expanded when no canonical document identity matches. Exact legacy grouping, tax, profit, purchase-order, and print calculations remain unverified.'
+      : isPurchaseOrderDisparityProjection
+        ? 'Canonical posted purchase-order lines are compared with posted purchase receipts linked by source document ID or source document number; unlinked legacy receipts, source reconciliation, and exact PowerBuilder disparity calculations remain unverified.'
       : isPurchaseSummaryProjection
         ? 'Canonical and compatibility purchase rows use the explicit ' + (purchaseSummaryMode ?? 'summary') + ' projection; exact PowerBuilder grouping, tax, profit, return, graph, and print calculations remain unverified.'
       : isSalesSummaryProjection

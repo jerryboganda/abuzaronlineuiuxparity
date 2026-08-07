@@ -26,7 +26,18 @@ import type {
   PricingPreviewResponse,
   AccessResponse,
   RoleRightsResponse,
-  Document
+  Document,
+  ApplyItemGSTRequest,
+  ItemAlternateAliasesResponse,
+  ItemImagesResponse,
+  ItemNotesResponse,
+  ItemAssociationsResponse,
+  ItemAuthorsResponse,
+  ItemModelsResponse,
+  ItemPricePolicyResponse,
+  ItemPricePolicyTier,
+  ItemRegistrationRequestResponse,
+  ItemUnpostedTransactionsResponse
 } from '@abuzar/contracts';
 
 export class ApiError extends Error {
@@ -158,6 +169,95 @@ export class AbuzarApi {
     return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/suppliers`);
   }
 
+  itemAliases(itemId: string): Promise<ItemAlternateAliasesResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/aliases`);
+  }
+
+  replaceItemAliases(itemId: string, aliases: string[]): Promise<ItemAlternateAliasesResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/aliases`, {
+      method: 'PUT',
+      body: JSON.stringify({ aliases })
+    });
+  }
+
+  itemImages(itemId: string): Promise<ItemImagesResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/images`);
+  }
+
+  replaceItemImages(itemId: string, images: ItemImagesResponse['images']): Promise<ItemImagesResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/images`, {
+      method: 'PUT',
+      body: JSON.stringify({ images })
+    });
+  }
+
+  itemNotes(itemId: string): Promise<ItemNotesResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/notes`);
+  }
+
+  replaceItemNotes(itemId: string, notesData: string): Promise<ItemNotesResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/notes`, {
+      method: 'PUT',
+      body: JSON.stringify({ notesData })
+    });
+  }
+
+  itemAssociations(itemId: string): Promise<ItemAssociationsResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/associations`);
+  }
+
+  replaceItemAssociations(itemId: string, legacyItemIds: string[]): Promise<ItemAssociationsResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/associations`, {
+      method: 'PUT',
+      body: JSON.stringify({ legacyItemIds })
+    });
+  }
+
+  itemAuthors(itemId: string): Promise<ItemAuthorsResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/authors`);
+  }
+
+  replaceItemAuthors(itemId: string, authors: ItemAuthorsResponse['authors']): Promise<ItemAuthorsResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/authors`, {
+      method: 'PUT',
+      body: JSON.stringify({ authors })
+    });
+  }
+
+  itemModels(itemId: string): Promise<ItemModelsResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/models`);
+  }
+
+  replaceItemModels(itemId: string, modelCodes: number[]): Promise<ItemModelsResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/models`, {
+      method: 'PUT',
+      body: JSON.stringify({ modelCodes })
+    });
+  }
+
+  itemPricePolicy(itemId: string): Promise<ItemPricePolicyResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/price-policy`);
+  }
+
+  replaceItemPricePolicy(itemId: string, policyCode: string, tiers: ItemPricePolicyTier[]): Promise<ItemPricePolicyResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/price-policy`, {
+      method: 'PUT',
+      body: JSON.stringify({ policyCode, tiers })
+    });
+  }
+
+  itemRegistrationRequest(itemId: string): Promise<ItemRegistrationRequestResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/registration-request`);
+  }
+
+  populateItemRegistrationRequest(itemId: string): Promise<ItemRegistrationRequestResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/registration-request`, { method: 'POST', body: JSON.stringify({}) });
+  }
+
+  itemUnpostedTransactions(itemId: string): Promise<ItemUnpostedTransactionsResponse> {
+    return this.request(`/v1/master/item/${encodeURIComponent(itemId)}/unposted-transactions`);
+  }
+
   report(kind: string, from = '', to = '', filter = '', options: { page?: number; pageSize?: number; cash?: boolean; credit?: boolean; areas?: string[]; allAreas?: boolean; legacyPath?: string; godownId?: string; batchNumber?: string; format?: string } = {}): Promise<ReportResponse> {
     const params = new URLSearchParams({ from, to, filter });
     if (options.page) params.set('page', String(options.page));
@@ -184,6 +284,10 @@ export class AbuzarApi {
 
   previewPricing(request: PricingPreviewRequest): Promise<PricingPreviewResponse> {
     return this.request('/v1/transactions/preview', { method: 'POST', body: JSON.stringify(request) });
+  }
+
+  applyItemGST(request: ApplyItemGSTRequest): Promise<{ rateId: string; itemsApplied: number; effectiveFrom: string; effectiveTo?: string }> {
+    return this.request('/v1/tax-assignments/apply-item-gst', { method: 'POST', body: JSON.stringify(request) });
   }
 
   documentCommand<K extends DocumentKind>(kind: K, command: DocumentCommandForKind<K>): Promise<DocumentCommandResult<K>> {

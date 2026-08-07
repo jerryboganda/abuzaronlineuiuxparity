@@ -162,6 +162,116 @@ export interface MasterRecord {
   suppliers?: ItemSupplier[];
 }
 
+export interface ItemAlternateAliasesResponse {
+  aliases: string[];
+}
+
+export interface ItemImage {
+  id?: UUID;
+  rowId: number;
+  imageDescription: string;
+  imageData: string;
+  imageType: string;
+}
+
+export interface ItemImagesResponse {
+  images: ItemImage[];
+}
+
+export interface ItemNotesResponse {
+  /** Base64-encoded bytes from the captured ItemNotes blob. */
+  notesData: string;
+}
+
+export interface ItemAssociation {
+  id?: UUID;
+  legacyItemId: string;
+  code?: string;
+  name?: string;
+}
+
+export interface ItemAssociationsResponse {
+  associations: ItemAssociation[];
+}
+
+export interface ItemAuthor {
+  id?: UUID;
+  authorCode: number;
+  priority: number;
+  rowId: number;
+}
+
+export interface ItemAuthorsResponse {
+  authors: ItemAuthor[];
+}
+
+export interface ItemModel {
+  id?: UUID;
+  modelCode: number;
+}
+
+export interface ItemModelsResponse {
+  models: ItemModel[];
+}
+
+export interface ItemPricePolicy {
+  policyCode: string;
+  name: string;
+  legacyItemId: string;
+}
+
+export interface ItemPricePolicyTier {
+  id?: UUID;
+  quantityLimit: number;
+  price: Decimal;
+  expiryDate: string;
+  flatDiscount: Decimal;
+  discountPercent: Decimal;
+}
+
+export interface ItemPricePolicyResponse {
+  policy: ItemPricePolicy | null;
+  tiers: ItemPricePolicyTier[];
+}
+
+export interface ItemRegistrationRequest {
+  id: UUID;
+  requestCode: number;
+  legacyItemId: string;
+  requestedAt: string;
+  serverName: string;
+  machineName: string;
+  sent: 'Y' | 'N';
+  sentOn: string;
+  sentBy?: number;
+  serverRequestCode?: number;
+  payload: Record<string, unknown>;
+}
+
+export interface ItemRegistrationRequestResponse {
+  request: ItemRegistrationRequest | null;
+}
+
+export interface ItemUnpostedTransaction {
+  id: UUID;
+  kind: string;
+  documentNumber: string;
+  status: 'draft';
+  occurredAt: string;
+  lineNumber: number;
+  itemLegacyId: string;
+  itemName: string;
+  quantity: Decimal;
+  unitPrice: Decimal;
+  lineTotal: Decimal;
+}
+
+export interface ItemUnpostedTransactionsResponse {
+  itemId: UUID;
+  transactions: ItemUnpostedTransaction[];
+  truncated: boolean;
+}
+
 export interface ItemSupplier {
   id: UUID;
   legacySupplierId: string;
@@ -332,6 +442,12 @@ export interface ReportRow {
   reorderQuantity?: string;
   optimumQuantity?: string;
   minimumQuantity?: string;
+  orderedQuantity?: string;
+  receivedQuantity?: string;
+  disparityQuantity?: string;
+  orderedAmount?: string;
+  receivedAmount?: string;
+  disparityAmount?: string;
 }
 
 export interface ReportColumn {
@@ -562,7 +678,7 @@ export type SaleReturnDocumentKind =
   | 'open-cash-return'
   | 'open-credit-return';
 
-export type DocumentAction = 'save' | 'post' | 'save-and-post' | 'void';
+export type DocumentAction = 'save' | 'post' | 'save-and-post' | 'void' | 'delete';
 
 export interface DocumentPartyReference {
   id: UUID;
@@ -754,6 +870,8 @@ export interface DocumentBase<K extends DocumentKind = DocumentKind> {
   stock?: DocumentStockSummary;
   gl?: DocumentGLSummary;
   finance?: DocumentFinanceSummary;
+  /** Soft-delete timestamp for an audited draft discard. */
+  deletedAt?: string;
   createdAt: string;
   updatedAt: string;
   version: number;
@@ -807,11 +925,19 @@ export interface VoidDocumentCommand<K extends DocumentKind = DocumentKind>
   reason: string;
 }
 
+export interface DeleteDocumentCommand<K extends DocumentKind = DocumentKind>
+  extends DocumentCommandBase<K, 'delete'> {
+  action: 'delete';
+  documentId: UUID;
+  reason: string;
+}
+
 export type DocumentCommandForKind<K extends DocumentKind> =
   | SaveDocumentCommand<K>
   | PostDocumentCommand<K>
   | SaveAndPostDocumentCommand<K>
-  | VoidDocumentCommand<K>;
+  | VoidDocumentCommand<K>
+  | DeleteDocumentCommand<K>;
 
 /** The command union keeps the command kind and nested document kind aligned. */
 export type DocumentCommand = {

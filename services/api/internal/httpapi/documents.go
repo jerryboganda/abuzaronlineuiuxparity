@@ -181,6 +181,7 @@ type documentResponse struct {
 	CreditDays           string                   `json:"creditDays,omitempty"`
 	DueDate              string                   `json:"dueDate,omitempty"`
 	VoidReason           string                   `json:"voidReason,omitempty"`
+	DeletedAt            string                   `json:"deletedAt,omitempty"`
 	Lines                []documentLineResponse   `json:"lines"`
 	Totals               documentTotals           `json:"totals"`
 	Payment              *documentPaymentResponse `json:"payment,omitempty"`
@@ -565,7 +566,7 @@ func (s *Server) documentCommand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
-	if request.Action == "void" && request.Document == nil {
+	if (request.Action == "void" || request.Action == "delete") && request.Document == nil {
 		var godownID string
 		err := tx.QueryRowContext(r.Context(), `
 			SELECT COALESCE(godown_id::text, '')
@@ -617,6 +618,8 @@ func (s *Server) documentCommand(w http.ResponseWriter, r *http.Request) {
 	var documentID string
 	if request.Action == "void" {
 		documentID, response, err = s.voidBusinessDocument(r.Context(), tx, operator, request)
+	} else if request.Action == "delete" {
+		documentID, response, err = s.deleteBusinessDocument(r.Context(), tx, operator, request)
 	} else {
 		documentID, response, err = s.saveBusinessDocument(r.Context(), tx, operator, request)
 	}
@@ -773,6 +776,7 @@ func (s *Server) documentDetail(w http.ResponseWriter, r *http.Request) {
 		SELECT kind
 		FROM business_documents
 		WHERE id = $1::uuid AND tenant_id = $2::uuid AND branch_id = $3::uuid
+		  AND deleted_at IS NULL
 	`, documentID, operator.TenantID, operator.BranchID).Scan(&kind); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeProblem(w, http.StatusNotFound, "document_not_found", "Document not found", "The document is outside the authenticated tenant and branch scope.")
@@ -920,15 +924,17 @@ func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 	}
 	documentID := strings.TrimSpace(draft.ID)
 	var version int64
+	var currentStatus, deletedAt string
 	if documentID != "" {
 		if command.ExpectedVersion == nil {
 			return "", documentCommandResponse{}, errors.New("expectedVersion is required when updating an existing document")
 		}
 		if err := tx.QueryRowContext(ctx, `
-			SELECT version FROM business_documents
+			SELECT version, status, COALESCE(deleted_at::text, '')
+			FROM business_documents
 			WHERE id = $1::uuid AND tenant_id = $2::uuid AND branch_id = $3::uuid AND kind = $4
 			FOR UPDATE
-		`, documentID, operator.TenantID, operator.BranchID, command.Kind).Scan(&version); err != nil {
+		`, documentID, operator.TenantID, operator.BranchID, command.Kind).Scan(&version, &currentStatus, &deletedAt); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return "", documentCommandResponse{}, errors.New("document was not found in the authenticated tenant and branch")
 			}
@@ -937,9 +943,8 @@ func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 		if version != *command.ExpectedVersion {
 			return "", documentCommandResponse{}, fmt.Errorf("expectedVersion %d does not match current document version %d", *command.ExpectedVersion, version)
 		}
-		var currentStatus string
-		if err := tx.QueryRowContext(ctx, `SELECT status FROM business_documents WHERE id = $1::uuid`, documentID).Scan(&currentStatus); err != nil {
-			return "", documentCommandResponse{}, err
+		if deletedAt != "" {
+			return "", documentCommandResponse{}, errors.New("document has already been deleted")
 		}
 		if currentStatus == "void" || currentStatus == "posted" {
 			return "", documentCommandResponse{}, fmt.Errorf("document with status %q cannot be edited", currentStatus)
@@ -1110,13 +1115,13 @@ func (s *Server) voidBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 	if command.ExpectedVersion == nil {
 		return "", documentCommandResponse{}, errors.New("expectedVersion is required when voiding a document")
 	}
-	var documentID, status string
+	var documentID, status, deletedAt string
 	var version int64
 	if err := tx.QueryRowContext(ctx, `
-		SELECT id::text, status, version FROM business_documents
+		SELECT id::text, status, version, COALESCE(deleted_at::text, '') FROM business_documents
 		WHERE id = $1::uuid AND tenant_id = $2::uuid AND branch_id = $3::uuid AND kind = $4
 		FOR UPDATE
-	`, command.DocumentID, operator.TenantID, operator.BranchID, command.Kind).Scan(&documentID, &status, &version); err != nil {
+	`, command.DocumentID, operator.TenantID, operator.BranchID, command.Kind).Scan(&documentID, &status, &version, &deletedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", documentCommandResponse{}, errors.New("document was not found in the authenticated tenant and branch")
 		}
@@ -1124,6 +1129,9 @@ func (s *Server) voidBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 	}
 	if version != *command.ExpectedVersion {
 		return "", documentCommandResponse{}, fmt.Errorf("expectedVersion %d does not match current document version %d", *command.ExpectedVersion, version)
+	}
+	if deletedAt != "" {
+		return "", documentCommandResponse{}, errors.New("document is already deleted")
 	}
 	if status == "void" {
 		return "", documentCommandResponse{}, errors.New("document is already void")
@@ -1147,9 +1155,55 @@ func (s *Server) voidBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 	}
 	if _, err := tx.ExecContext(ctx, `
 		UPDATE business_documents SET status = 'void', void_reason = $3, updated_at = now(), version = version + 1
-		WHERE id = $1::uuid AND tenant_id = $2::uuid
-	`, documentID, operator.TenantID, strings.TrimSpace(command.Reason)); err != nil {
+		WHERE id = $1::uuid AND tenant_id = $2::uuid AND branch_id = $4::uuid AND kind = $5 AND deleted_at IS NULL
+	`, documentID, operator.TenantID, strings.TrimSpace(command.Reason), operator.BranchID, command.Kind); err != nil {
 		return "", documentCommandResponse{}, err
+	}
+	response, err := readBusinessDocument(ctx, tx, operator, documentID)
+	if err != nil {
+		return "", documentCommandResponse{}, err
+	}
+	return documentID, documentCommandResponse{Document: response}, nil
+}
+
+func (s *Server) deleteBusinessDocument(ctx context.Context, tx *sql.Tx, operator *sessionContext, command documentCommandRequest) (string, documentCommandResponse, error) {
+	if command.ExpectedVersion == nil {
+		return "", documentCommandResponse{}, errors.New("expectedVersion is required when deleting a document")
+	}
+	var documentID, status, deletedAt string
+	var version int64
+	if err := tx.QueryRowContext(ctx, `
+		SELECT id::text, status, version, COALESCE(deleted_at::text, '') FROM business_documents
+		WHERE id = $1::uuid AND tenant_id = $2::uuid AND branch_id = $3::uuid AND kind = $4
+		FOR UPDATE
+	`, command.DocumentID, operator.TenantID, operator.BranchID, command.Kind).Scan(&documentID, &status, &version, &deletedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", documentCommandResponse{}, errors.New("document was not found in the authenticated tenant and branch")
+		}
+		return "", documentCommandResponse{}, err
+	}
+	if version != *command.ExpectedVersion {
+		return "", documentCommandResponse{}, fmt.Errorf("expectedVersion %d does not match current document version %d", *command.ExpectedVersion, version)
+	}
+	if deletedAt != "" {
+		return "", documentCommandResponse{}, errors.New("document is already deleted")
+	}
+	if status != "draft" {
+		return "", documentCommandResponse{}, fmt.Errorf("document with status %q cannot be deleted; only draft documents can be deleted", status)
+	}
+	result, err := tx.ExecContext(ctx, `
+		UPDATE business_documents
+		SET deleted_at = now(), updated_at = now(), version = version + 1
+		WHERE id = $1::uuid AND tenant_id = $2::uuid AND branch_id = $3::uuid AND kind = $4 AND deleted_at IS NULL
+	`, documentID, operator.TenantID, operator.BranchID, command.Kind)
+	if err != nil {
+		return "", documentCommandResponse{}, err
+	}
+	if rows, err := result.RowsAffected(); err != nil || rows != 1 {
+		if err != nil {
+			return "", documentCommandResponse{}, err
+		}
+		return "", documentCommandResponse{}, errors.New("document was not deleted because its state changed")
 	}
 	response, err := readBusinessDocument(ctx, tx, operator, documentID)
 	if err != nil {
@@ -1409,8 +1463,18 @@ func validateDocumentCommand(request documentCommandRequest, kind string) error 
 		if request.ExpectedVersion == nil || *request.ExpectedVersion < 1 {
 			return errors.New("expectedVersion must be positive for void")
 		}
+	case "delete":
+		if !documentUUIDPattern.MatchString(strings.TrimSpace(request.DocumentID)) {
+			return errors.New("documentId must be a UUID for delete")
+		}
+		if strings.TrimSpace(request.Reason) == "" {
+			return errors.New("reason is required for delete")
+		}
+		if request.ExpectedVersion == nil || *request.ExpectedVersion < 1 {
+			return errors.New("expectedVersion must be positive for delete")
+		}
 	default:
-		return errors.New("action must be save, post, save-and-post, or void")
+		return errors.New("action must be save, post, save-and-post, void, or delete")
 	}
 	return nil
 }
@@ -1587,7 +1651,7 @@ func readBusinessDocument(ctx context.Context, tx *sql.Tx, operator *sessionCont
 			counter_id::text, operator_id::text, COALESCE(customer_id::text, ''),
 			COALESCE(supplier_id::text, ''), COALESCE(source_document_id::text, ''),
 			source_document_number, occurred_at::text, COALESCE(godown_id::text, ''),
-			reference, remarks, void_reason,
+			reference, remarks, void_reason, COALESCE(deleted_at::text, ''),
 			pricing_result, legacy_payload, created_at::text, updated_at::text, version,
 			subtotal::text, discount_amount::text, misc_amount::text, tax_amount::text,
 			total_amount::text, paid_amount::text, balance_amount::text
@@ -1597,7 +1661,7 @@ func readBusinessDocument(ctx context.Context, tx *sql.Tx, operator *sessionCont
 		&document.ID, &document.Kind, &document.Status, &document.DocumentNumber, &document.TenantID,
 		&document.BranchID, &document.CounterID, &document.OperatorID, &document.CustomerID, &document.SupplierID,
 		&document.SourceDocumentID, &document.SourceDocumentNumber, &document.OccurredAt, &document.GodownID,
-		&document.Reference, &document.Remarks, &document.VoidReason, &pricingJSON, &legacyPayload, &document.CreatedAt, &document.UpdatedAt,
+		&document.Reference, &document.Remarks, &document.VoidReason, &document.DeletedAt, &pricingJSON, &legacyPayload, &document.CreatedAt, &document.UpdatedAt,
 		&document.Version, &document.Totals.Subtotal, &document.Totals.DiscountAmount, &document.Totals.MiscAmount,
 		&document.Totals.TaxAmount, &document.Totals.TotalAmount, &document.Totals.PaidAmount, &document.Totals.BalanceAmount,
 	)

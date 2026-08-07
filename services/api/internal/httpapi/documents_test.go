@@ -57,6 +57,38 @@ func TestDocumentCommandValidationCoversLifecycleAndRevisionRequirements(t *test
 	if err := validateDocumentCommand(void, "cash-sale"); err != nil {
 		t.Fatalf("void command rejected: %v", err)
 	}
+
+	delete := validDocumentCommand("delete")
+	delete.Document = nil
+	delete.DocumentID = "00000000-0000-0000-0000-000000000003"
+	delete.Reason = "Discarded draft"
+	delete.ExpectedVersion = pointerInt64(1)
+	if err := validateDocumentCommand(delete, "cash-sale"); err != nil {
+		t.Fatalf("delete command rejected: %v", err)
+	}
+}
+
+func TestBusinessDocumentDraftDeleteMigrationIsNonDestructive(t *testing.T) {
+	path := filepath.Join("..", "..", "..", "..", "db", "migrations", "035_business_document_draft_delete.sql")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read draft-delete migration: %v", err)
+	}
+	migration := string(data)
+	for _, required := range []string{
+		"ADD COLUMN IF NOT EXISTS deleted_at",
+		"business_document_revisions_action_check",
+		"command_receipts_action_check",
+		"'delete'",
+		"WHERE deleted_at IS NULL",
+	} {
+		if !strings.Contains(migration, required) {
+			t.Errorf("draft-delete migration is missing contract %q", required)
+		}
+	}
+	if strings.Contains(migration, "DELETE FROM business_documents") || strings.Contains(migration, "DROP TABLE") {
+		t.Fatal("draft-delete migration destroys canonical document data")
+	}
 }
 
 func TestDocumentCommandIdempotencyHashDistinguishesPayloads(t *testing.T) {

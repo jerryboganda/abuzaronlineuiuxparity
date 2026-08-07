@@ -5,7 +5,7 @@
   import { AbuzarApi, ApiError, OfflineQueue, newEventId } from '$lib/api';
   import { formatLegacyTitle } from '$lib/legacy-title';
   import LegacyMenuBar from '$lib/LegacyMenuBar.svelte';
-  import type { LegacyWindowContext } from '$lib/legacy-menu';
+  import type { LegacyWindowContext, MenuAction } from '$lib/legacy-menu';
 
   export let section: 'maintenance' | 'manage';
 
@@ -29,6 +29,9 @@
     { code: 'reports.read', label: 'Reports - view' },
     { code: 'master.read', label: 'Basic data - view' },
     { code: 'master.write', label: 'Basic data - edit' },
+    { code: 'tax.read', label: 'Tax - view' },
+    { code: 'tax.write', label: 'Tax - edit' },
+    { code: 'tax.override', label: 'Tax - override document rates' },
     { code: 'maintenance.write', label: 'Maintenance - run' },
     { code: 'manage.users', label: 'Manage - users' },
     { code: 'manage.groups', label: 'Manage - groups' },
@@ -501,6 +504,60 @@
     error = '';
   }
 
+  async function navigateRole(offset: number) {
+    if (!roles.length) await loadRoles();
+    if (!roles.length) { message = 'No groups are defined in the current tenant.'; return; }
+    const current = roles.findIndex((role) => role.id === selectedRoleId);
+    const next = current < 0 ? (offset > 0 ? 0 : roles.length - 1) : (current + offset + roles.length) % roles.length;
+    selectRole(roles[next]);
+  }
+
+  async function navigateRoleTo(index: number) {
+    if (!roles.length) await loadRoles();
+    if (!roles.length) { message = 'No groups are defined in the current tenant.'; return; }
+    selectRole(roles[index < 0 ? roles.length - 1 : Math.min(index, roles.length - 1)]);
+  }
+
+  function handleMenuCommand(action: MenuAction): boolean {
+    if (!isGroups) return false;
+    switch (action.label) {
+      case 'New':
+        newRole();
+        return true;
+      case 'Detail':
+        message = selectedRoleId ? 'Group detail is ready.' : 'Select a group to view its detail.';
+        return true;
+      case 'List':
+        void loadRoles();
+        message = 'Group list refreshed.';
+        return true;
+      case 'Save':
+        void saveRole();
+        return true;
+      case 'First':
+        void navigateRoleTo(0);
+        return true;
+      case 'Previous':
+        void navigateRole(-1);
+        return true;
+      case 'Next':
+        void navigateRole(1);
+        return true;
+      case 'Last':
+        void navigateRoleTo(-1);
+        return true;
+      case 'Print':
+        message = 'Print preview is ready.';
+        window.print();
+        return true;
+      case 'Exit':
+        window.location.assign('/app/legacy');
+        return true;
+      default:
+        return false;
+    }
+  }
+
   function inventoryEvent(): SyncEnvelope {
     const itemLegacyId = String(extraValues.itemLegacyId ?? '').trim();
     const godownId = String(extraValues.godownId ?? '').trim();
@@ -684,7 +741,7 @@
   {:else if isGroups}
     <section class="legacy-workflow-window" aria-label="Groups">
       <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>{formatLegacyTitle(session?.username, clock)} : [Groups]</h1></header>
-      <LegacyMenuBar context={menuContext} windowId={workflowWindowId} windowLabel="Groups" windowHref={workflowWindowHref} />
+      <LegacyMenuBar context={menuContext} windowId={workflowWindowId} windowLabel="Groups" windowHref={workflowWindowHref} onCommand={handleMenuCommand} />
       <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Groups toolbar">
         <button type="button" aria-label="New group" onclick={newRole} title="New">△</button>
         <button type="button" aria-label="Save group" onclick={saveRole} disabled={busy} title="Save">▣</button>

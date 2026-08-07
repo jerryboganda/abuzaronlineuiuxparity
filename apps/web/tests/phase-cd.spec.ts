@@ -50,13 +50,47 @@ test('versioned contextual catalog contains every captured item for each context
 
 test('active-window menu swaps preserve captured contextual actions', () => {
   const purchase = buildLegacyMenusForContext('pack-purchase');
+  const sales = buildLegacyMenusForContext('cash-sale');
   const item = buildLegacyMenusForContext('item-master');
   const report = buildLegacyMenusForContext('report-sale-detail');
   const groups = buildLegacyMenusForContext('manage-groups');
 
   expect(menuLabels(purchase, 'Item')).toEqual(['New Item', 'Delete Item', 'Restore Item']);
   expect(menuLabels(purchase, 'File')).toContain('Auto Batch Generation');
+  expect(menuLabels(sales, 'File')).toContain('Item Sale History');
+  expect(menuLabels(sales, 'File')).toContain('Sale Slip');
+  expect(menuLabels(sales, 'File')).not.toContain('Item Purchase History');
   expect(menuLabels(item, 'File')).toContain('Select Models');
+  const alternateAliases = buildLegacyMenusForContext('item-master').find((menu) => menu.label === 'File')?.actions.find((action) => action.label === 'Set Alternate Item Alias Names');
+  expect(alternateAliases?.implementation).toBe('implemented');
+  expect(alternateAliases?.requiredPermission).toBe('master.write');
+  const itemImages = buildLegacyMenusForContext('item-master').find((menu) => menu.label === 'File')?.actions.find((action) => action.label === 'Set Item Image(s)');
+  expect(itemImages?.implementation).toBe('implemented');
+  expect(itemImages?.requiredPermission).toBe('master.write');
+  const itemNotes = buildLegacyMenusForContext('item-master').find((menu) => menu.label === 'File')?.actions.find((action) => action.label === 'Set Item Notes');
+  expect(itemNotes?.implementation).toBe('implemented');
+  expect(itemNotes?.requiredPermission).toBe('master.write');
+  const itemAssociations = buildLegacyMenusForContext('item-master').find((menu) => menu.label === 'File')?.actions.find((action) => action.label === 'Set Item Associations');
+  expect(itemAssociations?.implementation).toBe('implemented');
+  expect(itemAssociations?.requiredPermission).toBe('master.write');
+  const itemAuthors = buildLegacyMenusForContext('item-master').find((menu) => menu.label === 'File')?.actions.find((action) => action.label === 'Set Item Author(s)');
+  expect(itemAuthors?.implementation).toBe('implemented');
+  expect(itemAuthors?.requiredPermission).toBe('master.write');
+  const itemModels = buildLegacyMenusForContext('item-master').find((menu) => menu.label === 'File')?.actions.find((action) => action.label === 'Select Models');
+  expect(itemModels?.implementation).toBe('implemented');
+  expect(itemModels?.requiredPermission).toBe('master.write');
+  const itemPricePolicy = buildLegacyMenusForContext('item-master').find((menu) => menu.label === 'File')?.actions.find((action) => action.label === 'Set Item Price Policy');
+  expect(itemPricePolicy?.implementation).toBe('implemented');
+  expect(itemPricePolicy?.requiredPermission).toBe('master.write');
+  const registrationRequest = buildLegacyMenusForContext('item-master').find((menu) => menu.label === 'File')?.actions.find((action) => action.label === 'Populate Item Registration Request');
+  expect(registrationRequest?.implementation).toBe('implemented');
+  expect(registrationRequest?.requiredPermission).toBe('master.write');
+  const populateItem = buildLegacyMenusForContext('item-master').find((menu) => menu.label === 'File')?.actions.find((action) => action.label === 'Populate Item');
+  expect(populateItem?.implementation).toBe('implemented');
+  expect(populateItem?.requiredPermission).toBe('master.read');
+  const unpostedTransactions = buildLegacyMenusForContext('item-master').find((menu) => menu.label === 'File')?.actions.find((action) => action.label === 'Show Un-Posted Transaction Report');
+  expect(unpostedTransactions?.implementation).toBe('implemented');
+  expect(unpostedTransactions?.requiredPermission).toBe('master.read');
   expect(menuLabels(report, 'File')).toContain('Retrieve');
   expect(menuLabels(groups, 'File')).toContain('Detail');
   expect(menuLabels(report, 'Item')).toEqual([]);

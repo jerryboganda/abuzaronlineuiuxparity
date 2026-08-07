@@ -10,6 +10,22 @@ more current measurements. It does not convert a route, a generic report
 projection, or a deterministic hardware renderer into proof of exact legacy
 behavior.
 
+## Remaining timeframe
+
+The maintained parity plan still estimates approximately **83 developer-weeks
+single-threaded** for the complete A-Z replacement lifecycle, or roughly
+**5-6 calendar months with three parallel full-time developers**. That is a
+planning baseline, not a claim that the current implementation is 83 weeks from
+completion: several bounded slices are already green, but the remaining work is
+not linearly reducible from the 763-table/151-report catalog counts. With the
+current single-agent interactive cadence, a reliable calendar promise is not
+shorter than that multi-month baseline and is likely longer.
+
+The estimate excludes unknown waiting time for a reviewed SQL Server migration
+window, physical device access, provisioned full-volume PostgreSQL capacity, and
+operator UAT/cutover approval. Those are acceptance dependencies, not something
+that a local code check can close.
+
 ## Fresh local verification
 
 All commands were run from the repository root against the supervised local
@@ -22,6 +38,7 @@ stack on 2026-08-07.
 | Browser workflows | `pnpm --filter @abuzar/web test -- --workers=1 --retries=1 --reporter=line` plus focused no-retry checks | Passed: 77/77 test cases serially with no retry or application assertion failure. Both base/child Change User tests pass without retries, including persisted MDI-registry clearing. Save/Post/Void cash-sale UI path, Window/MDI navigation and reload restoration, shared File/Window chrome on Preferences and maintenance/manage/module child routes, purchase invoice/source-fetch population, purchase-return population, canonical item-price submission, the 6-test sales-canonical suite, the 5 purchase phase-CD tests, and the SalePrice tier-selector, Lock Item Batches, Group Allowed Price Setting, and imported group-scope setting regressions also passed |
 | Daily Sale Detail captured column contract | `go test ./services/api/internal/httpapi -run 'TestDailySaleDetail\|TestSalesReadModel\|TestReadModelsExposeCanonicalSales' -count=1` plus focused Playwright report workflow | Passed: canonical/compatibility detail projection and 11 visible columns; retrieval, preview, and workbook export passed |
 | Report format and print-preview workflow | `go test ./services/api/internal/httpapi -run 'TestReport(DefinitionAcceptsBoundedDatabaseLetterheadAndFormats\|FormatSelectionReturnsCanonicalConfiguredName)' -count=1`; focused Daily Sale Detail Playwright; full serial browser suite | Passed: selected format is validated server-side and round-tripped from the format dialog; preview exposes letterhead, ruler, toolbar, zoom, and two loaded-row preview pages. Exact PowerBuilder format calculations and golden print/PDF/workbook output remain open. See `docs/PHASE_M_REPORT_PREVIEW_EVIDENCE_2026-08-07.md` |
+| Report contextual File command routing | `cmd /c pnpm --filter @abuzar/web exec playwright test tests/smoke.spec.ts -g "report File menu commands" --workers=1 --retries=0 --reporter=line`; `cmd /c pnpm --filter @abuzar/web check` | Passed: captured report File commands `Retrieve` and `Preview` now invoke the live report argument and print-preview handlers through the contextual menu. The test waits for menu hydration and activates the captured dialog surface before confirming. Exact PowerBuilder command side effects, every report leaf, and physical print/PDF acceptance remain open. |
 | Ordered PostgreSQL schema replay | `ops/postgres/apply-migrations.ps1` with local admin DSN | Passed: sequential replay through 028, `Applied 29 migrations.`; the new `029_auxiliary_master_kinds.sql` was then applied with `psql --set ON_ERROR_STOP=1` to the supervised local target and is covered by the auxiliary integration constraint assertion. Prior contention failure and later clean run are retained in `migration/ORDERED_MIGRATION_REPLAY_2026-08-07.json` |
 | Go behavior | `DATABASE_URL=postgres://.../abuzar_next go test ./services/api/... ./services/edge/... ./migration/... -count=1` | Passed: all API, edge, migration, and DB-backed integration packages |
 | Go static checks | `go vet ./services/api/... ./services/edge/... ./migration/...` | Passed: no issues |
@@ -41,7 +58,8 @@ stack on 2026-08-07.
 | Stock-in-Hand classification reports | `go test ./services/api/internal/httpapi -run 'TestStockClassificationReadModelsUseCapturedItemGroups$' -count=1`; `cmd /c pnpm --filter @abuzar/web check` | Passed: Manufacturer, Manufacturer Format2, Category, and Class leaves now expose explicit Item-payload classification columns over normalized balances with posted-ledger gating and bounded scope. No DB-backed route result was claimed; exact group joins, valuation, supplier association, source reconciliation, and print parity remain open. See `docs/PHASE_P_STOCK_CLASSIFICATION_EVIDENCE_2026-08-07.md` |
 | Daily/date-wise stock IN/OUT reports | `go test ./services/api/internal/httpapi -run 'TestStockMovementSummaryReadModelsAggregatePostedInOutByDay$' -count=1`; `cmd /c pnpm --filter @abuzar/web check` | Passed: `Daily Stock IN/OUT` and `Stock IN/OUT(Date Wise)` now expose explicit posted-ledger day/direction/godown/item aggregates with signed quantity and net value. No DB-backed route result was claimed; opening balances, exact date-wise grouping, source reconciliation, valuation, and print parity remain open. See `docs/PHASE_P_STOCK_MOVEMENT_SUMMARY_EVIDENCE_2026-08-07.md` |
 | Supplier/manufacturer stock association | `go test ./services/api/internal/httpapi -run 'TestStockSupplierManufacturerReadModelUsesItemSuppliersAndPostedBalances$' -count=1`; `cmd /c pnpm --filter @abuzar/web check` | Passed: `Supplier Manufacturer Association` now exposes Manufacturer, aggregated Supplier(s), Godown, Item, On Hand, and Unit Cost from normalized balances, captured Item payload, item-supplier links, and posted-ledger gating. No DB-backed route result was claimed; exact priority/association joins, valuation, source reconciliation, and print parity remain open. See `docs/PHASE_P_STOCK_SUPPLIER_MANUFACTURER_EVIDENCE_2026-08-07.md` |
-| Purchase and Purchase Return line detail | `go test ./services/api/internal/httpapi -run 'Test(PurchaseLineDetailReadModelCarriesCanonicalAndCompatibilityFields\|PhaseOReportRegistryCoversCapturedPurchaseLeaves\|PurchaseReadModelUsesCanonicalLedgersPostedFiltersAndPagination)' -count=1`; `cmd /c pnpm --filter @abuzar/web check` | Passed: the two captured detail leaves now expose a bounded 12-field canonical/compatibility line contract with posted, tenant/branch, date, text, and document-identity de-duplication rules. No DB-backed route result was claimed because `DATABASE_URL` was unset in this focused run. Exact purchase grouping, tax/profit, order/disparity, and print parity remain open. See `docs/PHASE_O_PURCHASE_LINE_DETAIL_EVIDENCE_2026-08-07.md` |
+| Purchase and Purchase Return line detail | `go test ./services/api/internal/httpapi -run 'Test(PurchaseLineDetailReadModelCarriesCanonicalAndCompatibilityFields\|PhaseOReportRegistryCoversCapturedPurchaseLeaves\|PurchaseReadModelUsesCanonicalLedgersPostedFiltersAndPagination)' -count=1`; `cmd /c pnpm --filter @abuzar/web check` | Passed: the two captured detail leaves now expose a bounded 12-field canonical/compatibility line contract with posted, tenant/branch, date, text, and document-identity de-duplication rules. No DB-backed route result was claimed because `DATABASE_URL` was unset in this focused run. Exact purchase grouping, tax/profit, order matching, and print parity remain open. See `docs/PHASE_O_PURCHASE_LINE_DETAIL_EVIDENCE_2026-08-07.md` |
+| P/O Based Purchase Disparity | `cmd /c go test ./services/api/internal/httpapi -run TestPurchaseOrderDisparityReadModelComparesLinkedOrderAndReceiptLines -count=1`; `cmd /c pnpm --filter @abuzar/web exec playwright test tests/smoke.spec.ts -g "P/O disparity report" --workers=1 --retries=0 --reporter=line`; `cmd /c pnpm --filter @abuzar/web check` | Passed: canonical posted purchase-order lines now compare linked posted receipt lines by source document ID/number and expose ten ordered/received/disparity fields. Unlinked legacy receipt matching, source reconciliation, exact PowerBuilder calculations, and golden print/PDF/Excel output remain open. See `docs/PHASE_O_PURCHASE_ORDER_DISPARITY_EVIDENCE_2026-08-07.md` |
 | Quotation and Refused Sales reports | `go test ./services/api/internal/httpapi -run 'Test(NoStockDocumentReportsUseCanonicalAndDeduplicatedCompatibilityRows\|CapturedCatalogNonBlankReportLeavesResolveToExplicitDefinitions\|PhaseQRegistryCoversTheMappedRemainingLeaves\|PhaseQQueriesArePostedAndScopeBound\|PhaseNReportRegistryDefinitionsAndAggregateFilters)$' -count=1`; `cmd /c pnpm --filter @abuzar/web check` | Passed: quotation detail/summary and refused-sales detail now use canonical posted no-stock documents/lines with de-duplicated compatibility events and document-summary grouping. No DB-backed route result was claimed; exact PowerBuilder columns/calculations, print output, and golden replay remain open. See `docs/PHASE_Q_NO_STOCK_DOCUMENT_EVIDENCE_2026-08-07.md` |
 | Header Wise Transaction Summary | `go test ./services/api/internal/httpapi -run 'Test(HeaderTransactionReportUsesCanonicalHeadersAndCompatibilityFallback\|NoStockDocumentReportsUseCanonicalAndDeduplicatedCompatibilityRows\|CapturedCatalogNonBlankReportLeavesResolveToExplicitDefinitions\|PhaseQRegistryCoversTheMappedRemainingLeaves\|PhaseQQueriesArePostedAndScopeBound\|PhaseNReportRegistryDefinitionsAndAggregateFilters)$' -count=1`; `cmd /c pnpm --filter @abuzar/web check` | Passed: the captured report now groups canonical posted business-document families once per header, sums line quantities, retains authoritative totals, and de-duplicates compatibility events. No DB-backed route result was claimed; exact transaction-type labels/calculations, opening-balance treatment, print output, and golden replay remain open. See `docs/PHASE_Q_HEADER_TRANSACTION_EVIDENCE_2026-08-07.md` |
 | Reprinting report contracts | `go test ./services/api/internal/httpapi -run 'TestPhaseQReprintDefinitionsUseCanonicalReadModels$' -count=1`; `cmd /c pnpm --filter @abuzar/web check` | Passed: the eight leaves now use canonical sale-line, sale-summary, or purchase-line metadata and retain compatibility fallback; Svelte check passed with 0 errors and 0 warnings. The added focused browser contract was not run in this quick-check slice. Exact PowerBuilder selection, summary sections, format calculations, print output, and golden replay remain open. See `docs/PHASE_Q_REPRINT_EVIDENCE_2026-08-07.md` |
@@ -50,8 +68,8 @@ stack on 2026-08-07.
 | Sales explicit batch allocation | `cmd /c pnpm --filter @abuzar/web check`; `cmd /c pnpm --filter @abuzar/web exec playwright test tests/sales-canonical.spec.ts --list`; updated `sales-canonical.spec.ts` contract; `git diff --check` | Passed at source/type-check and Playwright discovery level: positive inventory batches are retained in the sales row, multiple distinct selections serialize through `document.lines[].allocations` with editable quantities, post validation checks duplicate/positive/four-decimal/line-total rules, and Automatic FIFO remains the default. The browser assertion itself was not run in this quick-check slice; exact legacy batch rules and downstream stock workflows remain open. See `docs/PHASE_H_SALES_FRONTEND_EVIDENCE_2026-08-06.md` |
 | Opening Stock workflow routing | `cmd /c pnpm --filter @abuzar/web check`; source review of `LegacyWorkflowSurface.svelte` | Passed at source/type-check level: the captured `opening-stock` route now enters the immutable inventory-event path and emits the existing inbound movement contract. Browser/API/DB execution, exact PowerBuilder opening-balance semantics, and source reconciliation remain open. |
 | Inventory adjustment input contract | `cmd /c pnpm --filter @abuzar/web check`; `cmd /c pnpm --filter @abuzar/web exec playwright test tests/smoke.spec.ts --list`; source review of `LegacyWorkflowSurface.svelte` | Passed at source/type-check and Playwright discovery level: increase/decrease/adjustment/opening forms search active canonical items, select an active godown, require batch identity, positive quantity at four-decimal precision, and explicit signed adjustment values where applicable, then trim emitted payload fields. Browser/API/DB execution and exact legacy batch-selection behavior remain open. |
-| Purchase Populate Items command | `cmd /c pnpm --filter @abuzar/web check`; focused `purchase-canonical.spec.ts -g "Populate Items resolves purchase"` | Svelte check passed with 0 errors and 0 warnings. The single browser command produced no output within the quick-check window and was stopped, so browser execution remains unverified. Source review confirms the command resolves quick-search values through active canonical lookup, hydrates UUID/legacy identity, and preserves fail-closed save/post validation for unresolved free text. Exact PowerBuilder source-selection/template/side-effect/raster behavior remains open. See `docs/PHASE_I_PURCHASE_ITEM_POPULATION_EVIDENCE_2026-08-07.md` |
-| Purchase Populate From Sale Template | `cmd /c pnpm --filter @abuzar/web check`; added focused `purchase-canonical.spec.ts` regression | Svelte check passed with 0 errors and 0 warnings. The template-picker browser regression was added but not run after the earlier quick browser command stalled. Source review confirms active tenant-scoped template listing, supported rows/lines/items payload hydration into a new draft, canonical item re-resolution, and fail-closed handling for unsupported payloads. Exact PowerBuilder template/pending-due/source-selection behavior remains open. See `docs/PHASE_I_PURCHASE_ITEM_POPULATION_EVIDENCE_2026-08-07.md` |
+| Purchase Populate Items command | `cmd /c pnpm --filter @abuzar/web check`; `cmd /c pnpm --filter @abuzar/web exec playwright test tests/purchase-canonical.spec.ts --workers=1 --retries=0 --reporter=line --timeout=12000 --global-timeout=30000 --grep "Populate Items resolves purchase"` | Passed: Svelte check 0 errors/0 warnings and the focused browser test 1/1. Source review confirms quick-search resolution through active canonical lookup, UUID/legacy identity hydration, and fail-closed save/post validation for unresolved free text. Exact PowerBuilder source-selection/template/side-effect/raster behavior remains open. See `docs/PHASE_I_PURCHASE_ITEM_POPULATION_EVIDENCE_2026-08-07.md` |
+| Purchase Populate From Sale Template | `cmd /c pnpm --filter @abuzar/web check`; refreshed focused `purchase-canonical.spec.ts` Populate test group | Passed: the focused Populate group is recorded as 2/2 in `docs/PHASE_I_PURCHASE_ITEM_POPULATION_EVIDENCE_2026-08-07.md`, with Svelte check 0 errors/0 warnings. Source review confirms active tenant-scoped template listing, supported rows/lines/items payload hydration into a new draft, canonical item re-resolution, and fail-closed handling for unsupported payloads. Exact PowerBuilder template/pending-due/source-selection behavior remains open. See `docs/PHASE_I_PURCHASE_ITEM_POPULATION_EVIDENCE_2026-08-07.md` |
 | Customer Sales profit leaves and Hourly Graph | `go test ./services/api/internal/httpapi -run 'Test(CustomerSalesProfitMarginReadModelUsesAllocatedCost\|DailySalesProfitSummaryAggregatesCompleteCostRows\|CustomerSalesSummaryReadModelsUseExplicitBuckets\|PhaseNReportRegistryDefinitionsAndAggregateFilters\|InvoiceSummaryReadModelsGroupRowsOncePerDocument)$' -count=1`; `cmd /c pnpm --filter @abuzar/web check` | Passed: the profit detail exposes an 11-field canonical/compatibility projection with posted sale price, amount, tax, FIFO allocation cost where available, gross profit, and margin; the daily profit leaf aggregates by day/customer with complete-cost gating; and Hourly Graph uses a six-field hour/customer aggregate over de-duplicated invoices. No database-backed replay was claimed because DATABASE_URL was unset. Exact PowerBuilder valuation, graph rendering, discount/return/tax/rounding/print behavior remains open. See `docs/PHASE_N_CUSTOMER_PROFIT_MARGIN_EVIDENCE_2026-08-07.md` and `docs/PHASE_N_CUSTOMER_INVOICE_SUMMARY_EVIDENCE_2026-08-07.md` |
 | Canonical item maintenance | `go test ./services/api/internal/httpapi -run 'TestCanonicalItemMaintenanceValidation\|TestMaintenanceManageOperationsIntegration' -count=1`; focused browser maintenance checks | Passed: price, discount, basic-data, and reorder/minimum updates lock canonical `master_items`, preserve legacy aliases, record audit previous/new values, accept browser-shaped JSON numbers, and submit decimal prices through the shared Svelte form. See `docs/PHASE_S_ITEM_MAINTENANCE_EVIDENCE_2026-08-07.md` |
 | Maintenance batch locking | `go test ./services/api/internal/httpapi -run 'TestBatchLockMaintenanceValidation\|TestMaintenanceManageOperationsIntegration' -count=1`; `pnpm --filter @abuzar/web test -- --workers=1 --retries=0 --reporter=line --grep "Lock Item Batches"` | Passed: current-branch tenant-scoped lock/unlock mutation, affected-row audit, other-branch isolation, and captured Svelte field submission. See `docs/PHASE_S_BATCH_LOCK_EVIDENCE_2026-08-07.md` |
@@ -117,6 +135,12 @@ assertion into success.
   and Batch Number contract, preferring retained historical line payload values
   and allocation-aware batch/expiry values where available. This is a bounded
   column/read-model parity improvement, not proof of all ten format layouts.
+- Captured report-window File commands `Retrieve`, `Preview`, paging, filtering,
+  sorting, saved inputs/filters, print, and export labels now have concrete
+  report handlers where the current report surface supports them. The focused
+  browser evidence covers menu hydration, retrieval through the arguments dialog,
+  and print preview; it does not claim exact PowerBuilder side effects for all
+  151 report leaves or physical output parity.
 - The captured Stock in Hand > Back Date report now reads imported
   `historical_stock_snapshots` from `dbo.StockReport` and exposes the source
   row, as-of date, stock, purchase/sale/average/recent-purchase prices, and
@@ -527,10 +551,12 @@ mode reads `dbo.SRdetail` into `cash-sale-return` lines through `SRLedger`;
 purchase mode reads `dbo.PRdetail` into `purchase-return` lines through
 `PRLedger`. Both preserve the reviewed line identity and source payload,
 perform scoped COPY/set-based upserts, and retain invalid/dependency rows as
-audited mappings and exceptions. Focused package tests and vet passed without
-database execution. Canonical source execution, return count/quantity/amount
-reconciliation, exact legacy calculations, stock/ledger effects, print parity,
-and UAT remain acceptance gates. See
+audited mappings and exceptions. Both modes now accept deterministic
+`-from-row`/`-to-row` windows and record the source window in their reports, so
+the deferred waves can be retried in bounded slices. Focused package tests and
+vet passed without database execution. Canonical source execution, return
+count/quantity/amount reconciliation, exact legacy calculations, stock/ledger
+effects, print parity, and UAT remain acceptance gates. See
 `docs/PHASE_E_RETURN_LINE_IMPORT_EVIDENCE_2026-08-07.md`.
 
 ## Transaction-history filter follow-up - 2026-08-07
@@ -735,3 +761,409 @@ This is an audit/control improvement, not a migration completion claim. The
 714 unmapped tables, canonical source execution, 32 canonical Purdetail
 quarantines, 16 sandbox tax ambiguities, business reconciliation, and all
 downstream acceptance gates remain open.
+
+## Sales contextual item and supplier identity handoffs - 2026-08-07
+
+The captured cash-sale menu now handles `File > View Item Info` and
+`File > Supplier Info.` through canonical identity. Item Info requires the
+focused populated canonical item row and opens Item master with its legacy ID.
+Supplier Info loads the focused item's canonical supplier links, resolves an
+active tenant-scoped supplier, and opens Supplier master with that supplier's
+legacy ID. Both actions fail closed when the row or linked supplier cannot be
+trusted; the sales menu access fixture also exercises the tenant-admin access
+boundary.
+
+Focused evidence:
+
+- `cmd /c pnpm --filter @abuzar/web check` passed with 0 errors and 0 warnings.
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/sales-canonical.spec.ts -g "View Item Info|Supplier Info" --workers=1 --retries=0 --reporter=line` passed 3/3, including a second-line focus regression.
+
+These are mocked authenticated browser checks. Exact PowerBuilder focus-ring
+and keyboard traversal semantics, supplier-choice ordering, live database data,
+and full sales-screen raster/print/UAT parity remain open.
+
+## Transaction current-row focus fidelity - 2026-08-07
+
+Sales and purchase transaction surfaces now retain the focused grid row for
+contextual actions instead of implicitly choosing the first populated line.
+Sales `View Item Info`, `Supplier Info.`, and `Item Sale History`, plus
+purchase `Item Purchase History` and `View Item Info`, resolve the focused row;
+loading a document, creating a new document, adding/removing rows, and
+keyboard focus keep that index bounded.
+
+Focused evidence:
+
+- `cmd /c pnpm --filter @abuzar/web check` passed with 0 errors and 0 warnings.
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/sales-canonical.spec.ts -g "View Item Info|Supplier Info" --workers=1 --retries=0 --reporter=line` passed 3/3, including the focused second-line assertion.
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/purchase-canonical.spec.ts -g "Populate Items|Item Purchase History|View Item Info|Supplier Info" --workers=1 --retries=0 --reporter=line` passed 4/4.
+
+Exact PowerBuilder focus-ring, accelerator, tab-order, and multi-window cursor
+semantics remain open, as do live data and full raster/UAT acceptance.
+
+## Sales history line identity and contextual menu correction - 2026-08-07
+
+Sales history now carries `business_document_lines.item_legacy_id` through the
+canonical/compatibility read model and includes it in the scoped filter. This
+keeps `File > Item Sale History` useful when the displayed item name differs
+from the legacy code. The cash-sale menu layer also corrects the two known
+purchase captions present in the captured cash-sale menu artifact to the sales
+commands handled by the screen: `Item Sale History` and `Sale Slip`.
+
+Focused evidence:
+
+- `cmd /c go test ./services/api/internal/httpapi -run TestCanonicalSalesHistoryQuerySupportsItemIdentityFiltering -count=1` passed.
+- `cmd /c pnpm --filter @abuzar/web check` passed with 0 errors and 0 warnings.
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/phase-cd.spec.ts -g "active-window menu swaps" --workers=1 --retries=0 --reporter=line` passed 1/1.
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/sales-canonical.spec.ts -g "Item Sale History" --workers=1 --retries=0 --reporter=line` passed 1/1 and verified `filter=ITEM-2` from the focused second row.
+
+The SQL assertion and browser flow use mocked APIs; live PostgreSQL result
+verification, exact PowerBuilder sales-menu capture/caption confirmation,
+cursor/accelerator behavior, print output, and full sales/UAT parity remain
+open.
+
+## Purchase Edit Purchase Order contextual workflow - 2026-08-07
+
+The captured purchase File menu now handles `Edit Purchase Order` with an
+explicit route-kind guard. From Pack Purchase and the other purchase windows,
+it opens the canonical Purchase Order editor. When already in the Purchase
+Order window, it opens the scoped canonical purchase-order history so the
+operator can select an existing order for editing instead of accidentally
+posting the current window as another document kind.
+
+Focused evidence:
+
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/purchase-canonical.spec.ts --workers=1 --retries=0 --reporter=line --timeout=12000 --global-timeout=30000 --grep "Edit Purchase Order"` passed 2/2.
+- `cmd /c pnpm --filter @abuzar/web check` passed with 0 errors and 0 warnings.
+
+The browser checks use mocked authenticated APIs and prove both route branches;
+canonical live order retrieval, exact PowerBuilder edit/delete/locking
+semantics, print/preview parity, and operator acceptance remain open.
+
+## Item-master contextual CRUD/navigation handoff - 2026-08-07
+
+The item-master window now owns the captured contextual `File` and `Item`
+commands that correspond to its existing canonical editor state: New, List,
+Save, Delete, First, Previous, Next, Last, New Item, Delete Item, and Exit.
+These commands no longer fall through to the generic legacy
+workbench; they reuse the tenant-scoped master CRUD, list, and record-navigation
+functions already used by the toolbar and form.
+
+Focused evidence:
+
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/phase-f.spec.ts --workers=1 --retries=0 --reporter=line --timeout=12000 --global-timeout=30000 --grep "item master captured File commands"` passed 1/1.
+- `cmd /c pnpm --filter @abuzar/web check` passed with 0 errors and 0 warnings.
+
+The browser check uses mocked authenticated master APIs and covers New/List;
+live CRUD persistence, exact PowerBuilder command ordering/accelerators,
+item-specific auxiliary dialogs, the captured Restore Item semantics, raster
+parity, and operator acceptance remain open.
+
+## Groups contextual File command handoff - 2026-08-07
+
+The Groups window now handles the captured contextual File commands backed by
+its existing canonical role editor: New, Detail, Save, First, Previous, Next,
+Last, Print, and Exit. The handler is limited to the Groups window and leaves
+the captured Delete command unclaimed because the current role API has no
+reviewed delete/restore contract.
+
+Focused evidence:
+
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/phase-r.spec.ts --workers=1 --retries=0 --reporter=line --timeout=12000 --global-timeout=30000 --grep "Groups captured File commands"` passed 1/1.
+- `cmd /c pnpm --filter @abuzar/web check` passed with 0 errors and 0 warnings.
+
+The browser check uses mocked authenticated role APIs and covers New/Detail;
+live role persistence, exact PowerBuilder group navigation/accelerators,
+delete/restore semantics, raster parity, and operator acceptance remain open.
+
+## Captured File Delete draft lifecycle - 2026-08-07
+
+The captured `File > Delete` command is now wired in the sales and purchase
+transaction contexts. Existing canonical documents use an idempotent,
+tenant/branch/kind-scoped soft-delete command; only `draft` documents can be
+deleted. The row remains available to the audit/revision/sync history, while
+normal document detail and canonical purchase history exclude deleted drafts.
+Posted and void documents remain protected and must use their existing void
+semantics instead of hard deletion.
+
+Focused evidence:
+
+- `cmd /c go test ./services/api/internal/httpapi -run TestDocumentCommandValidationCoversLifecycleAndRevisionRequirements -count=1` passed.
+- `cmd /c go test ./services/api/internal/httpapi -run TestBusinessDocumentDraftDeleteMigrationIsNonDestructive -count=1` passed.
+- `cmd /c go test ./services/api/internal/httpapi -run TestCanonicalPurchaseHistoryQuerySupportsItemIdentityFiltering -count=1` passed.
+- `cmd /c pnpm --filter @abuzar/web check` passed with 0 errors and 0 warnings.
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/sales-canonical.spec.ts tests/purchase-canonical.spec.ts --workers=1 --retries=0 --reporter=line --timeout=12000 --global-timeout=30000 --grep "File Delete"` passed 2/2.
+- `git diff --check` passed; only normal LF/CRLF checkout notices were emitted.
+
+The browser checks use mocked authenticated APIs and prove both menu-to-command
+payloads. Live PostgreSQL delete/replay, the exact PowerBuilder confirmation and
+deleted-draft display, posted-delete rejection against real projections, full
+report/history parity, raster comparison, hardware/UAT, full-volume soak, and
+cutover/rollback evidence remain open.
+
+## Report dialog keyboard dismissal - 2026-08-07
+
+Report retrieval/format dialogs and the print-preview window now close with the
+legacy Escape interaction. The dialog state is reset together and the report
+footer records the dismissal, so an operator is not left behind a stale modal
+surface.
+
+Focused evidence:
+
+- `cmd /c pnpm --filter @abuzar/web check` passed with 0 errors and 0 warnings.
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/smoke.spec.ts --workers=1 --retries=0 --reporter=line --timeout=12000 --global-timeout=30000 --grep "report dialogs and print preview close with Escape"` passed 1/1.
+
+The check covers browser interaction with mocked session/access responses;
+PowerBuilder raster/focus comparison for every report dialog, exact report
+output, physical print/PDF/Excel, and operator acceptance remain open.
+
+## Apply Item GST canonical assignment - 2026-08-07
+
+The captured `File > Apply Item GST %` command now uses the canonical
+tenant/branch-scoped tax-assignment endpoint in both sales and purchase
+windows. The command requires `tax.write`, sends the selected canonical item
+UUIDs and transaction date, and updates draft line metadata only after the
+assignment succeeds. Empty or free-text rows fail closed; an omitted `itemIds`
+array is never sent because the API intentionally interprets that as every
+active item.
+
+Focused evidence:
+
+- `cmd /c pnpm --filter @abuzar/web check` passed with 0 errors and 0 warnings.
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/sales-canonical.spec.ts tests/purchase-canonical.spec.ts --workers=1 --retries=0 --reporter=line --timeout=12000 --global-timeout=30000 --grep "Apply Item GST"` passed 2/2.
+- `git diff --check` passed; only normal LF/CRLF checkout notices were emitted.
+
+The browser checks use mocked authenticated APIs and prove the two
+menu-to-canonical-request paths. Exact legacy inclusive/exclusive tax
+semantics, live PostgreSQL assignment/reconciliation against the captured
+configuration, historical tax output, raster comparison, and operator UAT
+remain open.
+
+## Resumable canonical sales-line migration window - 2026-08-07
+
+The guarded `migration/cmd/bulksalelines` path now supports deterministic
+zero-based `-from-row`/`-to-row` windows. Each bounded report records its source
+window, while the source query orders by invoice, numeric/text row identity,
+and item before applying SQL Server `OFFSET`/`FETCH`. This lets the deferred
+high-volume `Saledetail` wave be retried in reviewed slices without claiming a
+full source import.
+
+Focused evidence:
+
+- `cmd /c go test ./migration/cmd/bulksalelines -count=1` passed.
+- `git diff --check` passed; only normal LF/CRLF checkout notices were emitted.
+
+No source or target database import was run in this short pass. Full
+`Saledetail` execution, source/target reconciliation, exception closure,
+historical document promotion, exact PowerBuilder calculations, and UAT remain
+open.
+
+The same bounded-window contract is now present in the guarded
+`migration/cmd/bulkorderlines` loader for the deferred `PurOrderDetail` wave;
+its source execution, reconciliation, exact order semantics, report output,
+and UAT remain open.
+
+## Resumable canonical return-line migration windows - 2026-08-07
+
+The guarded `migration/cmd/bulkreturnlines` path now accepts deterministic
+zero-based `-from-row`/`-to-row` windows for both fixed `sale` (`SRdetail`) and
+`purchase` (`PRdetail`) modes. The source query orders by return identifier,
+numeric/text row identity, and item before SQL Server `OFFSET`/`FETCH`, and the
+redacted report records the requested window.
+
+Focused evidence:
+
+- `cmd /c go test ./migration/cmd/bulksalelines ./migration/cmd/bulkorderlines ./migration/cmd/bulkreturnlines -count=1` passed.
+- `cmd /c go vet ./migration/cmd/bulkreturnlines` passed.
+- `git diff --check` passed; only normal LF/CRLF checkout notices were emitted.
+
+No return-line source or target import was run. Return count/quantity/amount
+reconciliation, exception closure, stock/ledger effects, exact PowerBuilder
+calculations, report/print parity, and operator UAT remain open.
+
+## Resumable canonical purchase-line migration window - 2026-08-07
+
+The guarded `migration/cmd/bulkpurchaselines` path for the deferred 113k-row
+`dbo.Purdetail` wave now accepts deterministic zero-based `-from-row` and
+exclusive `-to-row` windows. The source query orders by purchase invoice,
+numeric/text row identity, and item before SQL Server `OFFSET`/`FETCH`, and the
+redacted report records the requested window.
+
+Focused evidence:
+
+- `cmd /c go test ./migration/cmd/bulkpurchaselines -count=1` passed.
+- `cmd /c go vet ./migration/cmd/bulkpurchaselines` passed.
+- `git diff --check` passed; only normal LF/CRLF checkout notices were emitted.
+
+No purchase-line source or target import was run. Full `Purdetail` execution,
+source/target reconciliation, 32 known non-positive-quantity exceptions,
+historical promotion, exact PowerBuilder calculations, report/print parity,
+and operator UAT remain open.
+
+## Item Form alternate-alias workflow - 2026-08-07
+
+The captured Item Form `File > Set Alternate Item Alias Names` command now
+opens a tenant-scoped editor for the selected canonical item. It uses a
+separate `alternate_alias` kind in `master_aliases`, so replacing alternate
+names does not delete the primary `AliasName`/`CustomICode` or barcode lookup
+rows. The API bounds and normalizes the list, rejects blank or duplicate
+values, detects cross-item conflicts, and retains the edited list in
+`payload.AlternateItemAliases`.
+
+Focused evidence:
+
+- `go test ./internal/httpapi -run 'Test(NormalizeAlternateItemAliasesKeepsOrderAndRejectsAmbiguity|CanonicalMasterRoutesRemainAuthenticated|NormalizedMasterMigrationRetainsLegacyUniquenessAndSupplierFields)$' -count=1` passed.
+- `go vet ./internal/httpapi` passed.
+- `cmd /c pnpm exec playwright test tests/phase-f.spec.ts -g "alternate-alias" --project=chromium --retries=0 --timeout=15000 --reporter=line` passed 1/1.
+- `cmd /c pnpm --dir apps/web check` passed with 0 errors and 0 warnings.
+- `git diff --check` passed with only normal LF/CRLF checkout notices.
+
+This is an implementation slice, not full acceptance. The migration has not
+been applied to a reviewed PostgreSQL instance in this short pass; live RLS,
+cross-item conflict, primary-alias preservation, exact PowerBuilder dialog
+geometry, source price/blob semantics, remaining Item Form commands, and
+operator UAT remain open. See `docs/PHASE_F_ITEM_ALIAS_EVIDENCE_2026-08-07.md`.
+
+## Item Form image workflow - 2026-08-07
+
+The captured `File > Set Item Image(s)` command now uses a canonical
+tenant-scoped `master_item_images` collection. The target retains the reviewed
+`ItemImage` concepts (`rowId`, description, image blob, and type), replaces the
+selected item's collection atomically, and exposes bounded base64 GET/PUT
+behavior. The Svelte dialog supports local image selection, preview,
+description/type edits, removal, and save/cancel behavior.
+
+Focused evidence:
+
+- `go test ./internal/httpapi -run 'Test(NormalizeItemImagesPreservesRowsAndBoundsBlobPayloads|CanonicalMasterRoutesRemainAuthenticated)$' -count=1` passed.
+- `go vet ./internal/httpapi` passed.
+- `cmd /c pnpm --dir apps/web check` passed with 0 errors and 0 warnings.
+- `cmd /c pnpm exec playwright test tests/phase-f.spec.ts -g "ItemImage rows" --project=chromium --retries=0 --timeout=15000 --reporter=line` passed 1/1.
+- `git diff --check` passed with only normal LF/CRLF checkout notices.
+
+This is not full acceptance. Migration application, historical `dbo.ItemImage`
+import/reconciliation, RLS/blob constraint proof, exact PowerBuilder dialog
+geometry and source encoding semantics, remaining Item Form commands, and
+operator UAT remain open. See `docs/PHASE_F_ITEM_IMAGE_EVIDENCE_2026-08-07.md`.
+
+## Item Form notes workflow - 2026-08-07
+
+The captured `File > Set Item Notes` command now has a tenant-scoped canonical
+`master_item_notes` byte store, authenticated GET/PUT API, OpenAPI contract,
+and a legacy-styled Item Form dialog. The API preserves UTF-8, RTF, and opaque
+legacy bytes through base64 and bounds decoded input to 8 MiB. Focused Go,
+vet, Svelte, and browser checks passed. See
+[`docs/PHASE_F_ITEM_NOTES_EVIDENCE_2026-08-07.md`](PHASE_F_ITEM_NOTES_EVIDENCE_2026-08-07.md).
+
+The live `dbo.ItemNotes` extraction/reconciliation and approved PowerBuilder
+rich-text/editor raster, keyboard/focus, and source-encoding comparison remain
+unverified; this slice does not close the full Item Form or overall parity
+acceptance gates.
+
+## Item Form association workflow - 2026-08-07
+
+The captured `File > Set Item Associations` command now has a tenant-scoped
+canonical `master_item_associations` relation, authenticated GET/PUT API,
+OpenAPI contract, and a legacy-styled Item Form add/remove editor. It retains
+the reviewed `ItemAssociation(ICode, AssocICode)` identities, validates
+same-tenant targets, rejects self-links and duplicate identifiers, and passed
+focused Go, vet, Svelte, and browser checks. See
+[`docs/PHASE_F_ITEM_ASSOCIATIONS_EVIDENCE_2026-08-07.md`](PHASE_F_ITEM_ASSOCIATIONS_EVIDENCE_2026-08-07.md).
+
+Live source extraction/reconciliation and approved PowerBuilder dialog raster,
+keyboard/focus, and dependency-behavior comparison remain unverified; this
+slice does not close the full Item Form or overall parity acceptance gates.
+
+## Item Form author workflow - 2026-08-07
+
+The captured `File > Set Item Author(s)` command now has a tenant-scoped
+canonical `master_item_authors` collection, authenticated GET/PUT API,
+OpenAPI contract, and a legacy-styled Item Form editor. It preserves the
+reviewed `ItemAuthor(ICode, AuthorCode, Priority, ROWID)` relationship fields,
+validates bounded unique rows, and passed focused Go, vet, Svelte, and browser
+checks. See
+[`docs/PHASE_F_ITEM_AUTHOR_EVIDENCE_2026-08-07.md`](PHASE_F_ITEM_AUTHOR_EVIDENCE_2026-08-07.md).
+
+Live `dbo.Author`/`dbo.ItemAuthor` extraction and reconciliation, exact author
+selection semantics, and approved PowerBuilder picker raster/keyboard/focus
+comparison remain unverified; this slice does not close the full Item Form or
+overall parity acceptance gates.
+
+## Item Form model workflow - 2026-08-07
+
+The captured `File > Select Models` command now has a tenant-scoped canonical
+`master_item_models` collection, authenticated GET/PUT API, OpenAPI contract,
+and a legacy-styled Item Form add/remove editor. It preserves the reviewed
+`ItemInModel(ICode, ModelCode)` membership codes, validates the captured
+smallint range and duplicates, and passed focused Go, vet, Svelte, and browser
+checks. See
+[`docs/PHASE_F_ITEM_MODEL_EVIDENCE_2026-08-07.md`](PHASE_F_ITEM_MODEL_EVIDENCE_2026-08-07.md).
+
+Live `dbo.Model`/`dbo.ItemInModel` extraction and reconciliation, exact model
+picker semantics, and approved PowerBuilder picker raster/keyboard/focus
+comparison remain unverified; this slice does not close the full Item Form or
+overall parity acceptance gates.
+
+## Item Form price-policy workflow - 2026-08-07
+
+The captured `File > Set Item Price Policy` command now reads and atomically
+replaces source-backed `PricePolicyDetail` tiers for the selected item through
+an authenticated tenant-scoped API and legacy-styled editor. Exact decimal
+text, quantity limits, expiry dates, flat discounts, and discount percentages
+are retained in the bounded contract. Focused Go, vet, Svelte, and browser
+checks passed. See
+[`docs/PHASE_F_ITEM_PRICE_POLICY_EVIDENCE_2026-08-07.md`](PHASE_F_ITEM_PRICE_POLICY_EVIDENCE_2026-08-07.md).
+
+Exact PowerBuilder picker geometry and keyboard/focus behavior, expiry-date
+semantics, `PriceTypeCode`/`Module` mapping, customer/group assignment and
+enforcement, complete policy promotion, and 50-invoice golden replay remain
+unverified; this slice does not close the overall pricing or legacy acceptance
+gates.
+
+## Item Form registration-request workflow - 2026-08-07
+
+The captured `File > Populate Item Registration Request` command now records a
+tenant-scoped, source-shaped `ItemRegRequest` snapshot from the selected
+canonical item's full payload. Request identity, date, item identity, sent
+state, and request history are typed; focused Go, vet, Svelte, and browser
+checks passed. See
+[`docs/PHASE_F_ITEM_REGISTRATION_REQUEST_EVIDENCE_2026-08-07.md`](PHASE_F_ITEM_REGISTRATION_REQUEST_EVIDENCE_2026-08-07.md).
+
+Live 130-field source extraction/reconciliation, external registration-server
+delivery, sent-state protocol, server/machine routing, exact field-by-field
+PowerBuilder behavior, and approved dialog raster/keyboard/focus comparison
+remain unverified. This slice does not close overall legacy acceptance.
+
+## Item Form populate workflow - 2026-08-07
+
+The captured `File > Populate Item` (`Ctrl+O`) command now opens a
+tenant-scoped canonical item lookup and hydrates the existing Item Form from
+the selected active result without creating a duplicate. The menu mapping,
+lookup dialog, empty/error states, and focused browser checks are recorded in
+[`docs/PHASE_F_ITEM_POPULATE_EVIDENCE_2026-08-07.md`](PHASE_F_ITEM_POPULATE_EVIDENCE_2026-08-07.md).
+
+Live source lookup/reconciliation, barcode and alternate-alias data coverage,
+exact PowerBuilder picker focus/accelerator/raster approval, edge-case UAT,
+and scale evidence remain open. This slice does not close overall legacy
+acceptance.
+
+## Item Form unposted-transaction report workflow - 2026-08-07
+
+The captured `File > Show Un-Posted Transaction Report` (`Ctrl+F1`) command
+now reads tenant/branch-scoped canonical draft lines for the selected Item
+through a bounded API and presents them in a legacy-styled report dialog. The
+query, index, contracts, OpenAPI, Go checks, and browser evidence are recorded
+in [`docs/PHASE_F_ITEM_UNPOSTED_TRANSACTIONS_EVIDENCE_2026-08-07.md`](PHASE_F_ITEM_UNPOSTED_TRANSACTIONS_EVIDENCE_2026-08-07.md).
+
+Historical SQL Server buffer/temporary transaction coverage, exact report
+geometry and focus behavior, complete transaction-family semantics, migration
+application, and scale acceptance remain open. This slice does not close
+overall legacy acceptance.
+
+## Item Form model evidence record - 2026-08-07
+
+The model membership slice is recorded in
+[`docs/PHASE_F_ITEM_MODEL_EVIDENCE_2026-08-07.md`](PHASE_F_ITEM_MODEL_EVIDENCE_2026-08-07.md).
+The focused Go, vet, Svelte, and browser checks passed. Live source
+extraction/reconciliation, exact model-picker behavior, visual/keyboard/focus
+approval, and the remaining Item Form commands remain acceptance evidence
+gaps.

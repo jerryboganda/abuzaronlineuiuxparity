@@ -38,6 +38,7 @@ func canonicalPurchaseHistoryQuery() string {
 			LIMIT 1
 		) line ON true
 		WHERE d.tenant_id = $1::uuid AND d.branch_id = $2::uuid AND d.kind = $3
+		  AND d.deleted_at IS NULL
 		  AND d.occurred_at >= $4::date
 		  AND d.occurred_at < ($5::date + INTERVAL '1 day')
 		  AND ($6 = '' OR d.document_number ILIKE '%' || $6 || '%'

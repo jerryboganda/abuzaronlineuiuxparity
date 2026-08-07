@@ -4,6 +4,7 @@
   import type { ReportColumn, ReportDefinition, ReportRow } from '@abuzar/contracts';
   import { AbuzarApi } from '$lib/api';
   import LegacyMenuBar from '$lib/LegacyMenuBar.svelte';
+  import type { MenuAction } from '$lib/legacy-menu';
   import { defaultReportDefinition, exportHook } from '$lib/report-core';
   import { formatLegacyTitle } from '$lib/legacy-title';
   import { localDateString } from '$lib/calendar-date';
@@ -54,6 +55,18 @@
   function enableInteractive() {
     interactive = true;
     if (showArguments || showFormat) dialogInteractive = true;
+  }
+
+  function handleWindowKeydown(event: KeyboardEvent) {
+    enableInteractive();
+    if (event.key !== 'Escape') return;
+    if (!showArguments && !showFormat && !preview) return;
+    event.preventDefault();
+    showArguments = false;
+    showFormat = false;
+    dialogInteractive = false;
+    preview = false;
+    status = 'Report dialog closed.';
   }
 
   onMount(() => {
@@ -180,6 +193,145 @@
     if (retrieved) void retrieve(1);
   }
 
+  function reportInputStorageKey(): string {
+    return `abuzar.report.inputs.${kind}`;
+  }
+
+  function saveReportInputs(): void {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(reportInputStorageKey(), JSON.stringify({
+      fromDate,
+      toDate,
+      filter,
+      selectedAreas,
+      allAreas,
+      cash,
+      credit,
+      format
+    }));
+    status = 'Report inputs saved.';
+  }
+
+  function retrieveSavedReportInputs(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(reportInputStorageKey()) ?? '{}') as Partial<{
+        fromDate: string;
+        toDate: string;
+        filter: string;
+        selectedAreas: string[];
+        allAreas: boolean;
+        cash: boolean;
+        credit: boolean;
+        format: string;
+      }>;
+      if (saved.fromDate) fromDate = saved.fromDate;
+      if (saved.toDate) toDate = saved.toDate;
+      if (typeof saved.filter === 'string') filter = saved.filter;
+      if (Array.isArray(saved.selectedAreas)) selectedAreas = saved.selectedAreas.filter((area): area is string => typeof area === 'string');
+      if (typeof saved.allAreas === 'boolean') allAreas = saved.allAreas;
+      if (typeof saved.cash === 'boolean') cash = saved.cash;
+      if (typeof saved.credit === 'boolean') credit = saved.credit;
+      if (saved.format) format = saved.format;
+      status = 'Saved report inputs restored.';
+    } catch {
+      status = 'No valid saved report inputs are available.';
+    }
+  }
+
+  function handleMenuCommand(action: MenuAction): boolean {
+    switch (action.label) {
+      case 'SaveAs':
+      case 'Save as Excel Sheet':
+        exportExcel();
+        return true;
+      case 'Retrieve':
+        openArguments();
+        return true;
+      case 'Filter': {
+        const input = document.querySelector<HTMLInputElement>('.legacy-report-arguments input[placeholder="Optional filter"]');
+        input?.focus();
+        status = 'Report filter is ready.';
+        return true;
+      }
+      case 'Sort':
+        sortBy('document');
+        status = 'Report sorted by document.';
+        return true;
+      case 'Home':
+      case 'First':
+        if (retrieved) void retrieve(1);
+        else reportPage = 1;
+        status = 'Report positioned at the first page.';
+        return true;
+      case 'PageUp':
+        movePage(-1);
+        return true;
+      case 'PageDown':
+        movePage(1);
+        return true;
+      case 'End':
+      case 'Last':
+        if (serverHasMore) status = 'The report has more pages; retrieve the next page before using End.';
+        else reportPage = pageCount;
+        return true;
+      case 'Print':
+        printReport();
+        return true;
+      case 'Preview':
+        openPreview();
+        return true;
+      case 'Zoomin':
+        if (!preview) openPreview();
+        setPreviewZoom(10);
+        return true;
+      case 'Zoomout':
+        if (!preview) openPreview();
+        setPreviewZoom(-10);
+        return true;
+      case 'Refresh':
+        void retrieve(retrieved ? reportPage : 1);
+        return true;
+      case 'Save Filter':
+        if (typeof window !== 'undefined') window.localStorage.setItem(`abuzar.report.filter.${kind}`, filter);
+        status = 'Report filter saved.';
+        return true;
+      case 'Retrieve Filter':
+        if (typeof window !== 'undefined') filter = window.localStorage.getItem(`abuzar.report.filter.${kind}`) ?? '';
+        status = 'Report filter restored.';
+        if (retrieved) void retrieve(1);
+        return true;
+      case 'Save Report Input(s)':
+        saveReportInputs();
+        return true;
+      case 'Retrieve Report with saved input(s)':
+        retrieveSavedReportInputs();
+        void retrieve(1);
+        return true;
+      case 'Save As PDF':
+        exportPdf();
+        return true;
+      case 'Ruler':
+        if (!preview) openPreview();
+        status = 'Preview ruler is visible.';
+        return true;
+      case 'Visible':
+        status = 'Visible report columns follow the selected report format.';
+        return true;
+      case 'Orientation':
+        status = 'Orientation is available in the browser print setup.';
+        return true;
+      case 'Paper Size':
+        status = 'Paper size is available in the browser print setup.';
+        return true;
+      case 'Send Mail':
+        status = 'Mail adapter is not configured for this branch.';
+        return true;
+      default:
+        return false;
+    }
+  }
+
   function printReport() {
     openPreview();
     if (typeof window !== 'undefined') window.setTimeout(() => window.print(), 0);
@@ -226,12 +378,12 @@
   }
 </script>
 
-<svelte:window onkeydown={enableInteractive} />
+<svelte:window onkeydown={handleWindowKeydown} />
 
 <svelte:head><title>WASEELA · ABUZAR V3 · {title}</title></svelte:head>
 <main class:legacy-report-loading-baseline={kind === 'daily-sales-detail' && loading && !interactive} class="legacy-report-page" onpointerdown={enableInteractive} onfocusin={enableInteractive}><section class="legacy-report-window" aria-label={title}>
   <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>{formatLegacyTitle(authenticatedUsername, clock)} : [{title}]</h1></header>
-  <LegacyMenuBar context="report-sale-detail" windowId={'report-' + kind} windowLabel={title} windowHref={'/app/report/' + kind} />
+  <LegacyMenuBar context="report-sale-detail" windowId={'report-' + kind} windowLabel={title} windowHref={'/app/report/' + kind} onCommand={handleMenuCommand} />
   <div class="legacy-transaction-toolbar legacy-report-toolbar" role="toolbar" aria-label="Report toolbar">
     <button type="button" aria-label="Save report" onclick={saveLayout} title="Save">▧</button>
     <button type="button" aria-label="Run report" onclick={openArguments} title="Retrieve">♟</button>

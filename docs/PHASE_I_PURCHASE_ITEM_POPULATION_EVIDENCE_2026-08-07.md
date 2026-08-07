@@ -31,7 +31,7 @@ source-selection dialog or all legacy pending-due/import rules.
 | Check | Result |
 |---|---|
 | `cmd /c pnpm --filter @abuzar/web check` | Passed: 0 errors and 0 warnings. |
-| `cmd /c pnpm --filter @abuzar/web exec playwright test tests/purchase-canonical.spec.ts -g "Populate Items resolves purchase" --workers=1 --reporter=line` | Not completed: the single browser command produced no test output within the quick-check window and was stopped; no browser pass is claimed. The template-picker regression was added but not run. |
+| `cmd /c pnpm --filter @abuzar/web exec playwright test tests/purchase-canonical.spec.ts -g "Populate Items resolves purchase" --workers=1 --retries=0 --reporter=line --timeout=12000 --global-timeout=30000` | Superseded by the verification refresh below; the refreshed focused command passed 1/1. |
 | `git diff --check` | Passed; only existing LF/CRLF normalization warnings were emitted. |
 
 ### Verification refresh — 2026-08-07

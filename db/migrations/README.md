@@ -117,6 +117,34 @@ Current order:
     and raw payload are preserved under tenant/branch scope; statement/ledger
     visibility is bounded and these rows do not mutate aging until legacy
     allocation semantics are reconciled.
+36. `036_item_alternate_aliases.sql` extends the canonical item-alias kind
+    contract so the captured Item Form alternate-alias command can replace
+    alternate names without modifying primary alias or barcode lookup rows.
+37. `037_item_images.sql` retains the captured ItemImage per-item row,
+    description, blob, and type fields in a tenant-scoped canonical collection
+    for the Item Form image command.
+38. `038_item_notes.sql` retains the captured ItemNotes one-blob-per-item
+    value as tenant-scoped `bytea` so UTF-8, RTF, and other legacy rich-text
+    encodings can round-trip without lossy conversion. The Item Form notes API
+    applies bounded input and tenant RLS.
+39. `039_item_associations.sql` retains the captured ItemAssociation
+    `ICode`/`AssocICode` pair as a tenant-scoped canonical relation, preserving
+    both legacy identities when an associated item is not yet resolved.
+40. `040_item_authors.sql` retains the captured ItemAuthor `ICode`,
+    `AuthorCode`, `Priority`, and `ROWID` relationship fields in a
+    tenant-scoped canonical collection with bounded priority/order checks.
+41. `041_item_models.sql` retains the captured ItemInModel `ICode`/`ModelCode`
+    membership pair in a tenant-scoped canonical collection while keeping the
+    separate Model master migration boundary explicit.
+42. `042_item_registration_requests.sql` retains ItemRegRequest request
+    metadata and full source-shaped item payload snapshots under tenant RLS;
+    it records populate history but does not infer or perform external legacy
+    registration-server delivery.
+43. `043_item_unposted_transaction_index.sql` adds the tenant/branch/item
+    lookup index used by the Item Form's `Show Un-Posted Transaction Report`
+    command. The report reads canonical draft business-document lines with an
+    explicit bounded response; it does not claim historical SQL Server import
+    coverage.
 
 The historical `020` wave contains a counter fixture whose parent tenant and
 branch are expected from the reviewed importer/bootstrap environment. The
