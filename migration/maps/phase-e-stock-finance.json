@@ -177,8 +177,7 @@
         "sale_price": "SalePrice",
         "average_price": "AvgPrice",
         "recent_purchase_price": "RecentPurchasePrice",
-        "pack_units": "PackUnits",
-        "source_legacy_id": "ICode"
+        "pack_units": "PackUnits"
       },
       "lookups": {
         "item_id": {
@@ -195,7 +194,8 @@
         }
       },
       "derivedColumns": {
-        "legacy_id": ["Date", "GCode", "ICode"]
+        "legacy_id": ["Date", "GCode", "ICode"],
+        "source_legacy_id": ["Date", "GCode", "ICode"]
       },
       "payloadTarget": "payload",
       "payloadColumns": {

@@ -22,9 +22,9 @@ async function mockCanonicalContext(page: Page, items = true) {
   }));
   await page.route('**/v1/items/lookup*', (route) => {
     return route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ items: items ? [{ id: itemId, legacyId: 'ITEM-1', code: 'ITEM-1', name: 'CANONICAL ITEM', active: true, payload: {}, aliases: [] }] : [] })
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: items ? [{ id: itemId, legacyId: 'ITEM-1', code: 'ITEM-1', name: 'CANONICAL ITEM', active: true, payload: {}, aliases: [] }] : [] })
     });
   });
   await page.route('**/v1/master/supplier', (route) => route.fulfill({
@@ -52,6 +52,12 @@ function accepted(kind: string, action: string, status: 'draft' | 'posted' | 'vo
   };
 }
 
+async function waitForPurchaseReady(page: Page) {
+  await expect(page.locator('.legacy-transaction-titlebar h1')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('button', { name: 'File', exact: true })).toBeEnabled({ timeout: 10_000 });
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true', { timeout: 10_000 });
+}
+
 async function fillReceipt(page: Page) {
   await page.getByRole('combobox', { name: 'Quick search 1' }).fill('ITEM-1');
   const lookupButton = page.getByRole('button', { name: 'Lookup item 1' });
@@ -69,6 +75,7 @@ async function fillReceipt(page: Page) {
 test('Populate Items resolves purchase quick-search rows through canonical lookup', async ({ page }) => {
   await mockCanonicalContext(page);
   await page.goto('/app/purchase/pack');
+  await waitForPurchaseReady(page);
   await page.getByRole('combobox', { name: 'Quick search 1' }).fill('CANON');
   await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Populate Items', exact: true }).click();
@@ -93,6 +100,7 @@ test('Populate From Sale Template loads supported template lines into a new draf
     }] })
   }));
   await page.goto('/app/purchase/pack');
+  await waitForPurchaseReady(page);
   await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Populate From Sale Template', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Sale Templates' })).toContainText('Common purchase template');
@@ -240,7 +248,7 @@ test('purchase returns serialize multiple source batch allocations', async ({ pa
   await expect(page.getByRole('combobox', { name: 'Item name 1' })).toHaveValue('CANONICAL ITEM');
   await page.getByLabel('Supplier').fill('SUPPLIER 1');
   await page.getByLabel('Godown 1').fill('GODOWN 1');
-  await page.getByLabel('Quantity 1').fill('2');
+  await page.getByLabel('Quantity 1', { exact: true }).fill('2');
   await page.getByLabel('Source document ID').fill(documentId);
   await page.getByLabel('Source purchase line ID 1').fill('88888888-8888-4888-8888-888888888888');
   await expect(page.getByLabel('Source batch allocation 1-1')).toBeVisible();

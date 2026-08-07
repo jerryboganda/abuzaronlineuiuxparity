@@ -33,11 +33,10 @@ func stockAllocationPolicy() (string, error) {
 	case "fifo":
 		return policy, nil
 	case "legacy":
-		// Placeholder only: the legacy ordering has not yet been reconciled
-		// against the source StockReport. It intentionally uses the same stable
-		// FIFO ordering until that evidence exists, rather than silently
-		// selecting an undocumented policy.
-		return policy, nil
+		// Do not advertise FIFO as legacy behavior. The source StockReport
+		// ordering and valuation rules are still an acceptance dependency, so a
+		// legacy setting must fail closed until that evidence is reconciled.
+		return "", errors.New("legacy stock allocation policy is unavailable until StockReport ordering is reconciled")
 	default:
 		return "", fmt.Errorf("unsupported stock allocation policy %q; configure fifo or legacy", policy)
 	}

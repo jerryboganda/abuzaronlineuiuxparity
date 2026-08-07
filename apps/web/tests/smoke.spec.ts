@@ -934,6 +934,36 @@ test('Opening Stock posts a canonical inbound inventory event', async ({ page })
   expect(requestBody).toMatchObject({ payload: { itemLegacyId: 'ITEM-1', quantity: '2.5', direction: 'in', godownId: '22222222-2222-4222-8222-222222222222', batchNumber: 'OPEN-1' } });
 });
 
+test('canonical item maintenance uses active item lookup before saving', async ({ page }) => {
+  await page.route('**/v1/session', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, context: { tenantId: 'tenant-1', tenantCode: 'TENANT', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' } })
+  }));
+  await page.route('**/v1/maintenance/change-items-price', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ kind: 'change-items-price', items: [], operations: [] }) });
+      return;
+    }
+    const body = route.request().postDataJSON() as Record<string, unknown>;
+    expect(body).toMatchObject({ itemCode: 'ITEM-1', priceType: 'Sale Price', price: '12.50' });
+    await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ kind: 'change-items-price', status: 'completed', message: 'Sale Price for item ITEM-1 updated in the canonical item master.' }) });
+  });
+  await page.route('**/v1/items/lookup**', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: [{ id: '11111111-1111-4111-8111-111111111111', legacyId: 'ITEM-1', code: 'ITEM-1', name: 'Canonical Item', payload: {}, active: true, aliases: [] }] })
+  }));
+  await page.goto('/app/maintenance/change-items-price');
+  await page.locator('#maintenance-item-input').fill('Canonical');
+  await page.getByRole('button', { name: 'Lookup maintenance item' }).click();
+  await expect(page.getByRole('button', { name: 'Canonical Item (ITEM-1)' })).toBeVisible();
+  await page.getByRole('button', { name: 'Canonical Item (ITEM-1)' }).click();
+  await page.getByLabel('New Price:').fill('12.50');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText('Sale Price for item ITEM-1 updated in the canonical item master.')).toBeVisible();
+});
+
 test('captured preference form tabs expose their native legacy layouts after interaction', async ({ page }) => {
   await page.goto('/app/preferences');
   await page.waitForTimeout(500);

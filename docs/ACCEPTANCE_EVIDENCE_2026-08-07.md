@@ -551,3 +551,80 @@ edge ESC/POS route and falls back to browser preview when the adapter is
 unavailable. The focused Svelte check passed with 0 errors and 0 warnings.
 Physical printer connection, label geometry, legacy byte comparison, and
 operator acceptance remain open; see `docs/PHASE_U_HARDWARE_EVIDENCE.md`.
+
+## Web client contract and master CRUD follow-up - 2026-08-07
+
+The authenticated web client now exposes the canonical document-detail,
+master-delete, report-format, and preference-field-key contracts required by
+the current workflow surfaces. `cmd /c pnpm --filter @abuzar/web check` passed
+with 0 errors and 0 warnings. Focused
+`cmd /c pnpm --filter @abuzar/web exec playwright test tests/phase-f.spec.ts
+--workers=1 --retries=0 --reporter=line --grep "empty canonical masters"`
+passed 1/1, covering the master List/Detail confirmed-delete request.
+Exact source validation, full catalog data reconciliation, PowerBuilder
+wildcard/focus/raster parity, physical hardware, and operator UAT remain
+acceptance gates.
+
+## Purchase Populate command browser refresh - 2026-08-07
+
+The purchase surface now keeps pointer-based baseline activation from
+interrupting the contextual File menu after Quick Search focus, and the
+focused browser fixture waits for the hydrated menu boundary. The focused
+command `cmd /c pnpm --filter @abuzar/web exec playwright test
+tests/purchase-canonical.spec.ts --workers=1 --retries=0 --reporter=line
+--timeout=12000 --global-timeout=30000 --grep "Populate"` passed 2/2 for
+canonical Populate Items and Populate From Sale Template. The Svelte check
+passed with 0 errors and 0 warnings. Exact PowerBuilder source/template
+selection, price/tax/discount side effects, live database replay, and raster
+or operator acceptance remain open; see
+`docs/PHASE_I_PURCHASE_ITEM_POPULATION_EVIDENCE_2026-08-07.md`.
+
+## Adjacent canonical sales-history regression - 2026-08-07
+
+Focused `cmd /c pnpm --filter @abuzar/web exec playwright test
+tests/sales-canonical.spec.ts --workers=1 --retries=0 --reporter=line
+--timeout=10000 --global-timeout=15000 --grep "sales history hydrates"`
+passed 1/1. This confirms canonical sale-return history still hydrates source
+identity and saved batch allocations after the focused purchase/menu changes;
+full sales lifecycle and exact PowerBuilder/UAT parity remain open.
+
+## Open sale-return workflow regression - 2026-08-07
+
+Focused `cmd /c pnpm --filter @abuzar/web exec playwright test
+tests/phase-cd.spec.ts --workers=1 --retries=0 --reporter=line
+--timeout=10000 --global-timeout=15000 --grep "open cash sale return"`
+passed 1/1. The canonical open cash return posted without a source invoice,
+retained godown, batch, expiry, unit cost, and noon-normalized transaction date
+fields. Exact PowerBuilder dialog/raster behavior, live database effects, and
+operator UAT remain open.
+
+## Stock allocation parity guard - 2026-08-07
+
+The stock engine now rejects `ABUZAR_STOCK_ALLOCATION_POLICY=legacy` until the
+source `StockReport` ordering and valuation rules are reconciled; it no longer
+records a legacy label while executing FIFO. The focused Go command
+`cmd /c go test ./services/api/internal/httpapi -run TestStock -count=1`
+passed. This is a safety guard, not a legacy-parity claim; source ordering,
+valuation/COGS, full-volume reconciliation, and trading-day acceptance remain
+open. See `docs/PHASE_J_STOCK_EVIDENCE_2026-08-06.md`.
+
+## Historical StockReport lineage guard - 2026-08-07
+
+`migration/cmd/bulk-historical` now preserves the reviewed StockReport
+composite source identity `(Date, GCode, ICode)` in `source_legacy_id` and
+rejects a staging batch when duplicate composite identities would be collapsed
+by the target upsert. The reviewed map was updated to use the same derived
+identity. Focused `cmd /c go test ./migration/cmd/bulk-historical -count=1`
+passed, and `phase-e-stock-finance.json` parsed successfully. This improves
+provenance safety but does not prove the live canonical import, source totals,
+valuation, or full StockReport parity.
+
+## Historical VirtualGl lineage guard - 2026-08-07
+
+`migration/cmd/bulk-historical` now retains the reviewed VirtualGl identity
+`(DocumentCode, VRow, AccCode)` through a named helper and rejects duplicate
+identities in a staging batch before the historical GL upsert. This prevents
+the known duplicate VirtualGl source rows from being silently overwritten.
+Focused `cmd /c go test ./migration/cmd/bulk-historical -count=1` passed.
+Duplicate quarantine, source/target totals, account mapping, opening balances,
+and exact PowerBuilder GL semantics remain acceptance gates.

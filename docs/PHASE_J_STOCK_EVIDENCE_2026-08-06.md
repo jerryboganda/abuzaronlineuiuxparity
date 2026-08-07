@@ -40,9 +40,10 @@ legacy stock migration.
   scope and reads `stock_balances`. `inventory_movements` is only a labeled
   fallback when the requested normalized item/godown scope has no balance
   rows; fallback events must carry the requested `godownId`.
-- Allocation policy is `fifo` by default; `legacy` is an explicit, documented
-  placeholder using the same stable ordering until legacy evidence is
-  reconciled. Unknown policy values are rejected.
+- Allocation policy is `fifo` by default. A requested `legacy` policy now
+  fails closed until the source `StockReport` ordering and valuation rules are
+  reconciled; it must not silently execute FIFO under a legacy label. Unknown
+  policy values are also rejected.
 - Canonical posted sales, purchases, sale returns, and purchase returns now
   append inverse stock movements on a valid void command; source movements are
   immutable, dependent posted documents block reversal, and replay is
@@ -71,7 +72,8 @@ legacy stock migration.
 
 - FIFO cost allocation is stored, but valuation/COGS, weighted-average
   behavior, historical reversal equivalence, transfers, adjustments UI, and
-  legacy policy reconciliation are not complete.
+  legacy policy reconciliation are not complete. The unverified legacy policy
+  is intentionally unavailable rather than treated as FIFO.
 - The 3.2M-row legacy stock snapshot has not been imported or reconciled by
   godown, batch, item, and valuation metric.
 - Full `StockReport` projection/performance parity and historical replay

@@ -20,14 +20,14 @@ func TestStockQuantityUsesExactDecimalScale(t *testing.T) {
 	}
 }
 
-func TestStockAllocationPolicyDoesNotSilentlyFallback(t *testing.T) {
+func TestStockAllocationPolicyFailsClosedBeforeLegacyReconciliation(t *testing.T) {
 	t.Setenv("ABUZAR_STOCK_ALLOCATION_POLICY", "fifo")
 	if policy, err := stockAllocationPolicy(); err != nil || policy != "fifo" {
 		t.Fatalf("fifo policy = %q, %v", policy, err)
 	}
 	t.Setenv("ABUZAR_STOCK_ALLOCATION_POLICY", "legacy")
-	if policy, err := stockAllocationPolicy(); err != nil || policy != "legacy" {
-		t.Fatalf("legacy policy = %q, %v", policy, err)
+	if policy, err := stockAllocationPolicy(); err == nil || policy != "" || !strings.Contains(err.Error(), "StockReport ordering") {
+		t.Fatalf("legacy policy was not rejected: %q, %v", policy, err)
 	}
 	t.Setenv("ABUZAR_STOCK_ALLOCATION_POLICY", "unknown")
 	if _, err := stockAllocationPolicy(); err == nil {

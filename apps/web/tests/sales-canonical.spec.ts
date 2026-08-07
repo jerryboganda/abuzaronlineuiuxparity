@@ -89,7 +89,7 @@ test('sales history hydrates a canonical return with source identity and saved b
   await expect(page.getByRole('button', { name: 'RET-42' })).toBeVisible();
   await page.getByRole('button', { name: 'RET-42' }).click();
   await expect(page.getByLabel('Item name 1')).toHaveValue('Canonical Return Item');
-  await expect(page.getByLabel('Quantity 1')).toHaveValue('2');
+  await expect(page.getByLabel('Quantity 1', { exact: true })).toHaveValue('2');
   await expect(page.getByLabel('Sale price 1')).toHaveValue('8.50');
   await expect(page.getByLabel('Source document ID')).toHaveValue(sourceDocumentId);
   await expect(page.getByLabel('Source document number')).toHaveValue('SALE-11');

@@ -61,3 +61,12 @@ reconciliation, all historical finance reports, print/raster/keyboard parity,
 and a real PowerBuilder golden replay remain open. The protected SQL Server
 source probe is still blocked by Windows Integrated Authentication's
 untrusted-domain failure; no credentials were read or bypassed.
+
+## Loader lineage guard refresh - 2026-08-07
+
+The historical loader now derives the VirtualGl identity through the reviewed
+`(DocumentCode, VRow, AccCode)` composite and fails closed if a staging batch
+contains duplicate identities that the target unique key would collapse.
+`cmd /c go test ./migration/cmd/bulk-historical -count=1` passed. The existing
+51-row duplicate-quarantine artifact still requires source-backed review and
+must not be treated as proof of exact GL parity.

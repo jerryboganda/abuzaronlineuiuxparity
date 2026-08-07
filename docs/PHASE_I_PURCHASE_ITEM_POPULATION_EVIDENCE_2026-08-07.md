@@ -34,6 +34,22 @@ source-selection dialog or all legacy pending-due/import rules.
 | `cmd /c pnpm --filter @abuzar/web exec playwright test tests/purchase-canonical.spec.ts -g "Populate Items resolves purchase" --workers=1 --reporter=line` | Not completed: the single browser command produced no test output within the quick-check window and was stopped; no browser pass is claimed. The template-picker regression was added but not run. |
 | `git diff --check` | Passed; only existing LF/CRLF normalization warnings were emitted. |
 
+### Verification refresh — 2026-08-07
+
+The earlier quick-check entry is superseded for the two Populate commands.
+The purchase browser fixture now waits for the hydrated legacy menu boundary
+before dispatching menu actions, and the purchase surface keeps pointer-based
+baseline activation from interrupting the File menu after Quick Search focus.
+
+`cmd /c pnpm --filter @abuzar/web exec playwright test
+tests/purchase-canonical.spec.ts --workers=1 --retries=0 --reporter=line
+--timeout=12000 --global-timeout=30000 --grep "Populate"` passed 2/2:
+Populate Items canonical lookup and Populate From Sale Template line hydration.
+The current Svelte check passed with 0 errors and 0 warnings. This proves the
+browser workflow contract against mocked authenticated APIs; it does not prove
+the exact PowerBuilder source dataset, source-selection dialog, or live tenant
+database behavior.
+
 ## Remaining boundary
 
 The exact PowerBuilder Populate Items source dataset, selection dialog,

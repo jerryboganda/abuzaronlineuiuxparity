@@ -178,6 +178,10 @@ type stockRow struct {
 	payload                                   string
 }
 
+func stockSnapshotLegacyID(asOf time.Time, godownLegacyID, itemLegacyID string) string {
+	return fmt.Sprintf("%s:%s:%s", asOf.Format(time.RFC3339), godownLegacyID, itemLegacyID)
+}
+
 func importStock(ctx context.Context, source *sql.DB, target *pgx.Conn, batchSize int, tenantID, branchID string) (int64, error) {
 	rows, err := source.QueryContext(ctx, `
 		SELECT [Date], [GCode], [ICode], [Stock], [PurchasePrice], [SalePrice],
@@ -211,6 +215,15 @@ func importStock(ctx context.Context, source *sql.DB, target *pgx.Conn, batchSiz
 				pgx.CopyFromRows(stockValues(batch)))
 		}
 		if err == nil {
+			var distinct int64
+			err = tx.QueryRow(ctx, `
+				SELECT COUNT(DISTINCT legacy_id)
+				FROM phase_e_stock_batch`).Scan(&distinct)
+			if err == nil && distinct != int64(len(batch)) {
+				err = fmt.Errorf("stock batch at %d contains %d duplicate composite identities; refusing silent overwrite", total, int64(len(batch))-distinct)
+			}
+		}
+		if err == nil {
 			var eligible int64
 			err = tx.QueryRow(ctx, `
 				SELECT COUNT(*)
@@ -229,7 +242,7 @@ func importStock(ctx context.Context, source *sql.DB, target *pgx.Conn, batchSiz
 					 recent_purchase_price, pack_units, source_table, source_legacy_id, payload)
 				SELECT $1::uuid, $2::uuid, s.legacy_id, i.id, s.item_legacy_id, g.id,
 				       s.as_of, s.quantity, s.purchase_price, s.sale_price, s.average_price,
-				       s.recent_purchase_price, s.pack_units, 'StockReport', s.item_legacy_id, s.payload
+				       s.recent_purchase_price, s.pack_units, 'StockReport', s.legacy_id, s.payload
 				FROM phase_e_stock_batch s
 				JOIN master_items i ON i.tenant_id=$1::uuid AND i.legacy_id=s.item_legacy_id
 				JOIN master_godowns g ON g.tenant_id=$1::uuid AND g.legacy_id=s.godown_legacy_id
@@ -267,7 +280,7 @@ func importStock(ctx context.Context, source *sql.DB, target *pgx.Conn, batchSiz
 		godown := text(gcode)
 		payload, _ := json.Marshal(map[string]any{"Date": date, "GCode": godown, "ICode": item, "Stock": normalize(stock), "PurchasePrice": normalize(purchase), "SalePrice": normalize(sale), "AvgPrice": normalize(average), "RecentPurchasePrice": normalize(recent), "PackUnits": normalize(pack)})
 		batch = append(batch, stockRow{
-			legacyID:     fmt.Sprintf("%s:%s:%s", date.Format(time.RFC3339), godown, item),
+			legacyID:     stockSnapshotLegacyID(date, godown, item),
 			itemLegacyID: item, godownLegacyID: godown, asOf: date,
 			quantity: text(stock), purchase: text(purchase), sale: text(sale),
 			average: text(average), recent: text(recent), packUnits: integer(pack),
@@ -302,6 +315,10 @@ type glRow struct {
 	user, invoice, remarks, payload                                             string
 }
 
+func historicalGLLegacyID(documentCode, vrow, accountCode string) string {
+	return fmt.Sprintf("%s:%s:%s", documentCode, vrow, accountCode)
+}
+
 func importGL(ctx context.Context, source *sql.DB, target *pgx.Conn, batchSize int, tenantID, branchID string) (int64, error) {
 	rows, err := source.QueryContext(ctx, `
 		SELECT [DocumentCode], [DocumentType], [AccCode], [AlternateAccCode],
@@ -334,6 +351,15 @@ func importGL(ctx context.Context, source *sql.DB, target *pgx.Conn, batchSize i
 			_, err = tx.CopyFrom(ctx, pgx.Identifier{"phase_e_gl_batch"},
 				[]string{"legacy_id", "document_code", "document_type", "account_code", "alternate_account_code", "debit_amount", "credit_amount", "occurred_at", "user_legacy_id", "invoice_code", "remarks", "payload"},
 				pgx.CopyFromRows(glValues(batch)))
+		}
+		if err == nil {
+			var distinct int64
+			err = tx.QueryRow(ctx, `
+				SELECT COUNT(DISTINCT legacy_id)
+				FROM phase_e_gl_batch`).Scan(&distinct)
+			if err == nil && distinct != int64(len(batch)) {
+				err = fmt.Errorf("GL batch at %d contains %d duplicate reviewed identities; refusing silent overwrite", total, int64(len(batch))-distinct)
+			}
 		}
 		if err == nil {
 			_, err = tx.Exec(ctx, `
@@ -380,7 +406,7 @@ func importGL(ctx context.Context, source *sql.DB, target *pgx.Conn, batchSize i
 		acct := text(account)
 		payload, _ := json.Marshal(map[string]any{"DocumentCode": document, "DocumentType": kind, "AccCode": account, "AlternateAccCode": alternate, "Debit": normalize(debit), "Credit": normalize(credit), "Date": occurred, "UserCode": user, "INVOICECODE": invoice, "Remarks": remarks, "VRow": row})
 		batch = append(batch, glRow{
-			legacyID:     fmt.Sprintf("%s:%s:%s", doc, vrow, acct),
+			legacyID:     historicalGLLegacyID(doc, vrow, acct),
 			documentCode: doc, documentType: text(kind), accountCode: acct, alternate: text(alternate),
 			debit: text(debit), credit: text(credit), occurred: occurred,
 			user: text(user), invoice: text(invoice), remarks: text(remarks), payload: string(payload),

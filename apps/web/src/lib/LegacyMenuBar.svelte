@@ -26,6 +26,7 @@
   let notice = '';
   let changeUserOpen = false;
   let changeUserInteractive = false;
+  let hydrated = false;
   let menuAccess: MenuAccess = { tenantAdmin: false, permissions: [], scopes: {}, loaded: false };
   const api = new AbuzarApi();
 
@@ -33,6 +34,7 @@
   $: menus = applyMenuAccess(buildLegacyMenusForContext(context, registryWindows), menuAccess);
 
   onMount(() => {
+    hydrated = true;
     const entry: LegacyOpenWindow = { id: windowId, label: windowLabel, href: windowHref, context };
     legacyWindowRegistry.open(entry);
     void api.access().then((access) => {
@@ -184,7 +186,7 @@
   {/each}
 {/snippet}
 
-<nav class="legacy-menu-bar legacy-contextual-menu-bar" aria-label="Application menu">
+<nav class="legacy-menu-bar legacy-contextual-menu-bar" aria-label="Application menu" data-hydrated={hydrated ? 'true' : 'false'}>
   {#each menus as menu}
     <div class="legacy-menu-group">
       <button

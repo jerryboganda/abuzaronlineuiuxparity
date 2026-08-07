@@ -252,7 +252,7 @@
 
   function enableInteractive(event?: Event) {
     const target = event?.target;
-    if (target instanceof Element && target.closest('.legacy-transaction-tabs')) return;
+    if (target instanceof Element && target.closest('.legacy-transaction-tabs, .legacy-menu-bar, .legacy-mdi-tabs')) return;
     interactive = true;
   }
 
@@ -988,7 +988,7 @@
 
 <svelte:head><title>WASEELA · ABUZAR V3 · {title}</title></svelte:head>
 
-<main class:legacy-pack-purchase-page={kind === 'pack'} class:legacy-pack-purchase-baseline={kind === 'pack' && activeTab === 'detail' && !interactive} class:legacy-purchase-list-page={activeTab === 'list'} class="legacy-transaction-page" onpointerdown={enableInteractive} onfocusin={enableInteractive}>
+<main class:legacy-pack-purchase-page={kind === 'pack'} class:legacy-pack-purchase-baseline={kind === 'pack' && activeTab === 'detail' && !interactive} class:legacy-purchase-list-page={activeTab === 'list'} class="legacy-transaction-page" onpointerdown={enableInteractive}>
   <section class="legacy-transaction-window" aria-label={title}>
     <header class="legacy-transaction-titlebar">
       <a href="/app/legacy" aria-label="Back to main window">←</a>
@@ -1056,25 +1056,28 @@
           <p>Choose one or more batches received by the source purchase. Allocation quantities must equal each return line quantity.</p>
           {#each rows as row, index}
             {#if row.itemName.trim() || row.quickSearch.trim()}
+              {@const allocations = returnAllocations[index]?.length
+                ? returnAllocations[index]
+                : [{ batchId: row.sourceBatchId ?? '', batchNumber: row.batch ?? '', quantity: row.quantity || '1' }]}
               <fieldset class="legacy-return-batch-allocation">
                 <legend>Line {index + 1}: {row.itemName || row.quickSearch || 'Item'}</legend>
                 <label>Source purchase line ID:
                   <input aria-label={`Source purchase line ID ${index + 1}`} value={row.sourceLineId ?? ''} oninput={(event) => updateRow(index, 'sourceLineId', event.currentTarget.value)} />
                 </label>
-                {#each returnAllocationsFor(index, row) as allocation, allocationIndex}
+                {#each allocations as allocation, allocationIndex}
                   <div class="legacy-return-batch-allocation-row">
                     <label>Source batch {allocationIndex + 1}:
                       <select aria-label={`Source batch allocation ${index + 1}-${allocationIndex + 1}`} value={allocation.batchId} onchange={(event) => setReturnAllocation(index, allocationIndex, 'batchId', (event.currentTarget as HTMLSelectElement).value)}>
                         <option value="">Select source batch</option>
                         {#each availableBatches[index] ?? [] as batch}
-                          <option value={batch.batchId} disabled={returnAllocationsFor(index, row).some((candidate, candidateIndex) => candidateIndex !== allocationIndex && candidate.batchId === batch.batchId)}>{batch.batchNumber}{batch.expiryDate ? ` · ${batch.expiryDate}` : ''} · {batch.quantity}</option>
+                          <option value={batch.batchId} disabled={allocations.some((candidate, candidateIndex) => candidateIndex !== allocationIndex && candidate.batchId === batch.batchId)}>{batch.batchNumber}{batch.expiryDate ? ` · ${batch.expiryDate}` : ''} · {batch.quantity}</option>
                         {/each}
                       </select>
                     </label>
                     <label>Qty:
                       <input aria-label={`Source allocation quantity ${index + 1}-${allocationIndex + 1}`} type="number" min="0" step="any" value={allocation.quantity} oninput={(event) => setReturnAllocation(index, allocationIndex, 'quantity', (event.currentTarget as HTMLInputElement).value)} />
                     </label>
-                    {#if returnAllocationsFor(index, row).length > 1}<button type="button" aria-label={`Remove source allocation ${index + 1}-${allocationIndex + 1}`} onclick={() => removeReturnAllocation(index, allocationIndex)}>Remove</button>{/if}
+                    {#if allocations.length > 1}<button type="button" aria-label={`Remove source allocation ${index + 1}-${allocationIndex + 1}`} onclick={() => removeReturnAllocation(index, allocationIndex)}>Remove</button>{/if}
                   </div>
                 {/each}
                 <button type="button" aria-label={`Add source allocation ${index + 1}`} onclick={() => addReturnAllocation(index)}>Add source batch</button>

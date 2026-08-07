@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestValidateSourceRequiresExplicitCanonicalOptIn(t *testing.T) {
@@ -45,6 +46,52 @@ func TestValidWaveIncludesSourceBackedPaymentsAndWithholding(t *testing.T) {
 	}
 	if validWave("advance-tax") {
 		t.Fatal("advance-tax was accepted as a withholding import wave")
+	}
+}
+
+func TestStockSnapshotIdentityPreservesReviewedCompositeKey(t *testing.T) {
+	date := time.Date(2026, 8, 6, 0, 0, 0, 0, time.UTC)
+	if got, want := stockSnapshotLegacyID(date, "G-01", "I-77"), "2026-08-06T00:00:00Z:G-01:I-77"; got != want {
+		t.Fatalf("stock snapshot identity = %q, want %q", got, want)
+	}
+}
+
+func TestStockSnapshotImporterRejectsIdentityCollapse(t *testing.T) {
+	data, err := os.ReadFile("main.go")
+	if err != nil {
+		t.Fatalf("read historical importer: %v", err)
+	}
+	code := string(data)
+	for _, required := range []string{
+		"COUNT(DISTINCT legacy_id)",
+		"duplicate composite identities; refusing silent overwrite",
+		"'StockReport', s.legacy_id, s.payload",
+	} {
+		if !strings.Contains(code, required) {
+			t.Errorf("stock importer is missing identity guard fragment %q", required)
+		}
+	}
+}
+
+func TestHistoricalGLIdentityPreservesReviewedCompositeKey(t *testing.T) {
+	if got, want := historicalGLLegacyID("SALE-1", "4", "1100"), "SALE-1:4:1100"; got != want {
+		t.Fatalf("historical GL identity = %q, want %q", got, want)
+	}
+}
+
+func TestHistoricalGLImporterRejectsIdentityCollapse(t *testing.T) {
+	data, err := os.ReadFile("main.go")
+	if err != nil {
+		t.Fatalf("read historical importer: %v", err)
+	}
+	code := string(data)
+	for _, required := range []string{
+		"GL batch at %d contains %d duplicate reviewed identities; refusing silent overwrite",
+		"historicalGLLegacyID(doc, vrow, acct)",
+	} {
+		if !strings.Contains(code, required) {
+			t.Errorf("GL importer is missing identity guard fragment %q", required)
+		}
 	}
 }
 
