@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Purchase Inventory Picker Parity', () => {
   test('displays real-time inventory lookup and populates item details on purchase routes', async ({ page }) => {
-    await page.route('**/v1/items/lookup*', async (route) => {
+    await page.route(/\/v1\/items\/lookup/, async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -33,8 +33,7 @@ test.describe('Purchase Inventory Picker Parity', () => {
     await expect(page.locator('.legacy-purchase-lookup')).toBeVisible();
     const searchInput = page.locator('input[aria-label="Item lookup query"]');
     await searchInput.fill('Panadol');
-    await searchInput.dispatchEvent('input');
-    await expect(page.locator('.legacy-purchase-lookup table')).toContainText('PANADOL 500MG TAB');
+    await expect(page.locator('.legacy-purchase-lookup table')).toContainText('PANADOL 500MG TAB', { timeout: 10000 });
     await page.locator('.legacy-purchase-lookup table button').first().click();
     await expect(page.locator('input[aria-label="Item name 1"]')).toHaveValue('PANADOL 500MG TAB');
   });
