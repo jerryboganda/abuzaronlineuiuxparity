@@ -12,14 +12,56 @@
   type SaleAllocation = { batchId: string; quantity: string };
   type SaleRow = { itemId?: string; itemLegacyId?: string; sourceLineId?: string; itemName: string; stock: string; stockError?: string; availabilityLoaded: boolean; availableBatches?: InventoryAvailableBatch[]; allocations?: SaleAllocation[]; purchasePrice: string; salePrice: string; salePrices?: string[]; manufacturer: string; pieces: string; location: string; quantity: string; discountPercent: string; gstRate: string; batchNumber: string; expiryDate: string; unitCost: string; total: string };
   type LookupItem = ItemLookupResult & { stock: string; purchasePrice: string; salePrice: string; salePrices: string[]; manufacturer: string; pieces: string; location: string };
+  type SalesWorkflowState = {
+    documentNumber: string;
+    businessDocumentId: string;
+    businessDocumentVersion: number;
+    canonicalCommandSignature: string;
+    canonicalCommandId: string;
+    canonicalIdempotencyKey: string;
+    customer: string;
+    customerId: string;
+    godownId: string;
+    sourceDocumentId: string;
+    sourceDocumentNumber: string;
+    lookupQuery: string;
+    lookupResults: ItemLookupResult[];
+    reference: string;
+    salePriceMode: string;
+    transactionDate: string;
+    dueDate: string;
+    remarks: string;
+    activeTab: 'detail' | 'list';
+    interactive: boolean;
+    history: ReportRow[];
+    historyFilter: string;
+    documentDiscountPercent: string;
+    flatDiscountAmount: string;
+    miscAmount: string;
+    cashTendered: string;
+    itemGstRate: string;
+    itemDiscountRate: string;
+    attachments: Array<{ name: string; size: number }>;
+    pricingPreview: PricingPreviewResponse | null;
+    pricingError: string;
+    rows: SaleRow[];
+    message: string;
+    error: string;
+  };
   const api = new AbuzarApi();
   const queue = new OfflineQueue();
+  const workflowStates = new Map<string, SalesWorkflowState>();
   let session: SessionResponse['context'] = null;
   let documentNumber = '';
   let businessDocumentId = '';
   let businessDocumentVersion = 0;
   let activeWorkflowKind = '';
   let workflowRevision = 0;
+  let lookupRequestId = 0;
+  let pricingRequestId = 0;
+  let historyRequestId = 0;
+  let historySelectionRequestId = 0;
+  const availabilityRequestIds = new Map<string, number>();
   let canonicalCommandSignature = '';
   let canonicalCommandId = '';
   let canonicalIdempotencyKey = '';
@@ -65,7 +107,7 @@
   let availableLookupItems: LookupItem[] = [];
   let rows: SaleRow[] = [blankRow()];
   $: kind = $page?.url?.searchParams?.get('kind') ?? 'cash';
-  $: if (kind !== activeWorkflowKind) resetWorkflowIdentity(kind);
+  $: if (kind !== activeWorkflowKind) switchWorkflow(kind);
   $: workflowTitle = ({ cash: 'Cash Sale', credit: 'Credit Sale', 'cash-return': 'Cash Sale Return', 'credit-return': 'Credit Sale Return', 'open-cash-return': 'Open Cash Sale Return', 'open-credit-return': 'Open Credit Sale Return', quotation: 'Quotation', refused: 'Refused Sales' } as Record<string, string>)[kind] ?? 'Cash Sale';
   $: aggregate = ['cash-return', 'credit-return', 'open-cash-return', 'open-credit-return'].includes(kind) ? 'sale_return' : kind === 'quotation' ? 'quotation' : kind === 'refused' ? 'refused_sale' : 'sale';
   $: if (session && ['credit', 'credit-return', 'open-credit-return'].includes(kind) && customerLoadState === 'idle') void loadCustomers();
@@ -92,16 +134,17 @@
 
   async function loadHistory() {
     const requestRevision = workflowRevision;
+    const requestId = ++historyRequestId;
     historyBusy = true;
     try {
       const result = await api.transactions(aggregate, transactionDate, transactionDate, historyFilter.trim());
-      if (requestRevision !== workflowRevision) return;
+      if (requestRevision !== workflowRevision || requestId !== historyRequestId) return;
       history = result.rows;
     } catch {
-      if (requestRevision !== workflowRevision) return;
+      if (requestRevision !== workflowRevision || requestId !== historyRequestId) return;
       history = [];
     } finally {
-      historyBusy = false;
+      if (requestRevision === workflowRevision && requestId === historyRequestId) historyBusy = false;
     }
   }
 
@@ -146,6 +189,7 @@
 
   async function applyHistoryRow(row: ReportRow) {
     const requestRevision = workflowRevision;
+    const requestId = ++historySelectionRequestId;
     historyBusy = true;
     error = '';
     try {
@@ -168,7 +212,7 @@
         return;
       }
       const document = await api.document(row.documentId);
-      if (requestRevision !== workflowRevision) return;
+      if (requestRevision !== workflowRevision || requestId !== historySelectionRequestId) return;
       const saleDocumentKinds = ['cash-sale', 'credit-sale', 'cash-return', 'credit-return', 'open-cash-return', 'open-credit-return', 'quotation', 'refused-sale'];
       if (!saleDocumentKinds.includes(document.kind)) throw new Error('The selected history row is not a canonical sales document.');
       if (document.kind !== businessDocumentKind()) throw new Error('The selected history row does not belong to the current sales workflow.');
@@ -197,16 +241,18 @@
       activeTab = 'detail';
       message = `${workflowTitle} ${document.documentNumber || row.document || 'document'} loaded with canonical lines.`;
     } catch (cause) {
-      if (requestRevision !== workflowRevision) return;
+      if (requestRevision !== workflowRevision || requestId !== historySelectionRequestId) return;
       error = cause instanceof Error ? cause.message : 'The selected sales document could not be loaded.';
       message = 'The selected sales document could not be loaded.';
     } finally {
-      historyBusy = false;
+      if (requestRevision === workflowRevision && requestId === historySelectionRequestId) historyBusy = false;
     }
   }
 
   async function navigateHistory(offset: number) {
+    const requestRevision = workflowRevision;
     if (!history.length) await loadHistory();
+    if (requestRevision !== workflowRevision) return;
     if (!history.length) { message = 'No persisted documents found for this date.'; return; }
     const current = history.findIndex((row) => row.document === documentNumber);
     const next = current < 0 ? (offset > 0 ? 0 : history.length - 1) : (current + offset + history.length) % history.length;
@@ -214,7 +260,9 @@
   }
 
   async function navigateHistoryTo(index: number) {
+    const requestRevision = workflowRevision;
     if (!history.length) await loadHistory();
+    if (requestRevision !== workflowRevision) return;
     if (!history.length) { message = 'No persisted documents found for this date.'; return; }
     void applyHistoryRow(history[index < 0 ? history.length - 1 : Math.min(index, history.length - 1)]);
   }
@@ -465,20 +513,139 @@
     queuePricingPreview();
   }
 
-  function resetWorkflowIdentity(nextKind: string) {
+  function freshWorkflowState(): SalesWorkflowState {
+    return {
+      documentNumber: '',
+      businessDocumentId: '',
+      businessDocumentVersion: 0,
+      canonicalCommandSignature: '',
+      canonicalCommandId: '',
+      canonicalIdempotencyKey: '',
+      customer: 'CASH SALES CUSTOMER',
+      customerId: '',
+      godownId: '',
+      sourceDocumentId: '',
+      sourceDocumentNumber: '',
+      lookupQuery: '',
+      lookupResults: [],
+      reference: '',
+      salePriceMode: 'Sale Price 1',
+      transactionDate: localDateString(),
+      dueDate: '',
+      remarks: '',
+      activeTab: 'detail',
+      interactive: false,
+      history: [],
+      historyFilter: '',
+      documentDiscountPercent: '0.00',
+      flatDiscountAmount: '0.00',
+      miscAmount: '1.00',
+      cashTendered: '',
+      itemGstRate: '',
+      itemDiscountRate: '',
+      attachments: [],
+      pricingPreview: null,
+      pricingError: '',
+      rows: [blankRow()],
+      message: '',
+      error: ''
+    };
+  }
+
+  function captureWorkflowState(): SalesWorkflowState {
+    return {
+      documentNumber,
+      businessDocumentId,
+      businessDocumentVersion,
+      canonicalCommandSignature,
+      canonicalCommandId,
+      canonicalIdempotencyKey,
+      customer,
+      customerId,
+      godownId,
+      sourceDocumentId,
+      sourceDocumentNumber,
+      lookupQuery,
+      lookupResults,
+      reference,
+      salePriceMode,
+      transactionDate,
+      dueDate,
+      remarks,
+      activeTab,
+      interactive,
+      history,
+      historyFilter,
+      documentDiscountPercent,
+      flatDiscountAmount,
+      miscAmount,
+      cashTendered,
+      itemGstRate,
+      itemDiscountRate,
+      attachments,
+      pricingPreview,
+      pricingError,
+      rows,
+      message,
+      error
+    };
+  }
+
+  function applyWorkflowState(state: SalesWorkflowState) {
+    documentNumber = state.documentNumber;
+    businessDocumentId = state.businessDocumentId;
+    businessDocumentVersion = state.businessDocumentVersion;
+    canonicalCommandSignature = state.canonicalCommandSignature;
+    canonicalCommandId = state.canonicalCommandId;
+    canonicalIdempotencyKey = state.canonicalIdempotencyKey;
+    customer = state.customer;
+    customerId = state.customerId;
+    godownId = state.godownId;
+    sourceDocumentId = state.sourceDocumentId;
+    sourceDocumentNumber = state.sourceDocumentNumber;
+    lookupQuery = state.lookupQuery;
+    lookupResults = state.lookupResults;
+    reference = state.reference;
+    salePriceMode = state.salePriceMode;
+    transactionDate = state.transactionDate;
+    dueDate = state.dueDate;
+    remarks = state.remarks;
+    activeTab = state.activeTab;
+    interactive = state.interactive;
+    history = state.history;
+    historyFilter = state.historyFilter;
+    documentDiscountPercent = state.documentDiscountPercent;
+    flatDiscountAmount = state.flatDiscountAmount;
+    miscAmount = state.miscAmount;
+    cashTendered = state.cashTendered;
+    itemGstRate = state.itemGstRate;
+    itemDiscountRate = state.itemDiscountRate;
+    attachments = state.attachments;
+    pricingPreview = state.pricingPreview;
+    pricingError = state.pricingError;
+    rows = state.rows;
+    message = state.message;
+    error = state.error;
+  }
+
+  function switchWorkflow(nextKind: string) {
+    if (pricingTimer) clearTimeout(pricingTimer);
+    lookupRequestId += 1;
+    pricingRequestId += 1;
+    historyRequestId += 1;
+    historySelectionRequestId += 1;
+    if (activeWorkflowKind) workflowStates.set(activeWorkflowKind, captureWorkflowState());
     activeWorkflowKind = nextKind;
     workflowRevision += 1;
-    documentNumber = '';
-    businessDocumentId = '';
-    businessDocumentVersion = 0;
-    sourceDocumentId = '';
-    sourceDocumentNumber = '';
-    canonicalCommandSignature = '';
-    canonicalCommandId = '';
-    canonicalIdempotencyKey = '';
+    historyBusy = false;
+    lookupBusy = false;
+    pricingBusy = false;
+    applyWorkflowState(workflowStates.get(nextKind) ?? freshWorkflowState());
+    if (godownId && rows.some((row) => row.itemId && !row.availabilityLoaded)) void refreshAllAvailability();
   }
 
   async function loadCustomers() {
+    const requestRevision = workflowRevision;
     customerLoadState = 'loading';
     try {
       const customerResult = await api.masterRecords('customer');
@@ -486,36 +653,49 @@
       customerLoadState = 'loaded';
     } catch (cause) {
       customers = [];
-      customerLoadState = 'error';
-      error = apiErrorMessage(cause, 'Canonical customers could not be loaded.');
+      customerLoadState = requestRevision === workflowRevision ? 'error' : 'idle';
+      if (requestRevision === workflowRevision) error = apiErrorMessage(cause, 'Canonical customers could not be loaded.');
     }
   }
 
   async function searchItems(value = lookupQuery) {
+    const requestRevision = workflowRevision;
+    const requestId = ++lookupRequestId;
     lookupQuery = value;
     const query = value.trim();
     if (!query) {
       lookupResults = [];
+      lookupBusy = false;
       return;
     }
     lookupBusy = true;
     try {
-      lookupResults = (await api.itemLookup(query)).items.filter((item) => item.active && item.id);
+      const result = await api.itemLookup(query);
+      if (requestRevision !== workflowRevision || requestId !== lookupRequestId || query !== lookupQuery.trim()) return;
+      lookupResults = result.items.filter((item) => item.active && item.id);
       error = '';
     } catch (cause) {
+      if (requestRevision !== workflowRevision || requestId !== lookupRequestId || query !== lookupQuery.trim()) return;
       lookupResults = [];
       error = apiErrorMessage(cause, 'Item lookup could not be loaded.');
     } finally {
-      lookupBusy = false;
+      if (requestRevision === workflowRevision && requestId === lookupRequestId) lookupBusy = false;
     }
   }
 
   async function refreshRowAvailability(index: number) {
     const row = rows[index];
     if (!row?.itemId || !row.itemLegacyId || !godownId) return;
+    const requestRevision = workflowRevision;
+    const requestItemId = row.itemId;
+    const requestGodownId = godownId;
+    const requestKey = `${requestRevision}:${index}:${requestItemId}:${requestGodownId}`;
+    const requestId = (availabilityRequestIds.get(requestKey) ?? 0) + 1;
+    availabilityRequestIds.set(requestKey, requestId);
     rows = rows.map((candidate, rowIndex) => rowIndex === index ? { ...candidate, stock: 'Loading…', availabilityLoaded: false, stockError: undefined } : candidate);
     try {
-      const result = await api.inventoryAvailability(row.itemLegacyId, godownId);
+      const result = await api.inventoryAvailability(row.itemLegacyId, requestGodownId);
+      if (requestRevision !== workflowRevision || godownId !== requestGodownId || rows[index]?.itemId !== requestItemId || availabilityRequestIds.get(requestKey) !== requestId) return;
       const batches = result.batches.filter((batch) => Number(batch.quantity || 0) > 0);
       const available = batches.reduce((sum, batch) => sum + Number(batch.quantity || 0), 0).toFixed(4).replace(/\.?0+$/, '');
       rows = rows.map((candidate, rowIndex) => rowIndex === index ? {
@@ -530,7 +710,10 @@
         stockError: undefined
       } : candidate);
     } catch (cause) {
+      if (requestRevision !== workflowRevision || godownId !== requestGodownId || rows[index]?.itemId !== requestItemId || availabilityRequestIds.get(requestKey) !== requestId) return;
       rows = rows.map((candidate, rowIndex) => rowIndex === index ? { ...candidate, stock: 'Unavailable', availabilityLoaded: false, stockError: apiErrorMessage(cause, 'Stock availability could not be loaded.') } : candidate);
+    } finally {
+      if (availabilityRequestIds.get(requestKey) === requestId) availabilityRequestIds.delete(requestKey);
     }
   }
 
@@ -591,25 +774,35 @@
     pricingPreview = null;
     pricingError = '';
     if (pricingTimer) clearTimeout(pricingTimer);
-    pricingTimer = setTimeout(() => { void refreshPricingPreview(); }, 300);
+    pricingTimer = setTimeout(() => {
+      pricingTimer = undefined;
+      void refreshPricingPreview();
+    }, 300);
   }
 
   async function refreshPricingPreview(): Promise<PricingPreviewResponse | null> {
     if (!online || !session) return null;
+    const requestRevision = workflowRevision;
+    const requestId = ++pricingRequestId;
     const request = pricingRequest();
-    if (!request) return null;
+    if (!request) {
+      pricingBusy = false;
+      return null;
+    }
     pricingBusy = true;
     try {
       const result = await api.previewPricing(request);
+      if (requestRevision !== workflowRevision || requestId !== pricingRequestId) return null;
       pricingPreview = result;
       pricingError = '';
       return result;
     } catch (cause) {
+      if (requestRevision !== workflowRevision || requestId !== pricingRequestId) return null;
       pricingPreview = null;
       pricingError = cause instanceof ApiError ? cause.problem?.detail ?? cause.message : cause instanceof Error ? cause.message : 'Pricing could not be calculated.';
       return null;
     } finally {
-      pricingBusy = false;
+      if (requestRevision === workflowRevision && requestId === pricingRequestId) pricingBusy = false;
     }
   }
 
@@ -841,9 +1034,14 @@
         if (!online) throw new Error('Canonical cash and credit sales require an online API connection; they are not placed in the legacy compatibility queue.');
         canonicalValidation(canonicalAction);
       }
+      if (pricingTimer) {
+        clearTimeout(pricingTimer);
+        pricingTimer = undefined;
+      }
       const calculated = await refreshPricingPreview();
       if (requestRevision !== workflowRevision) return;
       if (pricingError && online) throw new Error(pricingError);
+      if (businessDocumentKind() && !calculated) throw new Error('Authoritative pricing did not complete. Review the sale and try again.');
       if (businessDocumentKind()) {
         if (action) await submitBusinessDocument(action);
         else await submitBusinessDocument(canonicalAction);
@@ -889,15 +1087,15 @@
 <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1 aria-label={kind === 'cash' ? 'New sale' : workflowTitle}>{transactionWindowTitle}</h1></header>
     <LegacyMenuBar context="cash-sale" windowId={'sales-' + kind} windowLabel={workflowTitle} windowHref={'/app/sales?kind=' + kind} navigationBlocked={busy} onCommand={handleMenuCommand} />
     <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Sale toolbar">
-      <button type="button" aria-label="New sale" onclick={() => { rows = [blankRow()]; documentNumber = ''; businessDocumentId = ''; businessDocumentVersion = 0; dueDate = ''; cashTendered = ''; pricingPreview = null; message = 'New sale ready.'; }} title="New">▱</button>
+      <button type="button" aria-label="New sale" onclick={() => { rows = [blankRow()]; documentNumber = ''; businessDocumentId = ''; businessDocumentVersion = 0; dueDate = ''; cashTendered = ''; pricingPreview = null; message = 'New sale ready.'; }} disabled={busy} title="New">▱</button>
       <button type="button" aria-label="Post sale" onclick={() => { void submitSale('posted', businessDocumentId ? 'post' : 'save-and-post'); }} disabled={busy} title="Post sale">▣</button>
       <button type="button" aria-label="Void sale" onclick={() => { busy = true; error = ''; void submitBusinessVoid().catch((cause) => { error = apiErrorMessage(cause, 'The canonical sale could not be voided.'); }).finally(() => { busy = false; }); }} disabled={busy || !businessDocumentId} title="Void sale">⊘</button>
       <button type="button" aria-label="Print sale" onclick={() => { void printSaleSlip(); }} title="Print">▤</button>
-      <span class="legacy-toolbar-separator"></span><button type="button" aria-label="Previous sale" onclick={() => { void navigateHistory(-1); }} title="Previous">◀</button><button type="button" aria-label="Next sale" onclick={() => { void navigateHistory(1); }} title="Next">▶</button>
+      <span class="legacy-toolbar-separator"></span><button type="button" aria-label="Previous sale" onclick={() => { void navigateHistory(-1); }} disabled={busy} title="Previous">◀</button><button type="button" aria-label="Next sale" onclick={() => { void navigateHistory(1); }} disabled={busy} title="Next">▶</button>
       <span class="legacy-toolbar-caption">{online ? 'Online' : 'Offline'} · {workflowTitle}</span>
     </div>
-    <div class="legacy-transaction-tabs"><button aria-label="Detail" aria-pressed={activeTab === 'detail'} class:active={activeTab === 'detail'} type="button" onclick={() => { interactive = true; activeTab = 'detail'; }}>▦ Detail</button><button data-testid="sales-list-tab" aria-label="List" aria-pressed={activeTab === 'list'} class:active={activeTab === 'list'} type="button" onclick={() => { interactive = true; activeTab = 'list'; void loadHistory(); }}>▦ List</button></div>
-    <div class="legacy-transaction-detail">
+    <div class="legacy-transaction-tabs"><button aria-label="Detail" aria-pressed={activeTab === 'detail'} class:active={activeTab === 'detail'} type="button" onclick={() => { interactive = true; activeTab = 'detail'; }} disabled={busy}>▦ Detail</button><button data-testid="sales-list-tab" aria-label="List" aria-pressed={activeTab === 'list'} class:active={activeTab === 'list'} type="button" onclick={() => { interactive = true; activeTab = 'list'; void loadHistory(); }} disabled={busy}>▦ List</button></div>
+    <div class="legacy-transaction-detail" inert={busy} aria-busy={busy}>
       <div class="legacy-sale-fields">
         <label>Inv. No:<input bind:value={documentNumber} /></label><label>Date:<input type="date" bind:value={transactionDate} /></label>
         {#if kind === 'credit'}<label>Due Date:<input aria-label="Due date" type="date" bind:value={dueDate} /></label>{/if}

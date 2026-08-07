@@ -31,14 +31,19 @@ This repository is the isolated first vertical slice of the parity-first rebuild
   tab restoration are covered by the Phase C MDI evidence. Reused Svelte sales
   routes now register the newly selected workflow window and lazily load
   canonical customer context when client navigation enters a credit workflow.
-  Workflow changes also clear the previous document identity, version, and
-  idempotency state before a command can target the newly selected kind.
+  Each sales kind retains an independent in-memory form snapshot, including
+  lines, pricing, history, document identity/version, and idempotency state, so
+  opening Credit Sale cannot reuse Cash Sale work and reactivating either MDI
+  window restores its own state.
   Navigation is blocked while a document submission is pending so an accepted
   command cannot be abandoned and silently reposted with a fresh key. All
   contextual state changes and the menu's hard-navigation fallback honor that
   lock, history hydration is exact-kind guarded, and drawer activation cannot
-  extend the document lock; the focused browser regression is added but remains
-  unexecuted in this dependency-free worktree.
+  extend the document lock. Lookup, stock, history, and pricing responses are
+  request-owned; interrupted stock loading resumes when a window is restored;
+  and posting requires authoritative pricing while the form is inert. The
+  focused browser regression is added but remains unexecuted in this
+  dependency-free worktree.
 - The shared contextual menu now opens the captured Yes/No Change User
   confirmation in the base shell and child windows, with cancel retention and
   confirmed login navigation; confirmed transitions clear the persisted MDI

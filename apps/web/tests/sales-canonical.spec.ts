@@ -291,15 +291,25 @@ test('client-side navigation from cash to credit loads canonical customers', asy
   await expect(page).toHaveURL(/\/app\/sales\?kind=credit/);
   await expect(page.getByLabel('Customer')).toContainText('Canonical Customer');
   expect(customerRequests).toBe(1);
+  await expect(page.getByLabel('Item name 1')).toHaveValue('');
   await page.getByLabel('Customer').selectOption(customerId);
+  await page.getByLabel('Item lookup query').fill('Canonical');
+  await page.getByLabel('Item lookup query').press('Enter');
+  await page.getByRole('button', { name: 'Canonical Item' }).click();
+  await page.getByLabel('Godown').selectOption(godownId);
   await page.getByRole('button', { name: 'Post sale' }).click();
   await expect.poll(() => creditPayload).toBeDefined();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('posted successfully');
   expect(creditPayload?.expectedVersion).toBeUndefined();
   expect((creditPayload?.document as Record<string, unknown>).id).toBeUndefined();
   expect((creditPayload?.document as Record<string, unknown>).documentNumber).toBe('');
   await page.getByRole('button', { name: 'Window', exact: true }).click();
   await expect(page.getByRole('menuitem', { name: '1 Cash Sale', exact: true })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: '2 Credit Sale', exact: true })).toBeVisible();
+  await page.getByRole('menuitem', { name: '1 Cash Sale', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/sales\?kind=cash/);
+  await expect(page.getByLabel('Item name 1')).toHaveValue('Canonical Item');
+  await expect(page.getByLabel('Inv. No:')).toHaveValue('CS-1');
 });
 
 test('closed sale return requires source line identity and submits a canonical command', async ({ page }) => {

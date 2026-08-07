@@ -23,9 +23,11 @@ the navigation/state boundary:
 - The menu bar reacts when SvelteKit reuses a child page for a different
   workflow kind. Cash Sale to Credit Sale navigation now registers and
   activates the Credit Sale window instead of leaving the Cash Sale entry
-  active. The sales page also loads canonical customers when that client-side
-  transition first enters a credit workflow and clears the previous workflow's
-  document identity/version/idempotency state before a new command is built.
+  active. Each sales workflow keeps its own form, lookup, line, pricing,
+  history, document identity/version, and idempotency state. Opening Credit Sale
+  starts a fresh credit form, while reactivating Cash Sale restores its exact
+  in-memory work. Canonical customers load when the transition first enters a
+  credit workflow.
   Workflow revision guards also prevent late document, void, pricing, or
   history responses from restoring state after the operator has navigated.
   Active submissions block SvelteKit navigation until the API result is
@@ -34,7 +36,11 @@ the navigation/state boundary:
   commands are blocked while the submission is active, the menu bar suppresses
   its hard-navigation fallback for that intentional lock, late history
   responses are revision-guarded and exact-kind checked, and cash-drawer
-  activation remains best-effort without extending the document lock.
+  activation remains best-effort without extending the document lock. Item,
+  stock, history, and pricing requests use per-request ownership so older
+  responses cannot overwrite newer work; restored rows resume interrupted
+  stock loading. Posting cancels the debounce, locks form editing, and requires
+  an authoritative pricing response before constructing the command.
 - The existing zero/one/n-window unit coverage remains unchanged.
 
 ## Verification
@@ -61,9 +67,9 @@ The browser test proves:
 6. The pending focused regression verifies that Cash Sale to Credit Sale
    client navigation is blocked while Cash Sale posting is pending, then
    rejects a concurrent contextual Post, fetches canonical customers once,
-   does not reuse the posted Cash Sale identity/version in the Credit Sale
-   command, and retains separate Cash Sale and Credit Sale entries in the
-   Window menu.
+   opens a fresh Credit Sale form without the Cash Sale identity or rows, and
+   retains separate Cash Sale and Credit Sale entries in the Window menu.
+   Reactivating Cash Sale restores its canonical item and posted invoice number.
 
 ## Remaining acceptance boundary
 
