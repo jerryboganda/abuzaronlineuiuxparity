@@ -215,12 +215,32 @@ func importStock(ctx context.Context, source *sql.DB, target *pgx.Conn, batchSiz
 				pgx.CopyFromRows(stockValues(batch)))
 		}
 		if err == nil {
+			var distinct int64
+			err = tx.QueryRow(ctx, `
+				SELECT COUNT(DISTINCT legacy_id)
+				FROM phase_e_stock_batch`).Scan(&distinct)
+			if err == nil && distinct != int64(len(batch)) {
+				err = fmt.Errorf("stock batch at %d contains %d duplicate composite identities; refusing silent overwrite", total, int64(len(batch))-distinct)
+			}
+		}
+		if err == nil {
+			var eligible int64
+			err = tx.QueryRow(ctx, `
+				SELECT COUNT(*)
+				FROM phase_e_stock_batch s
+				JOIN master_items i ON i.tenant_id = $1::uuid AND i.legacy_id = s.item_legacy_id
+				JOIN master_godowns g ON g.tenant_id = $1::uuid AND g.legacy_id = s.godown_legacy_id`, tenantID).Scan(&eligible)
+			if err == nil && eligible != int64(len(batch)) {
+				err = fmt.Errorf("stock batch at %d has %d rows without canonical item/godown dependencies; refusing silent loss", total, int64(len(batch))-eligible)
+			}
+		}
+		if err == nil {
 			_, err = tx.Exec(ctx, `
 				INSERT INTO historical_stock_snapshots
 					(tenant_id, branch_id, legacy_id, item_id, item_legacy_id, godown_id,
 					 as_of, quantity, purchase_price, sale_price, average_price,
 					 recent_purchase_price, pack_units, source_table, source_legacy_id, payload)
-				SELECT DISTINCT ON (s.legacy_id) $1::uuid, $2::uuid, s.legacy_id, i.id, s.item_legacy_id, g.id,
+				SELECT $1::uuid, $2::uuid, s.legacy_id, i.id, s.item_legacy_id, g.id,
 				       s.as_of, s.quantity, s.purchase_price, s.sale_price, s.average_price,
 				       s.recent_purchase_price, s.pack_units, 'StockReport', s.legacy_id, s.payload
 				FROM phase_e_stock_batch s
@@ -333,12 +353,21 @@ func importGL(ctx context.Context, source *sql.DB, target *pgx.Conn, batchSize i
 				pgx.CopyFromRows(glValues(batch)))
 		}
 		if err == nil {
+			var distinct int64
+			err = tx.QueryRow(ctx, `
+				SELECT COUNT(DISTINCT legacy_id)
+				FROM phase_e_gl_batch`).Scan(&distinct)
+			if err == nil && distinct != int64(len(batch)) {
+				err = fmt.Errorf("GL batch at %d contains %d duplicate reviewed identities; refusing silent overwrite", total, int64(len(batch))-distinct)
+			}
+		}
+		if err == nil {
 			_, err = tx.Exec(ctx, `
 				INSERT INTO historical_gl_entries
 					(tenant_id, branch_id, legacy_id, document_code, document_type,
 					 account_code, alternate_account_code, debit_amount, credit_amount,
 					 occurred_at, user_legacy_id, invoice_code, remarks, payload)
-				SELECT DISTINCT ON (legacy_id) $1::uuid, $2::uuid, legacy_id, document_code, document_type,
+				SELECT $1::uuid, $2::uuid, legacy_id, document_code, document_type,
 				       account_code, alternate_account_code, debit_amount, credit_amount,
 				       occurred_at, user_legacy_id, invoice_code, remarks, payload
 				FROM phase_e_gl_batch

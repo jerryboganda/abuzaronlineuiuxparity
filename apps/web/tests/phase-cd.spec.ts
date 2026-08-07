@@ -375,7 +375,9 @@ test('pack purchase contextual GST and expense commands update the live draft', 
   await page.getByLabel('Item name 1').fill('BATCH ITEM');
   await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Apply Item GST %', exact: true }).click();
-  await expect(page.locator('.legacy-transaction-footer')).toContainText('18% applied');
+  // Canonical assignment fails closed on free-text rows; the happy path with a
+  // canonical item selection is covered in purchase-canonical.spec.ts.
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('select every populated line from the active canonical item list first');
   await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Show Purchase Expenses Window', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Purchase Expenses' })).toBeVisible();
@@ -592,7 +594,9 @@ test('cash sale contextual item tax and document commands update the live draft'
   await page.locator('.legacy-sale-grid').getByLabel('Item name 1').fill('SALE ITEM');
   await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Apply Item GST %', exact: true }).click();
-  await expect(page.locator('.legacy-transaction-footer')).toContainText('18% applied');
+  // Canonical assignment fails closed on free-text rows; the happy path with a
+  // canonical item selection is covered in sales-canonical.spec.ts.
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('select every populated line from the active canonical item list first');
   await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Show Document Gallery', exact: true }).click();
   await expect(page.locator('.legacy-transaction-footer')).toContainText('no attachments selected');
