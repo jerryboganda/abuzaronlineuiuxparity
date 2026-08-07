@@ -28,6 +28,12 @@ the navigation/state boundary:
   starts a fresh credit form, while reactivating Cash Sale restores its exact
   in-memory work. Canonical customers load when the transition first enters a
   credit workflow.
+- Dynamic Purchase routes now apply the same window boundary. Pack Purchase,
+  Purchase Return, Opening Purchase, Loose Purchase, and Purchase Order retain
+  independent form, line, batch/allocation, history, modal, document/version,
+  and idempotency state. First activation starts fresh; Window-menu activation
+  restores that workflow's in-memory draft. Purchase lookup, history,
+  templates, and batch availability discard stale cross-window responses.
   Workflow revision guards also prevent late document, void, pricing, or
   history responses from restoring state after the operator has navigated.
   Active submissions block SvelteKit navigation until the API result is

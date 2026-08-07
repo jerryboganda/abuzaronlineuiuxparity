@@ -60,6 +60,11 @@
   }
 
   async function confirmChangeUser() {
+    if (navigationBlocked) {
+      notice = 'Wait for the active document command to finish.';
+      status = 'Command in progress';
+      return;
+    }
     enableChangeUserInteractive();
     legacyWindowRegistry.clear();
     await api.logout().catch(() => undefined);
@@ -75,6 +80,11 @@
   }
 
   function choose(action: MenuAction) {
+    if (navigationBlocked) {
+      notice = 'Wait for the active document command to finish.';
+      status = 'Command in progress';
+      return;
+    }
     if (action.denied) {
       notice = action.mappingStatus === 'ambiguous'
         ? `${action.label} has no unambiguous legacy-right mapping and remains disabled.`

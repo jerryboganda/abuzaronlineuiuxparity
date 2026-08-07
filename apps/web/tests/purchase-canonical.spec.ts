@@ -83,6 +83,26 @@ test('Populate Items resolves purchase quick-search rows through canonical looku
   await expect(page.locator('.legacy-transaction-footer')).toContainText('1 active canonical item populated');
 });
 
+test('client-side purchase navigation preserves independent MDI workflow drafts', async ({ page }) => {
+  await mockCanonicalContext(page);
+  await page.goto('/app/purchase/pack');
+  await waitForPurchaseReady(page);
+  await fillReceipt(page);
+
+  await page.getByRole('button', { name: 'Purchase', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Purchase Return', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/purchase\/return/);
+  await expect(page.getByRole('combobox', { name: 'Item name 1' })).toHaveValue('');
+
+  await page.getByRole('button', { name: 'Window', exact: true }).click();
+  await expect(page.getByRole('menuitem', { name: '1 Pack Purchase', exact: true })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: '2 Purchase Return', exact: true })).toBeVisible();
+  await page.getByRole('menuitem', { name: '1 Pack Purchase', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/purchase\/pack/);
+  await expect(page.getByRole('combobox', { name: 'Item name 1' })).toHaveValue('CANONICAL ITEM');
+  await expect(page.getByLabel('Batch 1')).toHaveValue('PUR-001');
+});
+
 test('Populate From Sale Template loads supported template lines into a new draft', async ({ page }) => {
   await mockCanonicalContext(page);
   await page.route('**/v1/master/sale-template', (route) => route.fulfill({

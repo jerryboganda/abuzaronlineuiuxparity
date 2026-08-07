@@ -44,6 +44,13 @@ This repository is the isolated first vertical slice of the parity-first rebuild
   and posting requires authoritative pricing while the form is inert. The
   focused browser regression is added but remains unexecuted in this
   dependency-free worktree.
+- Reused dynamic Purchase routes now preserve independent Pack, Return,
+  Opening, Loose, and Order window snapshots for form lines, batch/allocation
+  context, history, document version, and command identity. Submission locks
+  cover navigation, menus, toolbar/tabs, and form editing; stale lookup,
+  history, template, and batch responses cannot mutate another purchase window.
+  A focused Pack -> Return -> Pack restoration regression is added but remains
+  unexecuted in this dependency-free worktree.
 - The shared contextual menu now opens the captured Yes/No Change User
   confirmation in the base shell and child windows, with cancel retention and
   confirmed login navigation; confirmed transitions clear the persisted MDI

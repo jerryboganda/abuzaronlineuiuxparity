@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { beforeNavigate } from '$app/navigation';
   import { onMount } from 'svelte';
   import type { Document, DocumentCommandForKind, InventoryAvailableBatch, ItemLookupResult, MasterRecord, PurchaseDocumentKind, SessionResponse, SyncEnvelope, ReportRow } from '@abuzar/contracts';
   import { AbuzarApi, ApiError, OfflineQueue, edgeRequest, newEventId } from '$lib/api';
@@ -30,9 +31,48 @@
     sourceLineId?: string;
     total: string;
   };
+  type HistoryMode = 'browse' | 'populate-invoice' | 'populate-return';
+  type PurchaseWorkflowState = {
+    invoiceNumber: string;
+    supplier: string;
+    supplierInvoice: string;
+    orderCode: string;
+    sourceDocumentId: string;
+    sourceDocumentNumber: string;
+    transactionDate: string;
+    remarks: string;
+    itemRecords: ItemLookupResult[];
+    supplierId: string;
+    godownId: string;
+    availableBatches: Record<number, InventoryAvailableBatch[]>;
+    returnAllocations: Record<number, PurchaseAllocation[]>;
+    businessDocumentId: string;
+    businessDocumentVersion: number;
+    rows: PurchaseRow[];
+    activeTab: 'detail' | 'list';
+    interactive: boolean;
+    history: ReportRow[];
+    historyFilter: string;
+    historyMode: HistoryMode;
+    historyQueryKind: string;
+    saleTemplates: MasterRecord[];
+    showSaleTemplatePicker: boolean;
+    canonicalCommandSignature: string;
+    canonicalCommandId: string;
+    canonicalIdempotencyKey: string;
+    itemGstRate: string;
+    itemDiscountRate: string;
+    miscAmount: string;
+    creditDays: string;
+    showExpenses: boolean;
+    attachments: Array<{ name: string; size: number }>;
+    message: string;
+    error: string;
+  };
 
   const api = new AbuzarApi();
   const queue = new OfflineQueue();
+  const workflowStates = new Map<string, PurchaseWorkflowState>();
   const supportedPurchaseRouteKinds = ['pack', 'loose', 'opening', 'return', 'order'];
   const titles: Record<string, string> = { pack: 'Pack Purchase', return: 'Purchase Return', opening: 'Opening Purchase', loose: 'Purchases (Loose)', order: 'Purchase Order' };
   let session: SessionResponse['context'] = null;
@@ -53,6 +93,12 @@
   let returnAllocations: Record<number, PurchaseAllocation[]> = {};
   let businessDocumentId = '';
   let businessDocumentVersion = 0;
+  let activeWorkflowKind = '';
+  let workflowRevision = 0;
+  let historyRequestId = 0;
+  let historySelectionRequestId = 0;
+  let saleTemplateRequestId = 0;
+  const batchRequestIds = new Map<string, number>();
   let itemLookupBusy = false;
   let itemLookupGeneration = 0;
   let busy = false;
@@ -66,7 +112,6 @@
 	let history: ReportRow[] = [];
 	let historyBusy = false;
 	let historyFilter = '';
-  type HistoryMode = 'browse' | 'populate-invoice' | 'populate-return';
   let historyMode: HistoryMode = 'browse';
   let historyQueryKind = '';
   let saleTemplates: MasterRecord[] = [];
@@ -86,6 +131,7 @@
   let attachments: Array<{ name: string; size: number }> = [];
 
   $: kind = $page?.params?.kind ?? 'pack';
+  $: if (kind !== activeWorkflowKind) switchWorkflow(kind);
   $: title = titles[kind] ?? 'Purchase';
   $: historyKind = kind === 'return' ? 'purchase-return' : kind === 'order' ? 'purchase-order' : kind === 'loose' ? 'loose-purchase' : kind === 'opening' ? 'opening-purchase' : 'pack-purchase';
   $: historyRequestKind = historyQueryKind || historyKind;
@@ -95,13 +141,18 @@
   }
 
   async function loadHistory(requestedKind = historyRequestKind) {
+    const requestRevision = workflowRevision;
+    const requestId = ++historyRequestId;
     historyBusy = true;
     try {
-		history = (await api.transactions(requestedKind, transactionDate, transactionDate, historyFilter.trim())).rows;
+      const result = await api.transactions(requestedKind, transactionDate, transactionDate, historyFilter.trim());
+      if (requestRevision !== workflowRevision || requestId !== historyRequestId) return;
+      history = result.rows;
     } catch {
+      if (requestRevision !== workflowRevision || requestId !== historyRequestId) return;
       history = [];
     } finally {
-      historyBusy = false;
+      if (requestRevision === workflowRevision && requestId === historyRequestId) historyBusy = false;
     }
   }
 
@@ -138,6 +189,8 @@
   }
 
   async function applyHistoryRow(row: ReportRow) {
+    const requestRevision = workflowRevision;
+    const requestId = ++historySelectionRequestId;
     historyBusy = true;
     error = '';
     try {
@@ -153,8 +206,10 @@
         return;
       }
       const document = await api.document(row.documentId);
+      if (requestRevision !== workflowRevision || requestId !== historySelectionRequestId) return;
       const isPurchaseDocument = ['pack-purchase', 'loose-purchase', 'opening-purchase', 'purchase-return', 'purchase-order'].includes(document.kind);
       if (!isPurchaseDocument) throw new Error('The selected history row is not a canonical purchase document.');
+      if (historyMode === 'browse' && document.kind !== purchaseDocumentKind()) throw new Error('The selected history row does not belong to the current purchase workflow.');
       const populating = historyMode !== 'browse';
       const sourceDocument = historyMode === 'populate-invoice' || historyMode === 'populate-return' ? document : undefined;
       invoiceNumber = populating ? '' : document.documentNumber || row.document || '';
@@ -169,6 +224,7 @@
       creditDays = sourceDocument?.creditDays ?? document.creditDays ?? '';
       rows = purchaseRowsFromDocument(document, historyMode === 'populate-return');
       if (historyMode === 'populate-return') await prepareReturnSourceBatches(document);
+      if (requestRevision !== workflowRevision || requestId !== historySelectionRequestId) return;
       businessDocumentId = populating ? '' : document.id;
       businessDocumentVersion = populating ? 0 : document.version;
       canonicalCommandSignature = '';
@@ -179,15 +235,18 @@
         ? `${title}: ${document.documentNumber || row.document || 'document'} lines populated from canonical history.`
         : `${title} ${document.documentNumber || row.document || 'document'} loaded with canonical lines.`;
     } catch (cause) {
+      if (requestRevision !== workflowRevision || requestId !== historySelectionRequestId) return;
       error = cause instanceof Error ? cause.message : 'The selected purchase document could not be loaded.';
       message = 'The selected purchase document could not be loaded.';
     } finally {
-      historyBusy = false;
+      if (requestRevision === workflowRevision && requestId === historySelectionRequestId) historyBusy = false;
     }
   }
 
   async function navigateHistory(offset: number) {
+    const requestRevision = workflowRevision;
     if (!history.length) await loadHistory();
+    if (requestRevision !== workflowRevision) return;
     if (!history.length) { message = 'No persisted documents found for this date.'; return; }
     const current = history.findIndex((row) => row.document === invoiceNumber);
     const next = current < 0 ? (offset > 0 ? 0 : history.length - 1) : (current + offset + history.length) % history.length;
@@ -195,7 +254,9 @@
   }
 
   async function navigateHistoryTo(index: number) {
+    const requestRevision = workflowRevision;
     if (!history.length) await loadHistory();
+    if (requestRevision !== workflowRevision) return;
     if (!history.length) { message = 'No persisted documents found for this date.'; return; }
     void applyHistoryRow(history[index < 0 ? history.length - 1 : Math.min(index, history.length - 1)]);
   }
@@ -236,6 +297,7 @@
   }
 
   function onAttachmentsSelected(event: Event) {
+    if (busy) return;
     const input = event.currentTarget as HTMLInputElement;
     attachments = Array.from(input.files ?? []).map((file) => ({ name: file.name, size: file.size }));
     message = attachments.length ? `${attachments.length} document${attachments.length === 1 ? '' : 's'} attached to this draft.` : 'No documents selected.';
@@ -257,6 +319,10 @@
   }
 
   function handleMenuCommand(action: MenuAction): boolean {
+    if (busy) {
+      message = 'Wait for the active document command to finish.';
+      return true;
+    }
     switch (action.label) {
       case 'New':
         newDocument();
@@ -410,6 +476,141 @@
     return { quickSearch: '', itemLegacyId: '', itemName: '', packUnits: '', packing: '', location: '', godown: '', batch: '', mfgDate: '', expiry: '', batchSalePrice: '', quantity: '1', purchasePrice: '', discountPercent: '', gstRate: '', sourceBatchId: '', total: '0.00' };
   }
 
+  function freshWorkflowState(): PurchaseWorkflowState {
+    return {
+      invoiceNumber: '',
+      supplier: '',
+      supplierInvoice: '',
+      orderCode: '',
+      sourceDocumentId: '',
+      sourceDocumentNumber: '',
+      transactionDate: localDateString(),
+      remarks: '',
+      itemRecords: [],
+      supplierId: '',
+      godownId: '',
+      availableBatches: {},
+      returnAllocations: {},
+      businessDocumentId: '',
+      businessDocumentVersion: 0,
+      rows: [blankRow()],
+      activeTab: 'detail',
+      interactive: false,
+      history: [],
+      historyFilter: '',
+      historyMode: 'browse',
+      historyQueryKind: '',
+      saleTemplates: [],
+      showSaleTemplatePicker: false,
+      canonicalCommandSignature: '',
+      canonicalCommandId: '',
+      canonicalIdempotencyKey: '',
+      itemGstRate: '',
+      itemDiscountRate: '',
+      miscAmount: '0',
+      creditDays: '',
+      showExpenses: false,
+      attachments: [],
+      message: '',
+      error: ''
+    };
+  }
+
+  function captureWorkflowState(): PurchaseWorkflowState {
+    return {
+      invoiceNumber,
+      supplier,
+      supplierInvoice,
+      orderCode,
+      sourceDocumentId,
+      sourceDocumentNumber,
+      transactionDate,
+      remarks,
+      itemRecords,
+      supplierId,
+      godownId,
+      availableBatches,
+      returnAllocations,
+      businessDocumentId,
+      businessDocumentVersion,
+      rows,
+      activeTab,
+      interactive,
+      history,
+      historyFilter,
+      historyMode,
+      historyQueryKind,
+      saleTemplates,
+      showSaleTemplatePicker,
+      canonicalCommandSignature,
+      canonicalCommandId,
+      canonicalIdempotencyKey,
+      itemGstRate,
+      itemDiscountRate,
+      miscAmount,
+      creditDays,
+      showExpenses,
+      attachments,
+      message,
+      error
+    };
+  }
+
+  function applyWorkflowState(state: PurchaseWorkflowState) {
+    invoiceNumber = state.invoiceNumber;
+    supplier = state.supplier;
+    supplierInvoice = state.supplierInvoice;
+    orderCode = state.orderCode;
+    sourceDocumentId = state.sourceDocumentId;
+    sourceDocumentNumber = state.sourceDocumentNumber;
+    transactionDate = state.transactionDate;
+    remarks = state.remarks;
+    itemRecords = state.itemRecords;
+    supplierId = state.supplierId;
+    godownId = state.godownId;
+    availableBatches = state.availableBatches;
+    returnAllocations = state.returnAllocations;
+    businessDocumentId = state.businessDocumentId;
+    businessDocumentVersion = state.businessDocumentVersion;
+    rows = state.rows;
+    activeTab = state.activeTab;
+    interactive = state.interactive;
+    history = state.history;
+    historyFilter = state.historyFilter;
+    historyMode = state.historyMode;
+    historyQueryKind = state.historyQueryKind;
+    saleTemplates = state.saleTemplates;
+    showSaleTemplatePicker = state.showSaleTemplatePicker;
+    canonicalCommandSignature = state.canonicalCommandSignature;
+    canonicalCommandId = state.canonicalCommandId;
+    canonicalIdempotencyKey = state.canonicalIdempotencyKey;
+    itemGstRate = state.itemGstRate;
+    itemDiscountRate = state.itemDiscountRate;
+    miscAmount = state.miscAmount;
+    creditDays = state.creditDays;
+    showExpenses = state.showExpenses;
+    attachments = state.attachments;
+    message = state.message;
+    error = state.error;
+  }
+
+  function switchWorkflow(nextKind: string) {
+    itemLookupGeneration += 1;
+    historyRequestId += 1;
+    historySelectionRequestId += 1;
+    saleTemplateRequestId += 1;
+    if (activeWorkflowKind) workflowStates.set(activeWorkflowKind, captureWorkflowState());
+    activeWorkflowKind = nextKind;
+    workflowRevision += 1;
+    itemLookupBusy = false;
+    historyBusy = false;
+    saleTemplateBusy = false;
+    applyWorkflowState(workflowStates.get(nextKind) ?? freshWorkflowState());
+    if (godownId && rows.some((row) => row.itemLegacyId && !availableBatches[rows.indexOf(row)])) {
+      void Promise.all(rows.map((_, index) => refreshRowBatches(index)));
+    }
+  }
+
   async function lookupItems(value: string): Promise<ItemLookupResult[]> {
     const query = value.trim();
     const generation = ++itemLookupGeneration;
@@ -507,7 +708,9 @@
   }
 
   async function chooseItem(index: number, value: string): Promise<boolean> {
+    const requestRevision = workflowRevision;
     const records = await lookupItems(value);
+    if (requestRevision !== workflowRevision) return false;
     const normalized = value.trim().toLowerCase();
     const match = records.find((record) => record.code.toLowerCase() === normalized
       || record.name.toLowerCase() === normalized
@@ -525,6 +728,7 @@
   }
 
   async function populatePurchaseItems() {
+    const requestRevision = workflowRevision;
     activeTab = 'detail';
     error = '';
     const searchRows = rows.map((row, index) => ({
@@ -537,6 +741,7 @@
     for (const candidate of searchRows) {
       if (await chooseItem(candidate.index, candidate.value)) populated += 1;
       else unresolved += 1;
+      if (requestRevision !== workflowRevision) return;
     }
     if (!attempted) {
       const blankIndex = rows.findIndex((row) => !row.itemId && !row.itemName.trim() && !row.quickSearch.trim());
@@ -545,6 +750,7 @@
         attempted = 1;
         if (await chooseItem(blankIndex, fallback.code || fallback.name)) populated = 1;
         else unresolved = 1;
+        if (requestRevision !== workflowRevision) return;
       }
     }
     if (populated) {
@@ -602,23 +808,29 @@
   }
 
   async function openSaleTemplatePicker() {
+    const requestRevision = workflowRevision;
+    const requestId = ++saleTemplateRequestId;
     saleTemplateBusy = true;
     showSaleTemplatePicker = true;
     activeTab = 'detail';
     error = '';
     try {
-      saleTemplates = (await api.masterRecords('sale-template')).records.filter((record) => record.active);
+      const result = await api.masterRecords('sale-template');
+      if (requestRevision !== workflowRevision || requestId !== saleTemplateRequestId) return;
+      saleTemplates = result.records.filter((record) => record.active);
       message = saleTemplates.length ? 'Populate From Sale Template: select an active template.' : 'Populate From Sale Template: no active sale templates are available.';
     } catch (cause) {
+      if (requestRevision !== workflowRevision || requestId !== saleTemplateRequestId) return;
       saleTemplates = [];
       error = cause instanceof ApiError ? cause.problem?.detail ?? cause.message : 'Sale templates could not be loaded.';
       message = 'Populate From Sale Template could not load the template list.';
     } finally {
-      saleTemplateBusy = false;
+      if (requestRevision === workflowRevision && requestId === saleTemplateRequestId) saleTemplateBusy = false;
     }
   }
 
   async function applySaleTemplate(template: MasterRecord) {
+    const requestRevision = workflowRevision;
     const templateRows = purchaseRowsFromSaleTemplate(template);
     if (!templateRows.length) {
       message = `${template.name || template.code}: no supported line payload was found; the template master remains unchanged.`;
@@ -638,6 +850,7 @@
     showSaleTemplatePicker = false;
     activeTab = 'detail';
     await populatePurchaseItems();
+    if (requestRevision !== workflowRevision) return;
     message = `Populate From Sale Template: ${template.name || template.code} loaded ${templateRows.length} line${templateRows.length === 1 ? '' : 's'} into a new draft.`;
   }
 
@@ -659,20 +872,32 @@
   async function refreshRowBatches(index: number) {
     const row = rows[index];
     if (!row?.itemLegacyId || !godownId || !isCanonicalPurchaseKind()) return;
+    const requestRevision = workflowRevision;
+    const requestGodownId = godownId;
+    const requestItemLegacyId = row.itemLegacyId;
+    const requestKey = `${requestRevision}:${index}:${requestItemLegacyId}:${requestGodownId}`;
+    const requestId = (batchRequestIds.get(requestKey) ?? 0) + 1;
+    batchRequestIds.set(requestKey, requestId);
     try {
-      const result = await api.inventoryAvailability(row.itemLegacyId, godownId);
+      const result = await api.inventoryAvailability(requestItemLegacyId, requestGodownId);
+      if (requestRevision !== workflowRevision || requestGodownId !== godownId || rows[index]?.itemLegacyId !== requestItemLegacyId || batchRequestIds.get(requestKey) !== requestId) return;
       availableBatches = { ...availableBatches, [index]: result.batches };
     } catch {
+      if (requestRevision !== workflowRevision || requestGodownId !== godownId || rows[index]?.itemLegacyId !== requestItemLegacyId || batchRequestIds.get(requestKey) !== requestId) return;
       availableBatches = { ...availableBatches, [index]: [] };
+    } finally {
+      if (batchRequestIds.get(requestKey) === requestId) batchRequestIds.delete(requestKey);
     }
   }
 
   async function prepareReturnSourceBatches(document: Document) {
+    const requestRevision = workflowRevision;
     if (document.godownId) godownId = document.godownId;
     const godown = godownRecords.find((record) => record.id === godownId);
     rows = rows.map((row) => ({ ...row, godown: row.godown || godown?.name || godown?.code || godownId }));
     availableBatches = {};
     await Promise.all(rows.map((_, index) => refreshRowBatches(index)));
+    if (requestRevision !== workflowRevision) return;
     const nextAllocations = { ...returnAllocations };
     rows = rows.map((row, index) => {
       if (nextAllocations[index]?.length || !row.batch.trim()) return row;
@@ -835,8 +1060,10 @@
   }
 
   async function submitCanonicalPurchase(action: 'save' | 'post' | 'save-and-post') {
+    const requestRevision = workflowRevision;
     const documentKind = purchaseDocumentKind();
     const response = await api.documentCommand(documentKind, canonicalPurchaseCommand(action));
+    if (requestRevision !== workflowRevision || documentKind !== purchaseDocumentKind()) return;
     if (!response.accepted) throw new Error(response.errors.map((item) => item.message).join('; ') || 'The canonical purchase command was rejected.');
     if (action === 'save' && response.status !== 'draft') throw new Error(`Canonical save returned status ${response.status}; it was not saved as a draft.`);
     if ((action === 'post' || action === 'save-and-post') && response.status !== 'posted') throw new Error(`Canonical purchase was accepted with status ${response.status}; it was not posted.`);
@@ -854,6 +1081,7 @@
   }
 
   async function voidPurchase() {
+    const requestRevision = workflowRevision;
     if (!isCanonicalPurchaseKind() || !businessDocumentId) throw new Error('Load or save a canonical purchase before voiding it.');
     const signature = JSON.stringify({ documentKind: purchaseDocumentKind(), action: 'void', documentId: businessDocumentId, version: businessDocumentVersion });
     if (signature !== canonicalCommandSignature) {
@@ -876,6 +1104,7 @@
     error = '';
     try {
       const response = await api.documentCommand(purchaseDocumentKind(), command);
+      if (requestRevision !== workflowRevision || command.kind !== purchaseDocumentKind()) return;
       if (!response.accepted) throw new Error(response.errors.map((item) => item.message).join('; ') || 'The canonical void command was rejected.');
       if (response.status !== 'void') throw new Error(`Canonical void returned status ${response.status}.`);
       businessDocumentVersion = response.document.version;
@@ -891,6 +1120,7 @@
   }
 
   async function savePurchase(action: 'save' | 'post' | 'save-and-post' = 'save-and-post') {
+    const requestRevision = workflowRevision;
     busy = true;
     message = '';
     error = '';
@@ -899,6 +1129,7 @@
       if (isCanonicalPurchaseKind()) {
         if (!online) throw new Error('Canonical purchases require an online API connection; they are not placed in the compatibility queue.');
         await submitCanonicalPurchase(action);
+        if (requestRevision !== workflowRevision) return;
         return;
       }
       event = makeEvent();
@@ -917,6 +1148,7 @@
         message = `${title} posted successfully.`;
       }
     } catch (cause) {
+      if (requestRevision !== workflowRevision) return;
       if (event && (cause instanceof TypeError || !online)) {
         await queue.enqueue(event);
         pending = (await queue.pending()).length;
@@ -982,6 +1214,10 @@
     void loadCanonicalContext();
     return () => window.clearInterval(clockTimer);
   });
+
+  beforeNavigate((navigation) => {
+    if (busy) navigation.cancel();
+  });
 </script>
 
 <svelte:window onkeydown={enableInteractive} />
@@ -994,19 +1230,19 @@
       <a href="/app/legacy" aria-label="Back to main window">←</a>
       <h1>{transactionWindowTitle}</h1>
     </header>
-    <LegacyMenuBar context="pack-purchase" windowId={'purchase-' + kind} windowLabel={title} windowHref={'/app/purchase/' + kind} onCommand={handleMenuCommand} />
+    <LegacyMenuBar context="pack-purchase" windowId={'purchase-' + kind} windowLabel={title} windowHref={'/app/purchase/' + kind} navigationBlocked={busy} onCommand={handleMenuCommand} />
     <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Transaction toolbar">
-      <button type="button" aria-label="New document" onclick={newDocument} title="New document">▱</button>
+      <button type="button" aria-label="New document" onclick={newDocument} disabled={busy} title="New document">▱</button>
       <button type="button" aria-label="Save document" onclick={() => { void savePurchase('save'); }} disabled={busy} title="Save document">▣</button>
       <button type="button" aria-label="Void document" onclick={() => { void voidPurchase(); }} disabled={busy || !businessDocumentId} title="Void document">⊘</button>
       <button type="button" aria-label="Print document" onclick={() => { message = 'Purchase Slip: print preview ready.'; window.print(); }} title="Print">▤</button>
       <span class="legacy-toolbar-separator"></span>
-      <button type="button" aria-label="Previous document" onclick={() => { void navigateHistory(-1); }} title="Previous">◀</button>
-      <button type="button" aria-label="Next document" onclick={() => { void navigateHistory(1); }} title="Next">▶</button>
+      <button type="button" aria-label="Previous document" onclick={() => { void navigateHistory(-1); }} disabled={busy} title="Previous">◀</button>
+      <button type="button" aria-label="Next document" onclick={() => { void navigateHistory(1); }} disabled={busy} title="Next">▶</button>
       <span class="legacy-toolbar-caption">{online ? 'Online' : 'Offline'} · {title}</span>
     </div>
-    <div class="legacy-transaction-tabs"><button aria-label="Detail" aria-pressed={activeTab === 'detail'} class:active={activeTab === 'detail'} type="button" onclick={() => { interactive = true; activeTab = 'detail'; }}>▦ Detail</button><button data-testid="purchase-list-tab" aria-label="List" aria-pressed={activeTab === 'list'} class:active={activeTab === 'list'} type="button" onclick={() => { interactive = true; activeTab = 'list'; void loadHistory(); }}>▦ List</button></div>
-    <div class="legacy-transaction-detail">
+    <div class="legacy-transaction-tabs"><button aria-label="Detail" aria-pressed={activeTab === 'detail'} class:active={activeTab === 'detail'} type="button" onclick={() => { interactive = true; activeTab = 'detail'; }} disabled={busy}>▦ Detail</button><button data-testid="purchase-list-tab" aria-label="List" aria-pressed={activeTab === 'list'} class:active={activeTab === 'list'} type="button" onclick={() => { interactive = true; activeTab = 'list'; void loadHistory(); }} disabled={busy}>▦ List</button></div>
+    <div class="legacy-transaction-detail" inert={busy} aria-busy={busy}>
       <div class="legacy-transaction-fields">
         <label>Invoice No:<input bind:value={invoiceNumber} /></label>
         <label>Alias Name:<input aria-label="Supplier" list="purchase-supplier-options" value={supplier} oninput={(event) => chooseSupplier(event.currentTarget.value)} /></label>
@@ -1102,8 +1338,8 @@
       </tbody></table></div>{/if}
     </div>
     <input class="legacy-hidden-file-input" type="file" multiple bind:this={attachmentInput} onchange={onAttachmentsSelected} aria-label="Attach purchase documents" />
-    {#if showExpenses}<div class="legacy-dialog-backdrop" role="presentation"><div class="legacy-simple-dialog" role="dialog" aria-modal="true" aria-label="Purchase Expenses"><h2>Purchase Expenses</h2><label>Misc (+)<input aria-label="Purchase expenses dialog value" bind:value={miscAmount} /></label><p>Expenses are carried into the canonical document pricing snapshot.</p><div><button type="button" onclick={() => { showExpenses = false; }}>Ok</button><button type="button" onclick={() => { showExpenses = false; }}>Cancel</button></div></div></div>{/if}
-    {#if showSaleTemplatePicker}<div class="legacy-dialog-backdrop" role="presentation"><div class="legacy-simple-dialog legacy-sale-template-dialog" role="dialog" aria-modal="true" aria-label="Sale Templates"><h2>Populate From Sale Template</h2>{#if saleTemplateBusy}<p>Loading active sale templates...</p>{:else if saleTemplates.length === 0}<p>No active sale templates are available in the current tenant scope.</p>{:else}<table><thead><tr><th>Code</th><th>Name</th><th>Updated</th><th></th></tr></thead><tbody>{#each saleTemplates as template}<tr><td>{template.code}</td><td>{template.name}</td><td>{template.updatedAt.slice(0, 10)}</td><td><button type="button" data-testid={`sale-template-${template.id}`} onclick={() => { void applySaleTemplate(template); }}>Use template</button></td></tr>{/each}</tbody></table>{/if}<div><button type="button" onclick={() => { showSaleTemplatePicker = false; }}>Cancel</button></div></div></div>{/if}
+    {#if showExpenses}<div class="legacy-dialog-backdrop" role="presentation" inert={busy}><div class="legacy-simple-dialog" role="dialog" aria-modal="true" aria-label="Purchase Expenses"><h2>Purchase Expenses</h2><label>Misc (+)<input aria-label="Purchase expenses dialog value" bind:value={miscAmount} /></label><p>Expenses are carried into the canonical document pricing snapshot.</p><div><button type="button" onclick={() => { showExpenses = false; }}>Ok</button><button type="button" onclick={() => { showExpenses = false; }}>Cancel</button></div></div></div>{/if}
+    {#if showSaleTemplatePicker}<div class="legacy-dialog-backdrop" role="presentation" inert={busy}><div class="legacy-simple-dialog legacy-sale-template-dialog" role="dialog" aria-modal="true" aria-label="Sale Templates"><h2>Populate From Sale Template</h2>{#if saleTemplateBusy}<p>Loading active sale templates...</p>{:else if saleTemplates.length === 0}<p>No active sale templates are available in the current tenant scope.</p>{:else}<table><thead><tr><th>Code</th><th>Name</th><th>Updated</th><th></th></tr></thead><tbody>{#each saleTemplates as template}<tr><td>{template.code}</td><td>{template.name}</td><td>{template.updatedAt.slice(0, 10)}</td><td><button type="button" data-testid={`sale-template-${template.id}`} onclick={() => { void applySaleTemplate(template); }}>Use template</button></td></tr>{/each}</tbody></table>{/if}<div><button type="button" onclick={() => { showSaleTemplatePicker = false; }}>Cancel</button></div></div></div>{/if}
     <div class="legacy-transaction-footer">
       {#if error}<span class="error" role="alert">{error}</span>{:else if message}<span role="status">{message}</span>{:else}<span>Ready</span>{/if}
       <button type="button" class="legacy-sync-button" onclick={flushQueue} disabled={busy || pending === 0}>Sync queue ({pending})</button>
