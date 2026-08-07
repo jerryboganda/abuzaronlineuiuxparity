@@ -628,3 +628,25 @@ the known duplicate VirtualGl source rows from being silently overwritten.
 Focused `cmd /c go test ./migration/cmd/bulk-historical -count=1` passed.
 Duplicate quarantine, source/target totals, account mapping, opening balances,
 and exact PowerBuilder GL semantics remain acceptance gates.
+
+## Canonical maintenance item lookup workflow - 2026-08-07
+
+The shared maintenance workflow now exposes active canonical item lookup for
+the item-scoped price, discount, basic-data, and reorder-quantity commands.
+Selecting a result writes the reviewed legacy item identity before the
+mutation is submitted. The workflow surface also exposes a hydration marker so
+browser actions cannot be dispatched against its server-rendered shell before
+the Svelte handlers are ready.
+
+Focused evidence:
+
+- `cmd /c pnpm --filter @abuzar/web check` passed with 0 errors and 0 warnings.
+- `cmd /c pnpm --filter @abuzar/web exec playwright test tests/smoke.spec.ts --workers=1 --retries=0 --reporter=line --timeout=12000 --global-timeout=30000 --grep "canonical item maintenance"` passed 1/1.
+- The browser fixture verified active lookup selection and the canonical
+  `change-items-price` request payload (`itemCode=ITEM-1`, `priceType=Sale Price`,
+  numeric `price=12.5`) before the success response was displayed.
+
+This proves the representative web workflow against mocked authenticated APIs;
+exact PowerBuilder dialogs, price/discount calculation rules, source item
+selection, live database effects, print/raster parity, and operator UAT remain
+open.
