@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { beforeNavigate } from '$app/navigation';
   import { onMount } from 'svelte';
   import type { Document, ItemLookupResult, InventoryAvailableBatch, MasterRecord, SessionResponse, SyncEnvelope, ReportRow, PricingPreviewResponse, PricingPreviewRequest, DocumentCommandForKind } from '@abuzar/contracts';
   import { AbuzarApi, ApiError, OfflineQueue, edgeRequest, newEventId } from '$lib/api';
@@ -17,9 +18,15 @@
   let documentNumber = '';
   let businessDocumentId = '';
   let businessDocumentVersion = 0;
+  let activeWorkflowKind = '';
+  let workflowRevision = 0;
+  let canonicalCommandSignature = '';
+  let canonicalCommandId = '';
+  let canonicalIdempotencyKey = '';
   let customer = 'CASH SALES CUSTOMER';
   let customerId = '';
   let customers: MasterRecord[] = [];
+  let customerLoadState: 'idle' | 'loading' | 'loaded' | 'error' = 'idle';
   let godowns: MasterRecord[] = [];
   let godownId = '';
   let sourceDocumentId = '';
@@ -58,8 +65,10 @@
   let availableLookupItems: LookupItem[] = [];
   let rows: SaleRow[] = [blankRow()];
   $: kind = $page?.url?.searchParams?.get('kind') ?? 'cash';
+  $: if (kind !== activeWorkflowKind) resetWorkflowIdentity(kind);
   $: workflowTitle = ({ cash: 'Cash Sale', credit: 'Credit Sale', 'cash-return': 'Cash Sale Return', 'credit-return': 'Credit Sale Return', 'open-cash-return': 'Open Cash Sale Return', 'open-credit-return': 'Open Credit Sale Return', quotation: 'Quotation', refused: 'Refused Sales' } as Record<string, string>)[kind] ?? 'Cash Sale';
   $: aggregate = ['cash-return', 'credit-return', 'open-cash-return', 'open-credit-return'].includes(kind) ? 'sale_return' : kind === 'quotation' ? 'quotation' : kind === 'refused' ? 'refused_sale' : 'sale';
+  $: if (session && ['credit', 'credit-return', 'open-credit-return'].includes(kind) && customerLoadState === 'idle') void loadCustomers();
   $: availableLookupItems = lookupResults.map((record) => {
     const payload = (record.payload ?? {}) as Record<string, unknown>;
     const value = (...keys: string[]) => keys.map((key) => payload[key]).find((candidate) => candidate !== undefined && candidate !== null && String(candidate).trim() !== '');
@@ -82,10 +91,14 @@
   });
 
   async function loadHistory() {
+    const requestRevision = workflowRevision;
     historyBusy = true;
     try {
-		history = (await api.transactions(aggregate, transactionDate, transactionDate, historyFilter.trim())).rows;
+      const result = await api.transactions(aggregate, transactionDate, transactionDate, historyFilter.trim());
+      if (requestRevision !== workflowRevision) return;
+      history = result.rows;
     } catch {
+      if (requestRevision !== workflowRevision) return;
       history = [];
     } finally {
       historyBusy = false;
@@ -132,6 +145,7 @@
   }
 
   async function applyHistoryRow(row: ReportRow) {
+    const requestRevision = workflowRevision;
     historyBusy = true;
     error = '';
     try {
@@ -154,8 +168,10 @@
         return;
       }
       const document = await api.document(row.documentId);
+      if (requestRevision !== workflowRevision) return;
       const saleDocumentKinds = ['cash-sale', 'credit-sale', 'cash-return', 'credit-return', 'open-cash-return', 'open-credit-return', 'quotation', 'refused-sale'];
       if (!saleDocumentKinds.includes(document.kind)) throw new Error('The selected history row is not a canonical sales document.');
+      if (document.kind !== businessDocumentKind()) throw new Error('The selected history row does not belong to the current sales workflow.');
       documentNumber = document.documentNumber || row.document || '';
       transactionDate = document.occurredAt?.slice(0, 10) || transactionDate;
       customer = document.customer?.name || row.party || customer;
@@ -181,6 +197,7 @@
       activeTab = 'detail';
       message = `${workflowTitle} ${document.documentNumber || row.document || 'document'} loaded with canonical lines.`;
     } catch (cause) {
+      if (requestRevision !== workflowRevision) return;
       error = cause instanceof Error ? cause.message : 'The selected sales document could not be loaded.';
       message = 'The selected sales document could not be loaded.';
     } finally {
@@ -244,6 +261,10 @@
   }
 
   function handleMenuCommand(action: MenuAction): boolean {
+    if (busy) {
+      message = 'Wait for the active document command to finish.';
+      return true;
+    }
     switch (action.label) {
       case 'New':
         rows = [blankRow()];
@@ -443,6 +464,33 @@
     });
     queuePricingPreview();
   }
+
+  function resetWorkflowIdentity(nextKind: string) {
+    activeWorkflowKind = nextKind;
+    workflowRevision += 1;
+    documentNumber = '';
+    businessDocumentId = '';
+    businessDocumentVersion = 0;
+    sourceDocumentId = '';
+    sourceDocumentNumber = '';
+    canonicalCommandSignature = '';
+    canonicalCommandId = '';
+    canonicalIdempotencyKey = '';
+  }
+
+  async function loadCustomers() {
+    customerLoadState = 'loading';
+    try {
+      const customerResult = await api.masterRecords('customer');
+      customers = customerResult.records.filter((record) => record.active);
+      customerLoadState = 'loaded';
+    } catch (cause) {
+      customers = [];
+      customerLoadState = 'error';
+      error = apiErrorMessage(cause, 'Canonical customers could not be loaded.');
+    }
+  }
+
   async function searchItems(value = lookupQuery) {
     lookupQuery = value;
     const query = value.trim();
@@ -579,13 +627,13 @@
         pending = (await queue.pending()).length;
         const godownResult = await api.masterRecords('godown');
         godowns = godownResult.records.filter((record) => record.active);
-        if (kind === 'credit' || kind === 'credit-return' || kind === 'open-credit-return') {
-          const customerResult = await api.masterRecords('customer');
-          customers = customerResult.records.filter((record) => record.active);
-        }
       } catch (cause) { error = apiErrorMessage(cause, 'The API session or canonical sales context could not be loaded.'); }
     })();
     return () => { window.clearInterval(clockTimer); window.removeEventListener('online', updateOnline); window.removeEventListener('offline', updateOnline); };
+  });
+
+  beforeNavigate((navigation) => {
+    if (busy) navigation.cancel();
   });
 
   function makeEvent(calculated?: PricingPreviewResponse | null, status: 'draft' | 'posted' | 'voided' = 'posted'): SyncEnvelope {
@@ -619,10 +667,6 @@
     const requested = Number(row.quantity.trim());
     if (!Number.isFinite(requested) || Math.abs(allocated - requested) > 0.00000001) throw new Error(`Batch allocations for line ${lineIndex + 1} must total the line quantity (${row.quantity || '0'}).`);
   }
-
-  let canonicalCommandSignature = '';
-  let canonicalCommandId = '';
-  let canonicalIdempotencyKey = '';
 
   function canonicalValidation(action: 'save' | 'post' | 'save-and-post') {
     const documentKind = businessDocumentKind();
@@ -737,10 +781,12 @@
   }
 
   async function submitBusinessDocument(action: 'save' | 'post' | 'save-and-post') {
+    const requestRevision = workflowRevision;
     const documentKind = businessDocumentKind();
     const command = businessDocumentCommand(action);
     if (!documentKind) throw new Error('Canonical sales document kind is unavailable.');
     const response = await api.documentCommand(documentKind, command);
+    if (requestRevision !== workflowRevision || documentKind !== businessDocumentKind()) return;
     if (!response.accepted) throw new Error(response.errors.map((item) => item.message).join('; ') || 'The canonical document command was rejected.');
     if (action === 'save' && response.status !== 'draft') throw new Error(`Canonical save returned status ${response.status}; it was not saved as a draft.`);
     if ((action === 'post' || action === 'save-and-post') && response.status !== 'posted') throw new Error(`Canonical sale was accepted with status ${response.status}; it was not posted.`);
@@ -754,6 +800,7 @@
   }
 
   async function submitBusinessVoid() {
+    const requestRevision = workflowRevision;
     const documentKind = businessDocumentKind();
     if (!documentKind || !businessDocumentId) throw new Error('Load or save a canonical sale before voiding it.');
     const signature = JSON.stringify({ documentKind, action: 'void', documentId: businessDocumentId, version: businessDocumentVersion, reason: 'Voided from sales workflow' });
@@ -773,6 +820,7 @@
       reason: 'Voided from sales workflow'
     };
     const response = await api.documentCommand(documentKind, command);
+    if (requestRevision !== workflowRevision || documentKind !== businessDocumentKind()) return;
     if (!response.accepted) throw new Error(response.errors.map((item) => item.message).join('; ') || 'The canonical void command was rejected.');
     if (response.status !== 'void') throw new Error(`Canonical void returned status ${response.status}.`);
     businessDocumentVersion = response.document.version;
@@ -783,6 +831,7 @@
   }
 
   async function submitSale(status: 'draft' | 'posted' = 'posted', action?: 'save' | 'post' | 'save-and-post') {
+    const requestRevision = workflowRevision;
     busy = true; message = ''; error = '';
     let event: SyncEnvelope | undefined;
     try {
@@ -793,11 +842,13 @@
         canonicalValidation(canonicalAction);
       }
       const calculated = await refreshPricingPreview();
+      if (requestRevision !== workflowRevision) return;
       if (pricingError && online) throw new Error(pricingError);
       if (businessDocumentKind()) {
         if (action) await submitBusinessDocument(action);
         else await submitBusinessDocument(canonicalAction);
-        if (aggregate === 'sale' && kind === 'cash') await edgeRequest('/v1/hardware/cash-drawer/kick', {}).catch(() => undefined);
+        if (requestRevision !== workflowRevision) return;
+        if (aggregate === 'sale' && kind === 'cash') void edgeRequest('/v1/hardware/cash-drawer/kick', {}).catch(() => undefined);
         return;
       }
       event = makeEvent(calculated, status);
@@ -806,9 +857,10 @@
       else if (aggregate === 'quotation') await api.createQuotation(event);
       else if (aggregate === 'refused_sale') await api.createRefusedSale(event);
       else await api.createSale(event);
-      if (aggregate === 'sale' && kind === 'cash') await edgeRequest('/v1/hardware/cash-drawer/kick', {}).catch(() => undefined);
+      if (aggregate === 'sale' && kind === 'cash') void edgeRequest('/v1/hardware/cash-drawer/kick', {}).catch(() => undefined);
       message = status === 'draft' ? `${workflowTitle} saved as draft.` : `${workflowTitle} posted successfully.`;
     } catch (cause) {
+      if (requestRevision !== workflowRevision) return;
       if (event && (cause instanceof TypeError || !online)) { await queue.enqueue(event); pending = (await queue.pending()).length; message = 'Central API unavailable; sale saved to the legacy compatibility queue.'; }
       else if (cause instanceof ApiError && cause.status === 401) error = 'Your session has expired. Sign in again.';
       else error = cause instanceof Error ? cause.message : 'Sale could not be posted.';
@@ -835,7 +887,7 @@
 <main class:legacy-sales-cash-page={kind === 'cash'} class:legacy-sales-cash-baseline={kind === 'cash' && activeTab === 'detail' && !interactive} class:legacy-sales-list-page={activeTab === 'list'} class="legacy-transaction-page" onpointerdown={enableInteractive} onfocusin={enableInteractive}>
   <section class="legacy-transaction-window" aria-label={workflowTitle}>
 <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1 aria-label={kind === 'cash' ? 'New sale' : workflowTitle}>{transactionWindowTitle}</h1></header>
-    <LegacyMenuBar context="cash-sale" windowId={'sales-' + kind} windowLabel={workflowTitle} windowHref={'/app/sales?kind=' + kind} onCommand={handleMenuCommand} />
+    <LegacyMenuBar context="cash-sale" windowId={'sales-' + kind} windowLabel={workflowTitle} windowHref={'/app/sales?kind=' + kind} navigationBlocked={busy} onCommand={handleMenuCommand} />
     <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Sale toolbar">
       <button type="button" aria-label="New sale" onclick={() => { rows = [blankRow()]; documentNumber = ''; businessDocumentId = ''; businessDocumentVersion = 0; dueDate = ''; cashTendered = ''; pricingPreview = null; message = 'New sale ready.'; }} title="New">▱</button>
       <button type="button" aria-label="Post sale" onclick={() => { void submitSale('posted', businessDocumentId ? 'post' : 'save-and-post'); }} disabled={busy} title="Post sale">▣</button>

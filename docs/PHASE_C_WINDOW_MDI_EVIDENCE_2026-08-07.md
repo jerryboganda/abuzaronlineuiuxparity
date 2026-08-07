@@ -20,6 +20,21 @@ the navigation/state boundary:
   surface, Preferences, and the generic catalog module workbench. Each child
   passes a stable window id and internal href, so the same File/Window chrome
   and registry behavior is available on direct child-window routes.
+- The menu bar reacts when SvelteKit reuses a child page for a different
+  workflow kind. Cash Sale to Credit Sale navigation now registers and
+  activates the Credit Sale window instead of leaving the Cash Sale entry
+  active. The sales page also loads canonical customers when that client-side
+  transition first enters a credit workflow and clears the previous workflow's
+  document identity/version/idempotency state before a new command is built.
+  Workflow revision guards also prevent late document, void, pricing, or
+  history responses from restoring state after the operator has navigated.
+  Active submissions block SvelteKit navigation until the API result is
+  acknowledged, preventing an accepted sale from becoming an abandoned form
+  that could later be posted again under a fresh idempotency key. Contextual
+  commands are blocked while the submission is active, the menu bar suppresses
+  its hard-navigation fallback for that intentional lock, late history
+  responses are revision-guarded and exact-kind checked, and cash-drawer
+  activation remains best-effort without extending the document lock.
 - The existing zero/one/n-window unit coverage remains unchanged.
 
 ## Verification
@@ -32,6 +47,7 @@ Commands run from `D:\ABUZAR\AbuzarNext`:
 | `pnpm --filter @abuzar/web test -- --workers=1 --grep "Window menu preserves MDI entries"` | Passed: 1 browser test |
 | `pnpm --filter @abuzar/web test -- --workers=1 --retries=0 --grep "parity workflow surfaces\|generic catalog fallback pages\|session monitor displays"` | Passed: 3 browser tests |
 | `pnpm --filter @abuzar/web test -- --workers=1 --retries=1 --reporter=line` | The latest post-change full run passed 77/77 browser test cases serially with no retry |
+| `pnpm --filter @abuzar/web test -- sales-canonical.spec.ts --grep "client-side navigation from cash to credit" --workers=1 --retries=0` | Added for the same-page workflow transition. Not executed in the current worktree because the Playwright binary is not installed; no dependency install or broad CI run was performed. |
 
 The browser test proves:
 
@@ -42,6 +58,12 @@ The browser test proves:
    activates the retained route.
 5. Preferences, maintenance/manage workflow surfaces, and direct generic
    module routes expose the shared File and Window menus.
+6. The pending focused regression verifies that Cash Sale to Credit Sale
+   client navigation is blocked while Cash Sale posting is pending, then
+   rejects a concurrent contextual Post, fetches canonical customers once,
+   does not reuse the posted Cash Sale identity/version in the Credit Sale
+   command, and retains separate Cash Sale and Credit Sale entries in the
+   Window menu.
 
 ## Remaining acceptance boundary
 

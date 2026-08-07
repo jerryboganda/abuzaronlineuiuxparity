@@ -28,7 +28,17 @@ This repository is the isolated first vertical slice of the parity-first rebuild
 - The `/app/legacy` route keeps live semantic menus, window controls, navigation, and status updates over the canonical raster at that exact baseline, and falls back to the responsive CSS shell at other viewport sizes.
 - The Window registry now preserves validated open-window entries through
   client-side navigation and tab-scoped reloads; Window-menu activation and
-  tab restoration are covered by the Phase C MDI evidence.
+  tab restoration are covered by the Phase C MDI evidence. Reused Svelte sales
+  routes now register the newly selected workflow window and lazily load
+  canonical customer context when client navigation enters a credit workflow.
+  Workflow changes also clear the previous document identity, version, and
+  idempotency state before a command can target the newly selected kind.
+  Navigation is blocked while a document submission is pending so an accepted
+  command cannot be abandoned and silently reposted with a fresh key. All
+  contextual state changes and the menu's hard-navigation fallback honor that
+  lock, history hydration is exact-kind guarded, and drawer activation cannot
+  extend the document lock; the focused browser regression is added but remains
+  unexecuted in this dependency-free worktree.
 - The shared contextual menu now opens the captured Yes/No Change User
   confirmation in the base shell and child windows, with cancel retention and
   confirmed login navigation; confirmed transitions clear the persisted MDI

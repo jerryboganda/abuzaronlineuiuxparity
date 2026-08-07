@@ -207,6 +207,101 @@ test('credit sale requires and submits the selected canonical customer', async (
   expect((payload?.document as Record<string, unknown>).customer).toBeUndefined();
 });
 
+test('client-side navigation from cash to credit loads canonical customers', async ({ page }) => {
+  await mockSession(page);
+  let customerRequests = 0;
+  await page.route('**/v1/access', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ tenantAdmin: true, permissions: [], scopes: {} })
+  }));
+  await page.route('**/v1/master/godown', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ records: [{ id: godownId, kind: 'godown', code: 'G1', name: 'Godown 1', payload: {}, active: true }] })
+  }));
+  await page.route('**/v1/master/customer', (route) => {
+    customerRequests += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        records: [{ id: customerId, kind: 'customer', code: 'C1', name: 'Canonical Customer', payload: {}, active: true }]
+      })
+    });
+  });
+  await page.route('**/v1/items/lookup*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: [{ id: itemId, legacyId: 'ITEM-1', code: 'ITEM-1', name: 'Canonical Item', payload: { salePrice: '8.00' }, active: true, aliases: [] }] })
+  }));
+  await page.route('**/v1/inventory/availability*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ batches: [{ batchId: '88888888-8888-4888-8888-888888888888', batchNumber: 'B-1', quantity: '5', unitCost: '1.00' }], tenantId: 'tenant-1', branchId: 'branch-1', itemLegacyId: 'ITEM-1', godownId })
+  }));
+  await page.route('**/v1/transactions/preview', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ tenantId: 'tenant-1', branchId: 'branch-1', priceLevel: 1, lines: [], subtotal: '8.00', lineDiscountTotal: '0.00', documentPercentDiscount: '0.00', flatDiscount: '0.00', documentDiscountTotal: '0.00', misc: '1.00', taxableBase: '9.00', taxes: [], totalDiscount: '0.00', total: '9.00' })
+  }));
+  let releaseCashResponse = () => {};
+  let cashRequests = 0;
+  const cashResponseGate = new Promise<void>((resolve) => { releaseCashResponse = resolve; });
+  await page.route('**/v1/documents/cash-sale', async (route) => {
+    cashRequests += 1;
+    await cashResponseGate;
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({ accepted: true, duplicate: false, eventId: '44444444-4444-4444-8444-444444444444', aggregateId: '55555555-5555-4555-8555-555555555555', kind: 'cash-sale', action: 'save-and-post', status: 'posted', document: { id: '55555555-5555-4555-8555-555555555555', documentNumber: 'CS-1', version: 1 } })
+    });
+  });
+  let creditPayload: Record<string, unknown> | undefined;
+  await page.route('**/v1/documents/credit-sale', (route) => {
+    creditPayload = route.request().postDataJSON() as Record<string, unknown>;
+    return route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({ accepted: true, duplicate: false, eventId: '66666666-6666-4666-8666-666666666666', aggregateId: '77777777-7777-4777-8777-777777777777', kind: 'credit-sale', action: 'save-and-post', status: 'posted', document: { id: '77777777-7777-4777-8777-777777777777', documentNumber: 'CR-1', version: 1 } })
+    });
+  });
+
+  await page.goto('/app/sales?kind=cash');
+  await waitForSalesReady(page);
+  expect(customerRequests).toBe(0);
+  await page.getByLabel('Item lookup query').fill('Canonical');
+  await page.getByLabel('Item lookup query').press('Enter');
+  await page.getByRole('button', { name: 'Canonical Item' }).click();
+  await page.getByLabel('Godown').selectOption(godownId);
+  const cashRequest = page.waitForRequest('**/v1/documents/cash-sale');
+  await page.getByRole('button', { name: 'Post sale' }).click();
+  await cashRequest;
+  await page.getByRole('button', { name: 'File', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Post', exact: true }).click();
+  expect(cashRequests).toBe(1);
+  await page.getByRole('button', { name: 'Sales', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Credit Sale', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/sales\?kind=cash/);
+  releaseCashResponse();
+  await expect(page.locator('.legacy-transaction-footer')).toContainText('posted successfully');
+  await page.getByRole('button', { name: 'Sales', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Credit Sale', exact: true }).click();
+
+  await expect(page).toHaveURL(/\/app\/sales\?kind=credit/);
+  await expect(page.getByLabel('Customer')).toContainText('Canonical Customer');
+  expect(customerRequests).toBe(1);
+  await page.getByLabel('Customer').selectOption(customerId);
+  await page.getByRole('button', { name: 'Post sale' }).click();
+  await expect.poll(() => creditPayload).toBeDefined();
+  expect(creditPayload?.expectedVersion).toBeUndefined();
+  expect((creditPayload?.document as Record<string, unknown>).id).toBeUndefined();
+  expect((creditPayload?.document as Record<string, unknown>).documentNumber).toBe('');
+  await page.getByRole('button', { name: 'Window', exact: true }).click();
+  await expect(page.getByRole('menuitem', { name: '1 Cash Sale', exact: true })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: '2 Credit Sale', exact: true })).toBeVisible();
+});
+
 test('closed sale return requires source line identity and submits a canonical command', async ({ page }) => {
   await mockSession(page);
   await page.route('**/v1/master/godown', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ records: [{ id: godownId, kind: 'godown', code: 'G1', name: 'Godown 1', payload: {}, active: true }] }) }));

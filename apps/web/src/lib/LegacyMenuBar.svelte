@@ -5,7 +5,6 @@
     buildLegacyMenusForContext,
     findShortcutAction,
     type LegacyMenu,
-    type LegacyOpenWindow,
     type LegacyWindowContext,
     type MenuAction,
     type MenuAccess,
@@ -19,6 +18,7 @@
   export let windowLabel = 'Main Window';
   export let windowHref = '/app/legacy';
   export let status = 'Ready';
+  export let navigationBlocked = false;
   export let onCommand: ((action: MenuAction) => boolean) | undefined = undefined;
 
   let openMenu = '';
@@ -32,11 +32,10 @@
 
   $: registryWindows = $legacyWindowRegistry.windows;
   $: menus = applyMenuAccess(buildLegacyMenusForContext(context, registryWindows), menuAccess);
+  $: if (hydrated) legacyWindowRegistry.open({ id: windowId, label: windowLabel, href: windowHref, context });
 
   onMount(() => {
     hydrated = true;
-    const entry: LegacyOpenWindow = { id: windowId, label: windowLabel, href: windowHref, context };
-    legacyWindowRegistry.open(entry);
     void api.access().then((access) => {
       menuAccess = {
         tenantAdmin: access.tenantAdmin,
@@ -130,9 +129,14 @@
   }
 
   function navigate(href: string) {
+    if (navigationBlocked) {
+      notice = 'Wait for the active document command to finish.';
+      status = 'Command in progress';
+      return;
+    }
     void goto(href).catch(() => {
       // Keep the command usable if a client-side route cannot be loaded.
-      window.location.assign(href);
+      if (!navigationBlocked) window.location.assign(href);
     });
   }
 
