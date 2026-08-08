@@ -20,14 +20,31 @@ func TestStockQuantityUsesExactDecimalScale(t *testing.T) {
 	}
 }
 
-func TestStockAllocationPolicyFailsClosedBeforeLegacyReconciliation(t *testing.T) {
+func TestStockAllocationPolicyDefaultsToMovingAverage(t *testing.T) {
+	// 2026-08-08 reconciliation against dbo.StockReport/Purdetail/Saledetail
+	// (item ICode 3018) found legacy costs inventory with a moving
+	// weighted-average, not FIFO batch consumption (see the doc comment on
+	// stockAllocationPolicy). moving-average is therefore the default when
+	// ABUZAR_STOCK_ALLOCATION_POLICY is unset.
+	t.Setenv("ABUZAR_STOCK_ALLOCATION_POLICY", "")
+	if policy, err := stockAllocationPolicy(); err != nil || policy != "moving-average" {
+		t.Fatalf("default policy = %q, %v, want moving-average", policy, err)
+	}
 	t.Setenv("ABUZAR_STOCK_ALLOCATION_POLICY", "fifo")
 	if policy, err := stockAllocationPolicy(); err != nil || policy != "fifo" {
 		t.Fatalf("fifo policy = %q, %v", policy, err)
 	}
+	t.Setenv("ABUZAR_STOCK_ALLOCATION_POLICY", "moving-average")
+	if policy, err := stockAllocationPolicy(); err != nil || policy != "moving-average" {
+		t.Fatalf("moving-average policy = %q, %v", policy, err)
+	}
+	t.Setenv("ABUZAR_STOCK_ALLOCATION_POLICY", "MOVING-AVERAGE")
+	if policy, err := stockAllocationPolicy(); err != nil || policy != "moving-average" {
+		t.Fatalf("moving-average policy is not case-insensitive: %q, %v", policy, err)
+	}
 	t.Setenv("ABUZAR_STOCK_ALLOCATION_POLICY", "legacy")
-	if policy, err := stockAllocationPolicy(); err == nil || policy != "" || !strings.Contains(err.Error(), "StockReport ordering") {
-		t.Fatalf("legacy policy was not rejected: %q, %v", policy, err)
+	if _, err := stockAllocationPolicy(); err == nil || !strings.Contains(err.Error(), "unsupported stock allocation policy") {
+		t.Fatalf("legacy is no longer a recognized policy name: %v", err)
 	}
 	t.Setenv("ABUZAR_STOCK_ALLOCATION_POLICY", "unknown")
 	if _, err := stockAllocationPolicy(); err == nil {

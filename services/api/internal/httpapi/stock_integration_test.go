@@ -264,6 +264,147 @@ func TestStockLifecycleIntegration(t *testing.T) {
 	})
 }
 
+// TestStockMovingAverageCostAppliesToOutboundSale seeds two purchases of the
+// same item/godown at different costs (two batches, two unit_costs), then
+// posts a sale that FIFO-selects quantity from the earlier-received batch
+// only, and asserts the outbound stock_ledger/stock_allocations unit_cost is
+// the hand-computed weighted average across BOTH batches — not either
+// batch's own cost. This is the moving-average policy from
+// docs/PHASE_J_STOCK_VALUATION_POLICY_2026-08-08.md.
+func TestStockMovingAverageCostAppliesToOutboundSale(t *testing.T) {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		t.Skip("DATABASE_URL is not configured")
+	}
+	t.Setenv("ABUZAR_STOCK_ALLOCATION_POLICY", "moving-average")
+	ctx := context.Background()
+	database, err := sql.Open("pgx", dsn)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	defer database.Close()
+	if err := database.PingContext(ctx); err != nil {
+		t.Fatalf("ping database: %v", err)
+	}
+
+	fixture := seedStockTenant(t, ctx, database, "movavg-"+fmt.Sprint(time.Now().UnixNano()))
+	defer func() {
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID)
+	}()
+	operator := &sessionContext{
+		UserID: fixture.operatorID, TenantID: fixture.tenantID, BranchID: fixture.branchID,
+		CounterID: fixture.counterID, Roles: []string{"tenant_admin"},
+	}
+
+	// Two purchases of the same item/godown at different costs create two
+	// batches with different unit_cost (received in this order, so FIFO
+	// quantity selection drains MA-001 first):
+	//   MA-001: 6 units @ 5.00 -> value 6 * 5.00 = 30.00
+	//   MA-002: 4 units @ 8.00 -> value 4 * 8.00 = 32.00
+	// Hand-computed weighted average across both batches, per
+	// SUM(on_hand*unit_cost)/SUM(on_hand):
+	//   (30.00 + 32.00) / (6 + 4) = 62.00 / 10 = 6.2000
+	// insertInventoryEvent hardcodes occurred_at (and thus stock_batches
+	// received_at, which the "receiving" projection copies verbatim) to the
+	// same instant for every call, so two batches inserted through it would
+	// tie on received_at and fall back to a random id ordering. Use distinct
+	// occurred_at values here so FIFO batch selection is deterministic.
+	receiveOne := insertInventoryEventAt(t, ctx, database, fixture, "receiving", "movavg-receive-1", "2026-08-06T00:00:00Z", inventoryRowPayload{
+		ItemLegacyID: fixture.itemLegacyID, GodownID: fixture.godownID,
+		BatchNumber: "MA-001", ExpiryDate: "2030-01-01", Quantity: json.RawMessage(`6`), UnitCost: "5.00",
+	})
+	receiveTwo := insertInventoryEventAt(t, ctx, database, fixture, "receiving", "movavg-receive-2", "2026-08-06T00:01:00Z", inventoryRowPayload{
+		ItemLegacyID: fixture.itemLegacyID, GodownID: fixture.godownID,
+		BatchNumber: "MA-002", ExpiryDate: "2030-01-01", Quantity: json.RawMessage(`4`), UnitCost: "8.00",
+	})
+	for _, event := range []syncEvent{receiveOne, receiveTwo} {
+		tx, err := (&Server{database: database}).beginScopedTx(ctx, operator)
+		if err != nil {
+			t.Fatalf("begin receiving: %v", err)
+		}
+		if err := projectEvent(ctx, tx, event); err != nil {
+			_ = tx.Rollback()
+			t.Fatalf("project receiving: %v", err)
+		}
+		if err := tx.Commit(); err != nil {
+			t.Fatalf("commit receiving: %v", err)
+		}
+	}
+
+	const expectedWeightedAverage = "6.2000"
+
+	// Sell 3 units: less than MA-001's 6 on-hand, so FIFO quantity selection
+	// (received_at order) draws exclusively from MA-001 (own cost 5.00).
+	// Under the moving-average policy the posted unit_cost must still be the
+	// blended 6.2000, proving the ledger cost is decoupled from whichever
+	// batch happened to lose the quantity.
+	server := &Server{database: database}
+	command := stockDocumentCommand(fixture, "save-and-post", "movavg-sale", "3")
+	tx, err := server.beginScopedTx(ctx, operator)
+	if err != nil {
+		t.Fatalf("begin sale: %v", err)
+	}
+	_, response, err := server.saveBusinessDocument(ctx, tx, operator, command)
+	if err != nil {
+		_ = tx.Rollback()
+		t.Fatalf("save-and-post sale: %v", err)
+	}
+	eventID := insertEventInTransaction(t, ctx, tx, operator, "business_document", response.Document.ID, command.IdempotencyKey)
+	if err := projectPostedSaleStock(ctx, tx, operator, command.Document, response.Document, eventID); err != nil {
+		_ = tx.Rollback()
+		t.Fatalf("allocate sale stock: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit sale: %v", err)
+	}
+
+	var outboundBatch, outboundCost string
+	if err := database.QueryRowContext(ctx, `
+		SELECT batch_id::text, unit_cost::text FROM stock_ledger
+		WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND source_document_id = $3::uuid AND direction = 'out'
+	`, fixture.tenantID, fixture.branchID, response.Document.ID).Scan(&outboundBatch, &outboundCost); err != nil {
+		t.Fatalf("read outbound stock_ledger row: %v", err)
+	}
+	if outboundCost != expectedWeightedAverage {
+		t.Fatalf("outbound stock_ledger unit_cost = %s, want weighted-average %s (not MA-001's own 5.00 or MA-002's own 8.00)", outboundCost, expectedWeightedAverage)
+	}
+	var consumedBatch string
+	if err := database.QueryRowContext(ctx, `SELECT batch_number FROM stock_batches WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND id = $3::uuid`, fixture.tenantID, fixture.branchID, outboundBatch).Scan(&consumedBatch); err != nil {
+		t.Fatalf("read consumed batch: %v", err)
+	}
+	if consumedBatch != "MA-001" {
+		t.Fatalf("consumed batch = %s, want MA-001 (FIFO by received_at)", consumedBatch)
+	}
+
+	var allocationCost string
+	if err := database.QueryRowContext(ctx, `
+		SELECT unit_cost::text FROM stock_allocations
+		WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND document_id = $3::uuid
+	`, fixture.tenantID, fixture.branchID, response.Document.ID).Scan(&allocationCost); err != nil {
+		t.Fatalf("read stock_allocations unit cost: %v", err)
+	}
+	if allocationCost != expectedWeightedAverage {
+		t.Fatalf("stock_allocations unit_cost = %s, want weighted-average %s", allocationCost, expectedWeightedAverage)
+	}
+
+	// finance.go's saleCOGS reads COGS generically from
+	// SUM(stock_allocations.quantity * stock_allocations.unit_cost); confirm
+	// it picks up the weighted-average cost through that existing path with
+	// no GL-side change required: COGS = 3 units * 6.2000 = 18.6000.
+	cogsTx := mustBeginScopedTx(t, database, operator)
+	cogs, hasCost, err := saleCOGS(ctx, cogsTx, operator, response.Document.ID)
+	_ = cogsTx.Rollback()
+	if err != nil {
+		t.Fatalf("read sale COGS: %v", err)
+	}
+	if !hasCost {
+		t.Fatal("saleCOGS reported no cost for a posted sale")
+	}
+	if cogs != "18.6000" {
+		t.Fatalf("saleCOGS = %s, want 18.6000 (3 * 6.2000)", cogs)
+	}
+}
+
 type stockFixture struct {
 	tenantID, branchID, counterID, operatorID string
 	itemID, itemLegacyID, godownID            string
@@ -308,17 +449,26 @@ func stockDocumentCommand(fixture stockFixture, action, key, quantity string) do
 
 func insertInventoryEvent(t *testing.T, ctx context.Context, database *sql.DB, fixture stockFixture, aggregate, key string, row inventoryRowPayload) syncEvent {
 	t.Helper()
+	return insertInventoryEventAt(t, ctx, database, fixture, aggregate, key, "2026-08-06T00:00:00Z", row)
+}
+
+// insertInventoryEventAt is insertInventoryEvent with an explicit
+// occurred_at, needed whenever a test seeds more than one receiving batch
+// and depends on deterministic received_at (and therefore FIFO) ordering
+// between them.
+func insertInventoryEventAt(t *testing.T, ctx context.Context, database *sql.DB, fixture stockFixture, aggregate, key, occurredAt string, row inventoryRowPayload) syncEvent {
+	t.Helper()
 	payload := mustJSON(inventoryPayload{Rows: []inventoryRowPayload{row}})
 	var event syncEvent
 	if err := database.QueryRowContext(ctx, `
 		INSERT INTO sync_events (event_id, tenant_id, branch_id, counter_id, operator_id, aggregate, aggregate_id, idempotency_key, schema_version, payload, occurred_at)
-		VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, gen_random_uuid(), $6, 1, $7::jsonb, '2026-08-06T00:00:00Z')
+		VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, gen_random_uuid(), $6, 1, $7::jsonb, $8::timestamptz)
 		RETURNING event_id::text, aggregate_id::text
-	`, fixture.tenantID, fixture.branchID, fixture.counterID, fixture.operatorID, aggregate, key, payload).Scan(&event.EventID, &event.AggregateID); err != nil {
+	`, fixture.tenantID, fixture.branchID, fixture.counterID, fixture.operatorID, aggregate, key, payload, occurredAt).Scan(&event.EventID, &event.AggregateID); err != nil {
 		t.Fatalf("insert inventory event: %v", err)
 	}
 	event.TenantID, event.BranchID, event.CounterID, event.OperatorID = fixture.tenantID, fixture.branchID, fixture.counterID, fixture.operatorID
-	event.Aggregate, event.IdempotencyKey, event.SchemaVersion, event.OccurredAt, event.Payload = aggregate, key, 1, "2026-08-06T00:00:00Z", payload
+	event.Aggregate, event.IdempotencyKey, event.SchemaVersion, event.OccurredAt, event.Payload = aggregate, key, 1, occurredAt, payload
 	return event
 }
 

@@ -24,34 +24,106 @@ type stockAllocationChoice struct {
 	quantity *big.Rat
 }
 
+const (
+	// stockPolicyFIFO consumes AND costs batches strictly in received-date
+	// order: the outbound stock_ledger/stock_allocations unit_cost is each
+	// consumed batch's own unit_cost. Kept available for comparison/rollback;
+	// it is not what legacy did (see stockPolicyMovingAverage).
+	stockPolicyFIFO = "fifo"
+	// stockPolicyMovingAverage is the default. Batch selection for
+	// quantity/expiry housekeeping still follows received-date order (see
+	// resolveStockChoices/fifoStockChoices), but the unit_cost written to
+	// outbound stock_ledger rows is the current moving weighted-average cost
+	// across all batches for the item/godown, computed by
+	// weightedAverageStockCost.
+	stockPolicyMovingAverage = "moving-average"
+)
+
 func stockAllocationPolicy() (string, error) {
 	policy := strings.ToLower(strings.TrimSpace(os.Getenv("ABUZAR_STOCK_ALLOCATION_POLICY")))
 	if policy == "" {
-		policy = "fifo"
+		policy = stockPolicyMovingAverage
 	}
 	switch policy {
-	case "fifo":
+	case stockPolicyFIFO:
 		return policy, nil
-	case "legacy":
-		// Do not advertise FIFO as legacy behavior. Reconciliation against
-		// dbo.StockReport, dbo.Purdetail, and dbo.Saledetail (2026-08-08) found
-		// legacy did not do batch-ordered allocation at all: >97% of purchase
-		// and sale rows carry the placeholder Batch='.', dbo.StockReport has no
-		// batch column (Date/GCode/ICode/Stock/AvgPrice only), and Purdetail's
-		// AvgPrice/NewAvgPrice is a classic moving weighted-average recomputed
-		// on every receipt (verified: NewAvgPrice = (AvgPrice*CurrStock +
-		// PurPrice*PackQty)/(CurrStock+PackQty)) that Saledetail.AvgPrice then
-		// reuses uniformly for every sale regardless of the Batch tag. So
-		// "legacy" is not FIFO with different bookkeeping — it is
-		// weighted-average costing with no per-batch consumption order to
-		// reconstruct. A "legacy" setting must keep failing closed; picking a
-		// legacy-equivalent ordering rule is the wrong fix, and changing the
-		// default away from fifo needs a human valuation decision, not a code
-		// change here.
-		return "", errors.New("legacy stock allocation policy is unavailable until StockReport ordering is reconciled")
+	case stockPolicyMovingAverage:
+		// Reconciliation against dbo.StockReport, dbo.Purdetail, and
+		// dbo.Saledetail (2026-08-08, real legacy data for item ICode 3018)
+		// found legacy did NOT do batch-ordered (FIFO/FEFO) stock consumption:
+		// >97% of purchase and sale rows carry the placeholder Batch='.',
+		// dbo.StockReport carries no batch dimension at all (just
+		// Date/GCode/ICode/Stock/PurchasePrice/SalePrice/AvgPrice/
+		// RecentPurchasePrice/PackUnits), and Purdetail.NewAvgPrice is a
+		// classic item/godown-level moving weighted-average recomputed on
+		// every purchase regardless of batch tag (verified:
+		// NewAvgPrice = (AvgPrice_before*CurrStock_before + PurPrice*PackQty)
+		// / (CurrStock_before+PackQty)). Saledetail.AvgPrice then reuses that
+		// same blended average uniformly for every sale, regardless of which
+		// "batch" (if any) is tagged. So legacy is not FIFO with different
+		// bookkeeping — it is moving weighted-average costing with no
+		// per-batch consumption order to reconstruct. This policy reproduces
+		// that: batches are still selected in received-date order purely for
+		// on-hand quantity/expiry housekeeping (a real, separate concern —
+		// see resolveStockChoices/fifoStockChoices), but outbound unit_cost
+		// comes from weightedAverageStockCost instead of the consumed batch's
+		// own cost. See docs/PHASE_J_STOCK_VALUATION_POLICY_2026-08-08.md.
+		return policy, nil
 	default:
-		return "", fmt.Errorf("unsupported stock allocation policy %q; configure fifo or legacy", policy)
+		return "", fmt.Errorf("unsupported stock allocation policy %q; configure fifo or moving-average", policy)
 	}
+}
+
+// weightedAverageStockCost computes legacy's moving weighted-average cost —
+// SUM(on_hand * unit_cost) / SUM(on_hand) — across every batch currently
+// tracked for (tenant, branch, item, godown), reusing the on_hand and
+// unit_cost that purchases already maintain (stock_balances, stock_batches).
+// This is the unit_cost written to stock_ledger for outbound (sale,
+// purchase-return) movements under stockPolicyMovingAverage.
+//
+// Edge case: if total on-hand computes to zero (every batch shows
+// on_hand=0 — a timing race between concurrent postings, or genuinely no
+// remaining stock for this item/godown), fall back to the most recently
+// received batch's own unit_cost as the best available cost basis. If there
+// is no batch at all for this item/godown, return a clear error rather than
+// silently posting a zero cost.
+func weightedAverageStockCost(ctx context.Context, tx *sql.Tx, operator *sessionContext, itemID, godownID string) (string, error) {
+	var onHandText, weightedText sql.NullString
+	if err := tx.QueryRowContext(ctx, `
+			SELECT SUM(sb.on_hand)::text, SUM(sb.on_hand * b.unit_cost)::text
+			FROM stock_balances sb
+			JOIN stock_batches b
+			  ON b.tenant_id = sb.tenant_id AND b.branch_id = sb.branch_id AND b.id = sb.batch_id
+			WHERE sb.tenant_id = $1::uuid AND sb.branch_id = $2::uuid
+			  AND sb.item_id = $3::uuid AND sb.godown_id = $4::uuid
+		`, operator.TenantID, operator.BranchID, itemID, godownID).Scan(&onHandText, &weightedText); err != nil {
+		return "", err
+	}
+	if onHandText.Valid && weightedText.Valid {
+		onHand, ok := new(big.Rat).SetString(onHandText.String)
+		if ok && onHand.Sign() > 0 {
+			weighted, ok2 := new(big.Rat).SetString(weightedText.String)
+			if ok2 {
+				average := new(big.Rat).Quo(weighted, onHand)
+				return average.FloatString(4), nil
+			}
+		}
+	}
+	var fallback string
+	err := tx.QueryRowContext(ctx, `
+			SELECT unit_cost::text
+			FROM stock_batches
+			WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND item_id = $3::uuid AND godown_id = $4::uuid
+			ORDER BY received_at DESC, id DESC
+			LIMIT 1
+		`, operator.TenantID, operator.BranchID, itemID, godownID).Scan(&fallback)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", errors.New("moving-average cost unavailable: no stock batches exist for this item and godown")
+	}
+	if err != nil {
+		return "", err
+	}
+	return fallback, nil
 }
 
 func projectPostedPurchaseStock(ctx context.Context, tx *sql.Tx, operator *sessionContext, draft *documentDraftRequest, document documentResponse, eventID string) error {
@@ -239,6 +311,10 @@ func projectPurchaseReturnStock(ctx context.Context, tx *sql.Tx, operator *sessi
 	if sourceSupplier != document.SupplierID {
 		return errors.New("purchase-return supplier does not match the source purchase")
 	}
+	policy, err := stockAllocationPolicy()
+	if err != nil {
+		return err
+	}
 	for index, line := range draft.Lines {
 		quantity, err := parseStockQuantity(line.Quantity)
 		if err != nil {
@@ -289,6 +365,13 @@ func projectPurchaseReturnStock(ctx context.Context, tx *sql.Tx, operator *sessi
 		if err != nil {
 			return fmt.Errorf("line %d: %w", index+1, err)
 		}
+		var unitCostOverride string
+		if policy == stockPolicyMovingAverage {
+			unitCostOverride, err = weightedAverageStockCost(ctx, tx, operator, document.Lines[index].ItemID, draft.GodownID)
+			if err != nil {
+				return fmt.Errorf("line %d: %w", index+1, err)
+			}
+		}
 		allocated := new(big.Rat)
 		for allocationIndex, choice := range choices {
 			var sourceBatch bool
@@ -313,6 +396,10 @@ func projectPurchaseReturnStock(ctx context.Context, tx *sql.Tx, operator *sessi
 				return fmt.Errorf("line %d allocation %d exceeds available stock", index+1, allocationIndex+1)
 			}
 			qty := formatStockQuantity(choice.quantity)
+			unitCost := choice.batch.UnitCost
+			if unitCostOverride != "" {
+				unitCost = unitCostOverride
+			}
 			if _, err := tx.ExecContext(ctx, `
 					UPDATE stock_balances SET on_hand = on_hand - $4::numeric, updated_at = now()
 					WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND batch_id = $3::uuid
@@ -327,7 +414,7 @@ func projectPurchaseReturnStock(ctx context.Context, tx *sql.Tx, operator *sessi
 						'out', 1, $8::numeric, $9::numeric, $10::timestamptz)
 				`, operator.TenantID, operator.BranchID, choice.batch.ID, eventID, document.ID, document.Lines[index].ID,
 				fmt.Sprintf("purchase-return-line-%d-%d", document.Lines[index].LineNumber, allocationIndex),
-				qty, choice.batch.UnitCost, document.OccurredAt); err != nil {
+				qty, unitCost, document.OccurredAt); err != nil {
 				return err
 			}
 			allocated.Add(allocated, choice.quantity)
@@ -825,7 +912,14 @@ func projectPostedSaleStock(ctx context.Context, tx *sql.Tx, operator *sessionCo
 				return fmt.Errorf("explicit batch allocations total %s but line quantity is %s", formatStockQuantity(selected), formatStockQuantity(quantity))
 			}
 		}
-		if err := allocateStockChoices(ctx, tx, operator, document, document.Lines[index], eventID, choices, quantity); err != nil {
+		var unitCostOverride string
+		if policy == stockPolicyMovingAverage {
+			unitCostOverride, err = weightedAverageStockCost(ctx, tx, operator, document.Lines[index].ItemID, draft.GodownID)
+			if err != nil {
+				return fmt.Errorf("line %d: %w", index+1, err)
+			}
+		}
+		if err := allocateStockChoices(ctx, tx, operator, document, document.Lines[index], eventID, choices, quantity, unitCostOverride); err != nil {
 			return fmt.Errorf("line %d: %w", index+1, err)
 		}
 	}
@@ -905,7 +999,10 @@ func findStockBatch(ctx context.Context, tx *sql.Tx, operator *sessionContext, i
 }
 
 func fifoStockChoices(ctx context.Context, tx *sql.Tx, operator *sessionContext, itemID, godownID string, occurredAt time.Time, policy string) ([]stockAllocationChoice, error) {
-	if policy != "fifo" && policy != "legacy" {
+	// Received-date order is reused as the quantity/expiry housekeeping
+	// selection rule for every policy (see weightedAverageStockCost's doc
+	// comment): only the unit_cost written downstream differs by policy.
+	if policy != stockPolicyFIFO && policy != stockPolicyMovingAverage {
 		return nil, fmt.Errorf("stock allocation policy %q is not supported", policy)
 	}
 	rows, err := tx.QueryContext(ctx, `
@@ -952,7 +1049,13 @@ func fifoStockChoices(ctx context.Context, tx *sql.Tx, operator *sessionContext,
 	return result, nil
 }
 
-func allocateStockChoices(ctx context.Context, tx *sql.Tx, operator *sessionContext, document documentResponse, line documentLineResponse, eventID string, choices []stockAllocationChoice, required *big.Rat) error {
+// allocateStockChoices consumes quantity from the given batches in order.
+// When unitCostOverride is non-empty (moving-average policy), it replaces
+// each consumed batch's own unit_cost in the stock_ledger/stock_allocations
+// rows; batches are still selected and decremented individually so on-hand
+// per batch stays accurate. When unitCostOverride is empty (fifo policy),
+// each batch's own unit_cost is used, matching prior behavior.
+func allocateStockChoices(ctx context.Context, tx *sql.Tx, operator *sessionContext, document documentResponse, line documentLineResponse, eventID string, choices []stockAllocationChoice, required *big.Rat, unitCostOverride string) error {
 	remaining := new(big.Rat).Set(required)
 	for index, choice := range choices {
 		available, err := lockStockBalance(ctx, tx, operator, choice.batch.ID)
@@ -967,6 +1070,10 @@ func allocateStockChoices(ctx context.Context, tx *sql.Tx, operator *sessionCont
 			return errors.New("insufficient stock after locking the selected batch")
 		}
 		qty := formatStockQuantity(take)
+		unitCost := choice.batch.UnitCost
+		if unitCostOverride != "" {
+			unitCost = unitCostOverride
+		}
 		if _, err := tx.ExecContext(ctx, `
 			UPDATE stock_balances
 			SET on_hand = on_hand - $4::numeric, updated_at = now()
@@ -984,7 +1091,7 @@ func allocateStockChoices(ctx context.Context, tx *sql.Tx, operator *sessionCont
 				'out', 1, $8::numeric, $9::numeric, $10::timestamptz)
 			RETURNING id::text
 		`, operator.TenantID, operator.BranchID, choice.batch.ID, eventID, document.ID, line.ID,
-			fmt.Sprintf("sale-line-%d-%d", line.LineNumber, index), qty, choice.batch.UnitCost, document.OccurredAt).Scan(&movementID)
+			fmt.Sprintf("sale-line-%d-%d", line.LineNumber, index), qty, unitCost, document.OccurredAt).Scan(&movementID)
 		if err != nil {
 			return err
 		}
@@ -992,7 +1099,7 @@ func allocateStockChoices(ctx context.Context, tx *sql.Tx, operator *sessionCont
 			INSERT INTO stock_allocations
 				(tenant_id, branch_id, document_id, document_line_id, batch_id, movement_id, quantity, unit_cost)
 			VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid, $7::numeric, $8::numeric)
-		`, operator.TenantID, operator.BranchID, document.ID, line.ID, choice.batch.ID, movementID, qty, choice.batch.UnitCost); err != nil {
+		`, operator.TenantID, operator.BranchID, document.ID, line.ID, choice.batch.ID, movementID, qty, unitCost); err != nil {
 			return err
 		}
 		remaining.Sub(remaining, take)
