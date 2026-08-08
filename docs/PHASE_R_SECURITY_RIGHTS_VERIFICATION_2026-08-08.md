@@ -295,3 +295,269 @@ task's file scope): the `seedDocumentTenant` cleanup pattern used across many
 integration tests has the same silently-failing-DELETE bug fixed locally in
 `access_integration_test.go` above, and has left 389 orphaned
 `document-test-*` tenants in the shared dev database since 2026-08-06.
+
+## 2026-08-08 permission backfill (finding #2 fixed)
+
+This section fixes finding #2 above ("the other three groups' right codes
+don't resolve to any modern permission") for the already-migrated tenant.
+Finding #1 (ADMINISTRATOR bypasses the table via `hasTenantAdminRole`) is
+untouched and remains intentional, per the task that produced this fix.
+
+### Modern permission strings (found via grep, full set)
+
+Grepped every `requirePermission(r, w, operator, "...")` call site plus the
+indirect ones that pass a variable (`documents.go` `writePermission`/
+`permission`, `history.go` `readPermission`, `maintenance.go`
+`maintenancePermission(kind)`, `business.go`/`canonical.go` local
+`permission` variables) across `auth.go`, `access.go`, `business.go`,
+`canonical.go`, `documents.go`, `finance.go`, `history.go`, `inventory.go`,
+`item_unposted.go`, `maintenance.go`, `preferences.go`, `pricing.go`,
+`reports.go`, `stock.go`, `tax.go`. 19 distinct strings are actually gated on
+(a 20th, `tax.override`, exists in `access.go`'s `supportedRolePermissions`
+allow-list for role editing but is not consulted by any `requirePermission`
+call site today):
+
+`branch.read`, `manage.groups`, `manage.users`, `master.read`,
+`master.write`, `sales.read`, `sales.write`, `tenant.read`,
+`purchases.read`, `purchases.write`, `sync.push`, `sync.pull`,
+`sync.review`, `reports.read`, `preferences.read`, `preferences.write`,
+`tax.read`, `tax.write`, `maintenance.write`.
+
+### Mapping methodology
+
+Queried `dbo.Rights` (SQL Server, read-only) for all 486 rows
+(`RightCode, RightName, MenuName, IndicesString, RightCatCode`) and
+cross-referenced against the 726 migrated `group_rights` rows for the four
+groups. The 486 distinct `right_code` values actually used across those 726
+rows are **exactly** the 486 rows in `dbo.Rights` (verified by diff) — every
+legacy right that exists is referenced by ADMINISTRATOR's full matrix, so no
+`dbo.Rights` row needed to be excluded as "never used."
+
+Each row's top-level breadcrumb segment of `RightName` (e.g. `Sales`,
+`Purchase`, `Reports`, `Basic Data`, `Maintenance`, `Manage`, `Transactions`,
+`E-Prescription`) drove category-level rules, refined per-row where the name
+was ambiguous or where a direct code correspondence to a Go document-kind
+constant existed (e.g. `businessDocumentKinds`/`isPurchaseDocumentKind` in
+`documents.go`, `maintenancePermission()` in `maintenance.go`,
+`historyAggregates` in `history.go`). Concretely:
+
+- **Reports** (any `RightName` starting with `Reports`, including
+  CRS/Patient/Student/Employee/Service sub-report categories that have no
+  modern module of their own) → `reports.read`. The modern app has exactly
+  one coarse "can view reports" gate, so every legacy report-view right maps
+  to it — this is a many-to-one collapse, not an over-grant, because it
+  mirrors the modern app's own granularity.
+- **Sales** / **Purchase** — top-level document-type rights matched directly
+  to `businessDocumentKinds`/`historyAggregates` entries (`cash-sale`,
+  `credit-sale`, `cash-return`, `credit-return`, `open-cash-return`,
+  `open-credit-return`, `quotation`, `refused-sale`, `pack-purchase`,
+  `loose-purchase`, `opening-purchase`, `purchase-return`, `purchase-order`)
+  → `sales.write`/`purchases.write` (matching `documentCommand`'s
+  `writePermission` logic). Fine-grained `"... , Rights , ..."` sub-rights
+  within Sales/Purchase were split by a `Show`/`View`/`Display`/`Preview`
+  keyword in the name → `*.read`; everything else (Modify/Save/Post/
+  Fiscalize/Attach/Override/Allow/...) → `*.write`.
+- **Manage > Groups** (RightCode 101) → `manage.groups`; **Manage > Users**
+  (102) → `manage.users` — exact 1:1, and confirmed by querying
+  `group_rights` that only ADMINISTRATOR's real rows contain codes 101/102.
+- **Manage > Cashier Management** cluster (1344, 1345, 1346, and the
+  `Cashier Activity Window , Rights , ...` sub-codes 5027/5064–5068/5250) →
+  `sales.read`, because `maintenancePermission("manage-cashier-job")` in
+  `maintenance.go` literally returns `"sales.read"`.
+- **Basic Data** — browse/view screens for a master-record entity or lookup
+  table → `master.read`; rights with an explicit `Modify`/`Add New`/`Assign`
+  verb in the name → `master.write`. `Basic Data > Patient` / `> Student`
+  and `Basic Data > Sale Template` were left unmapped (no modern module).
+- **Maintenance > Adjustment** (increase/decrease/stock-adjustment/
+  inter-godown-transfer) → `maintenance.write`, matching the `"inventory"`
+  transaction aggregate and `stock.go`'s `maintenance.write` gate. Database
+  utilities / backup / integrity-check / historical-data import / inplace-
+  initialization rights → `maintenance.write`, matching
+  `maintenancePermission()`'s default branch and `maintenanceExternalOutcome`'s
+  kind matching. Item-price/discount-category/basic-data/suppliers/
+  reorder-qty/batch-lock rights → `master.write` (they mutate item master
+  records, not maintenance-workflow state).
+- **Everything else left unmapped**: `Transactions , Accounting Vouchers , ...`
+  and `Transactions , Payroll Activities , ...` (no modern
+  account/voucher/payroll permission exists at all), `E-Prescription`,
+  `Maintenance , Preferences` (a single legacy right that both views and
+  edits settings — cannot be safely resolved to only `preferences.read` or
+  only `preferences.write` without either under- or over-granting),
+  `Maintenance , Change Password` (self-service, not gated), and a handful of
+  single-toggle rights with no confident read/write or module
+  correspondence (`Item Priority Setting`, `Open (ctrl+G)`,
+  `Print Patient Labels`, `Modify Last Transaction Date`,
+  `Discount Policy Based Profit Margin`, `Maintenance , Receipt , Receipt`).
+  `Manage` sub-features backed by `group_allowed_scopes` (Group Wise Header/
+  Price/Cash-Account Setting, Group Wise Supplier Category) were left
+  unmapped because they are enforced through the scope table, not a
+  `requirePermission` permission string. The legacy parent/child
+  server-sync rights (`Control Panel , ... , Import Now/Sync Now/Transmit
+  Now/Translate Now/...`) were deliberately **not** mapped to
+  `sync.push`/`sync.pull`/`sync.review` despite the tempting name overlap —
+  those modern permissions gate a different (business-document event)
+  sync architecture, and the correspondence would be speculative.
+
+### Coverage
+
+Of the 486 distinct legacy `RightCode`s in `dbo.Rights` (== the 486 distinct
+codes actually used across the 726 migrated rows):
+
+- **433 mapped** (89%): `reports.read` 240, `sales.write` 48, `master.read`
+  37, `sales.read` 37, `purchases.write` 29, `master.write` 18,
+  `maintenance.write` 14, `purchases.read` 8, `manage.groups` 1,
+  `manage.users` 1.
+- **53 left unmapped** — see the "everything else" bullet above for the
+  categories and reasons; the full per-code list with its specific reason is
+  in the comments of `legacy_rights_mapping.go` (every mapped row also
+  carries its own reason as a trailing comment).
+
+Applied to the 726 rows for the four migrated groups of tenant
+`eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee`:
+
+| Group | Total rows | Now mapped |
+|---|---|---|
+| ADMINISTRATOR | 486 | 433 |
+| REMOTE | 6 | 6 |
+| SALES OFFICER | 111 | 108 |
+| SHIFT INCHARGE | 123 | 120 |
+
+REMOTE — the smallest, most tractable group — is now **100% mapped**: every
+one of its 6 real rights resolves to a modern permission
+(`reports.read`, `master.read` ×3, `sales.read`, `purchases.write`).
+
+### Files changed
+
+- `services/api/internal/httpapi/legacy_rights_mapping.go:30` — new file, the
+  explicit, human-reviewable `legacyRightPermission map[string]string`
+  (right_code → permission, each entry commented with the legacy
+  `RightName` and the reason it was mapped that way). This is the single
+  source of truth; the SQL backfill and this doc's counts are derived from
+  it, not maintained independently.
+- `db/migrations/044_legacy_rights_permission_backfill.sql:41` — new
+  migration, a single tenant-agnostic, idempotent
+  `UPDATE group_rights ... FROM (VALUES ...) WHERE gr.right_code = v.right_code
+  AND gr.permission IS NULL` built from the same 433-row table. Applied
+  directly (`psql ... -f db/migrations/044_legacy_rights_permission_backfill.sql`)
+  against `DATABASE_URL` per this task's constraints (not via a shared
+  migration-runner restart). Result: `UPDATE 1334` (across both tenants that
+  have imported security data, 1452 total `group_rights` rows /
+  1334 now-mapped — matches 433+6+108+120 for the 4 groups of the primary
+  tenant plus the second tenant's own migrated rows).
+- `services/api/internal/httpapi/access_integration_test.go:570` — new test
+  `TestLegacyRightPermissionBackfillUnlocksRealNonAdminPermissions` (see
+  below).
+- This file — this section.
+
+### Runtime enforcement: no code change needed
+
+`loadOperatorAccess` (auth.go) already reads
+`lower(COALESCE(g.permission, g.right_code))` — it was already preferring
+`permission` over `right_code` whenever `permission` is set; it only ever
+fell back to the raw numeric `right_code` because `permission` was NULL for
+every row. Backfilling `permission` is therefore sufficient on its own:
+`hasPermission`/`requirePermission`/`loadOperatorAccess` needed no changes.
+Confirmed directly: `SELECT DISTINCT lower(COALESCE(gr.permission,
+gr.right_code)) FROM group_rights gr JOIN legacy_groups lg ... WHERE
+legacy_group_name = 'SALES OFFICER'` now returns `maintenance.write,
+master.read, master.write, purchases.read, purchases.write, reports.read,
+sales.read, sales.write` plus 3 residual raw numeric codes (`675`, `90`,
+`91` — all deliberately unmapped, see above) instead of 8 raw numeric codes.
+
+### Test coverage added
+
+`TestLegacyRightPermissionBackfillUnlocksRealNonAdminPermissions`
+(`access_integration_test.go`) builds on
+`TestMigratedGroupRightsMatrixIsConsultedRowByRowAcrossFourGroups` /
+`TestGroupRightsHTTPEnforcementReflectsTableAndAdministratorBypassesIt`
+(which only copied `right_code`/`allowed`, never `permission`, into their
+isolated tenants — so they remain valid as a pin of the pre-backfill
+`right_code`-only behavior and needed no changes). The new test:
+
+1. Samples REMOTE's entire real 6-row matrix and 25 of SALES OFFICER's real
+   mapped rows from the live migrated table (source tenant
+   `eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee`), including the now-populated
+   `permission` column.
+2. Cross-checks every sampled row's database `permission` value against
+   `legacyRightPermission[right_code]` in Go, failing loudly if the SQL
+   backfill and the committed Go table ever drift apart.
+3. Copies the sampled rows (right_code + permission + allowed, verbatim)
+   into an isolated disposable tenant, binds one real operator per group via
+   `user_memberships`, and runs the real `loadOperatorAccess`.
+4. **Direction 1 (grant):** for every sampled allowed row, asserts the
+   mapped permission appears in `operator.Permissions` AND that
+   `requirePermission` at the HTTP layer grants it — for both REMOTE and
+   SALES OFFICER, non-admin groups that never touch the `hasTenantAdminRole`
+   bypass.
+5. **Direction 2 (deny):** asserts both groups are denied `manage.groups`
+   and `manage.users` — permissions only right codes 101/102 grant, which
+   only ADMINISTRATOR's real rows contain — proving the backfill grants
+   exactly what the table says and nothing more.
+
+Uses the existing `cleanupIsolatedLegacyTenant` FK-safe teardown from the
+prior verification pass; confirmed no orphaned `rights-backfill-*` tenant
+rows remain after the run (`SELECT count(*) FROM tenants WHERE code LIKE
+'rights-backfill-%'` → 0).
+
+### Verification run
+
+```
+$ cd services/api && go vet ./internal/httpapi/...
+(clean, no output)
+
+$ DATABASE_URL=postgres://postgres@127.0.0.1:5432/abuzar_next?sslmode=disable \
+  go test ./internal/httpapi/... -run \
+  'TestLegacyRightPermissionBackfillUnlocksRealNonAdminPermissions$|TestMigratedGroupRightsMatrixIsConsultedRowByRowAcrossFourGroups$|TestGroupRightsHTTPEnforcementReflectsTableAndAdministratorBypassesIt$|TestImportedGroupScopeUpdateIsTenantScopedAndAudited$|TestCanonicalGodownLookupHonorsExplicitUUIDScopes$|TestNormalizeRolePermissions$|TestPermissionCheckAllowsAdminAndAssignedPermissionOnly$|TestLegacyGroupEquivalentRolePaths$|TestRevokedLegacyRightFailsClosed$' \
+  -count=1 -v
+
+=== RUN   TestImportedGroupScopeUpdateIsTenantScopedAndAudited
+--- PASS: TestImportedGroupScopeUpdateIsTenantScopedAndAudited (1.50s)
+=== RUN   TestCanonicalGodownLookupHonorsExplicitUUIDScopes
+--- PASS: TestCanonicalGodownLookupHonorsExplicitUUIDScopes (1.30s)
+=== RUN   TestMigratedGroupRightsMatrixIsConsultedRowByRowAcrossFourGroups
+=== RUN   TestMigratedGroupRightsMatrixIsConsultedRowByRowAcrossFourGroups/ADMINISTRATOR
+=== RUN   TestMigratedGroupRightsMatrixIsConsultedRowByRowAcrossFourGroups/REMOTE
+=== RUN   TestMigratedGroupRightsMatrixIsConsultedRowByRowAcrossFourGroups/SALES_OFFICER
+=== RUN   TestMigratedGroupRightsMatrixIsConsultedRowByRowAcrossFourGroups/SHIFT_INCHARGE
+--- PASS: TestMigratedGroupRightsMatrixIsConsultedRowByRowAcrossFourGroups (2.04s)
+    --- PASS: .../ADMINISTRATOR (0.03s)
+    --- PASS: .../REMOTE (0.00s)
+    --- PASS: .../SALES_OFFICER (0.01s)
+    --- PASS: .../SHIFT_INCHARGE (0.01s)
+=== RUN   TestGroupRightsHTTPEnforcementReflectsTableAndAdministratorBypassesIt
+--- PASS: TestGroupRightsHTTPEnforcementReflectsTableAndAdministratorBypassesIt (1.75s)
+=== RUN   TestLegacyRightPermissionBackfillUnlocksRealNonAdminPermissions
+--- PASS: TestLegacyRightPermissionBackfillUnlocksRealNonAdminPermissions (1.75s)
+=== RUN   TestNormalizeRolePermissions
+--- PASS: TestNormalizeRolePermissions (0.00s)
+=== RUN   TestPermissionCheckAllowsAdminAndAssignedPermissionOnly
+--- PASS: TestPermissionCheckAllowsAdminAndAssignedPermissionOnly (0.00s)
+=== RUN   TestLegacyGroupEquivalentRolePaths
+--- PASS: TestLegacyGroupEquivalentRolePaths (0.00s)  (4 subtests pass)
+=== RUN   TestRevokedLegacyRightFailsClosed
+--- PASS: TestRevokedLegacyRightFailsClosed (0.00s)
+PASS
+ok  	github.com/abuzar/abuzar-next/services/api/internal/httpapi	8.449s
+```
+
+`business_document_lines` and `stock_ledger` were not touched by any query
+or change in this task. `git commit` was not run. The shared API server was
+not restarted; the migration was applied directly with `psql` against
+`DATABASE_URL`, matching how `ops/postgres/apply-migrations.sh` applies
+every other file in `db/migrations/` (plain autocommit `psql --file`, no
+wrapping transaction) — the migration was written as a single UPDATE
+statement (not a session temp table) specifically because that runner does
+not wrap files in a transaction.
+
+### Remaining gap (unchanged from the original finding)
+
+ADMINISTRATOR's bypass in `hasTenantAdminRole` is untouched and still
+intentional — its 486 `group_rights` rows (433 now mapped) are read into
+`operator.LegacyRights`/`operator.Permissions` for display/audit but are
+never consulted by `hasPermission`/`scopeAllowed` because the role-name
+bypass short-circuits first. 53 legacy right codes per group remain
+genuinely unmapped (see Coverage above) and will stay inaccessible to
+non-admin groups until a future pass extends the modern app to cover the
+corresponding legacy features (Transactions/Accounting Vouchers, Payroll,
+E-Prescription, etc.) or resolves the currently-ambiguous single-toggle
+rights.
