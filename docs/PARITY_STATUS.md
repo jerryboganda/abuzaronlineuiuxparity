@@ -589,3 +589,28 @@ edge ESC/POS route and retains browser preview as the unavailable-adapter
 fallback. Software checks pass; physical label geometry, legacy byte/raster
 comparison, and operator UAT remain open in
 `docs/PHASE_U_HARDWARE_EVIDENCE.md`.
+
+## Barcode UI wiring, biometric/SMS/SMTP plumbing, and cutover tooling follow-up - 2026-08-08
+
+Sales and purchase item-lookup inputs now detect a physical HID-wedge scan
+by keystroke timing (`apps/web/src/lib/barcode-scanner.ts`) and resolve it
+through the existing authenticated edge barcode-lookup route, with focused
+Playwright coverage. The edge service adds injected SMTP/SMS adapters and a
+biometric-verification pass-through (`services/edge/internal/hardware/smtp.go`,
+`sms.go`, `registry.go`), new authenticated routes for biometric/email/SMS,
+and the central API can now reach a configured branch edge for
+Maintenance test-email/test-sms actions
+(`services/api/internal/httpapi/channel_send.go`). All of this is
+code-complete and unit/integration-tested; it does not claim a physical
+scanner, printer, biometric reader, or a live SMTP/SMS send was exercised,
+and no biometric matching algorithm exists by design. See
+`docs/PHASE_U_HARDWARE_EVIDENCE.md` and
+`docs/PHASE_U_DEVICE_ACCEPTANCE_CHECKLIST.md` for the itemized evidence.
+
+Separately, `ops/cutover/validate-go-no-go.ps1` and `ops/cutover/rollback.ps1`
+(new) mechanize the go/no-go decision rule and the rollback runbook steps,
+and `migration/cmd/livecompare` (new) is a live parallel-day reconciliation
+watcher — see `docs/RUNBOOK_CUTOVER.md` §4.1/§9.3 and
+`docs/PARALLEL_DAY_WATCHER.md`. These do not change any gate status in
+`docs/CUTOVER_GO_NO_GO_TEMPLATE.json`, which remains `HOLD` with all checks
+`pending`/`blocked` pending real cutover execution.

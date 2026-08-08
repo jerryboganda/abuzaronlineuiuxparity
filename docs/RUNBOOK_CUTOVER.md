@@ -50,6 +50,7 @@ Authoritative status and evidence:
 - [Release artifacts and hashes](RELEASE_ARTIFACTS.md)
 - [Machine-checkable go/no-go template](CUTOVER_GO_NO_GO_TEMPLATE.json)
 - [Rollback rehearsal record template](ROLLBACK_REHEARSAL_RECORD_TEMPLATE.md)
+- [Parallel trading day watcher runbook](PARALLEL_DAY_WATCHER.md)
 
 ### Reference validation — 2026-08-07
 
@@ -177,6 +178,23 @@ Attach an artifact to every row. A verbal approval is not evidence.
 
 The current Phase W synthetic fixture and current exact shell comparison are
 useful evidence, but do not satisfy the full-volume or complete pixel gates.
+
+### 4.1 Functional UAT: running the parallel trading day
+
+`migration/cmd/reconcile` (used in [7.4](#74-t30-to-t60-final-reconciliation))
+is a one-shot batch comparison against a frozen snapshot — it is the
+authoritative evidence for the Counts and Business metrics gates, but it does
+not watch a live system while an operator is actually using it. The
+Functional UAT gate's parallel trading day needs a human to see divergences
+*during* the day, not only after it, so run `migration/cmd/livecompare`
+alongside the physical parallel day: it polls the same live legacy SQL
+Server and live migrated PostgreSQL target on an interval, diffs each poll
+against the previous one, and writes a timestamped audit trail under
+`parity/catalog/parallel-day/`. See
+[PARALLEL_DAY_WATCHER.md](PARALLEL_DAY_WATCHER.md) for the operator runbook,
+what its console output means, and why it complements rather than replaces
+the T+30–T+60 batch reconciliation. Attach its audit trail — not just the
+final `migration/cmd/reconcile` report — as evidence for this gate.
 
 ## 5. D-1 preparation and rehearsal
 

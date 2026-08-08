@@ -150,6 +150,14 @@ func (s *Server) maintenanceAction(w http.ResponseWriter, r *http.Request) {
 		s.handleDatabaseRestore(w, r, operator, kind, payload)
 		return
 	}
+	if isEmailMaintenanceKind(kind) {
+		s.handleChannelSend(w, r, operator, kind, payload, channelKindEmail)
+		return
+	}
+	if isSMSMaintenanceKind(kind) {
+		s.handleChannelSend(w, r, operator, kind, payload, channelKindSMS)
+		return
+	}
 
 	tx, err := s.beginScopedTx(r.Context(), operator)
 	if err != nil {

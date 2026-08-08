@@ -696,6 +696,10 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Stored for captured UI parity; stock posting independently validates branch, batch, and expiry data.", "stored_only"
 	case category == "Point of Sale" && (strings.Contains(lower, "cashier") || strings.Contains(lower, "cash drawer") || strings.Contains(lower, "cash charged")):
 		return "Stored for captured UI parity; cashier activity is branch scoped and physical drawer signaling remains an edge adapter concern.", "stored_only"
+	case category == "Email":
+		return "Captured for legacy-tab parity only. A real SMTP client adapter now exists (services/edge/internal/hardware/smtp.go) and central maintenance test-email/send-email actions will attempt a real send when the deployment is configured, but this specific saved value is not read by that adapter: SMTP host/port/user/password/from/encryption are configured via SMTP_* environment variables on the branch-edge process, and the API only reaches that edge instance when ABUZAR_EDGE_CHANNEL_URL is set. Nothing currently copies this preference value into either configuration surface.", "stored_only"
+	case category == "SMS":
+		return "Captured for legacy-tab parity only. A real Web-SMS-gateway HTTP client adapter now exists (services/edge/internal/hardware/sms.go) and central maintenance test-sms/send-sms actions will attempt a real send when the deployment is configured, but this specific saved value is not read by that adapter: the gateway URL template, credentials, and mask are configured via SMS_GATEWAY_* environment variables on the branch-edge process, and the API only reaches that edge instance when ABUZAR_EDGE_CHANNEL_URL is set. Nothing currently copies this preference value into either configuration surface.", "stored_only"
 	default:
 		return "No backend behavior is currently dependent on this value.", "stored_only"
 	}

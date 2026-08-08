@@ -66,6 +66,24 @@
 --   5. RAISE NOTICE progress lines are emitted after every committed window
 --      so a human running run-phase-w.ps1 sees rows-committed-so-far instead
 --      of a silently hanging psql process.
+--   6. A second, related problem was found and fixed while validating this
+--      change with a real (smaller-scale) run: assert_balanced_gl_journal()
+--      (the deferred trigger above) issues ordinary planner-costed SELECTs
+--      against gl_journals/gl_lines on every firing. A freshly created table
+--      has default statistics (reltuples = 0) until it is ANALYZEd, so
+--      Postgres kept picking sequential scans for those lookups as
+--      gl_journals/gl_lines grew, making every later batch slower than the
+--      last (observed directly: a 5,000-row GL batch went from ~20s to over
+--      90s within a few batches on this machine). The GL loop below now
+--      ANALYZEs gl_journals and gl_lines after every committed window so the
+--      planner always has current statistics and keeps choosing index scans.
+--      This was very likely also a contributor to the original crash: the
+--      single-transaction version never ANALYZEd mid-load either, so its one
+--      giant burst of ~3.1M deferred trigger firings at final COMMIT time was
+--      running the same query pattern against stale, "table looks empty"
+--      statistics the entire way -- an unbounded, ever-worsening amount of
+--      sequential-scan work stacked inside a transaction that could not
+--      commit any of it until everything finished.
 --
 -- This script still requires a genuinely disposable/isolated Postgres
 -- instance for -FullVolume: batching removes the single-giant-transaction
@@ -464,6 +482,16 @@ BEGIN
 
         RAISE NOTICE 'Phase W GL seed: committed % / % rows (documents + lines + events + journals + gl_lines + party ledger)', v_end, p_total;
         COMMIT;
+
+        -- Keep planner statistics current for the tables the deferred
+        -- assert_balanced_gl_journal() trigger queries on every firing (see
+        -- the file header for why this matters). ANALYZE samples a bounded
+        -- number of pages regardless of table size, so this stays cheap even
+        -- as the tables grow across hundreds of windows; it also runs in its
+        -- own auto-committed statement so it never re-opens the transaction
+        -- the loop just committed.
+        ANALYZE gl_journals;
+        ANALYZE gl_lines;
 
         v_start := v_end + 1;
     END LOOP;

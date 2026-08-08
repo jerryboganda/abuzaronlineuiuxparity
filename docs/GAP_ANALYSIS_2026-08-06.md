@@ -19,7 +19,7 @@ Evidence directory: `AbuzarNext/tmp/gap-audit/` (screenshots, menu-tree JSONs, d
 | G6 | Master data: 20+ masters fall to a generic Code/Name form; Item master missing Suppliers sub-grid and behaviors | S1 major | 4 explicit forms only, empty DB |
 | G7 | Transaction surface field/layout gaps (Cash Sale, Pack Purchase, returns, quotation) | S1 major | Main fields present, many columns/behaviors missing |
 | G8 | Maintenance/Manage workflows are preference-writing stubs (backup, imports, integrity, session monitor) | S1 major | Forms save values, execute nothing |
-| G9 | Hardware integrations all placeholders (thermal printer, barcode, cash drawer, biometric, SMS, email) | S2 | Edge returns "No adapter configured" |
+| G9 | Hardware integrations — plumbing/adapters now code-complete and unit-tested (thermal printer, barcode incl. UI wiring, cash drawer, biometric, SMS, email); physical-device and live-credential verification still open; biometric matching unimplemented by design | S2 — **plumbing code-complete 2026-08-08**, physical/live verification open | Edge returns "No adapter configured" only when no adapter is configured; adapters/routes exist and pass software tests |
 | G10 | Shell/chrome fidelity: frozen timestamp in title, display-name vs username, toolbar/status-bar/MDI differences | S2 | Raster shell approximates, not live |
 | G11 | Dev-runtime instability: Vite dev server died 3× during audit; SSR 500 on module pages (since guarded) | S2 | Root cause: non-detached process + earlier missing guards |
 | G12 | Mojibake: 13 CSS `content: "\\XXXX"` double-escapes rendered literal text on every surface; double-encoded UTF-8 also baked into source files, masked by a runtime MutationObserver | S2 — CSS layer **FIXED 2026-08-06**; source layer open | `styles.css` corrected & verified; `legacy-text.ts` band-aid still active |
@@ -109,7 +109,34 @@ All Maintenance and Manage screens in the new app persist their form values into
 
 ## G9 — Hardware integrations
 
-Edge service returns "No adapter configured" for every registered adapter: thermal_printer, barcode_scanner, cash_drawer, biometric_reader, sms, email. Legacy prints thermal sale slips, purchase labels (Alt+F8), reads barcodes (item lookup by alias/barcode), triggers the cash drawer, and sends SMS.
+Edge service returns "No adapter configured" for every registered adapter absent
+a configured backend: thermal_printer, barcode_scanner, cash_drawer,
+biometric_reader, sms, email. Legacy prints thermal sale slips, purchase labels
+(Alt+F8), reads barcodes (item lookup by alias/barcode), triggers the cash
+drawer, and sends SMS.
+
+**Update — 2026-08-08:** the plumbing/adapter layer for every item in this row
+is now code-complete and unit/integration-tested (see
+`docs/PHASE_U_HARDWARE_EVIDENCE.md` and
+`docs/PHASE_U_DEVICE_ACCEPTANCE_CHECKLIST.md` for the itemized evidence):
+sale-slip/purchase-label ESC/POS rendering, barcode normalization, and
+cash-drawer kick were already wired to authenticated edge routes as of
+2026-08-06; this session added the barcode-scanner **UI** wiring (a
+keystroke-timing HID-wedge detector in `apps/web/src/lib/barcode-scanner.ts`,
+live on the sales and purchase item-lookup inputs with Playwright coverage),
+and SMTP/SMS/biometric adapter interfaces, registry methods, and authenticated
+edge routes (`services/edge/internal/hardware/smtp.go`, `sms.go`,
+`registry.go` additions, new `/v1/hardware/{biometric/verify,email/send,sms/send}`
+routes) plus a central-API channel-send bridge
+(`services/api/internal/httpapi/channel_send.go`) and a desktop
+`verify_biometric` Tauri command. **What remains open is exclusively physical
+and live-credential verification**, not missing code: a real printer/label
+printer/HID scanner/cash drawer run at a POS terminal, real SMTP/SMS gateway
+credentials and a live test send, and a real biometric reader. Biometric
+**matching itself has no implementation** in this codebase by design — no
+vendor SDK or physical reader was available in this environment to build or
+test one against, and the registry only forwards a caller-supplied sample to
+whatever adapter is injected.
 
 ## G10 — Shell / chrome fidelity
 
