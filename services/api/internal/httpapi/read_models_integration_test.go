@@ -32,7 +32,7 @@ func TestReadModelsExposeCanonicalSalesWithoutDuplicateCompatibilityRows(t *test
 
 	fixture := seedStockTenant(t, ctx, database, "read-model-"+time.Now().Format("150405.000000"))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID)
 	}()
 	operator := &sessionContext{
 		UserID: fixture.operatorID, TenantID: fixture.tenantID, BranchID: fixture.branchID,
@@ -105,7 +105,7 @@ func TestReadModelsExposeCanonicalSalesWithoutDuplicateCompatibilityRows(t *test
 
 	other := seedStockTenant(t, ctx, database, "read-model-other-"+time.Now().Format("150405.000000"))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, other.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, other.tenantID)
 	}()
 	request := readModelRequest(http.MethodGet, "/v1/reports/daily-sales-detail?from=2026-08-06&to=2026-08-06&filter=CANONICAL-1", &sessionContext{
 		UserID: other.operatorID, TenantID: other.tenantID, BranchID: other.branchID,
@@ -145,7 +145,7 @@ func TestReadModelsExposeCanonicalSaleReturnsWithoutDuplicateCompatibilityRows(t
 
 	fixture := seedStockTenant(t, ctx, database, "read-model-return-"+time.Now().Format("150405.000000"))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID)
 	}()
 	operator := &sessionContext{
 		UserID: fixture.operatorID, TenantID: fixture.tenantID, BranchID: fixture.branchID,
@@ -249,7 +249,7 @@ func TestInvoiceSummaryReportGroupsCanonicalLinesOnce(t *testing.T) {
 
 	fixture := seedStockTenant(t, ctx, database, "read-model-summary-"+time.Now().Format("150405.000000"))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID)
 	}()
 	var documentID string
 	if err := database.QueryRowContext(ctx, `
@@ -316,7 +316,7 @@ func TestPurchaseReturnReportUsesCanonicalReadModel(t *testing.T) {
 	}
 	fixture := seedStockTenant(t, ctx, database, "read-model-purchase-return-"+time.Now().Format("150405.000000"))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID)
 	}()
 	supplierID := seedPurchaseSupplier(t, ctx, database, fixture.tenantID, "supplier-"+fixture.itemLegacyID)
 	var documentID string
@@ -374,7 +374,7 @@ func TestPurchaseLineDetailReportUsesCanonicalAndCompatibilityLines(t *testing.T
 	}
 	fixture := seedStockTenant(t, ctx, database, "read-model-purchase-detail-"+time.Now().Format("150405.000000"))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID)
 	}()
 	supplierID := seedPurchaseSupplier(t, ctx, database, fixture.tenantID, "supplier-"+fixture.itemLegacyID)
 	var documentID string
@@ -472,7 +472,7 @@ func TestInventoryBalancePrefersNormalizedGodownScopedRows(t *testing.T) {
 
 	fixture := seedStockTenant(t, ctx, database, "balance-read-"+time.Now().Format("150405.000000"))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID)
 	}()
 	var batchID string
 	if err := database.QueryRowContext(ctx, `

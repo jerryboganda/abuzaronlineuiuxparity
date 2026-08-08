@@ -43,7 +43,7 @@ func TestPreferencesRoundTripAndBranchIsolationIntegration(t *testing.T) {
 
 	suffix := time.Now().UnixNano()
 	tenantID, branchID, counterID, operatorID := seedDocumentTenant(t, ctx, database, "preferences-"+formatTestSuffix(suffix))
-	defer database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, tenantID)
+	defer cleanupIsolatedLegacyTenant(ctx, database, tenantID)
 	var otherBranchID string
 	if err := database.QueryRowContext(ctx, `
 		INSERT INTO branches (tenant_id, code, name)

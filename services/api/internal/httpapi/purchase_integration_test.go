@@ -36,7 +36,7 @@ func TestPurchaseVerticalSliceIntegration(t *testing.T) {
 	other := seedStockTenant(t, ctx, database, "other-purchase-"+fmt.Sprint(time.Now().UnixNano()))
 	supplierID := seedPurchaseSupplier(t, ctx, database, fixture.tenantID, "supplier-"+fixture.itemLegacyID)
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id IN ($1::uuid, $2::uuid)`, fixture.tenantID, other.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID, other.tenantID)
 	}()
 
 	operator := &sessionContext{
@@ -254,7 +254,7 @@ func TestCanonicalPurchaseHistoryHydratesDocumentIdentityAndDetail(t *testing.T)
 
 	fixture := seedStockTenant(t, ctx, database, "purchase-history-"+fmt.Sprint(time.Now().UnixNano()))
 	supplierID := seedPurchaseSupplier(t, ctx, database, fixture.tenantID, "supplier-history-"+fixture.itemLegacyID)
-	defer func() { _, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID) }()
+	defer func() { cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID) }()
 	operator := &sessionContext{
 		UserID: fixture.operatorID, TenantID: fixture.tenantID, BranchID: fixture.branchID,
 		CounterID: fixture.counterID, Roles: []string{"tenant_admin"},
@@ -333,7 +333,7 @@ func TestCanonicalPurchaseLoadsItemSupplierScheme(t *testing.T) {
 
 	fixture := seedStockTenant(t, ctx, database, "purchase-scheme-"+fmt.Sprint(time.Now().UnixNano()))
 	supplierID := seedPurchaseSupplier(t, ctx, database, fixture.tenantID, "supplier-scheme-"+fixture.itemLegacyID)
-	defer func() { _, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID) }()
+	defer func() { cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID) }()
 	if _, err := database.ExecContext(ctx, `
 		INSERT INTO item_suppliers (
 			tenant_id, item_id, supplier_id, legacy_item_id, legacy_supplier_id,

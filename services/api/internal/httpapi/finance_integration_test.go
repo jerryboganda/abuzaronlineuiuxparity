@@ -32,7 +32,7 @@ func TestFinanceSalePostingIntegration(t *testing.T) {
 	fixture := seedStockTenant(t, ctx, database, "finance-"+fmt.Sprint(time.Now().UnixNano()))
 	other := seedStockTenant(t, ctx, database, "other-finance-"+fmt.Sprint(time.Now().UnixNano()))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id IN ($1::uuid, $2::uuid)`, fixture.tenantID, other.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID, other.tenantID)
 	}()
 	receive := insertInventoryEvent(t, ctx, database, fixture, "receiving", "finance-receive", inventoryRowPayload{
 		ItemLegacyID: fixture.itemLegacyID, GodownID: fixture.godownID,
@@ -552,7 +552,7 @@ func TestCreditLimitEnforcement(t *testing.T) {
 
 	fixture := seedStockTenant(t, ctx, database, "credit-limit-"+fmt.Sprint(time.Now().UnixNano()))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID)
 	}()
 	receive := insertInventoryEvent(t, ctx, database, fixture, "receiving", "credit-limit-receive", inventoryRowPayload{
 		ItemLegacyID: fixture.itemLegacyID, GodownID: fixture.godownID,

@@ -31,7 +31,7 @@ func TestBusinessDocumentLifecycleIntegration(t *testing.T) {
 	tenantID, branchID, counterID, operatorID, itemID := seedDocumentFixture(t, ctx, database)
 	tenantTwoID, branchTwoID, counterTwoID, operatorTwoID := seedDocumentTenant(t, ctx, database, fmt.Sprintf("other-%d", time.Now().UnixNano()))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id IN ($1::uuid, $2::uuid)`, tenantID, tenantTwoID)
+		cleanupIsolatedLegacyTenant(ctx, database, tenantID, tenantTwoID)
 	}()
 
 	server := &Server{database: database}

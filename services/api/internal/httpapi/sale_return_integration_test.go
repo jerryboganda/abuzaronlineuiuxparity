@@ -30,7 +30,7 @@ func TestSaleReturnLifecycleIntegration(t *testing.T) {
 	fixture := seedStockTenant(t, ctx, database, "sale-return-"+fmt.Sprint(time.Now().UnixNano()))
 	other := seedStockTenant(t, ctx, database, "sale-return-other-"+fmt.Sprint(time.Now().UnixNano()))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id IN ($1::uuid, $2::uuid)`, fixture.tenantID, other.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID, other.tenantID)
 	}()
 	receive := insertInventoryEvent(t, ctx, database, fixture, "receiving", "sale-return-receive", inventoryRowPayload{
 		ItemLegacyID: fixture.itemLegacyID, GodownID: fixture.godownID,

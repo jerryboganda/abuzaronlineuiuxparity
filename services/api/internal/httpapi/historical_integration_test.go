@@ -37,17 +37,13 @@ func TestHistoricalReportsReadRetainedSourceRowsWithinTenantBranch(t *testing.T)
 			`DELETE FROM historical_stock_adjustment_lines WHERE tenant_id IN ($1::uuid, $2::uuid)`,
 			`DELETE FROM stock_batches WHERE tenant_id IN ($1::uuid, $2::uuid)`,
 			`DELETE FROM user_memberships WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM roles WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM users WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM counters WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM branches WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM tenants WHERE id IN ($1::uuid, $2::uuid)`,
 		} {
 			if _, cleanupErr := database.ExecContext(ctx, query, fixture.tenantID, other.tenantID); cleanupErr != nil {
 				t.Errorf("cleanup historical fixtures: %v", cleanupErr)
 				return
 			}
 		}
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID, other.tenantID)
 	}()
 	if _, err := database.ExecContext(ctx, `
 		INSERT INTO historical_item_changes (
@@ -131,7 +127,7 @@ func TestHistoricalStockAdjustmentReportIncludesNormalizedLedgerRows(t *testing.
 	}
 	fixture := seedStockTenant(t, ctx, database, "historical-adjustment-ledger-"+time.Now().Format("150405.000000"))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID)
 	}()
 	event := insertInventoryEvent(t, ctx, database, fixture, "inventory", "normalized-adjustment-report", inventoryRowPayload{
 		ItemLegacyID: fixture.itemLegacyID,
@@ -207,17 +203,13 @@ func TestHistoricalStockBackDateReportUsesImportedStockReportFields(t *testing.T
 			`DELETE FROM historical_stock_snapshots WHERE tenant_id IN ($1::uuid, $2::uuid)`,
 			`DELETE FROM stock_batches WHERE tenant_id IN ($1::uuid, $2::uuid)`,
 			`DELETE FROM user_memberships WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM roles WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM users WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM counters WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM branches WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM tenants WHERE id IN ($1::uuid, $2::uuid)`,
 		} {
 			if _, cleanupErr := database.ExecContext(ctx, query, fixture.tenantID, other.tenantID); cleanupErr != nil {
 				t.Errorf("cleanup historical stock fixtures: %v", cleanupErr)
 				return
 			}
 		}
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID, other.tenantID)
 	}()
 	if _, err := database.ExecContext(ctx, `
 		INSERT INTO historical_stock_snapshots
@@ -395,17 +387,13 @@ func TestHistoricalGLJournalReportUsesImportedVirtualGLFields(t *testing.T) {
 			`DELETE FROM historical_gl_entries WHERE tenant_id IN ($1::uuid, $2::uuid)`,
 			`DELETE FROM stock_batches WHERE tenant_id IN ($1::uuid, $2::uuid)`,
 			`DELETE FROM user_memberships WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM roles WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM users WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM counters WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM branches WHERE tenant_id IN ($1::uuid, $2::uuid)`,
-			`DELETE FROM tenants WHERE id IN ($1::uuid, $2::uuid)`,
 		} {
 			if _, cleanupErr := database.ExecContext(ctx, query, fixture.tenantID, other.tenantID); cleanupErr != nil {
 				t.Errorf("cleanup historical GL fixtures: %v", cleanupErr)
 				return
 			}
 		}
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID, other.tenantID)
 	}()
 	if _, err := database.ExecContext(ctx, `
 		INSERT INTO historical_gl_entries (

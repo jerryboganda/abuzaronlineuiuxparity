@@ -44,7 +44,7 @@ func TestAuxiliaryMasterCRUDIntegration(t *testing.T) {
 
 	suffix := formatTestSuffix(time.Now().UnixNano())
 	tenantID, branchID, counterID, operatorID := seedDocumentTenant(t, ctx, database, "aux-master-"+suffix)
-	defer database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, tenantID)
+	defer cleanupIsolatedLegacyTenant(ctx, database, tenantID)
 	operator := &sessionContext{
 		UserID: operatorID, TenantID: tenantID, BranchID: branchID, CounterID: counterID,
 		TokenHash: "auxiliary-master-session", Roles: []string{"tenant_admin"},

@@ -119,7 +119,7 @@ func TestTaxConfigurationResolvesProfilesEffectiveDatesAndPostedGL(t *testing.T)
 	fixture := seedStockTenant(t, ctx, database, "tax-"+fmt.Sprint(time.Now().UnixNano()))
 	other := seedStockTenant(t, ctx, database, "other-tax-"+fmt.Sprint(time.Now().UnixNano()))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id IN ($1::uuid, $2::uuid)`, fixture.tenantID, other.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID, other.tenantID)
 	}()
 	var customerID, supplierID, gstID, pctID, advanceID, futureGSTID string
 	if err := database.QueryRowContext(ctx, `INSERT INTO master_parties

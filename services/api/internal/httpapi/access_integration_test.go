@@ -15,24 +15,44 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// cleanupIsolatedLegacyTenant tears down a tenant seeded by seedDocumentTenant
-// (plus any roles/audit rows a test added on top of it) in FK-safe order.
+// cleanupIsolatedLegacyTenant tears down one or more tenants seeded by
+// seedDocumentTenant (plus any rows a test added on top of them) in FK-safe
+// order. Call it with defer instead of a bare
+// `defer database.ExecContext(ctx, "DELETE FROM tenants WHERE id = $1::uuid", tenantID)`
+// — that pattern discards the error, and tenants is referenced by many
+// tables (branches, counters, users, roles, audit_events, sales_documents,
+// sync_events, sync_cursors, conflict_records, inventory_movements, shifts,
+// tenant_preferences, master_records — confirmed via pg_constraint,
+// confdeltype='a'/NO ACTION) plus tables that reference users(id) with their
+// own NO ACTION FK (business_documents, command_receipts) and so must be
+// cleared before users can be deleted. A bare tenant-only DELETE fails
+// against every one of these and — with the error discarded — fails
+// silently, leaving the tenant and its children behind forever. 389
+// orphaned "document-test-*"/"access-test-*" tenants were found accumulated
+// in the shared dev database from this exact pattern (2026-08-08).
 //
-// tenants is referenced by branches, counters, users, roles, and audit_events
-// with NO ACTION (non-cascading) foreign keys, so a bare
-// `DELETE FROM tenants WHERE id = $1` fails and — when only called via a bare
-// `defer database.ExecContext(...)` that never inspects the returned error —
-// fails silently, leaving the tenant and its children behind. Every test in
-// this file used that pattern; fixed here so repeated runs stop accumulating
-// orphaned "document-test-*" tenants (389 were found accumulated in the
-// shared dev database while investigating this).
-func cleanupIsolatedLegacyTenant(ctx context.Context, database *sql.DB, tenantID string) {
-	_, _ = database.ExecContext(ctx, `DELETE FROM audit_events WHERE tenant_id = $1::uuid`, tenantID)
-	_, _ = database.ExecContext(ctx, `DELETE FROM users WHERE tenant_id = $1::uuid`, tenantID)
-	_, _ = database.ExecContext(ctx, `DELETE FROM roles WHERE tenant_id = $1::uuid`, tenantID)
-	_, _ = database.ExecContext(ctx, `DELETE FROM counters WHERE tenant_id = $1::uuid`, tenantID)
-	_, _ = database.ExecContext(ctx, `DELETE FROM branches WHERE tenant_id = $1::uuid`, tenantID)
-	_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, tenantID)
+// Rather than hand-derive the full topological order across ~15
+// interdependent tables, this deletes the same fixed table list across a
+// few passes: any table whose delete fails on pass N (still blocked by a
+// table not yet cleared) succeeds once that blocking table is cleared on a
+// later pass. This converges regardless of the exact dependency depth.
+func cleanupIsolatedLegacyTenant(ctx context.Context, database *sql.DB, tenantIDs ...string) {
+	tables := []string{
+		"business_documents", "command_receipts", "audit_events",
+		"sales_documents", "shifts", "sync_events", "sync_cursors",
+		"conflict_records", "inventory_movements", "tenant_preferences",
+		"master_records", "counters", "users", "roles", "branches",
+	}
+	for pass := 0; pass < 3; pass++ {
+		for _, table := range tables {
+			for _, tenantID := range tenantIDs {
+				_, _ = database.ExecContext(ctx, `DELETE FROM `+table+` WHERE tenant_id = $1::uuid`, tenantID)
+			}
+		}
+	}
+	for _, tenantID := range tenantIDs {
+		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, tenantID)
+	}
 }
 
 func TestImportedGroupScopeUpdateIsTenantScopedAndAudited(t *testing.T) {
@@ -530,5 +550,208 @@ func TestGroupRightsHTTPEnforcementReflectsTableAndAdministratorBypassesIt(t *te
 	}
 	if !checkPermission(t, adminOperator, "manage.groups") {
 		t.Fatal("ADMINISTRATOR: expected the hardcoded tenant-admin bypass to grant manage.groups despite the table's explicit deny row — enforcement for this group is role-name-driven, not table-driven")
+	}
+}
+
+// TestLegacyRightPermissionBackfillUnlocksRealNonAdminPermissions closes the
+// gap the two tests above intentionally pinned: after
+// db/migrations/044_legacy_rights_permission_backfill.sql populates
+// group_rights.permission from the reviewed legacyRightPermission table
+// (legacy_rights_mapping.go), the *real* migrated right codes for REMOTE and
+// SALES OFFICER — both non-admin groups that never hit the ADMINISTRATOR
+// bypass — must now resolve to actual requirePermission-gated permission
+// names, in both directions:
+//   - a right the group genuinely holds unlocks the exact permission
+//     legacyRightPermission says it should, at both the loadOperatorAccess
+//     and HTTP requirePermission layers;
+//   - manage.groups/manage.users — which only right codes 101/102 grant, and
+//     which only ADMINISTRATOR's real migrated rows contain — stay denied
+//     for both groups, proving the backfill did not over-grant.
+func TestLegacyRightPermissionBackfillUnlocksRealNonAdminPermissions(t *testing.T) {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		t.Skip("DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	database, err := sql.Open("pgx", dsn)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	defer database.Close()
+	if err := database.PingContext(ctx); err != nil {
+		t.Fatalf("ping database: %v", err)
+	}
+
+	// REMOTE's entire real migrated matrix is only 6 right codes, and every
+	// one of them is expected to now carry a mapped permission — verify that
+	// up front so the rest of the test fails loudly (not silently skips
+	// coverage) if a future re-import or mapping edit changes that.
+	type sampledMappedRight struct {
+		RightCode  string
+		Permission string
+		Allowed    bool
+	}
+	sampleMapped := func(t *testing.T, group string, limit int) []sampledMappedRight {
+		t.Helper()
+		rows, err := database.QueryContext(ctx, `
+			SELECT gr.right_code, gr.permission, gr.allowed
+			FROM group_rights gr
+			JOIN legacy_groups lg ON lg.tenant_id = gr.tenant_id AND lg.role_id = gr.role_id
+			WHERE gr.tenant_id = $1::uuid AND lg.legacy_group_name = $2 AND gr.permission IS NOT NULL
+			ORDER BY gr.right_code::int
+			LIMIT $3`, legacyGroupRightsMatrixSourceTenantID, group, limit)
+		if err != nil {
+			t.Fatalf("sample mapped rights for %s: %v", group, err)
+		}
+		defer rows.Close()
+		sample := make([]sampledMappedRight, 0, limit)
+		for rows.Next() {
+			var right sampledMappedRight
+			if err := rows.Scan(&right.RightCode, &right.Permission, &right.Allowed); err != nil {
+				t.Fatalf("scan mapped right for %s: %v", group, err)
+			}
+			sample = append(sample, right)
+		}
+		if err := rows.Err(); err != nil {
+			t.Fatalf("iterate mapped rights for %s: %v", group, err)
+		}
+		return sample
+	}
+
+	remoteSample := sampleMapped(t, "REMOTE", 6)
+	if len(remoteSample) != 6 {
+		t.Fatalf("REMOTE mapped-permission sample = %d rows, want 6 (its entire real matrix, all expected to be mapped after the backfill)", len(remoteSample))
+	}
+	salesSample := sampleMapped(t, "SALES OFFICER", 25)
+	if len(salesSample) == 0 {
+		t.Fatal("SALES OFFICER has zero mapped rows after the backfill — the migration did not apply")
+	}
+
+	// Cross-check every sampled row's permission against the committed Go
+	// mapping table itself, not just the database — this guards against the
+	// SQL migration and legacy_rights_mapping.go silently drifting apart.
+	for _, right := range append(append([]sampledMappedRight{}, remoteSample...), salesSample...) {
+		want, ok := legacyRightPermission[right.RightCode]
+		if !ok {
+			t.Fatalf("right_code %q has a permission in the database but no entry in legacyRightPermission — mapping table and backfill have drifted", right.RightCode)
+		}
+		if want != right.Permission {
+			t.Fatalf("right_code %q: database permission = %q, legacyRightPermission says %q — mapping table and backfill have drifted", right.RightCode, right.Permission, want)
+		}
+	}
+
+	suffix := formatTestSuffix(time.Now().UnixNano())
+	tenantID, _, _, _ := seedDocumentTenant(t, ctx, database, "rights-backfill-"+suffix)
+	defer cleanupIsolatedLegacyTenant(ctx, database, tenantID)
+
+	roleIDByCode := map[string]string{}
+	for _, code := range []string{"REMOTE", "SALES OFFICER"} {
+		var id string
+		if err := database.QueryRowContext(ctx, `SELECT id::text FROM roles WHERE tenant_id = $1::uuid AND code = $2`, tenantID, code).Scan(&id); err != nil {
+			t.Fatalf("legacy group %q missing from freshly seeded tenant: %v", code, err)
+		}
+		roleIDByCode[code] = id
+	}
+
+	copyRights := func(t *testing.T, group string, sample []sampledMappedRight) {
+		t.Helper()
+		roleID := roleIDByCode[group]
+		for _, right := range sample {
+			if _, err := database.ExecContext(ctx, `
+				INSERT INTO group_rights (tenant_id, role_id, right_code, permission, allowed)
+				VALUES ($1::uuid, $2::uuid, $3, $4, $5)`, tenantID, roleID, right.RightCode, right.Permission, right.Allowed); err != nil {
+				t.Fatalf("copy migrated+mapped right %s (%s) for %s into isolated tenant: %v", right.RightCode, right.Permission, group, err)
+			}
+		}
+	}
+	copyRights(t, "REMOTE", remoteSample)
+	copyRights(t, "SALES OFFICER", salesSample)
+
+	newOperator := func(t *testing.T, group string) *sessionContext {
+		t.Helper()
+		roleID := roleIDByCode[group]
+		var userID string
+		slug := strings.ToLower(strings.ReplaceAll(group, " ", "-"))
+		if err := database.QueryRowContext(ctx, `
+			INSERT INTO users (tenant_id, username, display_name, password_hash)
+			VALUES ($1::uuid, $2, $2, 'unused-hash') RETURNING id::text`,
+			tenantID, "rights-backfill-"+slug+"-"+suffix).Scan(&userID); err != nil {
+			t.Fatalf("seed operator for %s: %v", group, err)
+		}
+		if _, err := database.ExecContext(ctx, `
+			INSERT INTO user_memberships (user_id, tenant_id, role_id) VALUES ($1::uuid, $2::uuid, $3::uuid)`,
+			userID, tenantID, roleID); err != nil {
+			t.Fatalf("bind operator to %s: %v", group, err)
+		}
+		operator := &sessionContext{UserID: userID, TenantID: tenantID, Roles: []string{group}}
+		if err := loadOperatorAccess(ctx, database, operator); err != nil {
+			t.Fatalf("loadOperatorAccess for %s: %v", group, err)
+		}
+		return operator
+	}
+
+	remoteOperator := newOperator(t, "REMOTE")
+	salesOperator := newOperator(t, "SALES OFFICER")
+
+	server := &Server{database: database}
+	checkPermission := func(t *testing.T, operator *sessionContext, permission string) bool {
+		t.Helper()
+		request := httptest.NewRequest(http.MethodGet, "/v1/trace-check", nil)
+		request = request.WithContext(context.WithValue(request.Context(), sessionContextKey, operator))
+		recorder := httptest.NewRecorder()
+		return server.requirePermission(request, recorder, operator, permission)
+	}
+
+	// Direction 1: a group WITH a right mapped to permission X can do X.
+	// REMOTE's real matrix (right_code 5290 -> purchases.write, verified
+	// above against legacyRightPermission) must unlock purchases.write both
+	// as an effective permission and at the HTTP requirePermission layer.
+	remotePermissions := make(map[string]bool, len(remoteOperator.Permissions))
+	for _, permission := range remoteOperator.Permissions {
+		remotePermissions[permission] = true
+	}
+	for _, right := range remoteSample {
+		if !remotePermissions[right.Permission] {
+			t.Fatalf("REMOTE: right_code %s mapped to %q did not surface as an effective permission", right.RightCode, right.Permission)
+		}
+		if !checkPermission(t, remoteOperator, right.Permission) {
+			t.Fatalf("REMOTE: requirePermission denied %q even though right_code %s grants it via the backfilled table", right.Permission, right.RightCode)
+		}
+	}
+	salesPermissions := make(map[string]bool, len(salesOperator.Permissions))
+	for _, permission := range salesOperator.Permissions {
+		salesPermissions[permission] = true
+	}
+	for _, right := range salesSample {
+		if !right.Allowed {
+			continue // an explicit deny row must not surface as granted; direction 2 below covers denial semantics
+		}
+		if !salesPermissions[right.Permission] {
+			t.Fatalf("SALES OFFICER: right_code %s mapped to %q did not surface as an effective permission", right.RightCode, right.Permission)
+		}
+		if !checkPermission(t, salesOperator, right.Permission) {
+			t.Fatalf("SALES OFFICER: requirePermission denied %q even though right_code %s grants it via the backfilled table", right.Permission, right.RightCode)
+		}
+	}
+
+	// Direction 2: a group WITHOUT any right mapped to permission X is still
+	// denied X. Only legacy right codes 101 ("Manage , Groups") and 102
+	// ("Manage , Users") map to manage.groups/manage.users, and only
+	// ADMINISTRATOR's real migrated rows contain those codes (verified
+	// separately in this file) — REMOTE and SALES OFFICER never received
+	// them, so both must be denied regardless of the backfill.
+	for _, undesired := range []string{"manage.groups", "manage.users"} {
+		if remotePermissions[undesired] {
+			t.Fatalf("REMOTE: unexpectedly holds %q — no real REMOTE right_code maps to it", undesired)
+		}
+		if checkPermission(t, remoteOperator, undesired) {
+			t.Fatalf("REMOTE: requirePermission unexpectedly granted %q", undesired)
+		}
+		if salesPermissions[undesired] {
+			t.Fatalf("SALES OFFICER: unexpectedly holds %q — no real SALES OFFICER right_code maps to it", undesired)
+		}
+		if checkPermission(t, salesOperator, undesired) {
+			t.Fatalf("SALES OFFICER: requirePermission unexpectedly granted %q", undesired)
+		}
 	}
 }

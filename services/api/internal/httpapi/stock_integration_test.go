@@ -31,7 +31,7 @@ func TestStockLifecycleIntegration(t *testing.T) {
 	fixture := seedStockTenant(t, ctx, database, "stock-"+fmt.Sprint(time.Now().UnixNano()))
 	other := seedStockTenant(t, ctx, database, "other-stock-"+fmt.Sprint(time.Now().UnixNano()))
 	defer func() {
-		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id IN ($1::uuid, $2::uuid)`, fixture.tenantID, other.tenantID)
+		cleanupIsolatedLegacyTenant(ctx, database, fixture.tenantID, other.tenantID)
 	}()
 	operator := &sessionContext{
 		UserID: fixture.operatorID, TenantID: fixture.tenantID, BranchID: fixture.branchID,

@@ -34,7 +34,7 @@ func TestMaintenanceManageOperationsIntegration(t *testing.T) {
 
 	suffix := time.Now().UnixNano()
 	tenantID, branchID, counterID, operatorID := seedDocumentTenant(t, ctx, database, "maintenance-"+formatTestSuffix(suffix))
-	defer database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, tenantID)
+	defer cleanupIsolatedLegacyTenant(ctx, database, tenantID)
 	operator := &sessionContext{
 		UserID: operatorID, TenantID: tenantID, BranchID: branchID, CounterID: counterID,
 		TokenHash: "maintenance-current-session", Roles: []string{"tenant_admin"},
@@ -295,6 +295,112 @@ func TestMaintenanceManageOperationsIntegration(t *testing.T) {
 	})
 }
 
+// TestChannelSendMaintenanceIntegration exercises the "test-email"/
+// "test-sms" maintenance actions end-to-end against a local httptest fake
+// standing in for a branch-edge instance. It never contacts any real SMTP
+// server or SMS gateway.
+func TestChannelSendMaintenanceIntegration(t *testing.T) {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		t.Skip("DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	database, err := sql.Open("pgx", dsn)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	defer database.Close()
+	if err := database.PingContext(ctx); err != nil {
+		t.Fatalf("ping database: %v", err)
+	}
+
+	suffix := time.Now().UnixNano()
+	tenantID, branchID, counterID, operatorID := seedDocumentTenant(t, ctx, database, "channel-"+formatTestSuffix(suffix))
+	defer cleanupIsolatedLegacyTenant(ctx, database, tenantID)
+	operator := &sessionContext{
+		UserID: operatorID, TenantID: tenantID, BranchID: branchID, CounterID: counterID,
+		TokenHash: "channel-send-current-session", Roles: []string{"tenant_admin"},
+	}
+	server := &Server{database: database}
+
+	t.Run("not configured without an edge channel URL", func(t *testing.T) {
+		t.Setenv("ABUZAR_EDGE_CHANNEL_URL", "")
+		t.Setenv("ABUZAR_EDGE_CHANNEL_SECRET", "")
+		request := maintenanceTestRequest(http.MethodPost, "/v1/maintenance/test-email", `{"to":"customer@example.test","subject":"Hi","body":"Test"}`, operator)
+		recorder := httptest.NewRecorder()
+		server.maintenanceAction(recorder, request)
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("status = %d, body=%s", recorder.Code, recorder.Body.String())
+		}
+		var response struct {
+			Status string `json:"status"`
+		}
+		if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if response.Status != "not_configured" {
+			t.Fatalf("status = %q, want not_configured", response.Status)
+		}
+	})
+
+	t.Run("completed when the edge adapter accepts the message", func(t *testing.T) {
+		fakeEdge := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != "/v1/hardware/email/send" {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			w.WriteHeader(http.StatusAccepted)
+			_, _ = w.Write([]byte(`{"sent":true}`))
+		}))
+		defer fakeEdge.Close()
+		t.Setenv("ABUZAR_EDGE_CHANNEL_URL", fakeEdge.URL)
+		t.Setenv("ABUZAR_EDGE_CHANNEL_SECRET", "test-secret")
+
+		request := maintenanceTestRequest(http.MethodPost, "/v1/maintenance/test-email", `{"to":"customer@example.test","subject":"Hi","body":"Test"}`, operator)
+		recorder := httptest.NewRecorder()
+		server.maintenanceAction(recorder, request)
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("status = %d, body=%s", recorder.Code, recorder.Body.String())
+		}
+		var response struct {
+			Status string `json:"status"`
+		}
+		if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if response.Status != "completed" {
+			t.Fatalf("status = %q, want completed, body=%s", response.Status, recorder.Body.String())
+		}
+	})
+
+	t.Run("not configured when the edge reports no adapter", func(t *testing.T) {
+		fakeEdge := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/problem+json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"code":"hardware_adapter_unavailable","detail":"No physical hardware adapter is configured for this branch."}`))
+		}))
+		defer fakeEdge.Close()
+		t.Setenv("ABUZAR_EDGE_CHANNEL_URL", fakeEdge.URL)
+		t.Setenv("ABUZAR_EDGE_CHANNEL_SECRET", "")
+
+		request := maintenanceTestRequest(http.MethodPost, "/v1/maintenance/test-sms", `{"to":"923001234567","message":"Hi"}`, operator)
+		recorder := httptest.NewRecorder()
+		server.maintenanceAction(recorder, request)
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("status = %d, body=%s", recorder.Code, recorder.Body.String())
+		}
+		var response struct {
+			Status string `json:"status"`
+		}
+		if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if response.Status != "not_configured" {
+			t.Fatalf("status = %q, want not_configured, body=%s", response.Status, recorder.Body.String())
+		}
+	})
+}
+
 func TestSessionMonitorIsBranchScopedIntegration(t *testing.T) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -313,7 +419,7 @@ func TestSessionMonitorIsBranchScopedIntegration(t *testing.T) {
 	currentTokenHash := fmt.Sprintf("maintenance-current-%d", suffix)
 	otherTokenHash := fmt.Sprintf("maintenance-other-%d", suffix)
 	tenantID, branchID, counterID, operatorID := seedDocumentTenant(t, ctx, database, "session-"+formatTestSuffix(suffix))
-	defer database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, tenantID)
+	defer cleanupIsolatedLegacyTenant(ctx, database, tenantID)
 	var otherBranchID, otherCounterID, otherUserID string
 	if err := database.QueryRowContext(ctx, `INSERT INTO branches (tenant_id, code, name) VALUES ($1::uuid, $2, 'Other Branch') RETURNING id::text`, tenantID, "other-"+formatTestSuffix(suffix)).Scan(&otherBranchID); err != nil {
 		t.Fatalf("seed other branch: %v", err)
