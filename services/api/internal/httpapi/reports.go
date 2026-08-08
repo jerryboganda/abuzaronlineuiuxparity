@@ -173,6 +173,18 @@ var phaseNReportRegistry = func() map[string]reportSpec {
 				mode = "invoice-summary"
 			case "sale-detail":
 				mode = "line-detail"
+			case "sale-detail-inv-wise":
+				// Sibling of "sale-detail" differing only in sort/grouping key
+				// ("invoice wise" vs. chronological) -- the same relationship
+				// the registry already encodes for "sale-summary-inv-wise"
+				// vs. "sale-summary" two cases above, which reuse the same
+				// mode as their non-"-inv-wise" base leaf. dailySalesDetailReadModelQuery's
+				// column contract does not vary by sort order, so reusing
+				// "line-detail" verbatim is a like-for-like reuse, not a new
+				// projection. Verified 2026-08-09 against sandbox tenant
+				// eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee: quantity*salePrice==amount
+				// holds for every sampled row.
+				mode = "line-detail"
 			}
 			registry[report.kind] = reportSpec{title: report.title, aggregateCondition: condition, salesReadModel: true, salesMode: mode}
 		} else if report.kind == "refused-sales-detail" {
@@ -2814,7 +2826,7 @@ func saleReturnDetailReadModelQuery(pagination string) string {
 		       COALESCE(NULLIF(bl.legacy_payload->>'DiscPerc', ''), NULLIF(bl.pricing->>'discountPercent', ''), NULLIF(bl.pricing->>'customerDiscountRate', ''), '0.00') AS discount_percent,
 		       COALESCE(NULLIF(bl.legacy_payload->>'DiscountValue', ''), '0.00') AS discount_value,
 		       COALESCE(NULLIF(bl.legacy_payload->>'itemflatdisc', ''), NULLIF(bl.pricing->>'itemDiscount', ''), bl.item_discount::text, '0.00') AS item_discount,
-		       COALESCE(NULLIF(bl.legacy_payload->>'SalesTax', ''), NULLIF(bl.pricing->'taxes'->0->>'amount', ''), bl.tax_amount::text, '0.00') AS sales_tax_value,
+		       COALESCE(bl.tax_amount::numeric(19,2)::text, NULLIF(bl.legacy_payload->>'SalesTax', ''), NULLIF(bl.pricing->'taxes'->0->>'amount', ''), '0.00') AS sales_tax_value,
 		       COALESCE(NULLIF(allocation.expiry_date, ''), NULLIF(bl.expiry_date::text, ''), '') AS expiry_date,
 		       COALESCE(NULLIF(allocation.batch_number, ''), NULLIF(bl.batch_number, ''), '') AS batch_number
 		FROM business_documents bd

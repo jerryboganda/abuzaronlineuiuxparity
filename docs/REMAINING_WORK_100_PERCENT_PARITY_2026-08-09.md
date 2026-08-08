@@ -24,7 +24,7 @@ None of this reverses real work that did happen (moving-average stock valuation,
 
 10 parallel agents began closing the single largest gap identified above (Phases N–Q, 151 report leaves, 0 golden-verified). Methodology: live legacy SQL Server access is not reachable from this tool environment (Windows trusted-auth fails), so verification cross-checked each report's SQL against independently-authored queries over the same already-migrated, already-reconciled (16/16 metrics MATCHED) Postgres tables — not against a fresh SQL Server query. 9 new evidence docs (`docs/PHASE_{N,O,P,Q}_GOLDEN_VERIFICATION_*_2026-08-09.md`) hold full per-leaf query evidence.
 
-**Coverage this wave:** 114 of 151 leaves got an evidence-based verdict (MATCHED / MISMATCH-DOCUMENTED / VACUOUS-NO-DATA). 2 further leaves (`customer-sales-detail`, `customer-sales-summary`) were promoted from generic to real, reusing the already-verified `sale-detail`/`sale-summary` query shape (`docs/PHASE_N_REPORT_PROMOTION_2026-08-09.md`).
+**Coverage this wave:** 106 of the 151 catalog leaves got an evidence-based verdict (MATCHED / MISMATCH-DOCUMENTED / VACUOUS-NO-DATA) — **correction (2026-08-09, wave 2): the "114" figure originally recorded here was wrong.** It summed each agent's assigned-list size, which for one agent included 8 alias-only routes (`gl-journal`, `trial-balance`, `customer-statement`, `supplier-statement`, `receivables-aging`, `payables-aging`, `tax-register`, `voucher-register`) that are real, valuable, and were genuinely verified, but are not part of the 151-leaf catalog tracked by the `phaseN/O/P/Q` registries. Recomputing directly against the registry: 106 of 151 catalog leaves were touched, 45 were not — see the wave-2 section below, which closes that gap. 2 further leaves (`customer-sales-detail`, `customer-sales-summary`) were promoted from generic to real, reusing the already-verified `sale-detail`/`sale-summary` query shape (`docs/PHASE_N_REPORT_PROMOTION_2026-08-09.md`).
 
 **~15 genuine bugs surfaced**, 9 fixed same-wave with regression tests (each pinned by a test that failed pre-fix and passes post-fix), the rest documented for a follow-up pass rather than guessed at:
 
@@ -46,7 +46,40 @@ Documented, not yet fixed (needs either a legacy-semantics judgment call or an o
 - `item-reports-history-*` — a COALESCE bug leaks the item name into the price-difference column for 2 leaves.
 - `listing-item-list-class-wise` — structurally can never match any `master_records.kind` value; needs a real data-model decision.
 
-**Updated N–Q count:** at least 79 of 151 leaves now have a real, evidence-backed MATCHED verdict or a fixed-and-verified projection (up from 0 golden-verified before this wave); the rest of the 114 examined either surfaced a still-open bug (documented above) or are genuinely data-empty in this sandbox (`VACUOUS-NO-DATA`, not a code defect). 37 of 151 leaves were not touched this wave. See the 9 evidence docs for the exact per-leaf verdict.
+**Updated N–Q count (wave 1):** at least 79 of 151 catalog leaves now have a real, evidence-backed MATCHED verdict or a fixed-and-verified projection (up from 0 golden-verified before this wave); the rest of the 106 examined either surfaced a still-open bug (documented above) or are genuinely data-empty in this sandbox (`VACUOUS-NO-DATA`, not a code defect). 45 of 151 leaves were not touched this wave (corrected count — see wave-2 note above). See the 9 evidence docs for the exact per-leaf verdict.
+
+---
+
+## Progress update — 2026-08-09, reports-gap wave 2 (the 45 leaves wave 1 missed)
+
+10 more agents covered all 45 catalog leaves wave 1 didn't touch — 41 of them concentrated in Phase N's "Sales Reports" sub-menu (Category Wise, Manufacturer Wise, User Wise families) plus 4 in Phase O. Same methodology (no live SQL Server; independent Postgres cross-checks). 8 new evidence docs: `docs/PHASE_N_GOLDEN_VERIFICATION_{GROUP1_REMAINDER,SALE_RETURN,CATEGORY_A,CATEGORY_B,MANUFACTURER,USER_WISE,MISC_A}_2026-08-09.md`, `docs/PHASE_N_O_GOLDEN_VERIFICATION_REMAINDER_2026-08-09.md`, plus `docs/PHASE_N_REPORT_PROMOTION_WAVE2_2026-08-09.md` and `docs/PHASE_N_LEGACY_SEMANTICS_RESEARCH_2026-08-09.md`.
+
+**Every one of the 45 leaves now has a status determination** — either a real golden-verified verdict, a confirmed-vacuous (no data) finding, or (for leaves that are genuinely not promotable yet) a precise, evidence-backed statement of exactly what's blocking them. Nothing was left as a bare unknown.
+
+**6 more leaves confirmed MATCHED or promoted to real:**
+- `sales-return-detail`, `sales-return-summary` — MATCHED (line-detail/invoice-summary, real query, verified against a 15-document sample).
+- `sales-return-summary-inv-wise` — confirmed byte-identical SQL to `sales-return-summary` (a legitimate finding, not a gap, matching the wave-1 `reprinting-*` precedent).
+- `purchase-return-summary` — MATCHED (634 docs, exact amount/qty reproduction).
+- `supplier-wise-detail`, `supplier-wise-purchase-detail` — confirmed byte-identical SQL to the already-verified `manufacturer-wise-detail`.
+- `supplier-purchase-returns-detail` — MATCHED on qty; surfaced a new, separate amount-source discrepancy (below).
+- `sale-detail-inv-wise` — promoted to real (`line-detail` mode, reusing the already-verified `sale-detail` query).
+
+**A wrong "blocked" finding from wave 1 was corrected.** Wave 1's promotion doc declined `category-wise-sales`/`manufacturer-wise-sales` citing "no resolved category/manufacturer name available, only opaque legacy codes." That check only looked at `master_items.payload`. Wave 2 found `master_categories` (7 rows) and `master_manufacturers` (838 rows) are real, populated lookup tables that resolve **100%** of items' `ICatCode`/`ManfCode` to real names via a simple join nobody had used — for sale lines, purchase lines, or the existing P-phase stock reports that already display the raw codes today. This unblocks the *data* half of ~15 leaves across N, O, and P; only the *column-layout* half (no legacy screenshot exists for any of them) remains open, per the dedicated research pass.
+
+**One bug fixed this wave** (same defect class as wave 1's `sale-detail` fix, just never propagated to its sibling): `sales-return-detail`'s "SalesTax Value" column silently showed `0.00` for 1,970/44,579 lines (4.42%, Rs 311,703.05) tenant-wide — fixed and verified, verdict updated to MATCHED.
+
+**New bugs found, documented, not fixed this wave** (need a legacy-semantics decision or further data engineering, not a 5-minute mechanical fix):
+- `supplier-purchase-returns-detail` vs. `purchase-return-summary` — two different amount sources disagree for 566/634 purchase-return documents (89.3%), net gap PKR 35,762.30, some individual docs off by 4×+.
+- `customer-sales-invoice-wise-profit-margin-detail` and `customer-sales-customer-category-wise-sales-customer-wise-gross-profit` (both wave-1 "real, MATCHED on price/tax" leaves) silently return **blank cost/profit-margin columns for every row** — they read cost exclusively from `stock_allocations` (0 rows in this tenant) when `stock_ledger` (100% populated, already used by the Phase J moving-average engine) has the real per-line cost sitting unused.
+
+**Genuinely, confirmedly blocked — not a code gap, a source-data gap** (checked database-wide, not just the sandbox tenant):
+- **User attribution (6 of 7 `user-wise-*` leaves):** `business_documents.operator_id` is 0/291,361 populated; the raw `legacy_payload->>'PostedBy'` fallback is JSON `null` for every single row too. No tenant in the database has real per-user attribution at meaningful scale. There is no query fix for this — the data was never captured or never migrated.
+- **Gross profit / COGS (`category-wise-gross-profit` and related):** `stock_allocations` is 0 rows database-wide at any real scale (confirmed, not sandbox-specific) — though wave 2 found the `stock_ledger`-based workaround above resolves this for future promotions.
+- **CNIC/NTN-registered customers:** only 2 generic bucket customer records exist tenant-wide; the CNIC/NTN fields are blank on both.
+- `slow-fast-moving-items` — 0/30,052 items have any reorder/velocity threshold populated.
+- `category-wise-deviated-items`, `category-wise-item-wise-sale-discounts-detail` (0 discounted lines tenant-wide), `dead-item-list` (needs a different query shape entirely — an anti-join, not a filter, since a sales-rooted query can never surface an item with zero sales) — each individually diagnosed.
+
+**Updated N–Q count (through wave 2): all 151 catalog leaves now have a status determination.** Precise tally: **86 confirmed MATCHED or fixed-and-verified**, several more confirmed byte-identical duplicates of already-verified leaves, a documented handful of VACUOUS-NO-DATA (genuinely empty source data, not a defect), a documented handful of MISMATCH-DOCUMENTED bugs (2 fixed across the two waves, several more precisely diagnosed for a future fix pass), and a firmly-diagnosed remainder that is blocked on missing source data (user attribution, COGS allocations, discount/CNIC data) that no further code archaeology can resolve — that requires either a data engineering effort or is a genuine, permanent limitation of what was captured from the legacy system. **This does not mean "151/151 done"** — golden-number legacy-output proof (the Phase N–Q accept criterion) still doesn't exist for any leaf in the strictest sense (no live legacy SQL Server access was available in this environment for either wave); what exists now is full internal-consistency verification against the already-reconciled migrated data, which is the strongest verification achievable without that access.
 
 ---
 
