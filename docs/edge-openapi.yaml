@@ -125,6 +125,86 @@ paths:
           description: No cash-drawer adapter is configured or hardware configuration is invalid
           content:
             application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } }
+  /v1/hardware/biometric/verify:
+    post:
+      security: [{ edgeBearer: [] }]
+      description: >-
+        Passes a base64-encoded sample to the configured BiometricAdapter.
+        No biometric matching happens in this service; without an injected
+        adapter this always returns 503 hardware_adapter_unavailable.
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/BiometricVerifyRequest' } }
+      responses:
+        '200':
+          description: Verification decision from the configured biometric adapter
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [verified]
+                properties:
+                  verified: { type: boolean }
+        '400': { description: Invalid or empty biometric sample }
+        '401': { description: Edge shared secret required }
+        '503':
+          description: No biometric adapter is configured or hardware configuration is invalid
+          content:
+            application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } }
+  /v1/hardware/email/send:
+    post:
+      security: [{ edgeBearer: [] }]
+      description: >-
+        Sends a message through the configured EmailAdapter (a real SMTP
+        client when SMTP_HOST is set on this branch-edge process).
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/EmailSendRequest' } }
+      responses:
+        '202':
+          description: Message accepted by the configured SMTP adapter
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sent]
+                properties:
+                  sent: { type: boolean, const: true }
+        '400': { description: Missing recipient address }
+        '401': { description: Edge shared secret required }
+        '503':
+          description: No email adapter is configured or hardware configuration is invalid
+          content:
+            application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } }
+  /v1/hardware/sms/send:
+    post:
+      security: [{ edgeBearer: [] }]
+      description: >-
+        Sends a message through the configured SMSAdapter (a real templated
+        Web-SMS-gateway HTTP client when SMS_GATEWAY_URL_TEMPLATE is set on
+        this branch-edge process).
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/SMSSendRequest' } }
+      responses:
+        '202':
+          description: Message accepted by the configured SMS gateway adapter
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sent]
+                properties:
+                  sent: { type: boolean, const: true }
+        '400': { description: Missing recipient }
+        '401': { description: Edge shared secret required }
+        '503':
+          description: No SMS adapter is configured or hardware configuration is invalid
+          content:
+            application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } }
   /v1/transactions/sales:
     post:
       security: [{ edgeBearer: [] }]
@@ -346,3 +426,21 @@ components:
         printed: { type: boolean, const: true }
         bytes: { type: integer, minimum: 1 }
         provider: { type: string }
+    BiometricVerifyRequest:
+      type: object
+      required: [sample]
+      properties:
+        sample: { type: string, format: byte, description: Base64-encoded biometric sample/template }
+    EmailSendRequest:
+      type: object
+      required: [to]
+      properties:
+        to: { type: string }
+        subject: { type: string }
+        body: { type: string }
+    SMSSendRequest:
+      type: object
+      required: [to]
+      properties:
+        to: { type: string }
+        message: { type: string }

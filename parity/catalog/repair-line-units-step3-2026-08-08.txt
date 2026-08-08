@@ -1,0 +1,15 @@
+BEGIN
+CREATE TABLE
+ALTER TABLE
+INSERT 0 1
+ALTER TABLE
+INSERT 0 1
+INSERT 0 1
+            step             | affected |                                                    detail                                                     
+-----------------------------+----------+---------------------------------------------------------------------------------------------------------------
+ stock_ledger_precision      |   142234 | {}
+ trigger_reenabled           |        1 | {"note": "must be 1 row, tgenabled=O (origin, i.e. enabled)"}
+ verify_ledger_line_mismatch |        0 | {"note": "must be 0; stock_ledger.quantity should now equal source business_document_lines.quantity exactly"}
+(3 rows)
+
+COMMIT

@@ -255,3 +255,26 @@ focused Svelte and targeted API history-query checks passed, and the dedicated
 browser contract was discovered but not executed in the short verification
 slice. Live API/database behavior, exact legacy list/focus/raster parity, and
 UAT remain open.
+
+## Post-merge hardening pass - 2026-08-07 (evening)
+
+A full verification sweep after the MDI-parity merge and purchase
+inventory-picker parity commits found and fixed eight defects, with each fix
+proven by its previously failing test: restored fail-closed duplicate-identity
+and dependency guards in the bulk historical loader; extended the
+`sale_return_source` trigger so source-bound purchase returns validate their
+source purchase line at the database boundary (unlinked historical returns
+remain an accepted migration state, enforced at the API boundary); fixed the
+sale/return/quotation history read models so compatibility rows project an
+empty `documentId` instead of NULL (previously a 503 decode failure); cleared
+stale status-bar errors when a new menu command dispatches; made the legacy
+menu bar dismiss on every item activation so blocked/denied commands no longer
+dead-lock contextual navigation; gated the purchase inventory-picker spec on
+the suite's `data-hydrated` convention; and aligned the stock-level fixture
+cleanup with the shared best-effort pattern (tenant FKs are NO ACTION and
+`stock_ledger` is immutable by design). Pending migrations `030`-`043` were
+replayed onto the supervised local cluster. Fresh results: `go vet` 0 issues;
+full Go suite 383/383 with the schema-owner DSN; Svelte check 0/0; production
+build green; Playwright serial suite 121/121 with no retries. Full detail and
+the unchanged external acceptance boundary are recorded in
+`docs/ACCEPTANCE_EVIDENCE_2026-08-07.md`.

@@ -33,5 +33,32 @@
     "path": "/v1/hardware/cash-drawer/kick",
     "body": {},
     "forbiddenFields": ["kicked"]
+  },
+  {
+    "name": "biometric verify",
+    "path": "/v1/hardware/biometric/verify",
+    "body": {
+      "sample": "QUNDRVBUQU5DRS1OTy1ERVZJQ0U="
+    },
+    "forbiddenFields": ["verified"]
+  },
+  {
+    "name": "email send",
+    "path": "/v1/hardware/email/send",
+    "body": {
+      "to": "acceptance@example.test",
+      "subject": "Acceptance",
+      "body": "No device configured"
+    },
+    "forbiddenFields": ["sent"]
+  },
+  {
+    "name": "sms send",
+    "path": "/v1/hardware/sms/send",
+    "body": {
+      "to": "923000000000",
+      "message": "Acceptance fixture"
+    },
+    "forbiddenFields": ["sent"]
   }
 ]

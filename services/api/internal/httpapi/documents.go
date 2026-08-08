@@ -1027,6 +1027,16 @@ func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 		if !customerExists {
 			return "", documentCommandResponse{}, errors.New("customerId is not an active canonical customer in the authenticated tenant")
 		}
+		// Credit limit enforcement only applies to credit-sale: it is the only
+		// one of these three kinds that increases what the customer owes.
+		// credit-return/open-credit-return reduce party_ledger_balances.balance
+		// (see projectPostedSaleReturnFinance), so gating them here would block
+		// exactly the postings that relieve a customer who is over their limit.
+		if command.Kind == "credit-sale" && status == "posted" {
+			if err := enforceCreditSaleLimit(ctx, tx, operator, customerID, priced.result.Total); err != nil {
+				return "", documentCommandResponse{}, err
+			}
+		}
 	} else if customerID != "" && !documentUUIDPattern.MatchString(customerID) {
 		return "", documentCommandResponse{}, errors.New("customerId must be a UUID")
 	}
@@ -1109,6 +1119,107 @@ func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 		return "", documentCommandResponse{}, err
 	}
 	return documentID, documentCommandResponse{Document: response}, nil
+}
+
+// enforceCreditSaleLimit blocks posting a credit-sale when the customer has a
+// configured, positive credit limit and posting this document would push
+// their running party ledger balance past it.
+//
+// The limit lives at master_parties.payload->>'CrLimit' (jsonb; there is no
+// dedicated column) alongside a companion 'DaysLimit'. A missing key or a
+// limit of exactly 0 both mean "no limit" — this matches the legacy data
+// convention where CrLimit is either absent or an explicit 0 placeholder for
+// cash-sale-style customer records.
+//
+// Simplification note: legacy gates this behind a tenant-level preference
+// (Preferences.CheckCrLimitInCrSales, parity/catalog/sqlserver-schema.json)
+// that has not yet been migrated into preference_registry.go. Until that
+// preference exists, this check is unconditionally enabled whenever a
+// customer has a positive CrLimit — that is the only case where enforcement
+// can have any effect at all given current data, so it is not equivalent to
+// legacy's preference-gated behavior; it is only observationally
+// indistinguishable from it today.
+func enforceCreditSaleLimit(ctx context.Context, tx *sql.Tx, operator *sessionContext, customerID string, documentTotal pricing.Money) error {
+	var rawLimit sql.NullString
+	if err := tx.QueryRowContext(ctx, `
+		SELECT payload->>'CrLimit'
+		FROM master_parties
+		WHERE tenant_id = $1::uuid AND id = $2::uuid
+	`, operator.TenantID, customerID).Scan(&rawLimit); err != nil {
+		return err
+	}
+	if !rawLimit.Valid || strings.TrimSpace(rawLimit.String) == "" {
+		return nil
+	}
+	limit, err := parseSignedMoney(rawLimit.String)
+	if err != nil {
+		// Malformed legacy CrLimit data should not block unrelated postings;
+		// treat it the same as "no limit configured".
+		return nil
+	}
+	if limit <= 0 {
+		return nil
+	}
+	// FOR UPDATE serializes concurrent credit-sale posts for the same
+	// customer against the same balance row this check evaluates, matching
+	// how projectPostedSaleFinance later updates it (same table, same
+	// tenant/branch/party scoping) in this same transaction.
+	var rawBalance sql.NullString
+	err = tx.QueryRowContext(ctx, `
+		SELECT balance::text FROM party_ledger_balances
+		WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND party_id = $3::uuid
+		FOR UPDATE
+	`, operator.TenantID, operator.BranchID, customerID).Scan(&rawBalance)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	var balance pricing.Money
+	if rawBalance.Valid && strings.TrimSpace(rawBalance.String) != "" {
+		balance, err = parseSignedMoney(rawBalance.String)
+		if err != nil {
+			return err
+		}
+	}
+	projected := balance + documentTotal
+	if projected > limit {
+		return fmt.Errorf("credit-sale total %s would bring customer balance to %s, exceeding the credit limit of %s (current balance %s)",
+			formatMoney(documentTotal), formatSignedMoney(projected), formatSignedMoney(limit), formatSignedMoney(balance))
+	}
+	return nil
+}
+
+// parseSignedMoney parses a decimal amount into pricing.Money (cents) like
+// parseMoney, but — unlike parseMoney, which rejects negative request
+// amounts on purpose — allows a negative sign. party_ledger_balances.balance
+// has no non-negative constraint (a customer can be in credit), so this is
+// needed to read it safely.
+func parseSignedMoney(value string) (pricing.Money, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, nil
+	}
+	rat, ok := new(big.Rat).SetString(value)
+	if !ok {
+		return 0, fmt.Errorf("%q is not a decimal amount", value)
+	}
+	rat.Mul(rat, big.NewRat(100, 1))
+	if !rat.IsInt() || !rat.Num().IsInt64() {
+		return 0, fmt.Errorf("%q must be an amount with at most two decimal places", value)
+	}
+	return pricing.Money(rat.Num().Int64()), nil
+}
+
+// formatSignedMoney mirrors formatMoney but is sign-correct for negative
+// pricing.Money values (formatMoney is only ever used elsewhere on
+// non-negative amounts, so it formats negatives like "-1.-50").
+func formatSignedMoney(value pricing.Money) string {
+	minor := int64(value)
+	sign := ""
+	if minor < 0 {
+		sign = "-"
+		minor = -minor
+	}
+	return fmt.Sprintf("%s%d.%02d", sign, minor/100, minor%100)
 }
 
 func (s *Server) voidBusinessDocument(ctx context.Context, tx *sql.Tx, operator *sessionContext, command documentCommandRequest) (string, documentCommandResponse, error) {

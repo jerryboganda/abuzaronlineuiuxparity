@@ -131,7 +131,7 @@ func (s *Server) authenticate(ctx context.Context, request loginRequest) (*sessi
 		SELECT u.id::text, u.username, u.display_name, u.tenant_id::text, t.code
 		FROM users u
 		JOIN tenants t ON t.id = u.tenant_id
-		WHERE u.username = $1 AND t.code = $3 AND u.active AND t.active
+		WHERE lower(u.username) = lower($1) AND t.code = $3 AND u.active AND t.active
 		  AND crypt($2, u.password_hash) = u.password_hash
 	`, request.Username, request.Password, request.TenantCode).Scan(&operator.UserID, &operator.Username, &operator.DisplayName, &operator.TenantID, &operator.TenantCode); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

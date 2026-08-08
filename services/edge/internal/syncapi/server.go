@@ -3,6 +3,7 @@ package syncapi
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -44,6 +45,9 @@ func NewWithHardware(localStore *store.Store, version, sharedSecret string, regi
 	mux.HandleFunc("POST /v1/hardware/barcode/normalize", server.normalizeBarcode)
 	mux.HandleFunc("POST /v1/hardware/barcode/lookup", server.lookupBarcode)
 	mux.HandleFunc("POST /v1/hardware/cash-drawer/kick", server.kickCashDrawer)
+	mux.HandleFunc("POST /v1/hardware/biometric/verify", server.verifyBiometric)
+	mux.HandleFunc("POST /v1/hardware/email/send", server.sendEmail)
+	mux.HandleFunc("POST /v1/hardware/sms/send", server.sendSMS)
 	mux.Handle("POST /v1/transactions/sales", server.transaction("sale"))
 	mux.Handle("POST /v1/transactions/returns", server.transaction("return"))
 	mux.Handle("POST /v1/transactions/receiving", server.transaction("receiving"))
@@ -178,6 +182,61 @@ func (s *Server) kickCashDrawer(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusAccepted, map[string]bool{"kicked": true})
 }
 
+// verifyBiometric accepts a base64-encoded sample (e.g. a fingerprint
+// template) and asks the configured BiometricAdapter to verify it. Without
+// an injected adapter this always reports hardware_adapter_unavailable; no
+// biometric matching happens in this service.
+func (s *Server) verifyBiometric(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Sample string `json:"sample"`
+	}
+	if !decodeHardwareJSON(w, r, &request) {
+		return
+	}
+	sample, err := base64.StdEncoding.DecodeString(request.Sample)
+	if err != nil {
+		writeProblem(w, http.StatusBadRequest, "invalid_hardware_request", "Invalid hardware request", "The biometric sample must be base64-encoded bytes.")
+		return
+	}
+	verified, err := s.hardware.VerifyBiometric(r.Context(), sample)
+	if err != nil {
+		writeHardwareProblem(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"verified": verified})
+}
+
+func (s *Server) sendEmail(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		To      string `json:"to"`
+		Subject string `json:"subject"`
+		Body    string `json:"body"`
+	}
+	if !decodeHardwareJSON(w, r, &request) {
+		return
+	}
+	if err := s.hardware.SendEmail(r.Context(), request.To, request.Subject, request.Body); err != nil {
+		writeHardwareProblem(w, err)
+		return
+	}
+	writeJSON(w, http.StatusAccepted, map[string]bool{"sent": true})
+}
+
+func (s *Server) sendSMS(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		To      string `json:"to"`
+		Message string `json:"message"`
+	}
+	if !decodeHardwareJSON(w, r, &request) {
+		return
+	}
+	if err := s.hardware.SendSMS(r.Context(), request.To, request.Message); err != nil {
+		writeHardwareProblem(w, err)
+		return
+	}
+	writeJSON(w, http.StatusAccepted, map[string]bool{"sent": true})
+}
+
 func decodeHardwareJSON(w http.ResponseWriter, r *http.Request, value any) bool {
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 512<<10)).Decode(value); err != nil {
 		writeProblem(w, http.StatusBadRequest, "invalid_hardware_request", "Invalid hardware request", "The hardware request could not be parsed.")
@@ -192,7 +251,8 @@ func writeHardwareProblem(w http.ResponseWriter, err error) {
 		writeProblem(w, http.StatusServiceUnavailable, "hardware_adapter_unavailable", "Hardware adapter unavailable", "No physical hardware adapter is configured for this branch.")
 	case errors.Is(err, hardware.ErrInvalidConfiguration):
 		writeProblem(w, http.StatusServiceUnavailable, "hardware_configuration_invalid", "Hardware configuration invalid", "The branch hardware configuration is invalid; no hardware operation was attempted.")
-	case errors.Is(err, hardware.ErrInvalidBarcode), errors.Is(err, hardware.ErrInvalidPrintJob):
+	case errors.Is(err, hardware.ErrInvalidBarcode), errors.Is(err, hardware.ErrInvalidPrintJob),
+		errors.Is(err, hardware.ErrInvalidBiometricInput), errors.Is(err, hardware.ErrInvalidEmailAddress), errors.Is(err, hardware.ErrInvalidSMSRecipient):
 		writeProblem(w, http.StatusBadRequest, "invalid_hardware_request", "Invalid hardware request", err.Error())
 	default:
 		writeProblem(w, http.StatusBadGateway, "hardware_operation_failed", "Hardware operation failed", "The configured hardware adapter did not complete the operation.")

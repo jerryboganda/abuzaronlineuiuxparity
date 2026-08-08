@@ -18,7 +18,7 @@
       },
       "sourceExpressions": {
         "occurred_at": "(SELECT [date] FROM [dbo].[SaleLedger] h WHERE h.[SaleInvCode] = [SaleInvcode])",
-        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END"
+        "quantity": "CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4))"
       },
       "lookups": {
         "batch_id": {
@@ -65,7 +65,7 @@
       "columns": { "source_line_key": "PurRowId", "unit_cost": "PurPrice" },
       "sourceExpressions": {
         "occurred_at": "(SELECT [Date] FROM [dbo].[Purledger] h WHERE h.[PurInvCode] = [PurInvCode])",
-        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END"
+        "quantity": "CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4))"
       },
       "lookups": {
         "batch_id": {
@@ -110,7 +110,7 @@
       "columns": { "source_line_key": "RowId", "unit_cost": "AvgPrice" },
       "sourceExpressions": {
         "occurred_at": "(SELECT [Date] FROM [dbo].[SRLedger] h WHERE h.[SRInvCode] = [SRInvcode])",
-        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END"
+        "quantity": "CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4))"
       },
       "lookups": {
         "batch_id": {
@@ -155,7 +155,7 @@
       "columns": { "source_line_key": "PrRowId", "unit_cost": "AvgPrice" },
       "sourceExpressions": {
         "occurred_at": "(SELECT [Date] FROM [dbo].[PRLedger] h WHERE h.[PRInvCode] = [PRInvCode])",
-        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END"
+        "quantity": "CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4))"
       },
       "lookups": {
         "batch_id": {

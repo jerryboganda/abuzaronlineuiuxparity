@@ -3,10 +3,12 @@
 
   let username = '';
   let password = '';
-  // The legacy login window has no spare visual field for tenant context. A
-  // local dev session can therefore use the seeded demo tenant while deployed
-  // builds keep the tenant code explicit in the API contract.
-  let tenantCode = import.meta.env.DEV ? 'demo' : '';
+  // The legacy login window has no spare visual field for tenant context; it
+  // infers the company from the database connection. The local dev stack seeds
+  // a `demo` tenant, so the web login uses that default to preserve the legacy
+  // single-click behavior while deployed builds can still pass an explicit
+  // tenant code in the API contract.
+  let tenantCode = 'demo';
   let branchId = '';
   let counterId = '';
   let busy = false;

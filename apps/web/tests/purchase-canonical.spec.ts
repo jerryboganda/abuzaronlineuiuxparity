@@ -268,11 +268,12 @@ test('Apply Item GST persists the canonical item assignment before updating purc
   expect(payload).toMatchObject({
     rate: '18',
     inclusive: false,
-    effectiveFrom: '2026-08-07',
     itemIds: [itemId],
     sourceTable: 'PowerBuilder.FileCommand',
     sourceLegacyId: 'Apply Item GST %'
   });
+  // The effectiveFrom date is the transaction date (today), not a fixed value.
+  expect(payload?.effectiveFrom).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 });
 
 test('File Delete submits a canonical purchase draft delete and clears the editor', async ({ page }) => {
@@ -466,4 +467,58 @@ test('Supplier Info carries the active canonical supplier identity to Supplier m
   await page.getByRole('menuitem', { name: 'Supplier Info.', exact: true }).click();
   await page.waitForURL('**/app/master/supplier?legacyId=SUP-1');
   await expect(page.getByRole('textbox', { name: 'Name:', exact: true })).toHaveValue('SUPPLIER 1');
+});
+
+// Simulates a physical HID barcode scanner: it dispatches untrusted keydown
+// events for each scanned character back-to-back (no delay), exactly as a
+// wedge scanner emits keystrokes far faster than a human can type, terminated
+// by Enter. The app's inter-keystroke timing detector should recognize this as
+// a scan rather than manual typing.
+async function fireBarcodeScan(page: Page, ariaLabel: string, barcode: string) {
+  await page.evaluate(({ ariaLabel: label, barcode: code }) => {
+    const input = document.querySelector(`input[aria-label="${label}"]`) as HTMLInputElement | null;
+    if (!input) throw new Error(`Scan target input not found: ${label}`);
+    input.focus();
+    for (const character of code) {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: character, bubbles: true, cancelable: true }));
+    }
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  }, { ariaLabel, barcode });
+}
+
+test('scanning a barcode resolves it through the edge lookup route and adds a purchase line', async ({ page }) => {
+  await mockCanonicalContext(page, false);
+  await page.addInitScript(() => window.localStorage.setItem('abuzar.edgeUrl', 'http://127.0.0.1:5173'));
+  let lookupRaw = '';
+  await page.route('**/v1/hardware/barcode/lookup', async (route) => {
+    lookupRaw = (route.request().postDataJSON() as { raw: string }).raw;
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: lookupRaw, itemId, name: 'Scanned Item' }) });
+  });
+  await page.route(`**/v1/master/item/${itemId}`, (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ id: itemId, kind: 'item', legacyId: 'ITEM-1', code: 'ITEM-1', name: 'Scanned Item', payload: { PurchasePrice: '4.50' }, active: true })
+  }));
+  await page.goto('/app/purchase/pack');
+  await waitForPurchaseReady(page);
+  await fireBarcodeScan(page, 'Item lookup query', '8901234567890');
+  await expect.poll(() => lookupRaw).toBe('8901234567890');
+  await expect(page.getByRole('combobox', { name: 'Item name 1' })).toHaveValue('Scanned Item');
+  await expect(page.getByLabel('Purchase price 1')).toHaveValue('4.50');
+  await expect(page.getByLabel('Item lookup query')).toHaveValue('');
+});
+
+test('a barcode scan the edge adapter cannot resolve surfaces a non-blocking error', async ({ page }) => {
+  await mockCanonicalContext(page, false);
+  await page.addInitScript(() => window.localStorage.setItem('abuzar.edgeUrl', 'http://127.0.0.1:5173'));
+  await page.route('**/v1/hardware/barcode/lookup', (route) => route.fulfill({
+    status: 503,
+    contentType: 'application/problem+json',
+    body: JSON.stringify({ type: 'about:blank', title: 'Hardware adapter unavailable', status: 503, detail: 'No physical hardware adapter is configured for this branch.' })
+  }));
+  await page.goto('/app/purchase/pack');
+  await waitForPurchaseReady(page);
+  await fireBarcodeScan(page, 'Item lookup query', '8901234567890');
+  await expect(page.getByRole('alert')).toContainText('No physical hardware adapter is configured for this branch.');
+  await expect(page.getByRole('combobox', { name: 'Item name 1' })).toHaveValue('');
 });

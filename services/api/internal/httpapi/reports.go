@@ -1321,6 +1321,9 @@ func reportDefinitionForKey(kind, registryKey string) reportDefinition {
 	if concreteProjection && !dailySaleDetail {
 		formatNames = []string{"Standard"}
 	}
+	if spec.salesReadModel {
+		formatNames = []string{"Standard"}
+	}
 	if spec.purchaseReadModel {
 		formatNames = []string{"Standard"}
 	}
@@ -1765,7 +1768,7 @@ func salesReadModelQuery(aggregateCondition, pagination string, includeIdentity 
 
 			UNION ALL
 
-			SELECT NULL::text AS document_id,
+			SELECT ''::text AS document_id,
 			       sd.document_number,
 			       sd.occurred_at,
 			       COALESCE(se.payload->>'customerName', se.payload->>'customer', 'CASH'),
@@ -1790,7 +1793,7 @@ func salesReadModelQuery(aggregateCondition, pagination string, includeIdentity 
 
 			UNION ALL
 
-			SELECT NULL::text AS document_id,
+			SELECT ''::text AS document_id,
 			       COALESCE(se.payload->>'documentNumber', se.aggregate_id::text),
 			       se.occurred_at,
 			       COALESCE(se.payload->>'customerName', se.payload->>'customer',
@@ -1864,7 +1867,7 @@ func documentReadModelQuery(documentKind, documentAggregate, mode, pagination st
 
 		UNION ALL
 
-		SELECT NULL::text AS document_id,
+		SELECT ''::text AS document_id,
 		       COALESCE(NULLIF(se.payload->>'documentNumber', ''), se.aggregate_id::text),
 		       se.occurred_at,
 		       COALESCE(se.payload->>'customerName', se.payload->>'customer', 'CASH'),
@@ -2788,7 +2791,7 @@ func saleReturnReadModelQuery(pagination string, includeIdentity ...bool) string
 
 		UNION ALL
 
-		SELECT NULL::text AS document_id,
+		SELECT ''::text AS document_id,
 		       COALESCE(NULLIF(se.payload->>'documentNumber', ''), se.aggregate_id::text),
 		       se.occurred_at,
 		       COALESCE(se.payload->>'customerName', se.payload->>'customer', 'CASH'),
@@ -3256,7 +3259,8 @@ func purchaseOrderDisparityReadModelQuery(pagination string) string {
 		       l.item_id,
 		       l.item_legacy_id,
 		       l.quantity AS received_quantity,
-		       l.line_total AS received_amount
+		       l.line_total AS received_amount,
+		       COALESCE(NULLIF(l.legacy_payload->>'PackUnits', '')::numeric, 1) AS pack_units
 		FROM business_documents r
 		JOIN business_document_lines l
 		  ON l.tenant_id = r.tenant_id AND l.branch_id = r.branch_id
@@ -3271,7 +3275,10 @@ func purchaseOrderDisparityReadModelQuery(pagination string) string {
 		       o.party,
 		       o.item,
 		       o.ordered_quantity,
-		       COALESCE(SUM(r.received_quantity), 0) AS received_quantity,
+		       -- Receipt lines store piece quantities; legacy orders are
+		       -- pack-denominated, so normalize receipts back to the line's
+		       -- captured pack size for the comparison.
+		       COALESCE(SUM(r.received_quantity / r.pack_units), 0) AS received_quantity,
 		       o.ordered_amount,
 		       COALESCE(SUM(r.received_amount), 0) AS received_amount
 		FROM purchase_orders o
@@ -4742,12 +4749,25 @@ func emptyReportQuery(pagination string) string {
 		` + pagination
 }
 
+// effectiveReportTimeout normalizes s.reportTimeout the same way the report
+// handler's Go-level context deadline is normalized (ABUZAR_REPORT_TIMEOUT_MS,
+// 30s default), so it can also be used as the Postgres statement_timeout for
+// report queries. Report call sites use this instead of the shared
+// s.dbTimeout used by document-posting handlers, so a long-running report
+// query is not killed by Postgres at the short posting timeout.
+func (s *Server) effectiveReportTimeout() time.Duration {
+	if s.reportTimeout <= 0 {
+		return 30 * time.Second
+	}
+	return s.reportTimeout
+}
+
 func (s *Server) loadReportDefinition(ctx context.Context, operator *sessionContext, kind, legacyPath string) reportDefinition {
 	definition := reportDefinitionForPath(kind, legacyPath)
 	if s.database == nil {
 		return definition
 	}
-	tx, err := s.beginScopedTx(ctx, operator)
+	tx, err := s.beginScopedTxWithTimeout(ctx, operator, s.effectiveReportTimeout())
 	if err != nil {
 		return definition
 	}
@@ -4830,10 +4850,7 @@ func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 	}
 	legacyPath := strings.TrimSpace(r.URL.Query().Get("legacyPath"))
 	registryKey := reportRegistryKey(kind, legacyPath)
-	reportTimeout := s.reportTimeout
-	if reportTimeout <= 0 {
-		reportTimeout = 5 * time.Second
-	}
+	reportTimeout := s.effectiveReportTimeout()
 	reportCtx, cancel := context.WithTimeout(r.Context(), reportTimeout)
 	defer cancel()
 	definition := s.loadReportDefinition(reportCtx, operator, kind, legacyPath)
@@ -4844,7 +4861,7 @@ func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	definition.SelectedFormat = selectedFormat
-	tx, err := s.beginScopedTx(reportCtx, operator)
+	tx, err := s.beginScopedTxWithTimeout(reportCtx, operator, reportTimeout)
 	if err != nil {
 		writeProblem(w, http.StatusServiceUnavailable, "database_unavailable", "Database unavailable", "The report store could not be opened.")
 		return

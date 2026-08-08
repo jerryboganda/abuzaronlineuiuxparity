@@ -31,6 +31,9 @@ test.describe('Purchase Inventory Picker Parity', () => {
 
     await page.goto('/app/purchase/pack');
     await expect(page.locator('.legacy-purchase-lookup')).toBeVisible();
+    // Wait for hydration: filling before Svelte attaches oninput drops the
+    // lookup request and the table stays in its empty state.
+    await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true', { timeout: 10000 });
     const searchInput = page.locator('input[aria-label="Item lookup query"]');
     await searchInput.fill('Panadol');
     await expect(page.locator('.legacy-purchase-lookup table')).toContainText('PANADOL 500MG TAB', { timeout: 10000 });

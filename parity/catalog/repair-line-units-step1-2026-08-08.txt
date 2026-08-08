@@ -1,0 +1,13 @@
+BEGIN
+CREATE TABLE
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+                 step                  | affected |                                                                 detail                                                                 
+---------------------------------------+----------+----------------------------------------------------------------------------------------------------------------------------------------
+ business_document_lines               |   621790 | {}
+ golden_sample_695336                  |        1 | {"rows": [{"document": "d92f2682-2b60-5c08-a648-56716c55e24e", "quantity": 2.00000000, "line_total": 20.0000, "unit_price": 10.0000}]}
+ verify_line_total_identity_violations |        0 | {"note": "must be 0; |line_total - unit_price*quantity| beyond 0.0001 rounding"}
+(3 rows)
+
+COMMIT

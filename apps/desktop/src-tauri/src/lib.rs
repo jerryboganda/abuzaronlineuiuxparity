@@ -135,6 +135,11 @@ struct CashDrawerResult {
     kicked: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct BiometricVerifyResult {
+    verified: bool,
+}
+
 #[derive(Debug, Deserialize)]
 struct EdgeProblem {
     code: Option<String>,
@@ -385,6 +390,20 @@ async fn kick_cash_drawer() -> Result<CashDrawerResult, HardwareCommandError> {
 }
 
 #[tauri::command]
+async fn verify_biometric(sample: String) -> Result<BiometricVerifyResult, HardwareCommandError> {
+    #[derive(Serialize)]
+    struct BiometricVerifyRequest {
+        sample: String,
+    }
+    edge_request(
+        Method::POST,
+        "/v1/hardware/biometric/verify",
+        Some(&BiometricVerifyRequest { sample }),
+    )
+    .await
+}
+
+#[tauri::command]
 fn set_api_session(value: String) -> Result<(), String> {
     if value.is_empty() || value.len() > 4096 {
         return Err("session value is empty or too large".to_string());
@@ -433,7 +452,8 @@ pub fn run() {
             print_sale_slip,
             print_purchase_labels,
             lookup_barcode,
-            kick_cash_drawer
+            kick_cash_drawer,
+            verify_biometric
         ])
         .run(tauri::generate_context!())
         .expect("error while running Abuzar Next desktop application");

@@ -8,19 +8,19 @@
     },
     {
       "name": "purchase_line_quantity",
-      "sourceQuery": "SELECT COALESCE(SUM(CAST(COALESCE(PackQty, 0) AS decimal(19,8)) + CASE WHEN COALESCE(PackUnits, 0) = 0 THEN CAST(0 AS decimal(19,8)) ELSE CAST(COALESCE(LooseQty, 0) AS decimal(19,8)) / NULLIF(CAST(PackUnits AS decimal(19,8)), 0) END), 0) FROM dbo.Purdetail",
+      "sourceQuery": "SELECT COALESCE(SUM(CAST(COALESCE(PackQty, 0) AS decimal(19,8)) * CASE WHEN COALESCE(PackUnits, 0) = 0 THEN CAST(1 AS decimal(19,8)) ELSE NULLIF(CAST(PackUnits AS decimal(19,8)), 0) END + CAST(COALESCE(LooseQty, 0) AS decimal(19,8))), 0) FROM dbo.Purdetail",
       "targetQuery": "SELECT COALESCE(SUM(quantity), 0) FROM public.business_document_lines WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'Purdetail'",
       "tolerance": 0.0001
     },
     {
       "name": "purchase_line_total",
-      "sourceQuery": "SELECT COALESCE(SUM(CAST(COALESCE(rate, 0) AS decimal(19,4)) * (CAST(COALESCE(PackQty, 0) AS decimal(19,8)) + CASE WHEN COALESCE(PackUnits, 0) = 0 THEN CAST(0 AS decimal(19,8)) ELSE CAST(COALESCE(LooseQty, 0) AS decimal(19,8)) / NULLIF(CAST(PackUnits AS decimal(19,8)), 0) END)), 0) FROM dbo.Purdetail",
+      "sourceQuery": "SELECT COALESCE(SUM(CAST(COALESCE(rate, 0) AS decimal(19,4)) * (CAST(COALESCE(PackQty, 0) AS decimal(19,8)) * CASE WHEN COALESCE(PackUnits, 0) = 0 THEN CAST(1 AS decimal(19,8)) ELSE NULLIF(CAST(PackUnits AS decimal(19,8)), 0) END + CAST(COALESCE(LooseQty, 0) AS decimal(19,8)))), 0) FROM dbo.Purdetail",
       "targetQuery": "SELECT COALESCE(SUM(line_total), 0) FROM public.business_document_lines WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'Purdetail'",
       "tolerance": 0.01
     },
     {
       "name": "purchase_line_exception_count",
-      "sourceQuery": "SELECT COUNT(*) FROM dbo.Purdetail WHERE COALESCE(PackQty, 0) + CASE WHEN COALESCE(PackUnits, 0) = 0 THEN 0 ELSE COALESCE(LooseQty, 0) / NULLIF(PackUnits, 0) END <= 0",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Purdetail WHERE COALESCE(PackQty, 0) * CASE WHEN COALESCE(PackUnits, 0) = 0 THEN 1 ELSE PackUnits END + COALESCE(LooseQty, 0) <= 0",
       "targetQuery": "SELECT COUNT(*) FROM public.legacy_id_mappings WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND source_schema = 'dbo' AND source_table = 'Purdetail' AND status = 'exception'",
       "tolerance": 0
     }

@@ -45,9 +45,9 @@
 | 26. Acceptance Evidence Documentation | 5 | 5 | ✓ | ✓ | `docs/IMPLEMENTATION_STATUS.md`, `docs/ACCEPTANCE_EVIDENCE_2026-08-07.md` |
 
 ## Verified Suite Execution Status
-- Playwright E2E Browser Suite: **77/77 serial tests passing** (0 failures)
-- Go Unit & Integration Suite: **147/147 tests passing** (11 packages ok)
-- Svelte Web Type Check: **0 errors, 0 warnings**
-- Svelte Web SSG Build: **Built successfully to `apps/web/build`**
-- Go Static Analysis (`go vet`): **0 issues**
-- PostgreSQL Migrations: **29 migrations applied cleanly**
+- Playwright E2E Browser Suite: **121/121 serial tests passing** (0 failures, `--workers=1 --retries=0`, re-verified 2026-08-07 evening against a freshly restarted Vite dev server)
+- Go Unit & Integration Suite: **383/383 test cases passing** (0 failures, 1 skip; all packages ok including the DB-backed `httpapi` integration package — DB-backed fixtures require the schema-owner DSN, e.g. `DATABASE_URL=postgres://postgres@127.0.0.1:5432/abuzar_next?sslmode=disable`; the least-privilege app role correctly fails RLS tenant seeding)
+- Svelte Web Type Check: **0 errors, 0 warnings** (re-verified 2026-08-07 evening)
+- Svelte Web SSG Build: **Built successfully to `apps/web/build`** (re-verified 2026-08-07 evening)
+- Go Static Analysis (`go vet`): **0 issues** (re-verified 2026-08-07 evening)
+- PostgreSQL Migrations: **43 migrations applied cleanly** (pending `030`-`043` replayed in name order on 2026-08-07; `025` re-applied after the purchase-return source-line trigger correction)

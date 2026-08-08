@@ -1450,7 +1450,22 @@ func jsonScalarText(raw json.RawMessage) string {
 	return value
 }
 
+// beginScopedTx opens a tenant/branch-scoped transaction using the server's
+// default statement_timeout (s.dbTimeout, ABUZAR_DB_STATEMENT_TIMEOUT_MS,
+// 5s default). This is the fast-fail timeout appropriate for document-posting
+// call sites. It is a thin wrapper around beginScopedTxWithTimeout; posting
+// call sites' behavior is unchanged.
 func (s *Server) beginScopedTx(ctx context.Context, operator *sessionContext) (*sql.Tx, error) {
+	return s.beginScopedTxWithTimeout(ctx, operator, s.dbTimeout)
+}
+
+// beginScopedTxWithTimeout behaves like beginScopedTx but lets the caller
+// supply the Postgres statement_timeout to apply to the transaction, instead
+// of always using s.dbTimeout. Report handlers use this to apply a longer,
+// distinct timeout (s.reportTimeout) so the DB-level statement_timeout
+// matches the Go-level context deadline already used for reports, without
+// affecting the fast/bounded default used by document-posting handlers.
+func (s *Server) beginScopedTxWithTimeout(ctx context.Context, operator *sessionContext, statementTimeoutOverride time.Duration) (*sql.Tx, error) {
 	tx, err := s.database.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -1475,7 +1490,7 @@ func (s *Server) beginScopedTx(ctx context.Context, operator *sessionContext) (*
 		tx.Rollback()
 		return nil, err
 	}
-	statementTimeout := s.dbTimeout
+	statementTimeout := statementTimeoutOverride
 	if statementTimeout <= 0 {
 		statementTimeout = 5 * time.Second
 	}

@@ -35,7 +35,9 @@ func TestSalesHistoryQueriesExposeCanonicalDocumentIdentity(t *testing.T) {
 		if !strings.Contains(query, "SELECT document_id, document, occurred_at::text") {
 			t.Errorf("%s history query does not project document identity", name)
 		}
-		if !strings.Contains(query, "NULL::text AS document_id") {
+		// Compatibility rows carry no canonical identity; they project an empty
+		// text document_id (NULL would fail the string scan and 503 the route).
+		if !strings.Contains(query, "''::text AS document_id") {
 			t.Errorf("%s history query does not label compatibility rows without identity", name)
 		}
 	}

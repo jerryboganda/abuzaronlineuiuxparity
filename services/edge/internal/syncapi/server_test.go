@@ -149,6 +149,80 @@ func TestHardwareEndpointsDegradeWithoutConfiguredAdapters(t *testing.T) {
 	if unauthorized.Code != http.StatusUnauthorized {
 		t.Fatalf("hardware unauthorized status = %d, want 401", unauthorized.Code)
 	}
+
+	verify := httptest.NewRequest(http.MethodPost, "/v1/hardware/biometric/verify", bytes.NewBufferString(`{"sample":"AQI="}`))
+	verify.Header.Set("Authorization", "secret")
+	verified := httptest.NewRecorder()
+	handler.ServeHTTP(verified, verify)
+	if verified.Code != http.StatusServiceUnavailable {
+		t.Fatalf("biometric verify without adapter status = %d, want 503", verified.Code)
+	}
+
+	sendEmail := httptest.NewRequest(http.MethodPost, "/v1/hardware/email/send", bytes.NewBufferString(`{"to":"a@example.test","subject":"s","body":"b"}`))
+	sendEmail.Header.Set("Authorization", "secret")
+	emailResponse := httptest.NewRecorder()
+	handler.ServeHTTP(emailResponse, sendEmail)
+	if emailResponse.Code != http.StatusServiceUnavailable {
+		t.Fatalf("email send without adapter status = %d, want 503", emailResponse.Code)
+	}
+
+	sendSMS := httptest.NewRequest(http.MethodPost, "/v1/hardware/sms/send", bytes.NewBufferString(`{"to":"923001234567","message":"hi"}`))
+	sendSMS.Header.Set("Authorization", "secret")
+	smsResponse := httptest.NewRecorder()
+	handler.ServeHTTP(smsResponse, sendSMS)
+	if smsResponse.Code != http.StatusServiceUnavailable {
+		t.Fatalf("sms send without adapter status = %d, want 503", smsResponse.Code)
+	}
+}
+
+type routeTestBiometric struct{ result bool }
+
+func (b routeTestBiometric) Verify(context.Context, []byte) (bool, error) { return b.result, nil }
+
+type routeTestEmail struct{}
+
+func (routeTestEmail) Send(context.Context, string, string, string) error { return nil }
+
+type routeTestSMS struct{}
+
+func (routeTestSMS) Send(context.Context, string, string) error { return nil }
+
+func TestConfiguredChannelHardwareRoutesReportSuccess(t *testing.T) {
+	localStore, err := store.Open(context.Background(), ":memory:")
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer localStore.Close()
+	registry := hardware.NewWithConfig(hardware.Config{
+		Biometric: routeTestBiometric{result: true},
+		Email:     routeTestEmail{},
+		SMS:       routeTestSMS{},
+	})
+	handler := NewWithHardware(localStore, "test", "secret", registry)
+
+	verify := httptest.NewRequest(http.MethodPost, "/v1/hardware/biometric/verify", bytes.NewBufferString(`{"sample":"AQI="}`))
+	verify.Header.Set("Authorization", "secret")
+	verified := httptest.NewRecorder()
+	handler.ServeHTTP(verified, verify)
+	if verified.Code != http.StatusOK || !bytes.Contains(verified.Body.Bytes(), []byte(`"verified":true`)) {
+		t.Fatalf("biometric verify response = %d %s", verified.Code, verified.Body.String())
+	}
+
+	sendEmail := httptest.NewRequest(http.MethodPost, "/v1/hardware/email/send", bytes.NewBufferString(`{"to":"a@example.test","subject":"s","body":"b"}`))
+	sendEmail.Header.Set("Authorization", "secret")
+	emailResponse := httptest.NewRecorder()
+	handler.ServeHTTP(emailResponse, sendEmail)
+	if emailResponse.Code != http.StatusAccepted || !bytes.Contains(emailResponse.Body.Bytes(), []byte(`"sent":true`)) {
+		t.Fatalf("email send response = %d %s", emailResponse.Code, emailResponse.Body.String())
+	}
+
+	sendSMS := httptest.NewRequest(http.MethodPost, "/v1/hardware/sms/send", bytes.NewBufferString(`{"to":"923001234567","message":"hi"}`))
+	sendSMS.Header.Set("Authorization", "secret")
+	smsResponse := httptest.NewRecorder()
+	handler.ServeHTTP(smsResponse, sendSMS)
+	if smsResponse.Code != http.StatusAccepted || !bytes.Contains(smsResponse.Body.Bytes(), []byte(`"sent":true`)) {
+		t.Fatalf("sms send response = %d %s", smsResponse.Code, smsResponse.Body.String())
+	}
 }
 
 func TestInvalidHardwareConfigurationNeverAttemptsOperation(t *testing.T) {

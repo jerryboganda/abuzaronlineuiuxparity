@@ -33,9 +33,21 @@ func stockAllocationPolicy() (string, error) {
 	case "fifo":
 		return policy, nil
 	case "legacy":
-		// Do not advertise FIFO as legacy behavior. The source StockReport
-		// ordering and valuation rules are still an acceptance dependency, so a
-		// legacy setting must fail closed until that evidence is reconciled.
+		// Do not advertise FIFO as legacy behavior. Reconciliation against
+		// dbo.StockReport, dbo.Purdetail, and dbo.Saledetail (2026-08-08) found
+		// legacy did not do batch-ordered allocation at all: >97% of purchase
+		// and sale rows carry the placeholder Batch='.', dbo.StockReport has no
+		// batch column (Date/GCode/ICode/Stock/AvgPrice only), and Purdetail's
+		// AvgPrice/NewAvgPrice is a classic moving weighted-average recomputed
+		// on every receipt (verified: NewAvgPrice = (AvgPrice*CurrStock +
+		// PurPrice*PackQty)/(CurrStock+PackQty)) that Saledetail.AvgPrice then
+		// reuses uniformly for every sale regardless of the Batch tag. So
+		// "legacy" is not FIFO with different bookkeeping — it is
+		// weighted-average costing with no per-batch consumption order to
+		// reconstruct. A "legacy" setting must keep failing closed; picking a
+		// legacy-equivalent ordering rule is the wrong fix, and changing the
+		// default away from fifo needs a human valuation decision, not a code
+		// change here.
 		return "", errors.New("legacy stock allocation policy is unavailable until StockReport ordering is reconciled")
 	default:
 		return "", fmt.Errorf("unsupported stock allocation policy %q; configure fifo or legacy", policy)

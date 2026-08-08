@@ -5,7 +5,8 @@ param(
     [switch]$AllowSharedCluster,
     [switch]$KeepDatabase,
     [switch]$CleanupOnFailure,
-    [int]$Iterations = 15
+    [int]$Iterations = 15,
+    [int]$SeedBatchSize = 50000
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,6 +22,9 @@ if ([string]::IsNullOrWhiteSpace($AdminDsn)) {
 }
 if ($Iterations -lt 3 -or $Iterations -gt 100) {
     throw 'Iterations must be between 3 and 100.'
+}
+if ($SeedBatchSize -lt 1000 -or $SeedBatchSize -gt 500000) {
+    throw 'SeedBatchSize must be between 1,000 and 500,000.'
 }
 
 if ([string]::IsNullOrWhiteSpace($DatabaseName)) {
@@ -92,14 +96,31 @@ function Apply-HarnessMigrations {
 
 $targetDsn = Target-Dsn -Dsn $AdminDsn -Name $DatabaseName
 $created = $false
+$resuming = $false
 $phase = 'create_database'
 $failure = $null
 $artifact = ''
 try {
     Set-AdminConnectionEnvironment -Dsn $AdminDsn
-    & $createdb --maintenance-db postgres $DatabaseName
-    if ($LASTEXITCODE -ne 0) { throw 'Unable to create the disposable database.' }
-    $created = $true
+
+    # Resumability: if the caller pointed -DatabaseName at a database that
+    # already exists (e.g. one retained by a prior blocked run -- see
+    # retainedForInspection in tmp/phase-w-blocker-*.json), skip creation and
+    # go straight to migrations/seeding instead of failing on createdb. The
+    # seed script itself tracks progress per batch in phase_w_seed_progress
+    # and resumes from the last committed window. A resumed run is never
+    # auto-dropped in the finally block below, regardless of -KeepDatabase,
+    # since the caller explicitly pointed at a pre-existing database.
+    $existsCheck = & $psql $AdminDsn -tAc "SELECT 1 FROM pg_database WHERE datname = '$DatabaseName'"
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to check whether the disposable database already exists.' }
+    if (($existsCheck | Select-Object -First 1) -eq '1') {
+        $resuming = $true
+        Write-Output "Database $DatabaseName already exists; resuming into it instead of creating a new one."
+    } else {
+        & $createdb --maintenance-db postgres $DatabaseName
+        if ($LASTEXITCODE -ne 0) { throw 'Unable to create the disposable database.' }
+        $created = $true
+    }
 
     $phase = 'migrations'
     Apply-HarnessMigrations -Dsn $targetDsn
@@ -115,11 +136,17 @@ try {
         $batches = 30050
     }
     $phase = 'seed:' + $stock.ToString() + '-stock/' + $gl.ToString() + '-gl'
+    if ($FullVolume) {
+        Write-Output ("Seeding full-volume dataset ({0} stock rows, {1} GL journals) in {2}-row batches." -f $stock, $gl, $SeedBatchSize)
+        Write-Output 'This is batched and resumable: the seed script commits and logs progress after every batch (watch for NOTICE lines below).'
+        Write-Output 'It can still take a long time at full volume; do not interrupt it unless the underlying Postgres instance is genuinely disposable/isolated.'
+    }
     Invoke-Psql -Dsn $targetDsn -Arguments @(
         '--variable', "scale_stock=$stock",
         '--variable', "scale_gl=$gl",
         '--variable', "scale_items=$items",
         '--variable', "scale_batches=$batches",
+        '--variable', "batch_size=$SeedBatchSize",
         '--file', $seed
     )
 
@@ -134,6 +161,8 @@ try {
         status = 'ok'
         database = $DatabaseName
         fullVolumeRequested = [bool]$FullVolume
+        resumed = $resuming
+        seedBatchSize = $SeedBatchSize
         artifact = $artifact
         retained = [bool]$KeepDatabase
     } | ConvertTo-Json -Depth 4)

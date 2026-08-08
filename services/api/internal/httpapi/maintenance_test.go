@@ -20,8 +20,15 @@ func TestMaintenanceIntegrityContractIsApplicationScoped(t *testing.T) {
 	}
 }
 
+// The exact kinds "backup-database" and "restore-database" are intercepted
+// in maintenanceAction before maintenanceExternalOutcome is ever consulted
+// (see handleDatabaseBackup/handleDatabaseRestore, which perform a real
+// pg_dump/pg_restore and are covered by TestBackupRestorePgToolsRoundTrip and
+// TestBackupDatabaseHandlerRoundTrip). This classifier remains the honest
+// fallback for every other kind that merely *mentions* backup/restore but has
+// no real adapter wired up.
 func TestMaintenanceBackupNeverClaimsPhysicalSuccess(t *testing.T) {
-	for _, kind := range []string{"backup-database", "restore-database", "export-data", "import-previous-sales", "send-email"} {
+	for _, kind := range []string{"backup-verification", "restore-point", "export-data", "import-previous-sales", "send-email"} {
 		status, message := maintenanceExternalOutcome(kind)
 		if status != "not_configured" {
 			t.Errorf("%s status = %q, want not_configured", kind, status)

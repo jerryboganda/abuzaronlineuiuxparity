@@ -62,13 +62,13 @@
     },
     {
       "name": "sale_line_quantity",
-      "sourceQuery": "SELECT COALESCE(SUM(CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END), 0) FROM dbo.Saledetail",
+      "sourceQuery": "SELECT COALESCE(SUM(CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4))), 0) FROM dbo.Saledetail",
       "targetQuery": "SELECT COALESCE(SUM(quantity), 0) FROM public.business_document_lines WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'Saledetail'",
       "tolerance": 0.01
     },
     {
       "name": "purchase_line_quantity",
-      "sourceQuery": "SELECT COALESCE(SUM(CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END), 0) FROM dbo.Purdetail",
+      "sourceQuery": "SELECT COALESCE(SUM(CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4))), 0) FROM dbo.Purdetail",
       "targetQuery": "SELECT COALESCE(SUM(quantity), 0) FROM public.business_document_lines WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND legacy_source_table = 'Purdetail'",
       "tolerance": 0.01
     },

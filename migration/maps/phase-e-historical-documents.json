@@ -152,10 +152,10 @@
       "sourceExpressions": {
         "legacy_import_key": "CONCAT('Saledetail:', CAST(SaleInvcode AS varchar(30)), ':', CAST(RowID AS varchar(30)))",
         "line_number": "RowID",
-        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END",
-        "line_gross": "CAST(Rate AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
-        "line_total": "CAST(Rate AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
-        "tax_amount": "CAST(UnitSalesTax AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)"
+        "quantity": "CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4))",
+        "line_gross": "CAST(Rate AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4)))",
+        "line_total": "CAST(Rate AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4)))",
+        "tax_amount": "CAST(UnitSalesTax AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4)))"
       },
       "lookups": {
         "document_id": {
@@ -350,10 +350,10 @@
       "sourceExpressions": {
         "legacy_import_key": "CONCAT('Purdetail:', CAST(PurInvCode AS varchar(30)), ':', CAST(PurRowId AS varchar(30)))",
         "line_number": "PurRowId",
-        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END",
-        "line_gross": "CAST(rate AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
-        "line_total": "CAST(rate AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
-        "tax_amount": "CAST(UnitSalesTax AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)"
+        "quantity": "CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4))",
+        "line_gross": "CAST(rate AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4)))",
+        "line_total": "CAST(rate AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4)))",
+        "tax_amount": "CAST(UnitSalesTax AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4)))"
       },
       "lookups": {
         "document_id": {
@@ -484,10 +484,10 @@
       "sourceExpressions": {
         "legacy_import_key": "CONCAT('SRdetail:', CAST(SRInvcode AS varchar(30)), ':', CAST(RowId AS varchar(30)))",
         "line_number": "RowId",
-        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END",
-        "line_gross": "CAST(SRPrice AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
-        "line_total": "CAST(SRPrice AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
-        "tax_amount": "CAST(UnitSalesTax AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)"
+        "quantity": "CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4))",
+        "line_gross": "CAST(SRPrice AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4)))",
+        "line_total": "CAST(SRPrice AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4)))",
+        "tax_amount": "CAST(UnitSalesTax AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4)))"
       },
       "lookups": {
         "document_id": {
@@ -608,10 +608,10 @@
       "sourceExpressions": {
         "legacy_import_key": "CONCAT('PRdetail:', CAST(PRInvCode AS varchar(30)), ':', CAST(PrRowId AS varchar(30)))",
         "line_number": "PrRowId",
-        "quantity": "CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END",
-        "line_gross": "CAST(PRPrice AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
-        "line_total": "CAST(PRPrice AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)",
-        "tax_amount": "CAST(UnitSalesTax AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) + CASE WHEN PackUnits = 0 THEN 0 ELSE CAST(LooseQty AS decimal(19,4)) / PackUnits END)"
+        "quantity": "CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4))",
+        "line_gross": "CAST(PRPrice AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4)))",
+        "line_total": "CAST(PRPrice AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4)))",
+        "tax_amount": "CAST(UnitSalesTax AS decimal(19,4)) * (CAST(PackQty AS decimal(19,4)) * CASE WHEN PackUnits = 0 THEN 1 ELSE PackUnits END + CAST(LooseQty AS decimal(19,4)))"
       },
       "lookups": {
         "document_id": {

@@ -8,6 +8,7 @@
   import type { MenuAction } from '$lib/legacy-menu';
   import { formatLegacyTitle } from '$lib/legacy-title';
   import { localDateAtNoonUtc, localDateString } from '$lib/calendar-date';
+  import { createBarcodeScanListener, normalizeBarcodeClientSide } from '$lib/barcode-scanner';
 
   type PurchaseAllocation = { batchId: string; batchNumber: string; quantity: string };
   type PurchaseRow = {
@@ -141,7 +142,7 @@
   $: historyKind = kind === 'return' ? 'purchase-return' : kind === 'order' ? 'purchase-order' : kind === 'loose' ? 'loose-purchase' : kind === 'opening' ? 'opening-purchase' : 'pack-purchase';
   $: historyRequestKind = historyQueryKind || historyKind;
   $: transactionWindowTitle = `${formatLegacyTitle(authenticatedUsername, clock)} - [${title}]`;
-  $: availableLookupItems = itemRecords.map((record) => {
+  function toLookupItem(record: ItemLookupResult): LookupItem {
     const payload = (record.payload ?? {}) as Record<string, unknown>;
     const value = (...keys: string[]) => keys.map((key) => payload[key]).find((candidate) => candidate !== undefined && candidate !== null && String(candidate).trim() !== '');
     const text = (keys: string[], fallback = '') => String(value(...keys) ?? fallback);
@@ -159,7 +160,8 @@
       pieces: text(['PackUnits', 'packUnits', 'Pieces', 'pieces', 'Pcs', 'pcs'], '1'),
       location: text(['Location', 'location', 'Location1', 'location1', 'ItemLocation', 'itemLocation'])
     };
-  });
+  }
+  $: availableLookupItems = itemRecords.map(toLookupItem);
   function isCanonicalPurchaseKind(): boolean {
     return supportedPurchaseRouteKinds.includes(kind);
   }
@@ -842,6 +844,36 @@
     message = `Item '${item.name}' selected for purchase line ${targetIndex + 1}.`;
   }
 
+  let barcodeBusy = false;
+
+  async function handleBarcodeScan(raw: string) {
+    const code = normalizeBarcodeClientSide(raw);
+    lookupQuery = '';
+    itemRecords = [];
+    if (!code) {
+      error = 'Barcode scan ignored: the scanned input was empty or contained invalid control characters.';
+      return;
+    }
+    if (barcodeBusy) return;
+    barcodeBusy = true;
+    error = '';
+    try {
+      const barcodeItem = await edgeRequest<{ code: string; itemId: string; name: string }>('/v1/hardware/barcode/lookup', { raw: code });
+      if (!barcodeItem?.itemId) throw new Error(`Barcode ${code} did not resolve to a canonical item.`);
+      const record = await api.masterRecord('item', barcodeItem.itemId);
+      if (!record.active) throw new Error(`Barcode ${barcodeItem.code}: ${record.name} is not an active canonical item.`);
+      const lookupItem = toLookupItem({ id: record.id, legacyId: record.legacyId ?? '', code: record.code, name: record.name, payload: record.payload, active: record.active, aliases: [] });
+      chooseLookupItem(lookupItem);
+      message = `Barcode ${barcodeItem.code}: ${record.name} added to the purchase.`;
+    } catch (cause) {
+      error = cause instanceof ApiError ? cause.problem?.detail ?? cause.message : cause instanceof Error ? cause.message : `Barcode ${code}: item lookup failed (scanner adapter unavailable or barcode not registered).`;
+    } finally {
+      barcodeBusy = false;
+    }
+  }
+
+  const barcodeScanListener = createBarcodeScanListener((code) => { void handleBarcodeScan(code); });
+
   async function chooseItem(index: number, value: string): Promise<boolean> {
     const requestRevision = workflowRevision;
     const records = await lookupItems(value);
@@ -1436,7 +1468,7 @@
       <div class="legacy-purchase-lookup" aria-label="Purchase item lookup list">
         <div class="legacy-purchase-lookup-header">
           <label>Item Lookup / Search:
-            <input aria-label="Item lookup query" bind:value={lookupQuery} oninput={(event) => void lookupItems((event.currentTarget as HTMLInputElement).value)} onkeydown={(event) => { if (event.key === 'Enter') void lookupItems((event.currentTarget as HTMLInputElement).value); }} placeholder="Search medicine, code, barcode, manufacturer..." />
+            <input aria-label="Item lookup query" bind:value={lookupQuery} oninput={(event) => void lookupItems((event.currentTarget as HTMLInputElement).value)} onkeydown={(event) => { if (barcodeScanListener.handleKeydown(event)) return; if (event.key === 'Enter') void lookupItems((event.currentTarget as HTMLInputElement).value); }} placeholder="Search medicine, code, barcode, manufacturer..." />
           </label>
           <button type="button" class="legacy-inventory-popup-toggle" onclick={() => { showInventoryWindow = !showInventoryWindow; }}>Item Lookup Window [F2]</button>
         </div>

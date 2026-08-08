@@ -1,0 +1,6248 @@
+{
+  "generatedAt": "2026-08-08T14:27:07.817872Z",
+  "source": "redacted SQL Server connection",
+  "target": "redacted PostgreSQL connection",
+  "tenantId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "tables": [
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "A",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "A",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ABD_US",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ABD_US",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AccountBalanceLog",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AccountBalanceLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AccountGodown",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AccountGodown",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Accounts",
+      "sourceCount": 267,
+      "targetSchema": "dbo",
+      "targetTable": "Accounts",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ActivityMonitor",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ActivityMonitor",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AdditionalTaxRule",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "AdditionalTaxRule",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AdjBufferDetail",
+      "sourceCount": 12375,
+      "targetSchema": "dbo",
+      "targetTable": "AdjBufferDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AdjBufferHeader",
+      "sourceCount": 1062,
+      "targetSchema": "dbo",
+      "targetTable": "AdjBufferHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AdjCategory",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "AdjCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AdjDetail",
+      "sourceCount": 11655,
+      "targetSchema": "dbo",
+      "targetTable": "AdjDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AdjHeader",
+      "sourceCount": 1542,
+      "targetSchema": "dbo",
+      "targetTable": "AdjHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AdmittedPatientRecurringServices",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AdmittedPatientRecurringServices",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AdvPurDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AdvPurDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AdvPurHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AdvPurHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AdvSaleDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AdvSaleDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AdvSaleLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AdvSaleLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AgingInterval",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "AgingInterval",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AgingIntervalDetail",
+      "sourceCount": 8,
+      "targetSchema": "dbo",
+      "targetTable": "AgingIntervalDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Alert",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Alert",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AlertType",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "AlertType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AlternateItemAlias",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AlternateItemAlias",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AlternateItemAliasRequest",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AlternateItemAliasRequest",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AppVersion",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AppVersion",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AppVersionDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AppVersionDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AppointmentMethod",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "AppointmentMethod",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AppointmentStatus",
+      "sourceCount": 8,
+      "targetSchema": "dbo",
+      "targetTable": "AppointmentStatus",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Area",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Area",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AssocAdvSaleInvList",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AssocAdvSaleInvList",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AssocSaleInvList",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AssocSaleInvList",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AssociatedItemPart",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AssociatedItemPart",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Author",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Author",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AutoSaleLog",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AutoSaleLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AvgPriceAdjDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AvgPriceAdjDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "AvgPriceAdjHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "AvgPriceAdjHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "BillSummary",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "BillSummary",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "BillSummaryDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "BillSummaryDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "BillSummaryType",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "BillSummaryType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "BioMetricMachine",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "BioMetricMachine",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "BirthCertificate",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "BirthCertificate",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "BonusPolicy",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "BonusPolicy",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "BonusPolicyDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "BonusPolicyDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CABG",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CABG",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CMH_messages",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CMH_messages",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Accounts",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Accounts",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_AdjDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_AdjDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_AdjHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_AdjHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Area",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Area",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_CashierWindow",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_CashierWindow",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_CategoryAccounts",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_CategoryAccounts",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_ClientInstance",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_ClientInstance",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_ClientList",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_ClientList",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_County",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_County",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Currency",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Currency",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Customer",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Customer",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_CustomerCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_CustomerCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_CustomerSegment",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_CustomerSegment",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_DataTransferLog",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_DataTransferLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_DataTransferLogDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_DataTransferLogDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Department",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Department",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Disease",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Disease",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Doctors",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Doctors",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_DueSatisfyDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_DueSatisfyDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_DueSatisfyHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_DueSatisfyHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_GLDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_GLDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Glheader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Glheader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Godown",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Godown",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_GodownDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_GodownDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_GodownGroup",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_GodownGroup",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_GoodsCompany",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_GoodsCompany",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_GuaranteePerson",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_GuaranteePerson",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_IssueCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_IssueCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_IssueDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_IssueDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_IssueHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_IssueHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_IssueType",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_IssueType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_MainAccounts",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_MainAccounts",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_MasterCashWin",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_MasterCashWin",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Message",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Message",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Notes",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Notes",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_NotesDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_NotesDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_PRDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_PRDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_PRLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_PRLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Patient",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Patient",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_PatientCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_PatientCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_ProformaPurDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_ProformaPurDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_PurDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_PurDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_PurExp",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_PurExp",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_PurLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_PurLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_PurchaseType",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_PurchaseType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_ReceiptCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_ReceiptCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_ReceiptDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_ReceiptDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_ReceiptHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_ReceiptHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Region",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Region",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_SRDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_SRDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_SRLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_SRLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_SaleDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_SaleDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_SaleInvDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_SaleInvDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_SaleLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_SaleLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_SaleType",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_SaleType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_SalesMan",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_SalesMan",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Section",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Section",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_SubAccounts",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_SubAccounts",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_SubArea",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_SubArea",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Supplier",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Supplier",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_SupplierCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_SupplierCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_TDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_TDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_THeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_THeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_TransactionDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_TransactionDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_TransactionHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_TransactionHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Transactions",
+      "sourceCount": 11,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Transactions",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_TransferableData",
+      "sourceCount": 63,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_TransferableData",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_Users",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_Users",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_VirtualGl",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_VirtualGl",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_VirtualGlTemp",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_VirtualGlTemp",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CRS_VocherCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CRS_VocherCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CTAngiogram",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CTAngiogram",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CashAccAllowedModule",
+      "sourceCount": 22,
+      "targetSchema": "dbo",
+      "targetTable": "CashAccAllowedModule",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CashierActivity",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CashierActivity",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CashierJob",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CashierJob",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CashierJobModule",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CashierJobModule",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CashierShift",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CashierShift",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CashierShiftCashCount",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CashierShiftCashCount",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CashierShiftUsers",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CashierShiftUsers",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CashierTemplate",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CashierTemplate",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CashierWindow",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CashierWindow",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CategoryAccounts",
+      "sourceCount": 13,
+      "targetSchema": "dbo",
+      "targetTable": "CategoryAccounts",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CategorySegment",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "CategorySegment",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CheckListItem",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CheckListItem",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Class",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Class",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ClassGraduation",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ClassGraduation",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ClassGraduationDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ClassGraduationDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ClassMedium",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "ClassMedium",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ClassPromotion",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ClassPromotion",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ClassPromotionDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ClassPromotionDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ClassType",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ClassType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ClientInstance",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ClientInstance",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ClientSetup",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ClientSetup",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ColumnEditStyle",
+      "sourceCount": 5,
+      "targetSchema": "dbo",
+      "targetTable": "ColumnEditStyle",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ColumnPreferences",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ColumnPreferences",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CompanyHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CompanyHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ConfigSetting",
+      "sourceCount": 9,
+      "targetSchema": "dbo",
+      "targetTable": "ConfigSetting",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ContactCard",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ContactCard",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ContactGroup",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ContactGroup",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ContactGroupDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ContactGroupDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ContactPolicy",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ContactPolicy",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ContactPolicyDetail",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ContactPolicyDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CoronoryAngiogram",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CoronoryAngiogram",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CoronoryAngioplasty",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CoronoryAngioplasty",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "County",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "County",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CrossTab_ReportData",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CrossTab_ReportData",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Currency",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Currency",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CurrencyDenomination",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "CurrencyDenomination",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustAllowedServices",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustAllowedServices",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustBalances",
+      "sourceCount": 34,
+      "targetSchema": "dbo",
+      "targetTable": "CustBalances",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustGuaranteePerson",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustGuaranteePerson",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustItemCatAssociation",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustItemCatAssociation",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustItemCatWiseSaleDiscount",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustItemCatWiseSaleDiscount",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustLicCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustLicCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustLog",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustQualPerson",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustQualPerson",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustWiseItemCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustWiseItemCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomDutyRule",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "CustomDutyRule",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Customer",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "Customer",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerCategory",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerComments",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerComments",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerConfig",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerConfig",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerDeployment",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerDeployment",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerDeploymentDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerDeploymentDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerGroup",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerGroup",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerGroupCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerGroupCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerGroupDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerGroupDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerLicRequest",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerLicRequest",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerLicense",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerLicense",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerSector",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerSector",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerSegment",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerSegment",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerServiceTemplate",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerServiceTemplate",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerServiceTemplateDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerServiceTemplateDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerStudentServiceTemplate",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerStudentServiceTemplate",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "CustomerStudentServiceTemplateDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "CustomerStudentServiceTemplateDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DBCC_History",
+      "sourceCount": 767,
+      "targetSchema": "dbo",
+      "targetTable": "DBCC_History",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DBRepairLog",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DBRepairLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_ExpiryIntimation",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_ExpiryIntimation",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_ExpiryIntimationDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_ExpiryIntimationDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_IssueDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_IssueDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_IssueHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_IssueHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_PRLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_PRLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_PRdetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_PRdetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_PurOrderDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_PurOrderDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_PurOrderHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_PurOrderHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_Purdetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_Purdetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_Purledger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_Purledger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_SRLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_SRLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_SRdetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_SRdetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_SaleLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_SaleLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DB_Saledetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DB_Saledetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DataImportLog",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DataImportLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DataTransferDate",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DataTransferDate",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DataTransferLog",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DataTransferLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DataTransferLogDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DataTransferLogDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DeathCertificate",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DeathCertificate",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DeletedSaleItem",
+      "sourceCount": 236148,
+      "targetSchema": "dbo",
+      "targetTable": "DeletedSaleItem",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Department",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Department",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DiagnosticItem",
+      "sourceCount": 30,
+      "targetSchema": "dbo",
+      "targetTable": "DiagnosticItem",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DiagnosticItemType",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "DiagnosticItemType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DiagnosticUnit",
+      "sourceCount": 9,
+      "targetSchema": "dbo",
+      "targetTable": "DiagnosticUnit",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DischargePrescription",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DischargePrescription",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DischargeReason",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "DischargeReason",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DischargeRefferal",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DischargeRefferal",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DiscountPolicy",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DiscountPolicy",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DiscountPolicyDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DiscountPolicyDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Disease",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Disease",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DiseaseTreatmentTemp",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DiseaseTreatmentTemp",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DiseaseTreatmentTempDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DiseaseTreatmentTempDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DiseaseType",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "DiseaseType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DispatchDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DispatchDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DispatchHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DispatchHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DoctorCategory",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "DoctorCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DoctorDutyRoster",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DoctorDutyRoster",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DoctorDutyRosterDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DoctorDutyRosterDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Doctors",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Doctors",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Dosage",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Dosage",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DosageUnit",
+      "sourceCount": 16,
+      "targetSchema": "dbo",
+      "targetTable": "DosageUnit",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DropData",
+      "sourceCount": 36,
+      "targetSchema": "dbo",
+      "targetTable": "DropData",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DueAdjDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DueAdjDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DueAdjHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DueAdjHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DueDeleteDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DueDeleteDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DueSatisfyDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DueSatisfyDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "DueSatisfyHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "DueSatisfyHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ECG",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ECG",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Advance",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Advance",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Allowance",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Allowance",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Attendance",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Attendance",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_AttendanceStatus",
+      "sourceCount": 12,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_AttendanceStatus",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Category",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Category",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Certification",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Certification",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Deduction",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Deduction",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Department",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Department",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_DepartmentTiming",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_DepartmentTiming",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Designation",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Designation",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Education",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Education",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_EmpCertification",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_EmpCertification",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_EmpEducation",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_EmpEducation",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_EmpSkill",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_EmpSkill",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Employee",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Employee",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Finger",
+      "sourceCount": 10,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Finger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_FingerPrint",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_FingerPrint",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Image",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Image",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_JobExp",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_JobExp",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Pay",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Pay",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_PayAllowance",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_PayAllowance",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_PayDeduction",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_PayDeduction",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Payroll",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Payroll",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_PayrollAllowances",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_PayrollAllowances",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_PayrollDeductions",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_PayrollDeductions",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Project",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Project",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Reference",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Reference",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EMP_Skill",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EMP_Skill",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Echo",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Echo",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EmailTemplate",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EmailTemplate",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Emp_Holiday",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Emp_Holiday",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EmrLabInvestRec",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "EmrLabInvestRec",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EventLog",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "EventLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ExpiryIntimation",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ExpiryIntimation",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ExpiryIntimationDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ExpiryIntimationDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ExtraTaxRule",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "ExtraTaxRule",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "EyeVision",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "EyeVision",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "FBR_DI_DocType",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "FBR_DI_DocType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "FBR_DI_Scenario",
+      "sourceCount": 28,
+      "targetSchema": "dbo",
+      "targetTable": "FBR_DI_Scenario",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "FBR_DI_TransactionType",
+      "sourceCount": 26,
+      "targetSchema": "dbo",
+      "targetTable": "FBR_DI_TransactionType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "FBR_DI_UOM",
+      "sourceCount": 43,
+      "targetSchema": "dbo",
+      "targetTable": "FBR_DI_UOM",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Fzcity",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Fzcity",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GLDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GLDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GLDocument",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GLDocument",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GPE",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GPE",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GSTRules",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "GSTRules",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GSTType",
+      "sourceCount": 3,
+      "targetSchema": "dbo",
+      "targetTable": "GSTType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GYN_US",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GYN_US",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GenericItem",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "GenericItem",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GenericItemType",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "GenericItemType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Gestation",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Gestation",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Glheader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Glheader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Global",
+      "sourceCount": 79,
+      "targetSchema": "dbo",
+      "targetTable": "Global",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Godown",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Godown",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GodownDetail",
+      "sourceCount": 6164,
+      "targetSchema": "dbo",
+      "targetTable": "GodownDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GodownGroup",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "GodownGroup",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GodownItemSetting",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GodownItemSetting",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GoodsCompany",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GoodsCompany",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Grade",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Grade",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedGodown",
+      "sourceCount": 33,
+      "targetSchema": "dbo",
+      "targetTable": "GroupAllowedGodown",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedGroups",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GroupAllowedGroups",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedHeader",
+      "sourceCount": 35,
+      "targetSchema": "dbo",
+      "targetTable": "GroupAllowedHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedPrice",
+      "sourceCount": 54,
+      "targetSchema": "dbo",
+      "targetTable": "GroupAllowedPrice",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedRecipient",
+      "sourceCount": 8,
+      "targetSchema": "dbo",
+      "targetTable": "GroupAllowedRecipient",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedServiceCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GroupAllowedServiceCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupAllowedStartupRight",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GroupAllowedStartupRight",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupCashAccount",
+      "sourceCount": 43,
+      "targetSchema": "dbo",
+      "targetTable": "GroupCashAccount",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupPurExpTemplate",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GroupPurExpTemplate",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupRights",
+      "sourceCount": 726,
+      "targetSchema": "dbo",
+      "targetTable": "GroupRights",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupSummaryAccount",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "GroupSummaryAccount",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupSupplierCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GroupSupplierCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupVoucherCategory",
+      "sourceCount": 25,
+      "targetSchema": "dbo",
+      "targetTable": "GroupVoucherCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GroupWiseImpExpTemplate",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GroupWiseImpExpTemplate",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Groups",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "Groups",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GuaranteePerson",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GuaranteePerson",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Guest",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Guest",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GuestCheckInService",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GuestCheckInService",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GuestCheckin",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GuestCheckin",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GuestRoom",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GuestRoom",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GuestRoomFloor",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GuestRoomFloor",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GuestRoomService",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GuestRoomService",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GuestRoomStatus",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GuestRoomStatus",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GuestRoomType",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GuestRoomType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "GuestTransfer",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "GuestTransfer",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "HPC",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "HPC",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "HeaderLogo",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "HeaderLogo",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ICDList",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ICDList",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IMP_AdvSaleDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IMP_AdvSaleDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IMP_AdvSaleLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IMP_AdvSaleLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IMP_CashierWindow",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IMP_CashierWindow",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IMP_MasterCashWin",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IMP_MasterCashWin",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IMP_SRDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IMP_SRDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IMP_SRLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IMP_SRLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IMP_SaleLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IMP_SaleLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IMP_Saledetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IMP_Saledetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IOLPower",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "IOLPower",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ImpPurDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ImpPurDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ImpPurExp",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ImpPurExp",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ImpPurHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ImpPurHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IncentiveSheet",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IncentiveSheet",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IncentiveSheetDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IncentiveSheetDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IncomeTaxRule",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "IncomeTaxRule",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "InstallmentDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "InstallmentDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "InstallmentGuarantor",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "InstallmentGuarantor",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "InstallmentHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "InstallmentHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "InstallmentReceipt",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "InstallmentReceipt",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "InstallmentReceiptDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "InstallmentReceiptDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "InstallmentSecurity",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "InstallmentSecurity",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Instruction",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Instruction",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "InterfaceSetting",
+      "sourceCount": 728,
+      "targetSchema": "dbo",
+      "targetTable": "InterfaceSetting",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IntimationType",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "IntimationType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "InvDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "InvDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "InvLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "InvLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IssueCategory",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "IssueCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IssueCategoryAccounts",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "IssueCategoryAccounts",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IssueDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IssueDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IssueHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IssueHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IssueReqDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IssueReqDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IssueReqHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IssueReqHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "IssueType",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "IssueType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Item",
+      "sourceCount": 30052,
+      "targetSchema": "dbo",
+      "targetTable": "Item",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemAlert",
+      "sourceCount": 5,
+      "targetSchema": "dbo",
+      "targetTable": "ItemAlert",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemAlertType",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "ItemAlertType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemAllowedMeter",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemAllowedMeter",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemAssociation",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemAssociation",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemAuthor",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemAuthor",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemBatchPricing",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemBatchPricing",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemBatches",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemBatches",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemBrand",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ItemBrand",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemCategory",
+      "sourceCount": 7,
+      "targetSchema": "dbo",
+      "targetTable": "ItemCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemCategoryWiseUpdation",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemCategoryWiseUpdation",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemClass",
+      "sourceCount": 12,
+      "targetSchema": "dbo",
+      "targetTable": "ItemClass",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemColour",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "ItemColour",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemColourAndSize",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemColourAndSize",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemConversionDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemConversionDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemConversionEffect",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "ItemConversionEffect",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemConversionHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemConversionHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemCostHistory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemCostHistory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemDesign",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ItemDesign",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemFabric",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ItemFabric",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemGroup",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemGroup",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemGroupDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemGroupDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemImage",
+      "sourceCount": 361,
+      "targetSchema": "dbo",
+      "targetTable": "ItemImage",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemInModel",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemInModel",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemInquiry",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemInquiry",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemInquiryDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemInquiryDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemLog",
+      "sourceCount": 110329,
+      "targetSchema": "dbo",
+      "targetTable": "ItemLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemMeter",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemMeter",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemMeterLog",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemMeterLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemNotes",
+      "sourceCount": 30047,
+      "targetSchema": "dbo",
+      "targetTable": "ItemNotes",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemPacking",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ItemPacking",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemPart",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ItemPart",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemPartInModel",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemPartInModel",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemPurExpTemplate",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemPurExpTemplate",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemReceiptExpTemplate",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemReceiptExpTemplate",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemRegRequest",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemRegRequest",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemSize",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ItemSize",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemSleeve",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ItemSleeve",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemStyle",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "ItemStyle",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemSuppliers",
+      "sourceCount": 22245,
+      "targetSchema": "dbo",
+      "targetTable": "ItemSuppliers",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemThickness",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ItemThickness",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemType",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "ItemType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemYarn",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ItemYarn",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ItemsGroupCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ItemsGroupCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "LabInvestRec",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "LabInvestRec",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "LastPurchaseHistory",
+      "sourceCount": 9746,
+      "targetSchema": "dbo",
+      "targetTable": "LastPurchaseHistory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "LicRequestStatus",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "LicRequestStatus",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "License",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "License",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "LicenseCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "LicenseCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "LockReason",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "LockReason",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Locker",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Locker",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "LockerCategory",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "LockerCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "LoyaltyCard",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "LoyaltyCard",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "LoyaltyCardLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "LoyaltyCardLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "LoyaltyPointAdjustment",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "LoyaltyPointAdjustment",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "LoyaltyPolicy",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "LoyaltyPolicy",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "LoyaltyPolicyDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "LoyaltyPolicyDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "LoyaltyRedemption",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "LoyaltyRedemption",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "MainAccounts",
+      "sourceCount": 5,
+      "targetSchema": "dbo",
+      "targetTable": "MainAccounts",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Manufacturer",
+      "sourceCount": 838,
+      "targetSchema": "dbo",
+      "targetTable": "Manufacturer",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ManufacturerCategory",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ManufacturerCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ManufacturerType",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ManufacturerType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "MasterCashWin",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "MasterCashWin",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "MeasuringUnit",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "MeasuringUnit",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "MembershipRenewal",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "MembershipRenewal",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Message",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Message",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Model",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Model",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Module",
+      "sourceCount": 57,
+      "targetSchema": "dbo",
+      "targetTable": "Module",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ModuleEvent",
+      "sourceCount": 20,
+      "targetSchema": "dbo",
+      "targetTable": "ModuleEvent",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "MotorVehicle",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "MotorVehicle",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "MotorVehicleType",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "MotorVehicleType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "NewManufacturer",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "NewManufacturer",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Notes",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Notes",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "NotesCategory",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "NotesCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "NotesDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "NotesDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "OBS_US",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "OBS_US",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Organ",
+      "sourceCount": 24,
+      "targetSchema": "dbo",
+      "targetTable": "Organ",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PC",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PC",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PCT",
+      "sourceCount": 3,
+      "targetSchema": "dbo",
+      "targetTable": "PCT",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "POPolicy",
+      "sourceCount": 7,
+      "targetSchema": "dbo",
+      "targetTable": "POPolicy",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "POPolicyDetail",
+      "sourceCount": 35,
+      "targetSchema": "dbo",
+      "targetTable": "POPolicyDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PRAllocationDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PRAllocationDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PRAllocationHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PRAllocationHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PRLedger",
+      "sourceCount": 634,
+      "targetSchema": "dbo",
+      "targetTable": "PRLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PRdetail",
+      "sourceCount": 2481,
+      "targetSchema": "dbo",
+      "targetTable": "PRdetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PackingCaseCapacity",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PackingCaseCapacity",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PackingJob",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PackingJob",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PackingJobDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PackingJobDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PackingJobPending",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PackingJobPending",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PackingJobSource",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PackingJobSource",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PackingLayout",
+      "sourceCount": 8,
+      "targetSchema": "dbo",
+      "targetTable": "PackingLayout",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Patient",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Patient",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PatientAdmission",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PatientAdmission",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PatientCatAllowedModule",
+      "sourceCount": 8,
+      "targetSchema": "dbo",
+      "targetTable": "PatientCatAllowedModule",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PatientCategory",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "PatientCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PatientFirstContact",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PatientFirstContact",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PatientFirstContactOptions",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "PatientFirstContactOptions",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PatientImage",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PatientImage",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PatientLocation",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PatientLocation",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PatientModule",
+      "sourceCount": 13,
+      "targetSchema": "dbo",
+      "targetTable": "PatientModule",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PatientRecServices",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PatientRecServices",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PatientTransfer",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PatientTransfer",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PhysicalExam",
+      "sourceCount": 84,
+      "targetSchema": "dbo",
+      "targetTable": "PhysicalExam",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PostedInvoiceEditingLog",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PostedInvoiceEditingLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PreSaleDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PreSaleDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PreSaleHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PreSaleHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Precaution",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Precaution",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Preferences",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Preferences",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PreferencesCategory",
+      "sourceCount": 37,
+      "targetSchema": "dbo",
+      "targetTable": "PreferencesCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PreferencesSubCategory",
+      "sourceCount": 155,
+      "targetSchema": "dbo",
+      "targetTable": "PreferencesSubCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PrescriptionDeleteDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PrescriptionDeleteDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PrescriptionDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PrescriptionDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PrescriptionDetailLog",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PrescriptionDetailLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PrescriptionHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PrescriptionHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PrescriptionHeaderLog",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PrescriptionHeaderLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PrevAbnormalLabs",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PrevAbnormalLabs",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PreviousSaleHistory",
+      "sourceCount": 94317,
+      "targetSchema": "dbo",
+      "targetTable": "PreviousSaleHistory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PriceChanges",
+      "sourceCount": 8,
+      "targetSchema": "dbo",
+      "targetTable": "PriceChanges",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PricePolicy",
+      "sourceCount": 30052,
+      "targetSchema": "dbo",
+      "targetTable": "PricePolicy",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PricePolicyDetail",
+      "sourceCount": 30052,
+      "targetSchema": "dbo",
+      "targetTable": "PricePolicyDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PriceType",
+      "sourceCount": 8,
+      "targetSchema": "dbo",
+      "targetTable": "PriceType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ProdBuffer",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ProdBuffer",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ProdDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ProdDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ProdHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ProdHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ProdNote",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ProdNote",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ProdNoteIssue",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ProdNoteIssue",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ProdNoteReceipt",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ProdNoteReceipt",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Product",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Product",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ProductPurpose",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ProductPurpose",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ProductType",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ProductType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ProformaPurDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ProformaPurDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ProspectiveCustomer",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ProspectiveCustomer",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ProvDiag",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ProvDiag",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurCategory",
+      "sourceCount": 8,
+      "targetSchema": "dbo",
+      "targetTable": "PurCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurExp",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PurExp",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurOrderCategory",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "PurOrderCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurOrderDetail",
+      "sourceCount": 113995,
+      "targetSchema": "dbo",
+      "targetTable": "PurOrderDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurOrderHeader",
+      "sourceCount": 2810,
+      "targetSchema": "dbo",
+      "targetTable": "PurOrderHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurPayment",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PurPayment",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurQuotationDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PurQuotationDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurQuotationHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PurQuotationHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurRegister",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PurRegister",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurRegisterDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PurRegisterDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurchaseDocument",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PurchaseDocument",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurchaseType",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PurchaseType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purdetail",
+      "sourceCount": 113564,
+      "targetSchema": "dbo",
+      "targetTable": "Purdetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurdetailMod",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PurdetailMod",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Purledger",
+      "sourceCount": 6419,
+      "targetSchema": "dbo",
+      "targetTable": "Purledger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "PurledgerMod",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "PurledgerMod",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "QualifiedPerson",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "QualifiedPerson",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "QualifiedPersonImage",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "QualifiedPersonImage",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "QuotationDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "QuotationDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "QuotationHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "QuotationHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Rank",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Rank",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ReceiptCategory",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "ReceiptCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ReceiptCategoryAccounts",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ReceiptCategoryAccounts",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ReceiptDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ReceiptDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ReceiptHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ReceiptHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Recipe",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Recipe",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "RecipeDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "RecipeDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Recipient",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "Recipient",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "RefusedSaleDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "RefusedSaleDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "RefusedSaleHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "RefusedSaleHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Region",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Region",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Relation",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Relation",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ReportData",
+      "sourceCount": 7,
+      "targetSchema": "dbo",
+      "targetTable": "ReportData",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ReportFilter",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "ReportFilter",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ReportTitles",
+      "sourceCount": 6,
+      "targetSchema": "dbo",
+      "targetTable": "ReportTitles",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Resource",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Resource",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ResourceCategory",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ResourceCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Rights",
+      "sourceCount": 486,
+      "targetSchema": "dbo",
+      "targetTable": "Rights",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "RightsCategory",
+      "sourceCount": 19,
+      "targetSchema": "dbo",
+      "targetTable": "RightsCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Rightsclone",
+      "sourceCount": 2122,
+      "targetSchema": "dbo",
+      "targetTable": "Rightsclone",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Route",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Route",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SBuffer",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SBuffer",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SBufferDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SBufferDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SE",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SE",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SMS_AssociatedRecipient",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SMS_AssociatedRecipient",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SMS_Center",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SMS_Center",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SMS_DataDefinition",
+      "sourceCount": 26,
+      "targetSchema": "dbo",
+      "targetTable": "SMS_DataDefinition",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SMS_Status",
+      "sourceCount": 3,
+      "targetSchema": "dbo",
+      "targetTable": "SMS_Status",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SMS_Template",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SMS_Template",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SMS_Type",
+      "sourceCount": 13,
+      "targetSchema": "dbo",
+      "targetTable": "SMS_Type",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SOCheckListItem",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SOCheckListItem",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SOReceipt",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SOReceipt",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SPO",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SPO",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SPOTeam",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SPOTeam",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SPOTeamCategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SPOTeamCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SPOTeamMember",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SPOTeamMember",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SPOTeamSubArea",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SPOTeamSubArea",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SRAllocationDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SRAllocationDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SRAllocationHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SRAllocationHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SRBufferDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SRBufferDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SRBufferLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SRBufferLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SRLedger",
+      "sourceCount": 30704,
+      "targetSchema": "dbo",
+      "targetTable": "SRLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SRdetail",
+      "sourceCount": 44579,
+      "targetSchema": "dbo",
+      "targetTable": "SRdetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleCategory",
+      "sourceCount": 15,
+      "targetSchema": "dbo",
+      "targetTable": "SaleCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleDetailModified",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleDetailModified",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleDocument",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleDocument",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleInterface",
+      "sourceCount": 22,
+      "targetSchema": "dbo",
+      "targetTable": "SaleInterface",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleInvDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleInvDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleInvGroup",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleInvGroup",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleInvGroupDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleInvGroupDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleLedger",
+      "sourceCount": 291361,
+      "targetSchema": "dbo",
+      "targetTable": "SaleLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleLedgerDump",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleLedgerDump",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleLedgerLog",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleLedgerLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleLedgerModified",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleLedgerModified",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleOrderCategory",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "SaleOrderCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleOrderDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleOrderDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleOrderHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleOrderHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleOrderItemStatus",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleOrderItemStatus",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SalePromotion",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SalePromotion",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleReceivableAdj",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleReceivableAdj",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleRefusalReason",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "SaleRefusalReason",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleSetsDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleSetsDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleSetsHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleSetsHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleSetsOrigDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaleSetsOrigDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleTemplateDetail",
+      "sourceCount": 321,
+      "targetSchema": "dbo",
+      "targetTable": "SaleTemplateDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleTemplateHeader",
+      "sourceCount": 93,
+      "targetSchema": "dbo",
+      "targetTable": "SaleTemplateHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaleType",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "SaleType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Saledetail",
+      "sourceCount": 620619,
+      "targetSchema": "dbo",
+      "targetTable": "Saledetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaledetailDump",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaledetailDump",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SaledetailLog",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SaledetailLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SalesDiscountPolicy",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SalesDiscountPolicy",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SalesMan",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "SalesMan",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SalesManScope",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SalesManScope",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SalesTaxSchedule",
+      "sourceCount": 7,
+      "targetSchema": "dbo",
+      "targetTable": "SalesTaxSchedule",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SalesTeam",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SalesTeam",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SalesTeamMember",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SalesTeamMember",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SampleDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SampleDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SampleType",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SampleType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Samples",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Samples",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "School",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "School",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SchoolBranch",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "SchoolBranch",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SchoolLeaving",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SchoolLeaving",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Section",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Section",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Sequence",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Sequence",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServerDate",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ServerDate",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServerDateMonth",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ServerDateMonth",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServerDateMonthPur",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ServerDateMonthPur",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Service",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Service",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceBreakUp",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceBreakUp",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceCategory",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceComponent",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceComponent",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceComponentComment",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceComponentComment",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceComponentOption",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceComponentOption",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceComponentRefValue",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceComponentRefValue",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceComponentSaleDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceComponentSaleDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceComponentSaleHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceComponentSaleHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceComponentType",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceComponentType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceComponentUnit",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceComponentUnit",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceConsumableItem",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceConsumableItem",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceInvPurTempDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceInvPurTempDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceInvPurTempHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceInvPurTempHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceInvType",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceInvType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceIssueRequest",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceIssueRequest",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceIssueRequestDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceIssueRequestDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceLockerDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceLockerDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceODetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceODetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceOHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceOHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceOrderStatus",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceOrderStatus",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServicePRAllocationDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServicePRAllocationDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServicePRAllocationHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServicePRAllocationHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServicePRDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServicePRDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServicePRHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServicePRHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServicePricePolicy",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServicePricePolicy",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServicePricePolicyDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServicePricePolicyDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServicePurDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServicePurDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServicePurHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServicePurHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServicePurTempDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServicePurTempDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServicePurTempHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServicePurTempHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceRDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceRDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceRHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceRHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceResultDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceResultDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceResultHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceResultHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceResultStamp",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceResultStamp",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceResultStyle",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceResultStyle",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceSRAllocationDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceSRAllocationDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceSRAllocationHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceSRAllocationHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceSampleRequirement",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceSampleRequirement",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceTemplateDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceTemplateDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceTemplateHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceTemplateHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceTicket",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceTicket",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ServiceType",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "ServiceType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Setup",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Setup",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SeverityLevel",
+      "sourceCount": 8,
+      "targetSchema": "dbo",
+      "targetTable": "SeverityLevel",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Shift",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Shift",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Site",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Site",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SoftwarePreferences",
+      "sourceCount": 1363,
+      "targetSchema": "dbo",
+      "targetTable": "SoftwarePreferences",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SpecialRight",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "SpecialRight",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "StartupRight",
+      "sourceCount": 5,
+      "targetSchema": "dbo",
+      "targetTable": "StartupRight",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "StateProvince",
+      "sourceCount": 7,
+      "targetSchema": "dbo",
+      "targetTable": "StateProvince",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "StockLedger",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "StockLedger",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "StockReport",
+      "sourceCount": 3215967,
+      "targetSchema": "dbo",
+      "targetTable": "StockReport",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Student",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Student",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "StudentClass",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "StudentClass",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "StudentClassTransfer",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "StudentClassTransfer",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "StudentFeeSheet",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "StudentFeeSheet",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "StudentFeeSheetDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "StudentFeeSheetDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "StudentImage",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "StudentImage",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "StudentServiceTemplate",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "StudentServiceTemplate",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "StudentServiceTemplateDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "StudentServiceTemplateDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SubAccounts",
+      "sourceCount": 29,
+      "targetSchema": "dbo",
+      "targetTable": "SubAccounts",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SubArea",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "SubArea",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SummaryAccount",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SummaryAccount",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SummaryAccountDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SummaryAccountDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Supplier",
+      "sourceCount": 235,
+      "targetSchema": "dbo",
+      "targetTable": "Supplier",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SupplierCategory",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "SupplierCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SupplierManufacturers",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SupplierManufacturers",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Surgery",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Surgery",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SurgeryProcedure",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "SurgeryProcedure",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SurveyDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SurveyDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SurveyHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "SurveyHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Symptom",
+      "sourceCount": 25,
+      "targetSchema": "dbo",
+      "targetTable": "Symptom",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "SymptomType",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "SymptomType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TaxCategory",
+      "sourceCount": 3,
+      "targetSchema": "dbo",
+      "targetTable": "TaxCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Tdetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Tdetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TestMachine",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "TestMachine",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ThaliumScan",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ThaliumScan",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Theader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Theader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TimeSlot",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "TimeSlot",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TransactionCategory",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "TransactionCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TransactionDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "TransactionDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TransactionHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "TransactionHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TransactionType",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "TransactionType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TransferRequisitionDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "TransferRequisitionDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TransferRequisitionHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "TransferRequisitionHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TransferType",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "TransferType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TransferableData",
+      "sourceCount": 176,
+      "targetSchema": "dbo",
+      "targetTable": "TransferableData",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TransferableData_ExportRestrictedColumns",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "TransferableData_ExportRestrictedColumns",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TransferableData_RestrictedColumns",
+      "sourceCount": 28,
+      "targetSchema": "dbo",
+      "targetTable": "TransferableData_RestrictedColumns",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TransportRoute",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "TransportRoute",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TreatmentGiven",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "TreatmentGiven",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TryDueSatisfyDetail",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "TryDueSatisfyDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "TryDueSatisfyHeader",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "TryDueSatisfyHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Unit",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Unit",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "UnitSalesTaxRules",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "UnitSalesTaxRules",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "UserAllowedDoctor",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "UserAllowedDoctor",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "UserAttendance",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "UserAttendance",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "UserAuthenticationInfo",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "UserAuthenticationInfo",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "UserAuthenticationInfo_CodexBackup_20260804",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "UserAuthenticationInfo_CodexBackup_20260804",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "UserGroups",
+      "sourceCount": 11,
+      "targetSchema": "dbo",
+      "targetTable": "UserGroups",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "UserGroupsLog",
+      "sourceCount": 9,
+      "targetSchema": "dbo",
+      "targetTable": "UserGroupsLog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "UserRights",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "UserRights",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Users",
+      "sourceCount": 11,
+      "targetSchema": "dbo",
+      "targetTable": "Users",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VaccineSchedule",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "VaccineSchedule",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VaccineStatus",
+      "sourceCount": 5,
+      "targetSchema": "dbo",
+      "targetTable": "VaccineStatus",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Vehicle",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "Vehicle",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VehicleRoute",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "VehicleRoute",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VehicleType",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "VehicleType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VirtualGl",
+      "sourceCount": 1021852,
+      "targetSchema": "dbo",
+      "targetTable": "VirtualGl",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VirtualGlTemp",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "VirtualGlTemp",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Visit",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Visit",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VisitAppointment",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "VisitAppointment",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VisitDiagnostics",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "VisitDiagnostics",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VisitICD",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "VisitICD",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VisitPhysicalExam",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "VisitPhysicalExam",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VisitPrecaution",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "VisitPrecaution",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VisitPrescription",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "VisitPrescription",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VisitStatus",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "VisitStatus",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VisitSymptoms",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "VisitSymptoms",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VisitType",
+      "sourceCount": 8,
+      "targetSchema": "dbo",
+      "targetTable": "VisitType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VisitVitals",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "VisitVitals",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VocherCategory",
+      "sourceCount": 22,
+      "targetSchema": "dbo",
+      "targetTable": "VocherCategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VocherCategoryDetail",
+      "sourceCount": 114,
+      "targetSchema": "dbo",
+      "targetTable": "VocherCategoryDetail",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "VocherCategoryHeader",
+      "sourceCount": 20,
+      "targetSchema": "dbo",
+      "targetTable": "VocherCategoryHeader",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Ward",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Ward",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "WeekDays",
+      "sourceCount": 7,
+      "targetSchema": "dbo",
+      "targetTable": "WeekDays",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "WeekOfMonth",
+      "sourceCount": 5,
+      "targetSchema": "dbo",
+      "targetTable": "WeekOfMonth",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "WeighingScale",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "WeighingScale",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "WindowType",
+      "sourceCount": 5,
+      "targetSchema": "dbo",
+      "targetTable": "WindowType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "WorkOrder",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "WorkOrder",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "WorkOrderAccount",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "WorkOrderAccount",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "WorkOrderAssessment",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "WorkOrderAssessment",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "WorkOrderResource",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "WorkOrderResource",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "WorkOrderType",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "WorkOrderType",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "XRay",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "XRay",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "Zone",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "Zone",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ZoneAreas",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ZoneAreas",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "ZoneContactGroup",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "ZoneContactGroup",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "_HeaderTabMaxKey",
+      "sourceCount": 11,
+      "targetSchema": "dbo",
+      "targetTable": "_HeaderTabMaxKey",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "_TABMAXKEY",
+      "sourceCount": 266,
+      "targetSchema": "dbo",
+      "targetTable": "_TABMAXKEY",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "_Utn",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "_Utn",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "cmh_accounts",
+      "sourceCount": 981,
+      "targetSchema": "dbo",
+      "targetTable": "cmh_accounts",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "cmh_area",
+      "sourceCount": 3,
+      "targetSchema": "dbo",
+      "targetTable": "cmh_area",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "cmh_customer",
+      "sourceCount": 856,
+      "targetSchema": "dbo",
+      "targetTable": "cmh_customer",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "cmh_custtype",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "cmh_custtype",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "cmh_godown",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "cmh_godown",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "cmh_iclass",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "cmh_iclass",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "cmh_item",
+      "sourceCount": 11432,
+      "targetSchema": "dbo",
+      "targetTable": "cmh_item",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "cmh_itemcat",
+      "sourceCount": 8,
+      "targetSchema": "dbo",
+      "targetTable": "cmh_itemcat",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "cmh_manufact",
+      "sourceCount": 533,
+      "targetSchema": "dbo",
+      "targetTable": "cmh_manufact",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "cmh_packing",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "cmh_packing",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "cmh_region",
+      "sourceCount": 2,
+      "targetSchema": "dbo",
+      "targetTable": "cmh_region",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "cmh_salesman",
+      "sourceCount": 7,
+      "targetSchema": "dbo",
+      "targetTable": "cmh_salesman",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "cmh_supplier",
+      "sourceCount": 125,
+      "targetSchema": "dbo",
+      "targetTable": "cmh_supplier",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "dtproperties",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "dtproperties",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "items_corrupted",
+      "sourceCount": 3,
+      "targetSchema": "dbo",
+      "targetTable": "items_corrupted",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "old_MembershipRenewal",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "old_MembershipRenewal",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "p_manufacturer1",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "p_manufacturer1",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "pbcatcol",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "pbcatcol",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "pbcatedt",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "pbcatedt",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "pbcatfmt",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "pbcatfmt",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "pbcattbl",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "pbcattbl",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "pbcatvld",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "pbcatvld",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "salepricecategory",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "salepricecategory",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "syscatelog",
+      "sourceCount": 8,
+      "targetSchema": "dbo",
+      "targetTable": "syscatelog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "syscommants",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "syscommants",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "systextcatalog",
+      "sourceCount": 4,
+      "targetSchema": "dbo",
+      "targetTable": "systextcatalog",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "temp_GroupRights",
+      "sourceCount": 6265,
+      "targetSchema": "dbo",
+      "targetTable": "temp_GroupRights",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "temp_saleinvcode",
+      "sourceCount": 1,
+      "targetSchema": "dbo",
+      "targetTable": "temp_saleinvcode",
+      "status": "missing_target"
+    },
+    {
+      "sourceSchema": "dbo",
+      "sourceTable": "wrongitemtable",
+      "sourceCount": 0,
+      "targetSchema": "dbo",
+      "targetTable": "wrongitemtable",
+      "status": "missing_target"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "stock_report_snapshot_count",
+      "sourceValue": "3215967",
+      "targetValue": "3215967",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "virtual_gl_distinct_identity_count",
+      "sourceValue": "1021801",
+      "targetValue": "1021801",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "stock_ledger_total_count",
+      "sourceValue": "781243",
+      "targetValue": "781243",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "sale_stock_ledger_count_with_reviewed_quarantine",
+      "sourceValue": "620619",
+      "targetValue": "620619",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_stock_ledger_count_with_reviewed_quarantine",
+      "sourceValue": "113564",
+      "targetValue": "113564",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "sale_return_stock_ledger_count",
+      "sourceValue": "44579",
+      "targetValue": "44579",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_return_stock_ledger_count",
+      "sourceValue": "2481",
+      "targetValue": "2481",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "sale_party_ledger_count",
+      "sourceValue": "291361",
+      "targetValue": "291361",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "sale_return_party_ledger_count",
+      "sourceValue": "30704",
+      "targetValue": "30704",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_party_ledger_count",
+      "sourceValue": "6416",
+      "targetValue": "6416",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_return_party_ledger_count",
+      "sourceValue": "634",
+      "targetValue": "634",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "open_bookkeeping_record_count",
+      "sourceValue": "0",
+      "targetValue": "0",
+      "difference": "0.00000000",
+      "tolerance": 0.0001,
+      "status": "matched"
+    },
+    {
+      "name": "sale_line_total_value_sum",
+      "sourceValue": "234091195.450000",
+      "targetValue": "234091195.4500",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_line_total_value_sum",
+      "sourceValue": "2702700637.190000",
+      "targetValue": "2702700637.1900",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    },
+    {
+      "name": "sale_return_line_total_value_sum",
+      "sourceValue": "19283208.080000",
+      "targetValue": "19283208.0800",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    },
+    {
+      "name": "purchase_return_line_total_value_sum",
+      "sourceValue": "3562313.300000",
+      "targetValue": "3562313.3000",
+      "difference": "0.00000000",
+      "tolerance": 0.01,
+      "status": "matched"
+    }
+  ],
+  "bookkeeping": {
+    "openMigrationExceptionCount": 0,
+    "openMigrationExceptionRowCount": 0,
+    "openMigrationAmbiguityCount": 0,
+    "status": "clear"
+  }
+}

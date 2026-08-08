@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "document": "AbuzarNext cutover go/no-go checklist",
+  "_validatorScript": "ops/cutover/validate-go-no-go.ps1 -Path <this-file> -- rejects GO when any required check is pending/blocked/fail or any required approval is missing; see docs/RUNBOOK_CUTOVER.md Section 5, step 9",
   "generatedAtUtc": "2026-08-06T20:16:03.520Z",
   "status": "HOLD",
   "checkStatusValues": [

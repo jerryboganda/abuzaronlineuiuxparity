@@ -655,12 +655,6 @@ func (s *Server) itemLookup(w http.ResponseWriter, r *http.Request) {
 			writeProblem(w, http.StatusServiceUnavailable, "item_lookup_failed", "Unable to look up items", "The item lookup response could not be decoded.")
 			return
 		}
-		item.Aliases, err = queryItemAliases(r.Context(), tx, operator.TenantID, item.ID)
-		if err != nil {
-			rows.Close()
-			writeProblem(w, http.StatusServiceUnavailable, "item_lookup_failed", "Unable to look up items", "The item aliases could not be loaded.")
-			return
-		}
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
@@ -669,6 +663,18 @@ func (s *Server) itemLookup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows.Close()
+	// Aliases are loaded in a second pass, after the base-item rows are
+	// fully read and closed. Running a nested QueryContext on the same tx
+	// while the outer Rows is still open holds the connection busy and
+	// fails under the pgx stdlib driver.
+	for i := range items {
+		aliases, err := queryItemAliases(r.Context(), tx, operator.TenantID, items[i].ID)
+		if err != nil {
+			writeProblem(w, http.StatusServiceUnavailable, "item_lookup_failed", "Unable to look up items", "The item aliases could not be loaded.")
+			return
+		}
+		items[i].Aliases = aliases
+	}
 	if err := tx.Commit(); err != nil {
 		writeProblem(w, http.StatusServiceUnavailable, "item_lookup_failed", "Unable to look up items", "The item lookup transaction could not be committed.")
 		return

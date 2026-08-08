@@ -108,12 +108,12 @@ SELECT
   d.UOM
 FROM dbo.Saledetail AS d
 CROSS APPLY (
-  SELECT CAST(COALESCE(d.PackQty, 0) AS decimal(19,8)) +
+  SELECT CAST(COALESCE(d.PackQty, 0) AS decimal(19,8)) *
     CASE
-      WHEN COALESCE(d.PackUnits, 0) = 0 THEN CAST(0 AS decimal(19,8))
-      ELSE CAST(COALESCE(d.LooseQty, 0) AS decimal(19,8)) /
-        NULLIF(CAST(d.PackUnits AS decimal(19,8)), 0)
-    END AS quantity
+      WHEN COALESCE(d.PackUnits, 0) = 0 THEN CAST(1 AS decimal(19,8))
+      ELSE NULLIF(CAST(d.PackUnits AS decimal(19,8)), 0)
+    END +
+    CAST(COALESCE(d.LooseQty, 0) AS decimal(19,8)) AS quantity
 ) AS q`
 
 func main() {

@@ -6,9 +6,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/abuzar/abuzar-next/services/edge/internal/hardware"
 	"github.com/abuzar/abuzar-next/services/edge/internal/store"
 	"github.com/abuzar/abuzar-next/services/edge/internal/syncapi"
 	"github.com/abuzar/abuzar-next/services/edge/internal/syncer"
@@ -33,7 +36,8 @@ func main() {
 	}
 	defer localStore.Close()
 
-	handler := syncapi.New(localStore, version, sharedSecret)
+	registry := hardware.NewWithConfig(buildHardwareConfig())
+	handler := syncapi.NewWithHardware(localStore, version, sharedSecret, registry)
 	if centralURL != "" || centralSession != "" {
 		client, err := syncer.New(localStore, centralURL, centralSession)
 		if err != nil {
@@ -84,4 +88,90 @@ func parseDuration(value string, fallback time.Duration) time.Duration {
 		return fallback
 	}
 	return parsed
+}
+
+// buildHardwareConfig resolves every hardware adapter this process can
+// construct on its own from environment variables. Printer, barcode,
+// cash-drawer, and biometric adapters have no concrete implementation in
+// this codebase yet (they require a vendor SDK or a physical driver the
+// branch host must supply), so they are deliberately left nil here; the
+// registry reports them as unconfigured rather than pretending otherwise.
+func buildHardwareConfig() hardware.Config {
+	emailAdapter, emailProvider := buildSMTPAdapter()
+	smsAdapter, smsProvider := buildSMSAdapter()
+	return hardware.Config{
+		Email:         emailAdapter,
+		EmailProvider: emailProvider,
+		SMS:           smsAdapter,
+		SMSProvider:   smsProvider,
+	}
+}
+
+// buildSMTPAdapter constructs a real SMTP client adapter from SMTP_* process
+// environment variables. It is deliberately env-var-only for this pass: it
+// does not read per-tenant SMTP preferences (see preference_registry.go's
+// Email category behavior notes for the honest statement of what is and is
+// not wired). Absent SMTP_HOST, email stays unconfigured.
+func buildSMTPAdapter() (hardware.EmailAdapter, string) {
+	host := strings.TrimSpace(os.Getenv("SMTP_HOST"))
+	if host == "" {
+		return nil, ""
+	}
+	port, err := strconv.Atoi(getenv("SMTP_PORT", "587"))
+	if err != nil {
+		log.Printf("invalid SMTP_PORT %q; email adapter disabled: %v", os.Getenv("SMTP_PORT"), err)
+		return nil, ""
+	}
+	from := strings.TrimSpace(os.Getenv("SMTP_FROM"))
+	if from == "" {
+		from = strings.TrimSpace(os.Getenv("SMTP_USER"))
+	}
+	adapter, err := hardware.NewSMTPClientAdapter(hardware.SMTPConfig{
+		Host:       host,
+		Port:       port,
+		Username:   os.Getenv("SMTP_USER"),
+		Password:   os.Getenv("SMTP_PASSWORD"),
+		From:       from,
+		Encryption: hardware.SMTPEncryption(getenv("SMTP_ENCRYPTION", "TLS")),
+	})
+	if err != nil {
+		log.Printf("invalid SMTP configuration; email adapter disabled: %v", err)
+		return nil, ""
+	}
+	return adapter, "smtp"
+}
+
+// buildSMSAdapter constructs a real Web-SMS-gateway HTTP client adapter from
+// SMS_GATEWAY_* process environment variables. As with SMTP above, this is
+// env-var-only for this pass; no per-tenant SMS preference is read yet.
+// Absent SMS_GATEWAY_URL_TEMPLATE, SMS stays unconfigured.
+func buildSMSAdapter() (hardware.SMSAdapter, string) {
+	template := strings.TrimSpace(os.Getenv("SMS_GATEWAY_URL_TEMPLATE"))
+	if template == "" {
+		return nil, ""
+	}
+	successStatus := 0
+	if raw := strings.TrimSpace(os.Getenv("SMS_GATEWAY_SUCCESS_STATUS")); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			log.Printf("invalid SMS_GATEWAY_SUCCESS_STATUS %q; sms adapter disabled: %v", raw, err)
+			return nil, ""
+		}
+		successStatus = parsed
+	}
+	adapter, err := hardware.NewSMSGatewayAdapter(hardware.SMSGatewayConfig{
+		URLTemplate:         template,
+		Method:              getenv("SMS_GATEWAY_METHOD", "GET"),
+		User:                os.Getenv("SMS_GATEWAY_USER"),
+		Password:            os.Getenv("SMS_GATEWAY_PASSWORD"),
+		Mask:                os.Getenv("SMS_GATEWAY_MASK"),
+		APIKey:              os.Getenv("SMS_GATEWAY_API_KEY"),
+		SuccessStatusCode:   successStatus,
+		SuccessBodyContains: os.Getenv("SMS_GATEWAY_SUCCESS_CONTAINS"),
+	})
+	if err != nil {
+		log.Printf("invalid SMS gateway configuration; sms adapter disabled: %v", err)
+		return nil, ""
+	}
+	return adapter, "web-sms-gateway"
 }

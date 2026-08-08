@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -527,4 +528,177 @@ func assertFinanceLines(t *testing.T, ctx context.Context, database *sql.DB, ten
 			t.Errorf("finance line %s = %v, want %v", key, actual[key], line)
 		}
 	}
+}
+
+// TestCreditLimitEnforcement exercises enforceCreditSaleLimit (documents.go)
+// through the same HTTP document-command path production traffic uses,
+// covering: a credit-sale that stays within a positive CrLimit, one that
+// would exceed it, and customers whose CrLimit is unset or explicitly 0 —
+// both of which must always succeed regardless of their existing balance.
+func TestCreditLimitEnforcement(t *testing.T) {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		t.Skip("DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	database, err := sql.Open("pgx", dsn)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	defer database.Close()
+	if err := database.PingContext(ctx); err != nil {
+		t.Fatalf("ping database: %v", err)
+	}
+
+	fixture := seedStockTenant(t, ctx, database, "credit-limit-"+fmt.Sprint(time.Now().UnixNano()))
+	defer func() {
+		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID)
+	}()
+	receive := insertInventoryEvent(t, ctx, database, fixture, "receiving", "credit-limit-receive", inventoryRowPayload{
+		ItemLegacyID: fixture.itemLegacyID, GodownID: fixture.godownID,
+		BatchNumber: "CRLIM-001", ExpiryDate: "2030-01-01", Quantity: []byte(`20`), UnitCost: "4.00",
+	})
+	operator := &sessionContext{
+		UserID: fixture.operatorID, TenantID: fixture.tenantID, BranchID: fixture.branchID,
+		CounterID: fixture.counterID, Roles: []string{"tenant_admin"},
+	}
+	tx, err := (&Server{database: database}).beginScopedTx(ctx, operator)
+	if err != nil {
+		t.Fatalf("begin receiving: %v", err)
+	}
+	if err := projectEvent(ctx, tx, receive); err != nil {
+		_ = tx.Rollback()
+		t.Fatalf("project receiving: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit receiving: %v", err)
+	}
+
+	server := &Server{database: database}
+
+	newCustomer := func(t *testing.T, name, payload string) string {
+		t.Helper()
+		var customerID string
+		key := "customer-" + name + "-" + fmt.Sprint(time.Now().UnixNano())
+		if err := database.QueryRowContext(ctx, `
+			INSERT INTO master_parties (tenant_id, party_type, legacy_id, code, name, payload)
+			VALUES ($1::uuid, 'customer', $2, $2, $3, $4::jsonb)
+			RETURNING id::text
+		`, fixture.tenantID, key, name, payload).Scan(&customerID); err != nil {
+			t.Fatalf("seed customer %s: %v", name, err)
+		}
+		return customerID
+	}
+
+	seedBalance := func(t *testing.T, customerID string, amount string) {
+		t.Helper()
+		if _, err := database.ExecContext(ctx, `
+			INSERT INTO party_ledger_balances (tenant_id, branch_id, party_id, debit_total, credit_total, balance)
+			VALUES ($1::uuid, $2::uuid, $3::uuid, $4::numeric, 0, $4::numeric)
+		`, fixture.tenantID, fixture.branchID, customerID, amount); err != nil {
+			t.Fatalf("seed pre-existing balance: %v", err)
+		}
+	}
+
+	readBalance := func(t *testing.T, customerID string) string {
+		t.Helper()
+		var balance string
+		if err := database.QueryRowContext(ctx, `
+			SELECT balance::text FROM party_ledger_balances
+			WHERE tenant_id = $1::uuid AND branch_id = $2::uuid AND party_id = $3::uuid
+		`, fixture.tenantID, fixture.branchID, customerID).Scan(&balance); err != nil {
+			t.Fatalf("read balance: %v", err)
+		}
+		return balance
+	}
+
+	creditSaleCommand := func(customerID, commandID, key, quantity string) documentCommandRequest {
+		return documentCommandRequest{
+			CommandID: commandID,
+			Kind:      "credit-sale", Action: "save-and-post", IdempotencyKey: key, OccurredAt: "2026-08-06T00:00:00Z",
+			Document: &documentDraftRequest{
+				Kind: "credit-sale", OccurredAt: "2026-08-06T00:00:00Z", GodownID: fixture.godownID,
+				CustomerID: customerID,
+				Lines:      []documentLineRequest{{ItemID: fixture.itemID, Quantity: quantity, UnitPrice: "10.00"}},
+			},
+		}
+	}
+
+	// A single line of quantity 1 at UnitPrice "10.00" does not necessarily
+	// post a total of exactly 10.00 (default tax/pricing policy can add to
+	// it). Probe the real per-unit total once, under a customer with an
+	// effectively unlimited CrLimit, so the within/exceeding-limit fixtures
+	// below can be sized precisely off the actual total rather than an
+	// assumption about tax configuration.
+	probeCustomer := newCustomer(t, "Probe", `{"CrLimit":"999999.99"}`)
+	probeCommand := creditSaleCommand(probeCustomer, "00000000-0000-0000-0000-0000000000c0", "credit-limit-probe", "1")
+	probeStatus, probeResponse, probeBody := executeDocumentHandler(t, server, operator, probeCommand)
+	if probeStatus != http.StatusOK || probeResponse.Document.Status != "posted" {
+		t.Fatalf("probe credit-sale status=%d body=%s", probeStatus, probeBody)
+	}
+	unitTotal, err := parseMoney(probeResponse.Document.Totals.TotalAmount)
+	if err != nil || unitTotal <= 0 {
+		t.Fatalf("parse probe total %q: %v", probeResponse.Document.Totals.TotalAmount, err)
+	}
+	// A limit at 1.5x a single line's total sits strictly between one line's
+	// total (must be allowed) and two lines' total (must be rejected).
+	limit := unitTotal + unitTotal/2
+	limitPayload := fmt.Sprintf(`{"CrLimit":"%s"}`, formatMoney(limit))
+	wantBalanceAfterOne := formatMoney(unitTotal)
+
+	t.Run("credit-sale within limit succeeds", func(t *testing.T) {
+		customerID := newCustomer(t, "WithinLimit", limitPayload)
+		command := creditSaleCommand(customerID, "00000000-0000-0000-0000-0000000000c1", "credit-limit-within", "1")
+		status, response, body := executeDocumentHandler(t, server, operator, command)
+		if status != http.StatusOK || response.Document.Status != "posted" {
+			t.Fatalf("within-limit credit-sale status=%d body=%s", status, body)
+		}
+		balance, err := parseMoney(readBalance(t, customerID))
+		if err != nil || balance != unitTotal {
+			t.Fatalf("balance = %v (err=%v), want %s", balance, err, wantBalanceAfterOne)
+		}
+	})
+
+	t.Run("credit-sale exceeding limit is rejected", func(t *testing.T) {
+		customerID := newCustomer(t, "OverLimit", limitPayload)
+		first := creditSaleCommand(customerID, "00000000-0000-0000-0000-0000000000c2", "credit-limit-over-first", "1")
+		firstStatus, _, firstBody := executeDocumentHandler(t, server, operator, first)
+		if firstStatus != http.StatusOK {
+			t.Fatalf("first credit-sale status=%d body=%s", firstStatus, firstBody)
+		}
+		if balance, err := parseMoney(readBalance(t, customerID)); err != nil || balance != unitTotal {
+			t.Fatalf("balance after first sale = %v (err=%v), want %s", balance, err, wantBalanceAfterOne)
+		}
+		second := creditSaleCommand(customerID, "00000000-0000-0000-0000-0000000000c3", "credit-limit-over-second", "1")
+		secondStatus, _, secondBody := executeDocumentHandler(t, server, operator, second)
+		if secondStatus != http.StatusUnprocessableEntity {
+			t.Fatalf("second credit-sale status=%d body=%s, want %d rejection", secondStatus, secondBody, http.StatusUnprocessableEntity)
+		}
+		if !strings.Contains(secondBody, "credit limit") {
+			t.Fatalf("rejection body did not mention the credit limit: %s", secondBody)
+		}
+		if balance, err := parseMoney(readBalance(t, customerID)); err != nil || balance != unitTotal {
+			t.Fatalf("balance after rejected post = %v (err=%v), want %s (unchanged)", balance, err, wantBalanceAfterOne)
+		}
+	})
+
+	t.Run("unset CrLimit always succeeds regardless of balance", func(t *testing.T) {
+		customerID := newCustomer(t, "NoLimit", `{}`)
+		seedBalance(t, customerID, "500.00")
+		command := creditSaleCommand(customerID, "00000000-0000-0000-0000-0000000000c4", "credit-limit-none", "1")
+		status, response, body := executeDocumentHandler(t, server, operator, command)
+		if status != http.StatusOK || response.Document.Status != "posted" {
+			t.Fatalf("no-limit credit-sale status=%d body=%s", status, body)
+		}
+	})
+
+	t.Run("explicit zero CrLimit always succeeds regardless of balance", func(t *testing.T) {
+		customerID := newCustomer(t, "ZeroLimit", `{"CrLimit":"0.00"}`)
+		seedBalance(t, customerID, "500.00")
+		command := creditSaleCommand(customerID, "00000000-0000-0000-0000-0000000000c5", "credit-limit-zero", "1")
+		status, response, body := executeDocumentHandler(t, server, operator, command)
+		if status != http.StatusOK || response.Document.Status != "posted" {
+			t.Fatalf("zero-limit credit-sale status=%d body=%s", status, body)
+		}
+	})
 }

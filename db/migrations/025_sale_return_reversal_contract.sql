@@ -181,6 +181,22 @@ BEGIN
                 RAISE EXCEPTION 'sale return line source does not match the source sale item';
             END IF;
         END IF;
+    ELSIF document_kind = 'purchase-return' THEN
+        -- Historical/unlinked legacy purchase returns are an accepted state, so
+        -- the posting requirement lives at the API boundary; the trigger only
+        -- guarantees that a supplied source line is referentially consistent.
+        IF NEW.source_line_id IS NOT NULL THEN
+            SELECT item_id
+              INTO source_item
+              FROM business_document_lines
+             WHERE tenant_id = NEW.tenant_id
+               AND id = NEW.source_line_id
+               AND document_id = source_document
+              FOR SHARE;
+            IF NOT FOUND OR source_item IS DISTINCT FROM NEW.item_id THEN
+                RAISE EXCEPTION 'purchase return line source does not match the source purchase item';
+            END IF;
+        END IF;
     ELSIF NEW.source_line_id IS NOT NULL THEN
         RAISE EXCEPTION 'source sale line is only valid for a source-bound sale return';
     END IF;

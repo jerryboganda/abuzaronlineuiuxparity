@@ -80,6 +80,10 @@
   }
 
   function choose(action: MenuAction) {
+    // Activating any menu item always dismisses the open menu first, matching
+    // legacy menu behavior; blocked or denied commands then only set notice.
+    openMenu = '';
+    openSubmenu = '';
     if (navigationBlocked) {
       notice = 'Wait for the active document command to finish.';
       status = 'Command in progress';
@@ -93,8 +97,6 @@
       return;
     }
     setStatus(action.label);
-    openMenu = '';
-    openSubmenu = '';
     if (action.label === 'Change User') {
       changeUserOpen = true;
       changeUserInteractive = false;

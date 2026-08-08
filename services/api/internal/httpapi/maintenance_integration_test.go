@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -66,11 +68,16 @@ func TestMaintenanceManageOperationsIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("backup is audited as not configured", func(t *testing.T) {
+	t.Run("backup performs a real pg_dump and audits the resulting file", func(t *testing.T) {
+		// This dumps whatever database DATABASE_URL points at for this test
+		// run. It never restores anything, so it is non-destructive even if
+		// DATABASE_URL happens to point at a shared database.
+		backupDir := t.TempDir()
+		t.Setenv("ABUZAR_MAINTENANCE_BACKUP_DIR", backupDir)
 		request := maintenanceTestRequest(http.MethodPost, "/v1/maintenance/backup-database", `{"destination":"C:\\backup\\db.bak"}`, operator)
 		recorder := httptest.NewRecorder()
 		server.maintenanceAction(recorder, request)
-		if recorder.Code != http.StatusAccepted {
+		if recorder.Code != http.StatusOK {
 			t.Fatalf("backup status = %d, body=%s", recorder.Code, recorder.Body.String())
 		}
 		var response struct {
@@ -81,15 +88,34 @@ func TestMaintenanceManageOperationsIntegration(t *testing.T) {
 		if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 			t.Fatalf("decode backup response: %v", err)
 		}
-		if response.OperationID == "" || response.Status != "not_configured" || !strings.Contains(response.Message, "no database backup") {
+		if response.OperationID == "" {
 			t.Fatalf("backup response = %+v", response)
 		}
-		var status string
-		if err := database.QueryRowContext(ctx, `SELECT payload->>'status' FROM audit_events WHERE id = $1::uuid`, response.OperationID).Scan(&status); err != nil {
+		// pg_dump is expected on PATH in this environment (real adapter), but
+		// this assertion also tolerates a machine without it, where the
+		// handler must honestly fall back to not_configured rather than
+		// pretending a backup happened.
+		if response.Status != "completed" && response.Status != "not_configured" {
+			t.Fatalf("backup status = %q, want completed or not_configured", response.Status)
+		}
+		var auditedStatus, filePath string
+		if err := database.QueryRowContext(ctx, `SELECT payload->>'status', COALESCE(payload->>'filePath', '') FROM audit_events WHERE id = $1::uuid`, response.OperationID).Scan(&auditedStatus, &filePath); err != nil {
 			t.Fatalf("read backup audit: %v", err)
 		}
-		if status != "not_configured" {
-			t.Fatalf("backup audit status = %q", status)
+		if auditedStatus != response.Status {
+			t.Fatalf("backup audit status = %q, want %q", auditedStatus, response.Status)
+		}
+		if response.Status == "completed" {
+			if filePath == "" {
+				t.Fatal("completed backup audit did not record a filePath")
+			}
+			info, statErr := os.Stat(filePath)
+			if statErr != nil {
+				t.Fatalf("completed backup did not produce a file on disk: %v", statErr)
+			}
+			if info.Size() == 0 {
+				t.Fatal("completed backup produced an empty file")
+			}
 		}
 	})
 
@@ -337,4 +363,374 @@ func maintenanceTestRequest(method, target, body string, operator *sessionContex
 
 func formatTestSuffix(value int64) string {
 	return strings.ReplaceAll(strings.TrimSpace(time.Unix(0, value).Format("20060102150405.000000000")), ".", "-")
+}
+
+// pgAdminTestDSN connects to the always-present "postgres" maintenance
+// database on the local instance, used only to CREATE/DROP the throwaway
+// databases these tests own. It never touches abuzar_next.
+func pgAdminTestDSN() string {
+	return "postgres://postgres@127.0.0.1:5432/postgres?sslmode=disable"
+}
+
+func maintenanceTestDatabaseDSN(name string) string {
+	return fmt.Sprintf("postgres://postgres@127.0.0.1:5432/%s?sslmode=disable", name)
+}
+
+// maintenanceTestDatabaseSuffix produces a unique suffix made only of the
+// characters validMaintenanceDatabaseName accepts (letters, digits,
+// underscore), so throwaway test database names are always valid restore
+// targets.
+func maintenanceTestDatabaseSuffix() string {
+	return strings.ReplaceAll(formatTestSuffix(time.Now().UnixNano()), "-", "_")
+}
+
+// createMaintenanceTestDatabase creates a throwaway PostgreSQL database via a
+// plain CREATE DATABASE statement (equivalent to running `createdb <name>`)
+// and registers a cleanup that drops it, guaranteeing the database never
+// outlives the test even on failure.
+func createMaintenanceTestDatabase(t *testing.T, name string) {
+	t.Helper()
+	if !validMaintenanceDatabaseName(name) {
+		t.Fatalf("unsafe test database name %q", name)
+	}
+	if name == "abuzar_next" {
+		t.Fatal("refusing to use the live abuzar_next database as a test fixture")
+	}
+	admin, err := sql.Open("pgx", pgAdminTestDSN())
+	if err != nil {
+		t.Fatalf("open postgres admin connection: %v", err)
+	}
+	defer admin.Close()
+	if _, err := admin.Exec(`CREATE DATABASE ` + name); err != nil {
+		t.Fatalf("create throwaway database %s: %v", name, err)
+	}
+	t.Cleanup(func() {
+		dropMaintenanceTestDatabase(t, name)
+	})
+}
+
+func dropMaintenanceTestDatabase(t *testing.T, name string) {
+	t.Helper()
+	if !validMaintenanceDatabaseName(name) || name == "abuzar_next" {
+		return
+	}
+	admin, err := sql.Open("pgx", pgAdminTestDSN())
+	if err != nil {
+		t.Logf("open postgres admin connection for cleanup of %s: %v", name, err)
+		return
+	}
+	defer admin.Close()
+	// Terminate any lingering backends (e.g. an idle pooled connection left
+	// open by this test) so DROP DATABASE does not fail with "database is
+	// being accessed by other users".
+	_, _ = admin.Exec(`SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()`, name)
+	if _, err := admin.Exec(`DROP DATABASE IF EXISTS ` + name); err != nil {
+		t.Logf("drop throwaway database %s: %v", name, err)
+	}
+}
+
+// TestBackupRestorePgToolsRoundTrip exercises the real pg_dump/pg_restore
+// wrappers used by handleDatabaseBackup/handleDatabaseRestore directly
+// against two throwaway databases this test creates and drops itself
+// (never abuzar_next): seed a source database, back it up with runPgDump,
+// drop the source database entirely, restore the dump into a brand new
+// database with runPgRestore, and confirm the seeded rows came back.
+func TestBackupRestorePgToolsRoundTrip(t *testing.T) {
+	if _, err := exec.LookPath("pg_dump"); err != nil {
+		t.Skip("pg_dump is not on PATH")
+	}
+	if _, err := exec.LookPath("pg_restore"); err != nil {
+		t.Skip("pg_restore is not on PATH")
+	}
+	suffix := maintenanceTestDatabaseSuffix()
+	sourceDB := "abuzar_maintenance_test_src_" + suffix
+	targetDB := "abuzar_maintenance_test_dst_" + suffix
+
+	createMaintenanceTestDatabase(t, sourceDB)
+
+	seedConn, err := sql.Open("pgx", maintenanceTestDatabaseDSN(sourceDB))
+	if err != nil {
+		t.Fatalf("open source database: %v", err)
+	}
+	if _, err := seedConn.Exec(`CREATE TABLE maintenance_probe (id serial PRIMARY KEY, label text NOT NULL)`); err != nil {
+		seedConn.Close()
+		t.Fatalf("seed schema: %v", err)
+	}
+	for _, label := range []string{"alpha", "beta", "gamma"} {
+		if _, err := seedConn.Exec(`INSERT INTO maintenance_probe (label) VALUES ($1)`, label); err != nil {
+			seedConn.Close()
+			t.Fatalf("seed row %s: %v", label, err)
+		}
+	}
+	if err := seedConn.Close(); err != nil {
+		t.Fatalf("close source database connection: %v", err)
+	}
+
+	conn := maintenanceDBConn{Host: "127.0.0.1", Port: "5432", User: "postgres", SSLMode: "disable"}
+	backupPath := filepath.Join(t.TempDir(), "roundtrip.dump")
+
+	size, err := runPgDump(context.Background(), conn, sourceDB, backupPath)
+	if err != nil {
+		t.Fatalf("runPgDump: %v", err)
+	}
+	if size <= 0 {
+		t.Fatalf("runPgDump reported non-positive size: %d", size)
+	}
+	if info, statErr := os.Stat(backupPath); statErr != nil || info.Size() != size {
+		t.Fatalf("backup file mismatch: stat=%v size=%d reportedSize=%d", statErr, info.Size(), size)
+	}
+
+	// Drop the source database entirely before restoring, so the restore
+	// step below can only be satisfied by the dump file, never by leftover
+	// live data.
+	dropMaintenanceTestDatabase(t, sourceDB)
+
+	createMaintenanceTestDatabase(t, targetDB)
+	if err := runPgRestore(context.Background(), conn, targetDB, backupPath); err != nil {
+		t.Fatalf("runPgRestore: %v", err)
+	}
+
+	verifyConn, err := sql.Open("pgx", maintenanceTestDatabaseDSN(targetDB))
+	if err != nil {
+		t.Fatalf("open restored database: %v", err)
+	}
+	defer verifyConn.Close()
+	rows, err := verifyConn.Query(`SELECT label FROM maintenance_probe ORDER BY id`)
+	if err != nil {
+		t.Fatalf("query restored rows: %v", err)
+	}
+	defer rows.Close()
+	var labels []string
+	for rows.Next() {
+		var label string
+		if err := rows.Scan(&label); err != nil {
+			t.Fatalf("scan restored row: %v", err)
+		}
+		labels = append(labels, label)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate restored rows: %v", err)
+	}
+	want := []string{"alpha", "beta", "gamma"}
+	if len(labels) != len(want) {
+		t.Fatalf("restored labels = %v, want %v", labels, want)
+	}
+	for i := range want {
+		if labels[i] != want[i] {
+			t.Fatalf("restored labels = %v, want %v", labels, want)
+		}
+	}
+	if sourceDB == "abuzar_next" || targetDB == "abuzar_next" {
+		t.Fatal("test fixture accidentally targeted abuzar_next")
+	}
+}
+
+// TestBackupDatabaseHandlerRoundTrip drives the actual HTTP maintenance
+// handlers (handleDatabaseBackup/handleDatabaseRestore, dispatched from
+// maintenanceAction exactly as the router would) against a throwaway
+// database standing in for the API's normal connection. It confirms the
+// audit trail is written via the same recordMaintenanceOperation path as
+// every other maintenance action, that the restore safety check refuses to
+// target the live/connected database, and that data placed in the source
+// database round-trips through a real backup and restore into a second,
+// independent throwaway database. abuzar_next is never created, backed up,
+// restored into, or referenced by this test.
+func TestBackupDatabaseHandlerRoundTrip(t *testing.T) {
+	if _, err := exec.LookPath("pg_dump"); err != nil {
+		t.Skip("pg_dump is not on PATH")
+	}
+	if _, err := exec.LookPath("pg_restore"); err != nil {
+		t.Skip("pg_restore is not on PATH")
+	}
+	// Pin connection resolution to the local trust-auth instance regardless
+	// of what the ambient shell has exported, so this test is deterministic.
+	t.Setenv("DATABASE_URL", "")
+	t.Setenv("ABUZAR_APP_DATABASE_URL", "")
+	t.Setenv("PGHOST", "127.0.0.1")
+	t.Setenv("PGPORT", "5432")
+	t.Setenv("PGUSER", "postgres")
+	t.Setenv("PGPASSWORD", "")
+	backupDir := t.TempDir()
+	t.Setenv("ABUZAR_MAINTENANCE_BACKUP_DIR", backupDir)
+
+	suffix := maintenanceTestDatabaseSuffix()
+	liveDB := "abuzar_maintenance_test_live_" + suffix
+	restoreDB := "abuzar_maintenance_test_restore_" + suffix
+
+	createMaintenanceTestDatabase(t, liveDB)
+
+	live, err := sql.Open("pgx", maintenanceTestDatabaseDSN(liveDB))
+	if err != nil {
+		t.Fatalf("open live database: %v", err)
+	}
+	defer live.Close()
+
+	// Minimal schema: just enough for beginScopedTx + recordMaintenanceOperation
+	// (the same audit trail every other maintenance action in this file uses)
+	// to work, plus one small "tenant data" table to prove a real round trip.
+	schema := []string{
+		`CREATE EXTENSION IF NOT EXISTS pgcrypto`,
+		`CREATE TABLE tenants (
+			id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+			legal_name text NOT NULL,
+			code text NOT NULL UNIQUE,
+			active boolean NOT NULL DEFAULT true,
+			created_at timestamptz NOT NULL DEFAULT now(),
+			updated_at timestamptz NOT NULL DEFAULT now()
+		)`,
+		`CREATE TABLE branches (
+			id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+			tenant_id uuid NOT NULL REFERENCES tenants(id),
+			code text NOT NULL,
+			name text NOT NULL,
+			UNIQUE (tenant_id, code)
+		)`,
+		`CREATE TABLE users (
+			id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+			tenant_id uuid NOT NULL REFERENCES tenants(id),
+			username text NOT NULL,
+			display_name text NOT NULL,
+			password_hash text NOT NULL
+		)`,
+		`CREATE TABLE audit_events (
+			id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+			tenant_id uuid NOT NULL REFERENCES tenants(id),
+			branch_id uuid REFERENCES branches(id),
+			operator_id uuid REFERENCES users(id),
+			action text NOT NULL,
+			entity_type text NOT NULL,
+			entity_id uuid,
+			payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+			occurred_at timestamptz NOT NULL DEFAULT now()
+		)`,
+		`CREATE TABLE tenant_widgets (
+			id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+			tenant_id uuid NOT NULL REFERENCES tenants(id),
+			label text NOT NULL
+		)`,
+	}
+	for _, statement := range schema {
+		if _, err := live.Exec(statement); err != nil {
+			t.Fatalf("apply schema statement %q: %v", statement, err)
+		}
+	}
+
+	var tenantID string
+	if err := live.QueryRow(`INSERT INTO tenants (legal_name, code) VALUES ('Maintenance Test Tenant', $1) RETURNING id::text`, "maint-"+suffix).Scan(&tenantID); err != nil {
+		t.Fatalf("seed tenant: %v", err)
+	}
+	var operatorID string
+	if err := live.QueryRow(`INSERT INTO users (tenant_id, username, display_name, password_hash) VALUES ($1::uuid, $2, 'Maintenance Test Operator', 'unused') RETURNING id::text`, tenantID, "maint-op-"+suffix).Scan(&operatorID); err != nil {
+		t.Fatalf("seed operator: %v", err)
+	}
+	for _, label := range []string{"widget-alpha", "widget-beta", "widget-gamma"} {
+		if _, err := live.Exec(`INSERT INTO tenant_widgets (tenant_id, label) VALUES ($1::uuid, $2)`, tenantID, label); err != nil {
+			t.Fatalf("seed tenant widget %s: %v", label, err)
+		}
+	}
+
+	operator := &sessionContext{UserID: operatorID, TenantID: tenantID, BranchID: "", TokenHash: "maintenance-backup-test", Roles: []string{"tenant_admin"}}
+	server := &Server{database: live}
+
+	// --- Backup ---
+	backupRequest := maintenanceTestRequest(http.MethodPost, "/v1/maintenance/backup-database", `{}`, operator)
+	backupRecorder := httptest.NewRecorder()
+	server.maintenanceAction(backupRecorder, backupRequest)
+	if backupRecorder.Code != http.StatusOK {
+		t.Fatalf("backup status = %d, body=%s", backupRecorder.Code, backupRecorder.Body.String())
+	}
+	var backupResponse struct {
+		OperationID string `json:"operationId"`
+		Status      string `json:"status"`
+		Database    string `json:"database"`
+		Message     string `json:"message"`
+	}
+	if err := json.NewDecoder(backupRecorder.Body).Decode(&backupResponse); err != nil {
+		t.Fatalf("decode backup response: %v", err)
+	}
+	if backupResponse.Status != "completed" {
+		t.Fatalf("backup status = %q, want completed (pg_dump is on PATH): %s", backupResponse.Status, backupRecorder.Body.String())
+	}
+	if backupResponse.Database != liveDB {
+		t.Fatalf("backup database = %q, want %q", backupResponse.Database, liveDB)
+	}
+
+	var auditedFilePath string
+	var auditedSize int64
+	if err := live.QueryRow(`SELECT payload->>'filePath', (payload->>'fileSizeBytes')::bigint FROM audit_events WHERE id = $1::uuid`, backupResponse.OperationID).Scan(&auditedFilePath, &auditedSize); err != nil {
+		t.Fatalf("read backup audit: %v", err)
+	}
+	if auditedSize <= 0 {
+		t.Fatalf("audited backup file size = %d, want > 0", auditedSize)
+	}
+	if info, statErr := os.Stat(auditedFilePath); statErr != nil || info.Size() != auditedSize {
+		t.Fatalf("backup file on disk does not match audit: stat=%v", statErr)
+	}
+	if filepath.Dir(auditedFilePath) != backupDir {
+		t.Fatalf("backup file %s was not written under the configured backup dir %s", auditedFilePath, backupDir)
+	}
+	backupFileName := filepath.Base(auditedFilePath)
+
+	// --- Restore safety check: refusing to target the live/connected database ---
+	unsafeRestoreRequest := maintenanceTestRequest(http.MethodPost, "/v1/maintenance/restore-database", fmt.Sprintf(`{"targetDatabase":%q,"backupFile":%q}`, liveDB, backupFileName), operator)
+	unsafeRecorder := httptest.NewRecorder()
+	server.maintenanceAction(unsafeRecorder, unsafeRestoreRequest)
+	if unsafeRecorder.Code != http.StatusConflict {
+		t.Fatalf("restore-into-live status = %d, want %d, body=%s", unsafeRecorder.Code, http.StatusConflict, unsafeRecorder.Body.String())
+	}
+
+	// --- Restore into an independent throwaway database ---
+	createMaintenanceTestDatabase(t, restoreDB)
+	restoreRequest := maintenanceTestRequest(http.MethodPost, "/v1/maintenance/restore-database", fmt.Sprintf(`{"targetDatabase":%q,"backupFile":%q}`, restoreDB, backupFileName), operator)
+	restoreRecorder := httptest.NewRecorder()
+	server.maintenanceAction(restoreRecorder, restoreRequest)
+	if restoreRecorder.Code != http.StatusOK {
+		t.Fatalf("restore status = %d, body=%s", restoreRecorder.Code, restoreRecorder.Body.String())
+	}
+	var restoreResponse struct {
+		OperationID    string `json:"operationId"`
+		Status         string `json:"status"`
+		TargetDatabase string `json:"targetDatabase"`
+	}
+	if err := json.NewDecoder(restoreRecorder.Body).Decode(&restoreResponse); err != nil {
+		t.Fatalf("decode restore response: %v", err)
+	}
+	if restoreResponse.Status != "completed" || restoreResponse.TargetDatabase != restoreDB {
+		t.Fatalf("restore response = %+v", restoreResponse)
+	}
+
+	restored, err := sql.Open("pgx", maintenanceTestDatabaseDSN(restoreDB))
+	if err != nil {
+		t.Fatalf("open restored database: %v", err)
+	}
+	defer restored.Close()
+	rows, err := restored.Query(`SELECT label FROM tenant_widgets ORDER BY label`)
+	if err != nil {
+		t.Fatalf("query restored tenant_widgets: %v", err)
+	}
+	defer rows.Close()
+	var labels []string
+	for rows.Next() {
+		var label string
+		if err := rows.Scan(&label); err != nil {
+			t.Fatalf("scan restored widget: %v", err)
+		}
+		labels = append(labels, label)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate restored widgets: %v", err)
+	}
+	want := []string{"widget-alpha", "widget-beta", "widget-gamma"}
+	if len(labels) != len(want) {
+		t.Fatalf("restored tenant_widgets labels = %v, want %v", labels, want)
+	}
+	for i := range want {
+		if labels[i] != want[i] {
+			t.Fatalf("restored tenant_widgets labels = %v, want %v", labels, want)
+		}
+	}
+
+	if liveDB == "abuzar_next" || restoreDB == "abuzar_next" {
+		t.Fatal("test fixture accidentally targeted abuzar_next")
+	}
 }

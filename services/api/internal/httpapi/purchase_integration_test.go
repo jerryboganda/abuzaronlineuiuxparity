@@ -137,12 +137,13 @@ func TestPurchaseVerticalSliceIntegration(t *testing.T) {
 	}
 
 	invalidReturn := purchaseDocumentCommand("purchase-return", "save-and-post", "purchase-return-invalid", fixture, supplierID, "00000000-0000-0000-0000-000000000099")
+	invalidReturn.Document.Lines[0].SourceLineID = "00000000-0000-0000-0000-000000000098"
 	invalidReturn.Document.Lines[0].Allocations = []documentAllocationRequest{{BatchNumber: "PUR-001", Quantity: "1"}}
 	invalidBeforeStock := countStockLedger(t, ctx, database, fixture.tenantID)
 	invalidBeforeDocuments := countBusinessDocuments(t, ctx, database, fixture.tenantID)
-	invalidStatus, _, _ := executeDocumentHandlerStatus(t, server, operator, invalidReturn)
+	invalidStatus, _, invalidBody := executeDocumentHandlerStatus(t, server, operator, invalidReturn)
 	if invalidStatus != http.StatusConflict && invalidStatus != http.StatusUnprocessableEntity {
-		t.Fatalf("invalid purchase return status = %d", invalidStatus)
+		t.Fatalf("invalid purchase return status = %d, body=%s", invalidStatus, invalidBody)
 	}
 	if countStockLedger(t, ctx, database, fixture.tenantID) != invalidBeforeStock ||
 		countBusinessDocuments(t, ctx, database, fixture.tenantID) != invalidBeforeDocuments {

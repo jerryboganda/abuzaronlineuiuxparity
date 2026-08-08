@@ -405,3 +405,71 @@ func TestMoneyString(t *testing.T) {
 		t.Fatalf("Money.String() = %q, want 123.45", got)
 	}
 }
+
+// TestCalculateReproducesRealLegacySaleInvoiceLines is a golden-replay
+// regression test built from real historical sale lines in the
+// legacy-reference-sandbox tenant (eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee),
+// cross-checked directly against dbo.Saledetail on the read-only SQL Server
+// canonical database (FazalDinPP19DataBaseV2) on 2026-08-08.
+//
+// Each case's per-unit Prices[0] is dbo.Saledetail.Rate (the tax-inclusive
+// price actually charged for that line), expressed in minor units. Applying
+// an 18% inclusive GST rule reproduces, to the paisa, both the legacy
+// dbo.Saledetail.SalePrice (net/taxable base, i.e. Total here since inclusive
+// tax does not change Total) and dbo.Saledetail.UnitSalesTax*Quantity (the
+// tax component) for every one of these lines. This does not mean historical
+// invoices were produced by this engine -- migrated business_document_lines
+// rows are a direct copy of Saledetail.Rate (see
+// migration/maps/phase-e-historical-documents.json) -- it demonstrates that
+// Calculate's inclusive-tax arithmetic is legacy-faithful when exercised
+// against real invoice numbers. See docs/PHASE_G_PRICING_GOLDEN_REPLAY_2026-08-08.md.
+func TestCalculateReproducesRealLegacySaleInvoiceLines(t *testing.T) {
+	gst := func() *TaxRule { return &TaxRule{Kind: TaxGST, Rate: percent(1800), Inclusive: true} }
+
+	tests := []struct {
+		name         string // SaleInvcode/RowID/ICode for traceability back to dbo.Saledetail
+		unitRate     int64  // dbo.Saledetail.Rate for this line, in minor units (paisa)
+		quantity     int64
+		wantGross    Money // dbo.Saledetail.Rate * Quantity (also Subtotal/TaxableBase/Total)
+		wantTaxBase  Money
+		wantTaxAmt   Money // extracted GST; dbo.Saledetail.UnitSalesTax * Quantity
+		wantNetTotal Money // TaxableBase - wantTaxAmt; dbo.Saledetail.SalePrice * Quantity
+	}{
+		{name: "SaleInvcode 780563 RowID 411860 ICode 23468", unitRate: 205000, quantity: 1, wantGross: 205000, wantTaxBase: 205000, wantTaxAmt: 31271, wantNetTotal: 173729},
+		{name: "SaleInvcode 788230 RowID 428238 ICode 151", unitRate: 463500, quantity: 1, wantGross: 463500, wantTaxBase: 463500, wantTaxAmt: 70703, wantNetTotal: 392797},
+		{name: "SaleInvcode 834232 RowID 525751 ICode 10941", unitRate: 25000, quantity: 1, wantGross: 25000, wantTaxBase: 25000, wantTaxAmt: 3814, wantNetTotal: 21186},
+		{name: "SaleInvcode 596551 RowID 17189 ICode 29032", unitRate: 9000, quantity: 3, wantGross: 27000, wantTaxBase: 27000, wantTaxAmt: 4119, wantNetTotal: 22881},
+		{name: "SaleInvcode 611887 RowID 51120 ICode 10625", unitRate: 5200, quantity: 2, wantGross: 10400, wantTaxBase: 10400, wantTaxAmt: 1586, wantNetTotal: 8814},
+		{name: "SaleInvcode 849566 RowID 557924 ICode 12801", unitRate: 8246, quantity: 2, wantGross: 16492, wantTaxBase: 16492, wantTaxAmt: 2516, wantNetTotal: 13976},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			request := baseRequest(LineInput{
+				ID:       "line",
+				Quantity: Quantity(test.quantity),
+				Prices:   tiers(test.unitRate),
+			})
+			request.Taxes.GST = gst()
+			got, err := Calculate(request)
+			if err != nil {
+				t.Fatalf("Calculate returned error: %v", err)
+			}
+			if got.Subtotal != test.wantGross {
+				t.Fatalf("Subtotal = %v, want %v", got.Subtotal, test.wantGross)
+			}
+			if got.TaxableBase != test.wantTaxBase {
+				t.Fatalf("TaxableBase = %v, want %v", got.TaxableBase, test.wantTaxBase)
+			}
+			if len(got.Taxes) != 1 || got.Taxes[0].Amount != test.wantTaxAmt {
+				t.Fatalf("GST amount = %+v, want %v", got.Taxes, test.wantTaxAmt)
+			}
+			if wantNet := test.wantTaxBase - test.wantTaxAmt; wantNet != test.wantNetTotal {
+				t.Fatalf("test fixture inconsistent: TaxableBase-TaxAmt = %v, want wantNetTotal %v", wantNet, test.wantNetTotal)
+			}
+			if got.Total != test.wantGross {
+				t.Fatalf("Total = %v, want %v (inclusive GST must not change the charged total)", got.Total, test.wantGross)
+			}
+		})
+	}
+}

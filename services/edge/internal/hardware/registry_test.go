@@ -124,6 +124,108 @@ func (d *testDrawer) Kick(_ context.Context, command CashDrawerKickCommand) erro
 	return nil
 }
 
+type testBiometric struct {
+	verifications int
+	lastSample    []byte
+	result        bool
+	err           error
+}
+
+func (b *testBiometric) Verify(_ context.Context, sample []byte) (bool, error) {
+	b.verifications++
+	b.lastSample = sample
+	return b.result, b.err
+}
+
+type testEmail struct {
+	sends            int
+	lastTo, lastSubj string
+	lastBody         string
+	err              error
+}
+
+func (e *testEmail) Send(_ context.Context, to, subject, body string) error {
+	e.sends++
+	e.lastTo, e.lastSubj, e.lastBody = to, subject, body
+	return e.err
+}
+
+type testSMS struct {
+	sends            int
+	lastTo, lastBody string
+	err              error
+}
+
+func (s *testSMS) Send(_ context.Context, to, message string) error {
+	s.sends++
+	s.lastTo, s.lastBody = to, message
+	return s.err
+}
+
+func TestRegistryVerifyBiometricUsesInjectedAdapter(t *testing.T) {
+	biometric := &testBiometric{result: true}
+	registry := NewWithConfig(Config{Biometric: biometric, BiometricProvider: "test-biometric"})
+
+	if _, err := registry.VerifyBiometric(context.Background(), nil); !errors.Is(err, ErrInvalidBiometricInput) {
+		t.Fatalf("VerifyBiometric(empty) err = %v, want ErrInvalidBiometricInput", err)
+	}
+	verified, err := registry.VerifyBiometric(context.Background(), []byte{0x01, 0x02})
+	if err != nil || !verified || biometric.verifications != 1 {
+		t.Fatalf("VerifyBiometric = %v, err = %v, verifications = %d", verified, err, biometric.verifications)
+	}
+	if string(biometric.lastSample) != "\x01\x02" {
+		t.Fatalf("biometric adapter received sample %v", biometric.lastSample)
+	}
+}
+
+func TestRegistryVerifyBiometricReturnsUnavailableWithoutAdapter(t *testing.T) {
+	if _, err := New().VerifyBiometric(context.Background(), []byte{0x01}); !errors.Is(err, ErrAdapterUnavailable) {
+		t.Fatalf("VerifyBiometric without adapter err = %v, want ErrAdapterUnavailable", err)
+	}
+}
+
+func TestRegistrySendEmailUsesInjectedAdapter(t *testing.T) {
+	email := &testEmail{}
+	registry := NewWithConfig(Config{Email: email, EmailProvider: "test-smtp"})
+
+	if err := registry.SendEmail(context.Background(), " ", "s", "b"); !errors.Is(err, ErrInvalidEmailAddress) {
+		t.Fatalf("SendEmail(blank to) err = %v, want ErrInvalidEmailAddress", err)
+	}
+	if err := registry.SendEmail(context.Background(), "to@example.test", "Subject", "Body"); err != nil || email.sends != 1 {
+		t.Fatalf("SendEmail err = %v, sends = %d", err, email.sends)
+	}
+	if email.lastTo != "to@example.test" || email.lastSubj != "Subject" || email.lastBody != "Body" {
+		t.Fatalf("email adapter received %+v", email)
+	}
+}
+
+func TestRegistrySendEmailReturnsUnavailableWithoutAdapter(t *testing.T) {
+	if err := New().SendEmail(context.Background(), "to@example.test", "s", "b"); !errors.Is(err, ErrAdapterUnavailable) {
+		t.Fatalf("SendEmail without adapter err = %v, want ErrAdapterUnavailable", err)
+	}
+}
+
+func TestRegistrySendSMSUsesInjectedAdapter(t *testing.T) {
+	sms := &testSMS{}
+	registry := NewWithConfig(Config{SMS: sms, SMSProvider: "test-gateway"})
+
+	if err := registry.SendSMS(context.Background(), "", "hello"); !errors.Is(err, ErrInvalidSMSRecipient) {
+		t.Fatalf("SendSMS(blank to) err = %v, want ErrInvalidSMSRecipient", err)
+	}
+	if err := registry.SendSMS(context.Background(), "923001234567", "hello"); err != nil || sms.sends != 1 {
+		t.Fatalf("SendSMS err = %v, sends = %d", err, sms.sends)
+	}
+	if sms.lastTo != "923001234567" || sms.lastBody != "hello" {
+		t.Fatalf("sms adapter received %+v", sms)
+	}
+}
+
+func TestRegistrySendSMSReturnsUnavailableWithoutAdapter(t *testing.T) {
+	if err := New().SendSMS(context.Background(), "923001234567", "hello"); !errors.Is(err, ErrAdapterUnavailable) {
+		t.Fatalf("SendSMS without adapter err = %v, want ErrAdapterUnavailable", err)
+	}
+}
+
 func capabilityAvailable(capabilities []Capability, name, provider string) bool {
 	for _, capability := range capabilities {
 		if capability.Name == name {

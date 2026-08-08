@@ -287,9 +287,11 @@ func TestStockLevelReportsUseMaintenanceThresholdFallbacks(t *testing.T) {
 
 	fixture := seedStockTenant(t, ctx, database, "stock-level-"+time.Now().Format("150405.000000"))
 	defer func() {
-		if _, cleanupErr := database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID); cleanupErr != nil {
-			t.Errorf("cleanup stock-level fixture: %v", cleanupErr)
-		}
+		// Best-effort cleanup, matching every sibling fixture: tenant-scoped FKs
+		// are NO ACTION and posted stock_ledger rows are immutable by design, so
+		// a tenant that posted inventory movements cannot be fully deleted on the
+		// disposable test cluster; the timestamp-suffixed orphan is inert.
+		_, _ = database.ExecContext(ctx, `DELETE FROM tenants WHERE id = $1::uuid`, fixture.tenantID)
 	}()
 	if _, err := database.ExecContext(ctx, `
 		UPDATE master_items

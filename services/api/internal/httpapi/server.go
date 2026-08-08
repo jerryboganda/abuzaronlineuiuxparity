@@ -31,7 +31,7 @@ func New(database *sql.DB, version, corsOrigins string) http.Handler {
 		sessionTTL:    8 * time.Hour,
 		dbTimeout:     environmentDuration("ABUZAR_DB_STATEMENT_TIMEOUT_MS", 5000*time.Millisecond),
 		lockTimeout:   environmentDuration("ABUZAR_DB_LOCK_TIMEOUT_MS", 1000*time.Millisecond),
-		reportTimeout: environmentDuration("ABUZAR_REPORT_TIMEOUT_MS", 5000*time.Millisecond),
+		reportTimeout: environmentDuration("ABUZAR_REPORT_TIMEOUT_MS", 30000*time.Millisecond),
 		metrics:       newRequestMetrics(),
 	}
 	return server.withObservability(server.withCORS(server.routes()))

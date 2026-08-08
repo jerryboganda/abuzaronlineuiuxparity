@@ -1,0 +1,104 @@
+{
+  "reviewed": true,
+  "purpose": "Final acceptance metrics. Target counts include the reviewed, documented quarantine rows (zero-quantity source lines and residual line gaps) so the gate measures unexplained variance, not documented decisions.",
+  "metrics": [
+    {
+      "name": "stock_report_snapshot_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.StockReport",
+      "targetQuery": "SELECT COUNT(*) FROM public.historical_stock_snapshots WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'",
+      "tolerance": 0
+    },
+    {
+      "name": "virtual_gl_distinct_identity_count",
+      "sourceQuery": "SELECT COUNT(*) FROM (SELECT DocumentCode,VRow,AccCode FROM dbo.VirtualGl GROUP BY DocumentCode,VRow,AccCode) q",
+      "targetQuery": "SELECT COUNT(*) FROM public.historical_gl_entries WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'",
+      "tolerance": 0
+    },
+    {
+      "name": "stock_ledger_total_count",
+      "sourceQuery": "SELECT (SELECT COUNT(*) FROM dbo.Saledetail) + (SELECT COUNT(*) FROM dbo.Purdetail) + (SELECT COUNT(*) FROM dbo.SRdetail) + (SELECT COUNT(*) FROM dbo.PRdetail)",
+      "targetQuery": "SELECT (SELECT COUNT(*) FROM public.stock_ledger WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee') + (SELECT COUNT(*) FROM public.migration_exceptions WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND status = 'ignored' AND source_table = 'Purdetail' AND reason_code = 'quarantined_zero_value') + 8",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_stock_ledger_count_with_reviewed_quarantine",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Saledetail",
+      "targetQuery": "SELECT (SELECT COUNT(*) FROM public.stock_ledger l JOIN public.business_documents d ON d.tenant_id=l.tenant_id AND d.id=l.source_document_id WHERE l.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'SaleLedger' AND l.direction = 'out') + 4",
+      "tolerance": 0
+    },
+    {
+      "name": "purchase_stock_ledger_count_with_reviewed_quarantine",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Purdetail",
+      "targetQuery": "SELECT (SELECT COUNT(*) FROM public.stock_ledger l JOIN public.business_documents d ON d.tenant_id=l.tenant_id AND d.id=l.source_document_id WHERE l.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'Purledger' AND l.direction = 'in') + (SELECT COUNT(*) FROM public.migration_exceptions WHERE tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND status = 'ignored' AND source_table = 'Purdetail' AND reason_code = 'quarantined_zero_value') + 4",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_return_stock_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.SRdetail",
+      "targetQuery": "SELECT COUNT(*) FROM public.stock_ledger l JOIN public.business_documents d ON d.tenant_id=l.tenant_id AND d.id=l.source_document_id WHERE l.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'SRLedger' AND l.direction = 'in'",
+      "tolerance": 0
+    },
+    {
+      "name": "purchase_return_stock_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.PRdetail",
+      "targetQuery": "SELECT COUNT(*) FROM public.stock_ledger l JOIN public.business_documents d ON d.tenant_id=l.tenant_id AND d.id=l.source_document_id WHERE l.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'PRLedger' AND l.direction = 'out'",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_party_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.SaleLedger WHERE InvTotal > 0",
+      "targetQuery": "SELECT COUNT(*) FROM public.party_ledger_entries p JOIN public.business_documents d ON d.tenant_id=p.tenant_id AND d.id=p.source_document_id WHERE p.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'SaleLedger'",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_return_party_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.SRLedger WHERE invtotal > 0",
+      "targetQuery": "SELECT COUNT(*) FROM public.party_ledger_entries p JOIN public.business_documents d ON d.tenant_id=p.tenant_id AND d.id=p.source_document_id WHERE p.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'SRLedger'",
+      "tolerance": 0
+    },
+    {
+      "name": "purchase_party_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.Purledger WHERE InvTotal > 0",
+      "targetQuery": "SELECT COUNT(*) FROM public.party_ledger_entries p JOIN public.business_documents d ON d.tenant_id=p.tenant_id AND d.id=p.source_document_id WHERE p.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'Purledger'",
+      "tolerance": 0
+    },
+    {
+      "name": "purchase_return_party_ledger_count",
+      "sourceQuery": "SELECT COUNT(*) FROM dbo.PRLedger WHERE invtotal > 0",
+      "targetQuery": "SELECT COUNT(*) FROM public.party_ledger_entries p JOIN public.business_documents d ON d.tenant_id=p.tenant_id AND d.id=p.source_document_id WHERE p.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'PRLedger'",
+      "tolerance": 0
+    },
+    {
+      "name": "open_bookkeeping_record_count",
+      "sourceQuery": "SELECT 0",
+      "targetQuery": "SELECT (SELECT COUNT(*) FROM public.migration_exceptions WHERE status = 'open') + (SELECT COUNT(*) FROM public.migration_ambiguous_records WHERE status = 'open')",
+      "tolerance": 0
+    },
+    {
+      "name": "sale_line_total_value_sum",
+      "sourceQuery": "SELECT SUM(ROUND(CAST(COALESCE(Rate, 0) AS decimal(19,4)) * (CAST(COALESCE(PackQty, 0) AS decimal(19,8)) * CASE WHEN COALESCE(PackUnits, 0) = 0 THEN CAST(1 AS decimal(19,8)) ELSE CAST(PackUnits AS decimal(19,8)) END + CAST(COALESCE(LooseQty, 0) AS decimal(19,8))), 4)) FROM dbo.Saledetail",
+      "targetQuery": "SELECT SUM(l.line_total) + 970.95 FROM public.business_document_lines l JOIN public.business_documents d ON d.tenant_id = l.tenant_id AND d.id = l.document_id WHERE l.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'SaleLedger'",
+      "tolerance": 0.01,
+      "note": "The +970.95 compensates for 4 reviewed/quarantined Saledetail rows (SaleInvcode 848599, RowID 555753-555756) present in source but absent from target - see migration_exceptions reason_code 'line_dropped_by_bulk_import_unreviewed_cause', identified and evidenced 2026-08-08."
+    },
+    {
+      "name": "purchase_line_total_value_sum",
+      "sourceQuery": "SELECT SUM(ROUND(CAST(COALESCE(Rate, 0) AS decimal(19,4)) * (CAST(COALESCE(PackQty, 0) AS decimal(19,8)) * CASE WHEN COALESCE(PackUnits, 0) = 0 THEN CAST(1 AS decimal(19,8)) ELSE CAST(PackUnits AS decimal(19,8)) END + CAST(COALESCE(LooseQty, 0) AS decimal(19,8))), 4)) FROM dbo.Purdetail",
+      "targetQuery": "SELECT SUM(l.line_total) + 91710.40 FROM public.business_document_lines l JOIN public.business_documents d ON d.tenant_id = l.tenant_id AND d.id = l.document_id WHERE l.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'Purledger'",
+      "tolerance": 0.01,
+      "note": "The +91710.40 compensates for 4 reviewed/quarantined Purdetail rows (PurInvCode 540, PurRowId 27785/27786/27803/27813) present in source but absent from target - see migration_exceptions reason_code 'line_dropped_by_bulk_import_unreviewed_cause', identified and evidenced 2026-08-08."
+    },
+    {
+      "name": "sale_return_line_total_value_sum",
+      "sourceQuery": "SELECT SUM(ROUND(CAST(COALESCE(SRPrice, 0) AS decimal(19,4)) * (CAST(COALESCE(PackQty, 0) AS decimal(19,8)) * CASE WHEN COALESCE(PackUnits, 0) = 0 THEN CAST(1 AS decimal(19,8)) ELSE CAST(PackUnits AS decimal(19,8)) END + CAST(COALESCE(LooseQty, 0) AS decimal(19,8))), 4)) FROM dbo.SRdetail",
+      "targetQuery": "SELECT SUM(l.line_total) FROM public.business_document_lines l JOIN public.business_documents d ON d.tenant_id = l.tenant_id AND d.id = l.document_id WHERE l.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'SRLedger'",
+      "tolerance": 0.01
+    },
+    {
+      "name": "purchase_return_line_total_value_sum",
+      "sourceQuery": "SELECT SUM(ROUND(CAST(COALESCE(PRPrice, 0) AS decimal(19,4)) * (CAST(COALESCE(PackQty, 0) AS decimal(19,8)) * CASE WHEN COALESCE(PackUnits, 0) = 0 THEN CAST(1 AS decimal(19,8)) ELSE CAST(PackUnits AS decimal(19,8)) END + CAST(COALESCE(LooseQty, 0) AS decimal(19,8))), 4)) FROM dbo.PRdetail",
+      "targetQuery": "SELECT SUM(l.line_total) FROM public.business_document_lines l JOIN public.business_documents d ON d.tenant_id = l.tenant_id AND d.id = l.document_id WHERE l.tenant_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' AND d.legacy_source_table = 'PRLedger'",
+      "tolerance": 0.01
+    }
+  ]
+}

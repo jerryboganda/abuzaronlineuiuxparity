@@ -19,9 +19,12 @@ const (
 )
 
 var (
-	ErrAdapterUnavailable   = errors.New("hardware adapter unavailable")
-	ErrInvalidConfiguration = errors.New("invalid hardware adapter configuration")
-	ErrInvalidBarcode       = errors.New("barcode is empty or contains control characters")
+	ErrAdapterUnavailable    = errors.New("hardware adapter unavailable")
+	ErrInvalidConfiguration  = errors.New("invalid hardware adapter configuration")
+	ErrInvalidBarcode        = errors.New("barcode is empty or contains control characters")
+	ErrInvalidBiometricInput = errors.New("biometric sample is empty")
+	ErrInvalidEmailAddress   = errors.New("email recipient address is empty")
+	ErrInvalidSMSRecipient   = errors.New("sms recipient is empty")
 )
 
 // PrinterAdapter receives already-rendered ESC/POS bytes. Implementations are
@@ -364,6 +367,66 @@ func (r *Registry) KickCashDrawer(ctx context.Context) error {
 	}
 	if err := r.cashDrawer.Kick(ctx, DefaultCashDrawerKickCommand()); err != nil {
 		return fmt.Errorf("kick cash drawer: %w", err)
+	}
+	return nil
+}
+
+// VerifyBiometric passes a caller-supplied sample (e.g. a fingerprint
+// template) to the configured BiometricAdapter and returns whatever match
+// decision the adapter reports. No biometric matching happens in this
+// package: without an injected adapter this always returns
+// ErrAdapterUnavailable, mirroring KickCashDrawer exactly.
+func (r *Registry) VerifyBiometric(ctx context.Context, sample []byte) (bool, error) {
+	if r.configurationError != nil {
+		return false, r.configurationError
+	}
+	if r.biometric == nil {
+		return false, ErrAdapterUnavailable
+	}
+	if len(sample) == 0 {
+		return false, ErrInvalidBiometricInput
+	}
+	verified, err := r.biometric.Verify(ctx, sample)
+	if err != nil {
+		return false, fmt.Errorf("verify biometric sample: %w", err)
+	}
+	return verified, nil
+}
+
+// SendEmail passes a message to the configured EmailAdapter. It mirrors
+// KickCashDrawer's error handling: an unconfigured adapter never silently
+// succeeds.
+func (r *Registry) SendEmail(ctx context.Context, to, subject, body string) error {
+	if r.configurationError != nil {
+		return r.configurationError
+	}
+	if r.email == nil {
+		return ErrAdapterUnavailable
+	}
+	if strings.TrimSpace(to) == "" {
+		return ErrInvalidEmailAddress
+	}
+	if err := r.email.Send(ctx, to, subject, body); err != nil {
+		return fmt.Errorf("send email: %w", err)
+	}
+	return nil
+}
+
+// SendSMS passes a message to the configured SMSAdapter. It mirrors
+// KickCashDrawer's error handling: an unconfigured adapter never silently
+// succeeds.
+func (r *Registry) SendSMS(ctx context.Context, to, message string) error {
+	if r.configurationError != nil {
+		return r.configurationError
+	}
+	if r.sms == nil {
+		return ErrAdapterUnavailable
+	}
+	if strings.TrimSpace(to) == "" {
+		return ErrInvalidSMSRecipient
+	}
+	if err := r.sms.Send(ctx, to, message); err != nil {
+		return fmt.Errorf("send sms: %w", err)
 	}
 	return nil
 }

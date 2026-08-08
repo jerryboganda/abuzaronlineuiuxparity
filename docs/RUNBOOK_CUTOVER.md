@@ -273,6 +273,30 @@ useful evidence, but do not satisfy the full-volume or complete pixel gates.
 9. Populate `docs/CUTOVER_GO_NO_GO_TEMPLATE.json` from the actual evidence
    locations. A validator must reject `GO` when any required check is
    `pending`, `blocked`, or `fail`.
+
+   `ops/cutover/validate-go-no-go.ps1` is that validator. It parses the
+   populated file, rejects `GO` (exit code 1, `NO-GO`) when any required
+   check is `pending`, `blocked`, or `fail`, and also rejects `GO` when any
+   required approval (`releaseManager`, `dba`, `businessApprover`,
+   `branchOperator`) is missing. It only reports `GO` (exit code 0) when
+   every required check is `pass` and every required approval is present.
+   It never edits the file and never decides on its own authority — it
+   only reports what the populated evidence file already says. Run it
+   against the working file throughout D-1 rehearsal and again
+   immediately before the release manager records the gate decision in
+   Section 7.4:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\ops\cutover\validate-go-no-go.ps1 `
+     -Path 'D:\secure-evidence\cutover\go-no-go.json'
+   ```
+
+   A non-zero exit code is `NO-GO`; treat it the same as any other open
+   blocker in this runbook. Run
+   `powershell -ExecutionPolicy Bypass -File .\ops\cutover\validate-go-no-go.tests.ps1`
+   to confirm the validator itself still behaves correctly (it asserts
+   `NO-GO` against the current template and `GO` against a synthetic
+   fixture) before relying on it during the window.
 10. Confirm all release gates in Section 4 are green. If any S0/S1 item remains
    open, stop and record **HOLD**.
 
@@ -510,6 +534,48 @@ Repointing to AbuzarNext after a rehearsal requires a **PASS** record with
 timestamps, terminal scope, backup hash, queue state, observed results,
 evidence files, and approvals. The record must prove that the legacy executable
 was not written to and that all new events were preserved.
+
+### 9.3 Recommended execution: ops/cutover/rollback.ps1
+
+[`ops/cutover/rollback.ps1`](../ops/cutover/rollback.ps1) mechanizes the safe,
+scriptable parts of Sections 9.1–9.2 above so an operator has one reliable
+script to run under pressure instead of hand-typing each command. It is a
+convenience layer over this runbook, not a replacement for it: the manual
+steps in 9.1–9.2 remain the documented fallback and the authoritative
+procedure if the script cannot run.
+
+The script automates: verifying the legacy executable and pre-cutover backup
+file exist and look valid before touching anything, stopping the new
+system's write path (the production API container per
+`ops/vps/docker-compose.yml`, or the local `api`/`edge` supervised processes
+per `ops/local/*.ps1`), optionally restoring the pre-cutover backup with the
+exact `pg_restore --clean --if-exists --no-owner --dbname` flags from Section
+6.2, and relaunching the legacy executable per Section 9.2 step 3. It logs
+every step with a UTC timestamp to console and to a rollback log file, and
+prints a summary block shaped to paste directly into
+[ROLLBACK_REHEARSAL_RECORD_TEMPLATE.md](ROLLBACK_REHEARSAL_RECORD_TEMPLATE.md).
+
+It does **not** automate marking physical terminals, the production fleet
+repoint (Section 8.2 still applies — there is no repository script for that),
+the branch-edge service on branch hardware, or the controlled
+transaction-recovery/re-entry decision in step 5, which remains a release
+manager + DBA + business owner approval.
+
+```powershell
+# Plan only (default). No destructive action. Safe to run any time.
+powershell -ExecutionPolicy Bypass -File .\ops\cutover\rollback.ps1
+
+# Rehearsal against a disposable/sandbox database. Refuses to run if the
+# resolved DSN matches known production host/role/database-name patterns.
+$env:ABUZAR_RESTORE_DATABASE_URL = '<disposable-target-dsn>'
+powershell -ExecutionPolicy Bypass -File .\ops\cutover\rollback.ps1 `
+  -Rehearse -Execute -Target local -RestoreBackup -BackupPath '<disposable-fixture.dump>'
+
+# Real production rollback. Requires two separate typed confirmations
+# (not just Enter) before the write-path stop/legacy relaunch and before
+# any pg_restore.
+powershell -ExecutionPolicy Bypass -File .\ops\cutover\rollback.ps1 -Execute -RestoreBackup
+```
 
 ## 10. First 48 hours after switch
 

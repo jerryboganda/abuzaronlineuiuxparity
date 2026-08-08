@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "document": "Synthetic fully-passing fixture for validate-go-no-go.ps1 tests only. NOT real cutover evidence.",
+  "generatedAtUtc": "2026-08-08T00:00:00.000Z",
+  "status": "GO",
+  "checkStatusValues": [
+    "pass",
+    "pending",
+    "blocked",
+    "fail"
+  ],
+  "decisionRule": {
+    "allowedDecisions": [
+      "GO",
+      "HOLD",
+      "ROLLBACK"
+    ],
+    "goRequires": "Every required check has status pass, every required evidence path exists, no blocker is open, and release, DBA, business, and branch approvals are present.",
+    "holdIf": "Any required check is pending, blocked, fail, missing evidence, or has an unsigned exception.",
+    "legacyWritePolicy": "The canonical legacy application and database remain read-only."
+  },
+  "checks": [
+    { "id": "migration_source_files_001_028", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "migration_target_applied_001_028", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "migration_020_parent_scope", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "canonical_inventory", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "canonical_counts", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "business_metrics", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "s0_s1_acceptance_domains", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "rights_and_rls", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "hardware_physical_signoff", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "full_volume_performance", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "eight_hour_soak", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "pixel_acceptance", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "functional_uat", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "backup_restore", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "health_and_metrics", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "rollback_rehearsal", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "approvals", "required": true, "status": "pass", "evidence": "fixture" },
+    { "id": "optional_nice_to_have", "required": false, "status": "pending", "evidence": "" }
+  ],
+  "approvals": {
+    "releaseManager": "J. Doe / 2026-08-08T00:00:00Z",
+    "dba": "A. Smith / 2026-08-08T00:00:00Z",
+    "businessApprover": "R. Khan / 2026-08-08T00:00:00Z",
+    "branchOperator": "S. Ali / 2026-08-08T00:00:00Z"
+  }
+}

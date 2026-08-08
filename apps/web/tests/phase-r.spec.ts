@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 
 function session(roles: string[] = ['operator'], permissions: string[] = ['manage.groups']) {
   return {
@@ -226,4 +227,63 @@ test('report menu applies the imported report scope filter', async ({ page }) =>
   await page.getByRole('menuitem', { name: 'Sale', exact: true }).evaluate((element) => (element as HTMLButtonElement).click());
   await expect(page.locator('button[data-legacy-path="Reports > Daily Reports > Sale > Sale detail"]')).toBeEnabled();
   await expect(page.locator('button[data-legacy-path="Reports > Daily Reports > Sale > Sale summary"]')).toBeDisabled();
+});
+
+// Every test above drives page.route with hand-typed fixture permissions.
+// That is fine for exercising the editor/menu components in isolation, but
+// none of it proves the fixtures still match the real migrated group_rights
+// table (see db/migrations/009_legacy_security_rights.sql and
+// 019_security_data_import_adaptation.sql, and
+// services/api/internal/httpapi/access_integration_test.go for the
+// server-side equivalent). A fixture can silently drift from the 726-row
+// import with no test noticing. fetchRealEffectivePermissions closes that
+// gap for one group by reading the same tenant's live table directly and
+// feeding what it actually contains into the mocked /v1/access response, so
+// this file has at least one test pinned to real migrated data end to end.
+const LEGACY_GROUP_RIGHTS_SOURCE_TENANT_ID = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
+
+function fetchRealEffectivePermissions(groupCode: string): string[] | undefined {
+  const dsn = process.env.DATABASE_URL;
+  if (!dsn) return undefined;
+  try {
+    const escapedGroupCode = groupCode.replace(/'/g, "''");
+    const sql = `SELECT DISTINCT lower(coalesce(gr.permission, gr.right_code)) `
+      + `FROM group_rights gr JOIN roles r ON r.id = gr.role_id AND r.tenant_id = gr.tenant_id `
+      + `WHERE gr.tenant_id = '${LEGACY_GROUP_RIGHTS_SOURCE_TENANT_ID}' AND r.code = '${escapedGroupCode}' AND gr.allowed `
+      + `ORDER BY 1;`;
+    const output = execFileSync('psql', [dsn, '-t', '-A', '-c', sql], { encoding: 'utf8' });
+    return output.split('\n').map((line) => line.trim()).filter(Boolean);
+  } catch {
+    return undefined;
+  }
+}
+
+test('REMOTE group menu-gating reflects the live migrated group_rights matrix, not a hardcoded fixture', async ({ page }) => {
+  const permissions = fetchRealEffectivePermissions('REMOTE');
+  test.skip(!permissions, 'DATABASE_URL / psql was not reachable from the test runner; see fetchRealEffectivePermissions.');
+  if (!permissions) return;
+
+  // Pin the finding this test exists to catch: the migrated REMOTE right
+  // codes are raw legacy numeric identifiers (e.g. "1", "5256") with no
+  // `permission` column populated (see
+  // docs/PHASE_R_SECURITY_RIGHTS_VERIFICATION_2026-08-08.md), so today none
+  // of them equal a permission name legacy-menu.ts's requirementFor() gates
+  // on. If this assertion ever fails, the migration finally populated the
+  // mapping and the menu-gating expectation below must be revisited too.
+  expect(permissions.length).toBeGreaterThan(0);
+  expect(permissions).not.toContain('sales.write');
+
+  await page.route('**/v1/session', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(session(['operator'], permissions)) }));
+  await page.route('**/v1/access', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(access({ permissions, legacyRights: [], scopes: {} })) }));
+  await page.goto('/app/sales?kind=cash');
+  await page.waitForTimeout(1000);
+  const fileMenu = page.getByRole('button', { name: 'File', exact: true });
+  await expect(fileMenu).toBeVisible();
+  await fileMenu.evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.getByRole('menuitem', { name: 'Save And Post', exact: true })).toBeVisible();
+  // requiredPermission for File > Save And Post under the cash-sale context
+  // is 'sales.write' (src/lib/legacy-menu.ts requirementFor). The live
+  // migrated REMOTE matrix never grants it, so the command must stay
+  // disabled — driven by the real table, not by a hardcoded expectation.
+  await expect(page.getByRole('menuitem', { name: 'Save And Post', exact: true })).toBeDisabled();
 });

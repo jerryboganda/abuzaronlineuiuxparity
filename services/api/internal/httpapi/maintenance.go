@@ -1,12 +1,19 @@
 package httpapi
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
+	"time"
 )
 
 type maintenanceCheck struct {
@@ -133,6 +140,14 @@ func (s *Server) maintenanceAction(w http.ResponseWriter, r *http.Request) {
 
 	if kind == "check-database-integrity" {
 		s.handleIntegrityCheck(w, r, operator, kind, payload)
+		return
+	}
+	if kind == "backup-database" {
+		s.handleDatabaseBackup(w, r, operator, kind, payload)
+		return
+	}
+	if kind == "restore-database" {
+		s.handleDatabaseRestore(w, r, operator, kind, payload)
 		return
 	}
 
@@ -263,6 +278,337 @@ func (s *Server) handleIntegrityCheck(w http.ResponseWriter, r *http.Request, op
 		"physicalDatabaseCheck": "not_configured",
 		"checks":                checks,
 		"message":               message,
+	})
+}
+
+// maintenanceDBConn carries the libpq connection parameters used to invoke
+// pg_dump/pg_restore out-of-process. It is resolved from the same
+// DATABASE_URL/PG* environment variables the API itself connects with, so a
+// backup or restore always talks to the same PostgreSQL instance the API is
+// deployed against.
+type maintenanceDBConn struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	SSLMode  string
+}
+
+// errMaintenancePgToolUnavailable is returned when pg_dump/pg_restore are not
+// present on PATH. Callers must fall back to an honest "not_configured"
+// outcome rather than claiming a physical backup or restore happened.
+var errMaintenancePgToolUnavailable = errors.New("required PostgreSQL client tool is not available on PATH")
+
+func maintenanceDBConnFromEnv() maintenanceDBConn {
+	conn := maintenanceDBConn{Host: "127.0.0.1", Port: "5432", User: "postgres", SSLMode: "disable"}
+	raw := strings.TrimSpace(os.Getenv("DATABASE_URL"))
+	if raw == "" {
+		raw = strings.TrimSpace(os.Getenv("ABUZAR_APP_DATABASE_URL"))
+	}
+	if raw != "" {
+		if parsed, err := url.Parse(raw); err == nil {
+			if host := parsed.Hostname(); host != "" {
+				conn.Host = host
+			}
+			if port := parsed.Port(); port != "" {
+				conn.Port = port
+			}
+			if parsed.User != nil {
+				if username := parsed.User.Username(); username != "" {
+					conn.User = username
+				}
+				if password, ok := parsed.User.Password(); ok {
+					conn.Password = password
+				}
+			}
+			if mode := parsed.Query().Get("sslmode"); mode != "" {
+				conn.SSLMode = mode
+			}
+		}
+	}
+	if host := strings.TrimSpace(os.Getenv("PGHOST")); host != "" {
+		conn.Host = host
+	}
+	if port := strings.TrimSpace(os.Getenv("PGPORT")); port != "" {
+		conn.Port = port
+	}
+	if user := strings.TrimSpace(os.Getenv("PGUSER")); user != "" {
+		conn.User = user
+	}
+	if password := strings.TrimSpace(os.Getenv("PGPASSWORD")); password != "" {
+		conn.Password = password
+	}
+	return conn
+}
+
+func maintenancePgEnv(conn maintenanceDBConn) []string {
+	env := os.Environ()
+	if conn.Password != "" {
+		env = append(env, "PGPASSWORD="+conn.Password)
+	}
+	if conn.SSLMode != "" {
+		env = append(env, "PGSSLMODE="+conn.SSLMode)
+	}
+	return env
+}
+
+// maintenanceBackupDir returns the server-side directory backup files are
+// written to and restored from. It never accepts a client-supplied path.
+func maintenanceBackupDir() string {
+	if dir := strings.TrimSpace(os.Getenv("ABUZAR_MAINTENANCE_BACKUP_DIR")); dir != "" {
+		return dir
+	}
+	return filepath.Join("tmp", "backups")
+}
+
+func currentDatabaseName(ctx context.Context, database *sql.DB) (string, error) {
+	var name string
+	if err := database.QueryRowContext(ctx, `SELECT current_database()`).Scan(&name); err != nil {
+		return "", err
+	}
+	return name, nil
+}
+
+// validMaintenanceDatabaseName restricts a restore target to a plain
+// PostgreSQL identifier so it can never be used to smuggle flags or paths
+// into pg_restore, and so it can be safely embedded in a single --dbname=
+// argument.
+func validMaintenanceDatabaseName(name string) bool {
+	if name == "" || len(name) > 63 {
+		return false
+	}
+	for i, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r == '_':
+		case r >= '0' && r <= '9' && i > 0:
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// sanitizeMaintenanceFileToken keeps generated backup file names readable
+// while stripping anything that is not a safe path segment character.
+func sanitizeMaintenanceFileToken(value string) string {
+	var builder strings.Builder
+	for _, r := range value {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '-', r == '_':
+			builder.WriteRune(r)
+		default:
+			builder.WriteRune('-')
+		}
+	}
+	token := builder.String()
+	if token == "" {
+		token = "tenant"
+	}
+	return token
+}
+
+// runPgDump shells out to the real pg_dump binary in custom (-Fc) format so
+// the resulting file can later be fed straight to pg_restore. It returns the
+// size in bytes of the file actually written to disk.
+func runPgDump(ctx context.Context, conn maintenanceDBConn, database, outputPath string) (int64, error) {
+	if _, err := exec.LookPath("pg_dump"); err != nil {
+		return 0, errMaintenancePgToolUnavailable
+	}
+	cmd := exec.CommandContext(ctx, "pg_dump",
+		"--format=custom",
+		"--no-password",
+		"--file="+outputPath,
+		"--host="+conn.Host,
+		"--port="+conn.Port,
+		"--username="+conn.User,
+		"--dbname="+database,
+	)
+	cmd.Env = maintenancePgEnv(conn)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return 0, fmt.Errorf("pg_dump failed: %w: %s", err, strings.TrimSpace(string(output)))
+	}
+	info, err := os.Stat(outputPath)
+	if err != nil {
+		return 0, fmt.Errorf("pg_dump reported success but wrote no file: %w", err)
+	}
+	return info.Size(), nil
+}
+
+// runPgRestore shells out to the real pg_restore binary against an explicit
+// target database. --clean --if-exists makes the restore idempotent when the
+// target database already has objects in it, while remaining a no-op on a
+// freshly created, empty database.
+func runPgRestore(ctx context.Context, conn maintenanceDBConn, database, inputPath string) error {
+	if _, err := exec.LookPath("pg_restore"); err != nil {
+		return errMaintenancePgToolUnavailable
+	}
+	cmd := exec.CommandContext(ctx, "pg_restore",
+		"--no-password",
+		"--clean",
+		"--if-exists",
+		"--host="+conn.Host,
+		"--port="+conn.Port,
+		"--username="+conn.User,
+		"--dbname="+database,
+		inputPath,
+	)
+	cmd.Env = maintenancePgEnv(conn)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("pg_restore failed: %w: %s", err, strings.TrimSpace(string(output)))
+	}
+	return nil
+}
+
+// handleDatabaseBackup performs a real pg_dump of the PostgreSQL database the
+// API is currently connected to and records the resulting file path/size in
+// the maintenance audit trail via recordMaintenanceOperation, exactly like
+// every other maintenance operation in this file.
+//
+// Limitation, stated honestly: tenant isolation in this schema is enforced
+// by row-level security at query time (app.tenant_id), not by giving each
+// tenant a separate physical database. pg_dump operates below RLS, so it
+// cannot produce a backup scoped to one tenant's rows only — every tenant
+// sharing this database instance is included in the dump file. That is
+// recorded in the audit payload's "scopeNote" field rather than being hidden.
+func (s *Server) handleDatabaseBackup(w http.ResponseWriter, r *http.Request, operator *sessionContext, kind string, payload map[string]any) {
+	tx, err := s.beginScopedTx(r.Context(), operator)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "database_unavailable", "Database unavailable", "The backup operation could not be opened.")
+		return
+	}
+	defer tx.Rollback()
+
+	databaseName, err := currentDatabaseName(r.Context(), s.database)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "backup_failed", "Backup failed", "The database being backed up could not be identified.")
+		return
+	}
+
+	status := "not_configured"
+	message := "pg_dump is not available on this server; no database backup was performed."
+	auditPayload := copyMaintenancePayload(payload)
+	auditPayload["tenantId"] = operator.TenantID
+	auditPayload["database"] = databaseName
+	auditPayload["scopeNote"] = "Full PostgreSQL instance dump. Tenant isolation is enforced by row-level security at query time, not by separate databases, so pg_dump cannot produce a tenant-scoped backup; every tenant sharing this database is included."
+
+	if _, lookErr := exec.LookPath("pg_dump"); lookErr == nil {
+		dir := maintenanceBackupDir()
+		if mkErr := os.MkdirAll(dir, 0o755); mkErr != nil {
+			writeProblem(w, http.StatusServiceUnavailable, "backup_failed", "Backup failed", "The server-side backup directory could not be created.")
+			return
+		}
+		filename := fmt.Sprintf("%s-%s-%s.dump",
+			sanitizeMaintenanceFileToken(operator.TenantID),
+			sanitizeMaintenanceFileToken(kind),
+			time.Now().UTC().Format("20060102T150405.000000000Z"))
+		outputPath := filepath.Join(dir, filename)
+		conn := maintenanceDBConnFromEnv()
+		size, dumpErr := runPgDump(r.Context(), conn, databaseName, outputPath)
+		if dumpErr != nil {
+			writeProblem(w, http.StatusServiceUnavailable, "backup_failed", "Backup failed", "pg_dump could not produce a backup file: "+dumpErr.Error())
+			return
+		}
+		status = "completed"
+		message = fmt.Sprintf("Full PostgreSQL dump of database %q was written to %s (%d bytes) using pg_dump --format=custom.", databaseName, outputPath, size)
+		auditPayload["fileName"] = filename
+		auditPayload["filePath"] = outputPath
+		auditPayload["fileSizeBytes"] = size
+		auditPayload["capturedAt"] = time.Now().UTC().Format(time.RFC3339)
+	}
+
+	operationID, err := recordMaintenanceOperation(r, tx, operator, kind, status, message, auditPayload)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "maintenance_audit_failed", "Maintenance audit failed", "The backup operation could not be recorded.")
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "maintenance_commit_failed", "Maintenance failed", "The backup operation could not be committed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"kind":        kind,
+		"operationId": operationID,
+		"status":      status,
+		"database":    databaseName,
+		"message":     message,
+	})
+}
+
+// handleDatabaseRestore performs a real pg_restore of a previously produced
+// backup file into an explicit target database supplied by the caller. The
+// target database is never inferred or defaulted: it must be named in the
+// request payload, and the handler refuses to restore into the database the
+// API is currently connected to (the live, in-use database) to avoid an
+// operator accidentally destroying the running deployment mid-request.
+func (s *Server) handleDatabaseRestore(w http.ResponseWriter, r *http.Request, operator *sessionContext, kind string, payload map[string]any) {
+	targetDatabase, textErr := maintenancePayloadText(payload, "targetDatabase")
+	if textErr != nil || !validMaintenanceDatabaseName(targetDatabase) {
+		writeProblem(w, http.StatusBadRequest, "invalid_restore_target", "Invalid restore target", "targetDatabase is required and must be a plain PostgreSQL database identifier (letters, digits, underscore).")
+		return
+	}
+	backupFile, fileErr := maintenancePayloadText(payload, "backupFile")
+	if fileErr != nil || backupFile == "" || strings.Contains(backupFile, "..") || strings.ContainsAny(backupFile, `/\:`) {
+		writeProblem(w, http.StatusBadRequest, "invalid_backup_file", "Invalid backup file", "backupFile must be a logical file name previously produced by a backup-database operation, not a path.")
+		return
+	}
+	inputPath := filepath.Join(maintenanceBackupDir(), backupFile)
+	if info, statErr := os.Stat(inputPath); statErr != nil || info.IsDir() {
+		writeProblem(w, http.StatusNotFound, "backup_not_found", "Backup not found", "The referenced backup file does not exist on this server.")
+		return
+	}
+
+	tx, err := s.beginScopedTx(r.Context(), operator)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "database_unavailable", "Database unavailable", "The restore operation could not be opened.")
+		return
+	}
+	defer tx.Rollback()
+
+	liveDatabase, err := currentDatabaseName(r.Context(), s.database)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "restore_failed", "Restore failed", "The currently connected database could not be identified.")
+		return
+	}
+	if strings.EqualFold(liveDatabase, targetDatabase) {
+		writeProblem(w, http.StatusConflict, "restore_target_is_live_database", "Restore target is the live database", "Refusing to restore into the database this API is currently connected to; target a separate database explicitly.")
+		return
+	}
+
+	status := "not_configured"
+	message := "pg_restore is not available on this server; no database restore was performed."
+	auditPayload := copyMaintenancePayload(payload)
+	auditPayload["tenantId"] = operator.TenantID
+	auditPayload["targetDatabase"] = targetDatabase
+	auditPayload["backupFile"] = backupFile
+
+	if _, lookErr := exec.LookPath("pg_restore"); lookErr == nil {
+		conn := maintenanceDBConnFromEnv()
+		if restoreErr := runPgRestore(r.Context(), conn, targetDatabase, inputPath); restoreErr != nil {
+			writeProblem(w, http.StatusServiceUnavailable, "restore_failed", "Restore failed", "pg_restore could not restore the backup: "+restoreErr.Error())
+			return
+		}
+		status = "completed"
+		message = fmt.Sprintf("Backup file %s was restored into database %q using pg_restore --clean --if-exists.", backupFile, targetDatabase)
+		auditPayload["restoredAt"] = time.Now().UTC().Format(time.RFC3339)
+	}
+
+	operationID, err := recordMaintenanceOperation(r, tx, operator, kind, status, message, auditPayload)
+	if err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "maintenance_audit_failed", "Maintenance audit failed", "The restore operation could not be recorded.")
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		writeProblem(w, http.StatusServiceUnavailable, "maintenance_commit_failed", "Maintenance failed", "The restore operation could not be committed.")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"kind":           kind,
+		"operationId":    operationID,
+		"status":         status,
+		"targetDatabase": targetDatabase,
+		"message":        message,
 	})
 }
 

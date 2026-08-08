@@ -189,8 +189,10 @@ test('cash sale dispatches Save And Post from its contextual menu', async ({ pag
     body: JSON.stringify({ accepted: true, duplicate: false, eventId: '55555555-5555-4555-8555-555555555555', aggregateId: documentId, kind: 'cash-sale', action: 'save-and-post', status: 'posted', document: { id: documentId, documentNumber: 'CS-1', version: 1 } })
     });
   });
+  const accessResponse = page.waitForResponse('**/v1/access');
   await page.goto('/app/sales?kind=cash');
-  await page.waitForTimeout(500);
+  await accessResponse;
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true');
   await expect(page.getByLabel('User:')).toHaveValue('ADMIN');
   await page.getByLabel('Item lookup query').fill('MENU');
   await page.getByLabel('Item lookup query').press('Enter');
@@ -256,8 +258,10 @@ test('canonical cash sale uses draft then post document lifecycle', async ({ pag
       body: JSON.stringify({ accepted: true, duplicate: false, eventId: '00000000-0000-0000-0000-000000000111', aggregateId: documentId, kind: 'cash-sale', action, status: voided ? 'void' : posted ? 'posted' : 'draft', document: { id: documentId, documentNumber: 'BRANCH-000001', status: voided ? 'void' : posted ? 'posted' : 'draft', version: voided ? 3 : posted ? 2 : 1 } })
     });
   });
+  const accessResponse = page.waitForResponse('**/v1/access');
   await page.goto('/app/sales?kind=cash');
-  await page.waitForTimeout(500);
+  await accessResponse;
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true');
   await page.getByLabel('Item lookup query').fill('CANONICAL');
   await page.getByLabel('Item lookup query').press('Enter');
   await expect(page.getByRole('button', { name: 'CANONICAL ITEM' })).toBeVisible({ timeout: 10000 });
@@ -327,8 +331,10 @@ test('pack purchase Ctrl+B generates a deterministic batch identifier', async ({
       context: { tenantId: 'tenant-1', branchId: 'branch-1', counterId: 'counter-1', operatorId: 'operator-1', username: 'ADMIN', displayName: 'ADMIN' }
     })
   }));
+  const accessResponse = page.waitForResponse('**/v1/access');
   await page.goto('/app/purchase/pack');
-  await page.waitForTimeout(700);
+  await accessResponse;
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true');
   await page.getByRole('combobox', { name: 'Item name 1' }).fill('BATCH ITEM');
   await expect(page.getByRole('button', { name: 'File', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
@@ -365,8 +371,10 @@ test('pack purchase contextual GST and expense commands update the live draft', 
     contentType: 'application/json',
     body: JSON.stringify({ records: [] })
   }));
+  const accessResponse = page.waitForResponse('**/v1/access');
   await page.goto('/app/purchase/pack');
-  await page.waitForTimeout(700);
+  await accessResponse;
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true');
   await page.getByLabel('Item GST percent').fill('18');
   await expect(page.getByRole('button', { name: 'File', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
@@ -452,7 +460,8 @@ test('purchase invoice population hydrates canonical order lines and batch detai
   const accessResponse = page.waitForResponse('**/v1/access');
   await page.goto('/app/purchase/pack');
   await accessResponse;
-  await page.waitForTimeout(200);
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true');
+  await expect(page.getByRole('button', { name: 'File', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Populate Purchase Invoice', exact: true }).click();
   await expect(page.getByRole('button', { name: 'PO-1', exact: true })).toBeVisible();
@@ -544,7 +553,8 @@ test('purchase return population preserves the canonical source document and bat
   const accessResponse = page.waitForResponse('**/v1/access');
   await page.goto('/app/purchase/return');
   await accessResponse;
-  await page.waitForTimeout(200);
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true');
+  await expect(page.getByRole('button', { name: 'File', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Populate Purchase Return Invoice', exact: true }).click();
   await expect(page.getByRole('button', { name: 'PUR-1', exact: true })).toBeVisible();
@@ -588,8 +598,10 @@ test('cash sale contextual item tax and document commands update the live draft'
     contentType: 'application/json',
     body: JSON.stringify({ records: [] })
   }));
+  const accessResponse = page.waitForResponse('**/v1/access');
   await page.goto('/app/sales?kind=cash');
-  await page.waitForTimeout(700);
+  await accessResponse;
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true');
   await page.getByLabel('Item GST percent').fill('18');
   await page.locator('.legacy-sale-grid').getByLabel('Item name 1').fill('SALE ITEM');
   await page.getByRole('button', { name: 'File', exact: true }).click({ force: true });
@@ -634,8 +646,10 @@ test('quotation uses the canonical no-stock document lifecycle', async ({ page }
       body: JSON.stringify({ accepted: true, duplicate: false, eventId: '99999999-9999-4999-8999-999999999999', aggregateId: documentId, kind: 'quotation', action: 'save-and-post', status: 'posted', document: { id: documentId, documentNumber: 'Q-1', version: 1 } })
     });
   });
+  const accessResponse = page.waitForResponse('**/v1/access');
   await page.goto('/app/sales?kind=quotation');
-  await page.waitForTimeout(700);
+  await accessResponse;
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true');
   await page.getByLabel('Item lookup query').fill('QUOTE');
   await page.getByLabel('Item lookup query').press('Enter');
   await expect(page.getByRole('button', { name: 'QUOTE ITEM' })).toBeVisible();
@@ -682,8 +696,10 @@ test('cash sale return posts through the canonical source-bound lifecycle', asyn
       body: JSON.stringify({ accepted: true, duplicate: false, eventId: 'ffffffff-ffff-4fff-8fff-ffffffffffff', aggregateId: documentId, kind: 'cash-return', action: 'save-and-post', status: 'posted', document: { id: documentId, documentNumber: 'CR-1', version: 1 } })
     });
   });
+  const accessResponse = page.waitForResponse('**/v1/access');
   await page.goto('/app/sales?kind=cash-return');
-  await page.waitForTimeout(700);
+  await accessResponse;
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true');
   await page.getByLabel('Item lookup query').fill('RETURN');
   await page.getByLabel('Item lookup query').press('Enter');
   await expect(page.getByRole('button', { name: 'RETURN ITEM' })).toBeVisible();
@@ -732,8 +748,10 @@ test('open cash sale return posts without a source invoice', async ({ page }) =>
       body: JSON.stringify({ accepted: true, duplicate: false, eventId: '33333333-3333-4333-8333-333333333333', aggregateId: '44444444-4444-4444-8444-444444444444', kind: 'open-cash-return', action: 'save-and-post', status: 'posted', document: { id: '44444444-4444-4444-8444-444444444444', documentNumber: 'OCR-1', version: 1 } })
     });
   });
+  const accessResponse = page.waitForResponse('**/v1/access');
   await page.goto('/app/sales?kind=open-cash-return');
-  await page.waitForTimeout(500);
+  await accessResponse;
+  await expect(page.locator('.legacy-menu-bar')).toHaveAttribute('data-hydrated', 'true');
   const lookupInput = page.getByLabel('Item lookup query');
   await lookupInput.fill('OPEN');
   await lookupInput.press('Enter');

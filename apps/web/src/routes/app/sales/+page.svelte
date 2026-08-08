@@ -8,6 +8,7 @@
   import type { MenuAction } from '$lib/legacy-menu';
   import { formatLegacyTitle } from '$lib/legacy-title';
   import { localDateAtNoonUtc, localDateString } from '$lib/calendar-date';
+  import { createBarcodeScanListener, normalizeBarcodeClientSide } from '$lib/barcode-scanner';
 
   type SaleAllocation = { batchId: string; quantity: string };
   type SaleRow = { itemId?: string; itemLegacyId?: string; sourceLineId?: string; itemName: string; stock: string; stockError?: string; availabilityLoaded: boolean; availableBatches?: InventoryAvailableBatch[]; allocations?: SaleAllocation[]; purchasePrice: string; salePrice: string; salePrices?: string[]; manufacturer: string; pieces: string; location: string; quantity: string; discountPercent: string; gstRate: string; batchNumber: string; expiryDate: string; unitCost: string; total: string };
@@ -112,7 +113,7 @@
   $: workflowTitle = ({ cash: 'Cash Sale', credit: 'Credit Sale', 'cash-return': 'Cash Sale Return', 'credit-return': 'Credit Sale Return', 'open-cash-return': 'Open Cash Sale Return', 'open-credit-return': 'Open Credit Sale Return', quotation: 'Quotation', refused: 'Refused Sales' } as Record<string, string>)[kind] ?? 'Cash Sale';
   $: aggregate = ['cash-return', 'credit-return', 'open-cash-return', 'open-credit-return'].includes(kind) ? 'sale_return' : kind === 'quotation' ? 'quotation' : kind === 'refused' ? 'refused_sale' : 'sale';
   $: if (session && ['credit', 'credit-return', 'open-credit-return'].includes(kind) && customerLoadState === 'idle') void loadCustomers();
-  $: availableLookupItems = lookupResults.map((record) => {
+  function toLookupItem(record: ItemLookupResult): LookupItem {
     const payload = (record.payload ?? {}) as Record<string, unknown>;
     const value = (...keys: string[]) => keys.map((key) => payload[key]).find((candidate) => candidate !== undefined && candidate !== null && String(candidate).trim() !== '');
     const text = (keys: string[], fallback = '') => String(value(...keys) ?? fallback);
@@ -131,7 +132,8 @@
       pieces: text(['Pieces', 'pieces', 'PackUnits', 'packUnits', 'Pcs', 'pcs'], '1'),
       location: text(['Location', 'location', 'ItemLocation', 'itemLocation'])
     };
-  });
+  }
+  $: availableLookupItems = lookupResults.map(toLookupItem);
 
   async function loadHistory() {
     const requestRevision = workflowRevision;
@@ -357,6 +359,8 @@
   }
 
   function handleMenuCommand(action: MenuAction): boolean {
+    // The footer is a status bar: a new command supersedes the previous error.
+    error = '';
     if (busy) {
       message = 'Wait for the active document command to finish.';
       return true;
@@ -841,6 +845,36 @@
     queuePricingPreview();
     await refreshRowAvailability(index);
   }
+
+  let barcodeBusy = false;
+
+  async function handleBarcodeScan(raw: string) {
+    const code = normalizeBarcodeClientSide(raw);
+    lookupQuery = '';
+    lookupResults = [];
+    if (!code) {
+      error = 'Barcode scan ignored: the scanned input was empty or contained invalid control characters.';
+      return;
+    }
+    if (barcodeBusy) return;
+    barcodeBusy = true;
+    error = '';
+    try {
+      const barcodeItem = await edgeRequest<{ code: string; itemId: string; name: string }>('/v1/hardware/barcode/lookup', { raw: code });
+      if (!barcodeItem?.itemId) throw new Error(`Barcode ${code} did not resolve to a canonical item.`);
+      const record = await api.masterRecord('item', barcodeItem.itemId);
+      if (!record.active) throw new Error(`Barcode ${barcodeItem.code}: ${record.name} is not an active canonical item.`);
+      const lookupItem = toLookupItem({ id: record.id, legacyId: record.legacyId ?? '', code: record.code, name: record.name, payload: record.payload, active: record.active, aliases: [] });
+      await chooseLookupItem(lookupItem);
+      message = `Barcode ${barcodeItem.code}: ${record.name} added to the sale.`;
+    } catch (cause) {
+      error = apiErrorMessage(cause, `Barcode ${code}: item lookup failed (scanner adapter unavailable or barcode not registered).`);
+    } finally {
+      barcodeBusy = false;
+    }
+  }
+
+  const barcodeScanListener = createBarcodeScanListener((code) => { void handleBarcodeScan(code); });
   $: totalAmount = rows.reduce((sum, row) => sum + (Number(row.total) || ((Number(row.salePrice) || 0) * (Number(row.quantity) || 0))), 0).toFixed(2);
   $: effectiveTotal = pricingPreview?.total ?? totalAmount;
   $: cashTenderedValue = cashTendered.trim() || effectiveTotal;
@@ -1241,7 +1275,7 @@
         <label>Inv. No:<input bind:value={documentNumber} /></label><label>Date:<input type="date" bind:value={transactionDate} /></label>
         {#if kind === 'credit'}<label>Due Date:<input aria-label="Due date" type="date" bind:value={dueDate} /></label>{/if}
         <label>User:<input value={session?.username ?? ''} readonly /></label><label>Godown:<select aria-label="Godown" bind:value={godownId} onchange={() => void refreshAllAvailability()}><option value="">Select active godown</option>{#each godowns as godown}<option value={godown.id}>{godown.name}</option>{/each}</select></label>
-        <label>Alias Name:<input aria-label="Item lookup query" bind:value={lookupQuery} oninput={(event) => void searchItems((event.currentTarget as HTMLInputElement).value)} onkeydown={(event) => { if (event.key === 'Enter') void searchItems((event.currentTarget as HTMLInputElement).value); }} /></label><label>Customer:{#if kind === 'credit' || kind === 'credit-return' || kind === 'open-credit-return'}<select aria-label="Customer" bind:value={customerId} onchange={() => { const selected = customers.find((party) => party.id === customerId); customer = selected?.name ?? ''; }}><option value="">Select active customer</option>{#each customers as party}<option value={party.id}>{party.name}</option>{/each}</select>{:else}<input bind:value={customer} readonly />{/if}</label>
+        <label>Alias Name:<input aria-label="Item lookup query" bind:value={lookupQuery} oninput={(event) => void searchItems((event.currentTarget as HTMLInputElement).value)} onkeydown={(event) => { if (barcodeScanListener.handleKeydown(event)) return; if (event.key === 'Enter') void searchItems((event.currentTarget as HTMLInputElement).value); }} /></label><label>Customer:{#if kind === 'credit' || kind === 'credit-return' || kind === 'open-credit-return'}<select aria-label="Customer" bind:value={customerId} onchange={() => { const selected = customers.find((party) => party.id === customerId); customer = selected?.name ?? ''; }}><option value="">Select active customer</option>{#each customers as party}<option value={party.id}>{party.name}</option>{/each}</select>{:else}<input bind:value={customer} readonly />{/if}</label>
         {#if kind === 'cash-return' || kind === 'credit-return'}<label>Source Inv. ID:<input aria-label="Source document ID" bind:value={sourceDocumentId} /></label><label>Source Inv. No.:<input aria-label="Source document number" bind:value={sourceDocumentNumber} /></label>{/if}
         <label>Ref.:<input bind:value={reference} /></label><label>Remarks:<input bind:value={remarks} /></label>
         <label>SalePrice:#<select aria-label="Sale price tier" bind:value={salePriceMode} onchange={repriceRowsForSelectedTier}>{#each Array(10) as _, index}<option>Sale Price {index + 1}</option>{/each}</select></label>

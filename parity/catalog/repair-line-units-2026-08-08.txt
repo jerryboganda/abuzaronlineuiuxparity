@@ -1,0 +1,5 @@
+BEGIN
+CREATE TABLE
+INSERT 0 1
+psql:migration/repair-line-units-2026-08-08.sql:83: ERROR:  stock_ledger is immutable
+CONTEXT:  PL/pgSQL function reject_stock_ledger_mutation() line 3 at RAISE

@@ -1,0 +1,15 @@
+BEGIN
+CREATE TABLE
+ALTER TABLE
+INSERT 0 1
+ALTER TABLE
+INSERT 0 1
+INSERT 0 1
+            step             | affected |                                                      detail                                                       
+-----------------------------+----------+-------------------------------------------------------------------------------------------------------------------
+ stock_ledger                |   524282 | {}
+ trigger_reenabled           |        1 | {"note": "must be 1 row, tgenabled=O (origin, i.e. enabled)"}
+ verify_ledger_line_mismatch |   124399 | {"note": "must be 0; stock_ledger.quantity should equal source business_document_lines.quantity within rounding"}
+(3 rows)
+
+COMMIT
