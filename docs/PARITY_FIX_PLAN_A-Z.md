@@ -11,6 +11,8 @@ Ground rules for every phase:
 
 Dependency spine: A → B/C/D (shell) · E (data) unblocks F/G and realistic testing of everything · H/I/J/K/L (business core) · M→Q (reports) · R (rights) gates cutover · S/T/U/V (modules) · W/X/Y/Z (hardening → go-live).
 
+> **Scope decision (2026-08-08):** the physical/human-dependent portions of this plan are explicitly OUT OF SCOPE for this engagement — real-hardware validation (Phase U), a provisioned full-volume soak cluster (Phase W), signed parallel-day UAT with pharmacy staff (Phase Y), and cutover/go-live (Phase Z). This is a scoping call, not a completion claim — see each phase below for exactly what software-side work *is* done versus what still requires physical devices or people this engagement doesn't include.
+
 ---
 
 ## Phase A — Stabilize the dev runtime (G11) — 0.5 dw
@@ -98,6 +100,8 @@ Session Monitor (live DB/app sessions like cmd 13869), user administration (crea
 **Accept:** session list shows concurrent logins; user lifecycle tests.
 
 ## Phase U — Hardware integrations (G9) — 4 dw + device time
+> **Physical-device validation OUT OF SCOPE for this engagement (2026-08-08).** The edge adapter interfaces, graceful-degradation behavior, and software-side handlers (thermal printer, barcode scanner, cash drawer, biometric, SMS/SMTP) are implemented and unit/integration tested against mocked adapters. Byte-matching against a real printer, a real HID scanner at POS speed, a real cash drawer, a real biometric reader, and live SMS/SMTP sending were never run and are not claimed as verified — that requires physical devices and an in-pharmacy session this engagement does not include. Do not mark the **Accept** line below as met without that physical validation actually happening.
+
 Edge adapters implemented: thermal printer (ESC/POS sale slip + purchase labels Alt+F8 formats byte-compared to legacy prints), barcode scanner (HID wedge → item lookup), cash drawer kick on cash sale post, biometric reader (if used in production), SMS gateway, SMTP email. Graceful degradation when absent.
 **Accept:** on real hardware in the pharmacy: printed slip/label physically matches legacy output; scanner→line-add works at POS speed.
 
@@ -106,7 +110,7 @@ Inventory all legacy preferences (incl. those behind the msdb SysJobs probe — 
 **Accept:** preference matrix doc: each pref → behavior → test/artifact.
 
 ## Phase W — Performance & scale hardening — 2 dw
-Load the full migrated volume (3.2M StockReport, 1M GL); index/query tuning to meet budgets: POS line-add < 150 ms, document post < 1 s, heavy reports p95 < 5 s, app cold start < 3 s. Soak test 8h with simulated POS traffic.
+> **Full-volume provisioned-cluster soak OUT OF SCOPE for this engagement (2026-08-08).** Perf probes ran against the real migrated `legacy-reference-sandbox` data on the local dev box (895,015 `business_document_lines`, 781,203 `stock_ledger` rows) — see `tmp/phase-w-performance-final-20260808.json`: pos-line-add p50 6.9ms/p95 13.9ms (green); heavy-sales-report p50 3963ms/p95 4043ms (under the 5s budget but only ~20% headroom at this volume — not yet green at full 3.2M/1M target volume); heavy-stock-report hit a statement-timeout cancellation on ≥1 of 15 samples (not green). An 8h soak on a disposable full-volume cluster was never provisioned or run.
 **Accept:** perf report with budgets green on full data.
 
 ## Phase X — Pixel-parity acceptance pass (all UI) — 3 dw
@@ -114,10 +118,14 @@ Systematic raster sweep: every window/dialog/tab in the catalog captured on both
 **Accept:** parity dashboard: 100% screens ≤ agreed pixel tolerance; exceptions individually signed off (e.g. G14 divergences).
 
 ## Phase Y — Functional acceptance & business reconciliation — 2 dw
+> **Real parallel-day UAT with pharmacy staff OUT OF SCOPE for this engagement (2026-08-08).** Automated reconciliation against the real migrated data is done and passing (16/16 metrics MATCHED, `parity/catalog/final-acceptance-reconciliation-2026-08-08.json`) — that is data-migration correctness, not the same thing as a signed UAT run by pharmacy staff working a live parallel trading day, which never happened in this engagement.
+
 End-to-end UAT script with pharmacy staff covering a full trading day on both systems in parallel (sales, returns, purchases, day-end reports); final `reconcile` run comparing the day's numbers; defect burn-down to zero S0/S1.
 **Accept:** signed UAT; parallel-day totals equal.
 
 ## Phase Z — Cutover & go-live — 1 dw + window
+> **Cutover/go-live OUT OF SCOPE for this engagement (2026-08-08).** Nothing in Phase Z has been attempted or rehearsed — no legacy write-freeze, no final incremental migration, no terminal switchover, no rollback rehearsal. This phase cannot start until Phase Y is actually complete.
+
 Freeze legacy writes → final incremental migration + reconciliation → switch POS terminals to AbuzarNext → legacy kept read-only for lookback. Rollback plan: repoint terminals to legacy exe (kept intact) if a blocker appears in the first 48h; document runbook in `docs/RUNBOOK_CUTOVER.md`.
 **Accept:** first live day closed with matching day-end report; rollback rehearsed beforehand.
 
