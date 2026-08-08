@@ -283,6 +283,10 @@ var phaseNReportRegistry = func() map[string]reportSpec {
 		add(report.kind, report.title, condition)
 		mode := ""
 		switch report.kind {
+		case "customer-sales-detail":
+			mode = "line-detail"
+		case "customer-sales-summary":
+			mode = "invoice-summary"
 		case "customer-sales-days-summary":
 			mode = "day-summary"
 		case "customer-sales-items-summary":
@@ -1930,7 +1934,8 @@ func headerTransactionReadModelQuery(pagination string) string {
 		  AND bd.status = 'posted'
 		  AND bd.kind IN (
 			'cash-sale', 'credit-sale', 'cash-return', 'credit-return',
-			'open-cash-return', 'open-credit-return', 'quotation', 'refused-sale',
+			'open-cash-return', 'open-credit-return', 'cash-sale-return',
+			'credit-sale-return', 'open-sale-return', 'quotation', 'refused-sale',
 			'pack-purchase', 'loose-purchase', 'opening-purchase',
 			'purchase-return', 'purchase-order'
 		  )
@@ -2014,7 +2019,21 @@ func dailySalesDetailReadModelQuery(pagination string) string {
 			       '0.00'
 		       ) AS discount_value,
 		       COALESCE(NULLIF(bl.legacy_payload->>'itemflatdisc', ''), NULLIF(bl.pricing->>'itemDiscount', ''), bl.item_discount::text, '0.00') AS item_discount,
-		       COALESCE(NULLIF(bl.legacy_payload->>'SalesTax', ''), NULLIF(bl.pricing->'taxes'->0->>'amount', ''), bl.tax_amount::text, '0.00') AS sales_tax_value,
+		       -- bl.tax_amount is a NOT NULL numeric(19,4) column that is reliably
+		       -- populated with the real per-line tax for every line that has a
+		       -- business_document_lines row: computed at posting time from the
+		       -- pricing engine's tax snapshot (see lineTaxSnapshot/documents.go)
+		       -- for lines created through the app, and imported as
+		       -- UnitSalesTax*quantity from the legacy Saledetail rows for
+		       -- historical lines (see migration/cmd/bulksalelines/main.go). It is
+		       -- therefore trusted first, including when it is legitimately 0.00
+		       -- for tax-exempt lines. legacy_payload->>'SalesTax' is a display
+		       -- string that is always the literal "0.00" in this tenant's data
+		       -- (verified: 620,615/620,615 lines) and can never be trusted as a
+		       -- primary source; it only matters as a fallback for the rare case
+		       -- where no business_document_lines row is joined at all (bl.tax_amount
+		       -- is NULL), i.e. lines that predate normalized tax tracking.
+		       COALESCE(bl.tax_amount::numeric(19,2)::text, NULLIF(bl.legacy_payload->>'SalesTax', ''), NULLIF(bl.pricing->'taxes'->0->>'amount', ''), '0.00') AS sales_tax_value,
 		       COALESCE(NULLIF(allocation.expiry_date, ''), NULLIF(bl.expiry_date::text, ''), '') AS expiry_date,
 		       COALESCE(NULLIF(allocation.batch_number, ''), NULLIF(bl.batch_number, ''), '') AS batch_number
 		FROM business_documents bd
@@ -2212,8 +2231,141 @@ func salesCalendarSummaryReadModelQuery(aggregateCondition, mode, pagination str
 		` + pagination
 }
 
+// salesItemSummaryReadModelQuery deliberately does NOT reuse salesReadModelQuery
+// for its "amount" figure. salesReadModelQuery's base CTE assigns
+// bd.total_amount (the whole document's total) to every one of a document's
+// line rows; that is correct for callers that de-duplicate back down to one
+// row per document (invoice-summary, day-summary, ...), where MAX(amount)
+// collapses the duplicates to a single total. This function instead groups
+// the raw per-line rows by item and SUMs amount, so reusing the document-total
+// column would sum the whole document's total once per line-occurrence of an
+// item, massively inflating Amount for any multi-line invoice (confirmed:
+// "DRIP SET (LIFECARE)" summed to 24.4x its correct SUM(bl.line_total) value;
+// other items diverged 6.6x-77.6x). Below, the canonical
+// business_documents/business_document_lines branches (which fan out one row
+// per line) compute a genuine per-line amount instead, mirroring the fallback
+// chain salesProfitMarginReadModelQuery and
+// salesCustomerCategorySummaryReadModelQueryMode already use for the same
+// column. Compatibility rows (sales_documents/sync_events) already project
+// only one row per document (they have no per-line table to join), so their
+// document-level amount is left as-is.
 func salesItemSummaryReadModelQuery(aggregateCondition, pagination string) string {
-	base := salesReadModelQuery(aggregateCondition, "")
+	eventCondition := "se.aggregate = 'sale'"
+	canonicalReturnUnion := ""
+	if aggregateCondition == reportSaleOrReturn {
+		eventCondition = "se.aggregate IN ('sale', 'sale_return')"
+		canonicalReturnUnion = `
+
+			UNION ALL
+
+			SELECT bd.document_number AS document,
+			       bd.occurred_at,
+			       COALESCE(mp.name,
+			                CASE WHEN bd.kind IN ('cash-return', 'open-cash-return',
+			                                       'cash-sale-return', 'open-sale-return')
+			                     THEN 'CASH' ELSE '' END) AS party,
+			       COALESCE(bl.item_name, '') AS item,
+			       COALESCE(bl.item_legacy_id, '') AS item_legacy_id,
+			       COALESCE(bl.quantity::text, '') AS quantity,
+			       COALESCE(NULLIF(bl.legacy_payload->>'Amount', ''), bl.line_total::text, bd.total_amount::text, '') AS amount
+			FROM business_documents bd
+			LEFT JOIN master_parties mp
+			  ON mp.tenant_id = bd.tenant_id AND mp.id = bd.customer_id
+			 AND mp.party_type = 'customer'
+			LEFT JOIN business_document_lines bl
+			  ON bl.tenant_id = bd.tenant_id AND bl.branch_id = bd.branch_id
+			 AND bl.document_id = bd.id
+			WHERE bd.tenant_id = $1::uuid AND bd.branch_id = $2::uuid
+			  AND bd.kind IN ('cash-return', 'credit-return',
+			                  'open-cash-return', 'open-credit-return',
+			                  'cash-sale-return', 'credit-sale-return',
+			                  'open-sale-return')
+			  AND bd.status = 'posted'`
+	}
+	base := `
+	WITH item_summary_line_amounts AS (
+			SELECT bd.document_number AS document,
+			       bd.occurred_at,
+			       COALESCE(mp.name, CASE WHEN bd.kind = 'cash-sale' THEN 'CASH' ELSE '' END) AS party,
+			       COALESCE(bl.item_name, '') AS item,
+			       COALESCE(bl.item_legacy_id, '') AS item_legacy_id,
+			       COALESCE(bl.quantity::text, '') AS quantity,
+			       COALESCE(NULLIF(bl.legacy_payload->>'Amount', ''), bl.line_total::text, bd.total_amount::text, '') AS amount
+			FROM business_documents bd
+			LEFT JOIN master_parties mp
+			  ON mp.tenant_id = bd.tenant_id AND mp.id = bd.customer_id
+			 AND mp.party_type = 'customer'
+			LEFT JOIN business_document_lines bl
+			  ON bl.tenant_id = bd.tenant_id AND bl.branch_id = bd.branch_id
+			 AND bl.document_id = bd.id
+			WHERE bd.tenant_id = $1::uuid AND bd.branch_id = $2::uuid
+			  AND bd.kind IN ('cash-sale', 'credit-sale')
+			  AND bd.status = 'posted'
+		` + canonicalReturnUnion + `
+
+			UNION ALL
+
+			SELECT sd.document_number,
+			       sd.occurred_at,
+			       COALESCE(se.payload->>'customerName', se.payload->>'customer', 'CASH'),
+			       COALESCE(se.payload->>'itemName', se.payload->'rows'->0->>'itemName', ''),
+			       COALESCE(se.payload->>'itemLegacyId', se.payload->'rows'->0->>'itemLegacyId', ''),
+			       COALESCE(se.payload->>'quantity', se.payload->'rows'->0->>'quantity', ''),
+			       sd.total_amount::text
+			FROM sales_documents sd
+			LEFT JOIN sync_events se
+			  ON se.tenant_id = sd.tenant_id AND se.branch_id = sd.branch_id
+			 AND se.aggregate_id = sd.id AND se.aggregate = 'sale'
+			 AND COALESCE(NULLIF(se.payload->>'status', ''), 'posted') = 'posted'
+			WHERE sd.tenant_id = $1::uuid AND sd.branch_id = $2::uuid
+			  AND sd.status = 'posted'
+			  AND NOT EXISTS (
+				SELECT 1
+				FROM business_documents bd
+				WHERE bd.tenant_id = sd.tenant_id AND bd.branch_id = sd.branch_id
+				  AND bd.status = 'posted'
+				  AND (bd.id = sd.id OR bd.document_number = sd.document_number)
+			  )
+
+			UNION ALL
+
+			SELECT COALESCE(se.payload->>'documentNumber', se.aggregate_id::text),
+			       se.occurred_at,
+			       COALESCE(se.payload->>'customerName', se.payload->>'customer',
+			                se.payload->>'supplierName', se.payload->>'supplier', se.aggregate),
+			       COALESCE(se.payload->>'itemName', se.payload->'rows'->0->>'itemName', ''),
+			       COALESCE(se.payload->>'itemLegacyId', se.payload->'rows'->0->>'itemLegacyId', ''),
+			       COALESCE(se.payload->>'quantity', se.payload->'rows'->0->>'quantity', ''),
+			       COALESCE(se.payload->>'totalAmount', se.payload->>'amount', '')
+			FROM sync_events se
+			WHERE se.tenant_id = $1::uuid AND se.branch_id = $2::uuid
+			  AND ` + eventCondition + `
+			  AND COALESCE(NULLIF(se.payload->>'status', ''), 'posted') = 'posted'
+			  AND NOT EXISTS (
+				SELECT 1
+				FROM business_documents bd
+				WHERE bd.tenant_id = se.tenant_id AND bd.branch_id = se.branch_id
+				  AND bd.status = 'posted'
+				  AND (bd.id = se.aggregate_id
+				       OR bd.document_number = se.payload->>'documentNumber')
+			  )
+			  AND NOT EXISTS (
+				SELECT 1
+				FROM sales_documents sd
+				WHERE sd.tenant_id = se.tenant_id AND sd.branch_id = se.branch_id
+				  AND sd.status = 'posted'
+				  AND sd.id = se.aggregate_id
+			  )
+	)
+	SELECT document, occurred_at::text, party, item, quantity, amount
+	FROM item_summary_line_amounts
+		WHERE occurred_at >= $3::date
+		  AND occurred_at < ($4::date + INTERVAL '1 day')
+		  AND ($5 = '' OR document ILIKE '%' || $5 || '%'
+		       OR party ILIKE '%' || $5 || '%'
+		       OR item ILIKE '%' || $5 || '%'
+		       OR item_legacy_id ILIKE '%' || $5 || '%')
+		ORDER BY occurred_at DESC, document, item`
 	return `
 		WITH sales_rows AS (` + base + `), item_rows AS (
 			SELECT COALESCE(NULLIF(item, ''), 'Unspecified') AS item_name,
@@ -2838,9 +2990,18 @@ func saleReturnReadModelQueryMode(mode, pagination string) string {
 func purchaseLineDetailReadModelQuery(aggregateCondition, pagination string) string {
 	canonicalKinds := "'pack-purchase', 'loose-purchase', 'opening-purchase'"
 	eventAggregate := "receiving"
+	// returnLegacyPriceKey covers purchase-return legacy rows, which store the
+	// actual per-unit return price under the payload key 'PRPrice' instead of
+	// 'PurPrice'. Without this, the purchase_price COALESCE below falls all the
+	// way through to unit_cost (average stock cost at time of return) for every
+	// purchase-return line, which is a different, incorrect quantity. Scoped to
+	// the return branch only so purchase-detail / p-o-based lines are untouched.
+	returnLegacyPriceKey := ""
 	if aggregateCondition == "se.aggregate = 'return'" {
 		canonicalKinds = "'purchase-return'"
 		eventAggregate = "return"
+		returnLegacyPriceKey = `NULLIF(l.legacy_payload->>'PRPrice', ''),
+		                `
 	} else if aggregateCondition == "se.aggregate = 'purchase_order'" {
 		canonicalKinds = "'purchase-order'"
 		eventAggregate = "purchase_order"
@@ -2853,7 +3014,7 @@ func purchaseLineDetailReadModelQuery(aggregateCondition, pagination string) str
 		       COALESCE(NULLIF(l.item_name, ''), l.item_legacy_id, '') AS item,
 		       COALESCE(stock.stock_quantity, l.quantity)::text AS quantity,
 		       COALESCE(NULLIF(l.legacy_payload->>'PurPrice', ''),
-		                NULLIF(l.legacy_payload->>'purchasePrice', ''),
+		                ` + returnLegacyPriceKey + `NULLIF(l.legacy_payload->>'purchasePrice', ''),
 		                NULLIF(l.pricing->>'purchasePrice', ''),
 		                NULLIF(l.pricing->>'unitCost', ''),
 		                NULLIF(l.unit_cost, 0)::text,
@@ -3958,6 +4119,17 @@ func stockReadModelQuery(mode, pagination string) string {
 			` + pagination
 	}
 	if mode == "adjustment" {
+		// NOTE: all six adjustment-* report leaves (phaseQReportRegistry,
+		// reports.go ~437-453) resolve to this single row-level query -- there
+		// is no summary/detail/invoice-wise/item-wise differentiation yet
+		// (Phase Q Finding B, docs/PHASE_Q_GOLDEN_VERIFICATION_ADJUSTMENT_HISTORY_2026-08-09.md).
+		// Building real grouping variants would require assigning each leaf a
+		// distinct stockMode in the registry and teaching stockReportColumns/
+		// stockProjectionNote about them, which is outside this fix's scope
+		// (the parameter-gap crash below) and would mean guessing at
+		// undocumented legacy PowerBuilder grouping semantics. Left as a
+		// documented follow-up; this branch keeps the correct, working
+		// row-level detail output for all six leaves.
 		return `
 			SELECT l.id::text, l.occurred_at::text, l.direction,
 			       COALESCE(NULLIF(i.name, ''), b.item_legacy_id),
@@ -3977,6 +4149,8 @@ func stockReadModelQuery(mode, pagination string) string {
 			  AND ($5 = '' OR l.id::text ILIKE '%' || $5 || '%'
 			       OR b.item_legacy_id ILIKE '%' || $5 || '%'
 			       OR COALESCE(i.name, '') ILIKE '%' || $5 || '%')
+			  AND ($6 = '' OR b.godown_id = $6::uuid)
+			  AND ($7 = '' OR b.batch_number ILIKE '%' || $7 || '%')
 			ORDER BY l.occurred_at DESC, l.id
 			` + pagination
 	}
@@ -3985,7 +4159,7 @@ func stockReadModelQuery(mode, pagination string) string {
 	if mode == "valuation" {
 		valuation = "on_hand * unit_cost"
 	}
-	expiryFilter := "updated_at >= $3::date AND updated_at < ($4::date + INTERVAL '1 day')"
+	expiryFilter := "sb.updated_at >= $3::date AND sb.updated_at < ($4::date + INTERVAL '1 day')"
 	if mode == "expiry" {
 		expiryFilter = "expiry_date IS NOT NULL AND expiry_date BETWEEN $3::date AND $4::date"
 	}
@@ -4589,18 +4763,20 @@ func adminReadModelQuery(kind, pagination string) string {
 			` + pagination
 	case "roles":
 		return `
-			SELECT r.id::text, COALESCE(rp.permission, ''), r.name, r.code,
-			       CASE WHEN COALESCE(rp.allowed, true) THEN 'true' ELSE 'false' END,
-			       'normalized role_permissions'
+			SELECT r.code, COALESCE(gr.permission, ''), r.name, gr.right_code,
+			       CASE WHEN COALESCE(gr.allowed, true) THEN 'true' ELSE 'false' END,
+			       COALESCE(NULLIF(gr.legacy_status, ''), 'legacy group_rights')
 			FROM roles r
-			LEFT JOIN role_permissions rp
-			  ON rp.tenant_id = r.tenant_id AND rp.role_id = r.id
+			JOIN group_rights gr
+			  ON gr.tenant_id = r.tenant_id AND gr.role_id = r.id
 			WHERE r.tenant_id = $1::uuid
+			  AND $2::uuid IS NOT NULL
 			  AND $3::date <= $4::date
 			  AND ($5 = '' OR r.code ILIKE '%' || $5 || '%'
 			       OR r.name ILIKE '%' || $5 || '%'
-			       OR COALESCE(rp.permission, '') ILIKE '%' || $5 || '%')
-			ORDER BY r.code, rp.permission
+			       OR gr.right_code ILIKE '%' || $5 || '%'
+			       OR COALESCE(gr.permission, '') ILIKE '%' || $5 || '%')
+			ORDER BY r.code, gr.right_code
 			` + pagination
 	default:
 		kind = strings.ReplaceAll(kind, "'", "''")
@@ -4610,6 +4786,7 @@ func adminReadModelQuery(kind, pagination string) string {
 			       COALESCE(mr.legacy_id, '')
 			FROM master_records mr
 			WHERE mr.tenant_id = $1::uuid AND mr.kind = '` + kind + `'
+			  AND $2::uuid IS NOT NULL
 			  AND mr.updated_at >= $3::date
 			  AND mr.updated_at < ($4::date + INTERVAL '1 day')
 			  AND ($5 = '' OR mr.code ILIKE '%' || $5 || '%'

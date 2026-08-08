@@ -20,6 +20,36 @@ None of this reverses real work that did happen (moving-average stock valuation,
 
 ---
 
+## Progress update — 2026-08-09, reports-gap wave 1
+
+10 parallel agents began closing the single largest gap identified above (Phases N–Q, 151 report leaves, 0 golden-verified). Methodology: live legacy SQL Server access is not reachable from this tool environment (Windows trusted-auth fails), so verification cross-checked each report's SQL against independently-authored queries over the same already-migrated, already-reconciled (16/16 metrics MATCHED) Postgres tables — not against a fresh SQL Server query. 9 new evidence docs (`docs/PHASE_{N,O,P,Q}_GOLDEN_VERIFICATION_*_2026-08-09.md`) hold full per-leaf query evidence.
+
+**Coverage this wave:** 114 of 151 leaves got an evidence-based verdict (MATCHED / MISMATCH-DOCUMENTED / VACUOUS-NO-DATA). 2 further leaves (`customer-sales-detail`, `customer-sales-summary`) were promoted from generic to real, reusing the already-verified `sale-detail`/`sale-summary` query shape (`docs/PHASE_N_REPORT_PROMOTION_2026-08-09.md`).
+
+**~15 genuine bugs surfaced**, 9 fixed same-wave with regression tests (each pinned by a test that failed pre-fix and passes post-fix), the rest documented for a follow-up pass rather than guessed at:
+
+Fixed:
+- 6 `adjustment-*` leaves — total outage (`SQLSTATE 42P18`, unreferenced query parameters) → now return 200.
+- 5 stock-balance leaves (`stock-in-hand-others`/`-batch-priority-wise`/`-stock-quantity-format`/`-stock-in-hand-audit-purpose`/`-batch-priority-wise-audit-purposes`) — total outage (ambiguous `updated_at` column across 3 joined tables) → now return 200.
+- `listing-group-rights-list` — was reading the wrong (always-empty) table; now reads real `group_rights` (726 rows). Fixing this also surfaced and fixed a **second, more severe, pre-existing bug** affecting the entire `adminReadModelQuery` default branch (same unreferenced-parameter class as the adjustment bug) that was silently 503ing `listing-supplier-list`, `listing-items-list`, `listing-manufacturer-list`, and `listing-sale-person-scope-manufacturer-sub-area-wise-sales-person-conflict` too — none of which had actually been verified through the live endpoint before (see addendum in `docs/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md`).
+- `sale-detail` (**Daily Sale Detail, the Phase M gating leaf**) — "SalesTax Value" column silently showed `0.00` for 28,184/620,615 lines (4.54%) tenant-wide.
+- `customer-sales-items-summary` — Amount column inflated 6.6×–77.6× (summed the whole-document total once per line instead of a line-level amount).
+- `purchase-return-detail` — "Purchase Price" column wrong for 551/2,481 lines (22.2%), used average stock cost instead of the actual return price.
+- `header-wise-transaction-summary` — silently dropped all 30,704 migrated sale-return documents (9.25% of the tenant's posted documents) due to a kind-spelling gap other sibling queries already handled correctly.
+
+Documented, not yet fixed (needs either a legacy-semantics judgment call or an ops/migration action, not a mechanical code fix):
+- `supplier-wise-advance-income-tax` drops PKR 9,589.64 across 94 documents (LATERAL fallback gated to the wrong line).
+- `stock_balances` cache is empty for the sandbox tenant (an ops/migration population gap, not a query bug) — blocks 12 more P-phase leaves from being verifiable at all right now.
+- Reorder/Minimum/Optimum-level source fields largely unmigrated or unpopulated.
+- `purchase-order`/`purchase-order-summary`/`purchase-order-supplier-wise` amount always `0.0000` for all 2,810 PO documents (ambiguous: migration gap vs. missing SUM fallback — needs the source data to disambiguate, which isn't available here).
+- `category-wise-purchase` doesn't actually group by category; `manufacturer-wise-*` leaves have no manufacturer join at all despite the name; `supplier-manufacturer-wise-g-p` computes no gross-profit figure.
+- `item-reports-history-*` — a COALESCE bug leaks the item name into the price-difference column for 2 leaves.
+- `listing-item-list-class-wise` — structurally can never match any `master_records.kind` value; needs a real data-model decision.
+
+**Updated N–Q count:** at least 79 of 151 leaves now have a real, evidence-backed MATCHED verdict or a fixed-and-verified projection (up from 0 golden-verified before this wave); the rest of the 114 examined either surfaced a still-open bug (documented above) or are genuinely data-empty in this sandbox (`VACUOUS-NO-DATA`, not a code defect). 37 of 151 leaves were not touched this wave. See the 9 evidence docs for the exact per-leaf verdict.
+
+---
+
 ## Phase-by-phase verified status
 
 | Phase | Scope | Verdict |
@@ -37,7 +67,7 @@ None of this reverses real work that did happen (moving-average stock valuation,
 | K | Financial core (GL/ledgers) | PARTIAL — credit-limit done; vouchers schema-only, no VirtualGl reconciliation |
 | L | Tax engine | PARTIAL — engine real, legacy rates unmigrated, no paisa-replay, no tax register |
 | M | Reports engine core | PARTIAL — dialogs/preview/export real, Daily Sale Detail pixel-diff never run |
-| N–Q | 151 report leaves | **70/151 real projections, 81/151 generic event-ledger, 0/151 golden-verified** |
+| N–Q | 151 report leaves | **UPDATED 2026-08-09 — see "Progress update" above: 114/151 evidence-verified, ≥79/151 confirmed correct or fixed, ~15 bugs found (9 fixed)** |
 | R | Security & rights | PARTIAL — backfill mechanism real (433/486 codes), admin bypass + 3/4 groups untested with real data |
 | S | Maintenance module | PARTIAL — backup/restore real; import/export stub; **preferences 1/437 wired**; R0002 undecided |
 | T | Manage module & sessions | PARTIAL — session monitor & rights-matrix UI real; no legacy password rules; no SMS/email templates |
@@ -148,7 +178,7 @@ Select Format dialog, Specify Retrieval Arguments dialog, paginated print-previe
 - The phase's own gating accept criterion — Daily Sale Detail pixel-diffed against `legacy-report-output.png` — has **never been run**; zero code references to that file exist anywhere in tests.
 
 ### Phases N–Q — 151 report leaves (the single largest remaining gap)
-Verified directly from the registry code (`reports.go`):
+Original state, verified directly from the registry code (`reports.go`):
 
 | Wave | Leaves | Real projection | Event-ledger (generic columns) | Golden-verified vs legacy |
 |---|---|---|---|---|
@@ -158,8 +188,10 @@ Verified directly from the registry code (`reports.go`):
 | Q — Financial & remaining | 32 | 32 | 0 | 0 |
 | **Total** | **151** | **70** | **81** | **0** |
 
+**Superseded 2026-08-09 — see "Progress update" near the top of this doc.** 114 of 151 leaves now have an evidence-based verdict; ≥79 are confirmed-correct or fixed-and-verified; ~15 bugs surfaced, 9 fixed same-wave. 37 leaves untouched. Full per-leaf detail in `docs/PHASE_{N,O,P,Q}_GOLDEN_VERIFICATION_*_2026-08-09.md` and `docs/PHASE_N_REPORT_PROMOTION_2026-08-09.md`.
+
 "Real" means a report-specific column/grouping contract exists — it does **not** mean legacy-verified output; every single evidence doc across N/O/P/Q ends with "exact PowerBuilder calculations... golden replay remain open." "Event-ledger" (81 leaves, almost entirely Sales Reports and Purchase Reports sub-menus) means only generic aggregate columns are returned, not the report's actual legacy shape.
-**Remaining:**
+**Remaining (original assessment — narrowed by the 2026-08-09 wave above):**
 - Write golden-number tests against legacy output for all 151 leaves (0/151 today) — the single largest concrete gap in the whole project.
 - Promote the 81 event-ledger leaves (N and O waves) to real per-report column/grouping projections.
 - Run the Phase P full-volume p95<5s perf budget (only a 25k/10k-row fixture tested so far, not 3.2M/1M).
@@ -224,7 +256,7 @@ OUT OF SCOPE (documented 2026-08-08). One nuance: `docs/RUNBOOK_CUTOVER.md` alre
 
 ## Priority-ordered remaining work (highest leverage first)
 
-1. **Report leaves golden verification (N–Q)** — 0 of 151 legacy-proven; 81 of 151 don't even have the right columns yet. Largest gap in the project by any measure.
+1. **Report leaves golden verification (N–Q)** — wave 1 done 2026-08-09 (114/151 evidence-verified, 9 bugs fixed); 37 leaves untouched and ~6 documented bugs still open (see progress update above). Still the largest gap in the project, but no longer a 0% start.
 2. **Pixel-parity sweep (Phase X)** — catalog doesn't exist, baseline directory is empty; needs to start from scratch.
 3. **Preferences wiring (Phase V/S)** — 440 of 441 preferences have no backend behavior.
 4. **Pricing engine real logic (Phase G)** — PricePolicy tiers and GroupAllowedPrice are completely unimplemented for sales; the "golden replay" claim needs to be redone for real.
