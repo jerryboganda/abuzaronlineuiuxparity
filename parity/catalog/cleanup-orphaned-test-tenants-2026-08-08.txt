@@ -1,0 +1,26 @@
+BEGIN
+SELECT 391
+CREATE TABLE
+INSERT 0 1
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+DO
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+INSERT 0 1
+DELETE 391
+INSERT 0 1
+        step        | affected 
+--------------------+----------
+ orphans_identified |      391
+ remaining_orphans  |        0
+ triggers_reenabled |        5
+(3 rows)
+
+COMMIT
