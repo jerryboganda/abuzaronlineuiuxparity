@@ -8,9 +8,10 @@ services:
     working_dir: /app
     volumes:
       - ./abuzarnext-api:/app/abuzarnext-api:ro
+    env_file:
+      - .env
     environment:
       - HTTP_LISTEN_ADDR=:8080
-      - DATABASE_URL=postgres://platform_admin:84786c5d336ccea442b9323c57df9346acd6d9dcc9e18585@platform-postgres:5432/abuzarnext?sslmode=disable
       - APP_ENV=production
     command: ["/app/abuzarnext-api"]
     networks:
