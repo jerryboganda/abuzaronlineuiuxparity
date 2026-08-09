@@ -42,7 +42,7 @@ func TestPhaseGoldenTaxAdminLeavesResolveToExpectedMode(t *testing.T) {
 		"listing-items-list":                  "item",
 		"listing-manufacturer-list":           "manufacturer",
 		"listing-group-rights-list":           "roles",
-		"listing-item-list-class-wise":        "item_class",
+		"listing-item-list-class-wise":        "item_category",
 		"listing-groupwise-user-list":         "users",
 		"listing-sale-person-scope-manufacturer-sub-area-wise-sales-person-conflict": "users",
 	}
@@ -57,20 +57,23 @@ func TestPhaseGoldenTaxAdminLeavesResolveToExpectedMode(t *testing.T) {
 	}
 }
 
-// TestAdvanceTaxFallbackAmountGatedToSamePhysicalLineAsRate documents a
-// confirmed golden-verification bug (see doc §"supplier-wise-advance-income-tax"):
-// the tax-advance/tax-advance-input LATERAL fallback only ever attaches the
-// invoice-level legacy AdvanceTaxAmt to the document's lowest line_number,
-// while the outer WHERE additionally requires THAT SAME physical line to
-// carry advance_tax_rate > 0. Independent psql verification against the
-// legacy-reference-sandbox tenant found 94 posted purchase documents
-// (PKR 9,589.64 of advance tax; e.g. document_number 2864, PKR 1,574.17)
-// where a non-first line carries the positive advance_tax_rate while the
-// first line's rate is 0 - those invoices' advance tax silently vanishes
-// from the report instead of appearing on any row. This test locks the
-// current (defective) query shape as a regression guard; it intentionally
-// does not attempt a fix (reports.go is out of scope for this agent).
-func TestAdvanceTaxFallbackAmountGatedToSamePhysicalLineAsRate(t *testing.T) {
+// TestAdvanceTaxFallbackFindsRateOnAnyLine documents the fix (2026-08-09,
+// bug-fix wave) for a confirmed golden-verification bug (see doc
+// §"supplier-wise-advance-income-tax"): the tax-advance/tax-advance-input
+// LATERAL fallback used to attach the invoice-level legacy AdvanceTaxAmt only
+// to the document's lowest line_number, while the outer WHERE separately
+// required THAT SAME physical line to carry advance_tax_rate > 0. Independent
+// psql verification against the legacy-reference-sandbox tenant found 94
+// posted purchase documents (PKR 9,589.64 of advance tax; e.g.
+// document_number 2864, PKR 1,574.17) where a non-first line carried the
+// positive advance_tax_rate while the first line's rate was 0 - those
+// invoices' advance tax silently vanished from the report instead of
+// appearing on any row. The inner MIN(line_number) subquery now also
+// requires advance_tax_rate > 0, so the fallback lands on the first line
+// that actually carries the rate, matching the outer filter. This test now
+// asserts the fixed shape; re-verified after the fix that the 94-document/
+// PKR 9,589.64 gap is recovered (see report_fix_advance_tax_test.go).
+func TestAdvanceTaxFallbackFindsRateOnAnyLine(t *testing.T) {
 	pagination := "LIMIT $6 OFFSET $7"
 	for _, mode := range []string{"tax-advance", "tax-advance-input"} {
 		query := financeReadModelQuery(mode, pagination)
@@ -83,11 +86,16 @@ func TestAdvanceTaxFallbackAmountGatedToSamePhysicalLineAsRate(t *testing.T) {
 			"d.legacy_payload->>'AdvanceTaxAmt'",
 			"AND advance_tax.amount > 0 AND l.advance_tax_rate > 0",
 		) {
-			t.Errorf("mode %q: expected query to still gate the AdvanceTaxAmt fallback to the "+
-				"document's MIN(line_number) row while separately requiring l.advance_tax_rate > 0 "+
-				"on that same outer row (the documented bug shape) - query changed, re-verify against "+
+			t.Errorf("mode %q: expected query to still fall back to the document's MIN(line_number) "+
+				"row that carries advance_tax_rate > 0, and to require l.advance_tax_rate > 0 on that "+
+				"same outer row - query changed, re-verify against "+
 				"docs/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md before updating this test:\n%s",
 				mode, query)
+		}
+		if !strings.Contains(query, "l2.advance_tax_rate > 0") {
+			t.Errorf("mode %q: expected the inner MIN(line_number) subquery to also require "+
+				"advance_tax_rate > 0 (the 2026-08-09 fix) so the fallback lands on a line that "+
+				"actually carries the rate, not just the first line by number:\n%s", mode, query)
 		}
 	}
 }
@@ -234,29 +242,14 @@ func TestGroupRightsListMatchesGroupRightsAfterJoinFix(t *testing.T) {
 	}
 }
 
-// TestItemClassAdminKindCanNeverMatchAMasterRecordsRow documents a confirmed
-// golden-verification bug: "listing-item-list-class-wise" is wired to
-// adminKind "item_class" (underscore), but adminReadModelQuery's default
-// branch filters master_records on the literal string passed in
-// (mr.kind = 'item_class'). The master_records.kind CHECK constraint does
-// not even permit the value "item_class" (only the hyphenated "item-class"
-// is in the allowed list), and independent psql verification found zero
-// master_records rows of either spelling for the legacy-reference-sandbox
-// tenant. This leaf is therefore structurally guaranteed to return zero
-// rows for any tenant, not merely this one - a code defect, not a data gap.
-// This test locks the current mismatched literal as a regression guard.
-func TestItemClassAdminKindCanNeverMatchAMasterRecordsRow(t *testing.T) {
-	query := adminReadModelQuery("item_class", "LIMIT $6 OFFSET $7")
-	if query == "" {
-		t.Fatal("empty query for adminKind \"item_class\"")
-	}
-	if !containsAll(query, "mr.kind = 'item_class'") {
-		t.Fatalf("expected the default admin query branch to still filter on the literal, "+
-			"never-populated mr.kind = 'item_class' (the documented bug shape) - query changed, "+
-			"re-verify against docs/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md before "+
-			"updating this test:\n%s", query)
-	}
-}
+// The former TestItemClassAdminKindCanNeverMatchAMasterRecordsRow (which
+// locked the "listing-item-list-class-wise" adminKind "item_class" bug as a
+// regression guard) was superseded 2026-08-09 by the fix: the registry entry
+// now uses the real, populated adminKind "item_category". See
+// TestItemListClassWiseUsesRealMasterRecordsKind and
+// TestItemListClassWiseReturnsRealDataForSandboxTenant in
+// report_fix_item_class_listing_test.go for the tests locking the fixed
+// behavior.
 
 // TestTaxOutputModeIsSharedVerbatimAcrossDifferentlyDimensionedLeaves
 // documents a confirmed golden-verification finding: "sales-tax-report",

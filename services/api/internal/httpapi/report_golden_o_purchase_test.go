@@ -27,9 +27,9 @@ func TestPhaseOGoldenPurchaseLeavesResolveToExpectedMode(t *testing.T) {
 		"days-summary":                             {"day-summary", "Days Summary", "se.aggregate = 'receiving'"},
 		"category-wise-purchase":                   {"item-summary", "Category Wise Purchase", "se.aggregate = 'receiving'"},
 		"monthly-purchase-graph":                   {"month-summary", "Monthly Purchase Graph", "se.aggregate = 'receiving'"},
-		"manufacturer-wise-monthly-stock-movement": {"month-summary", "Monthly Stock Movement", "se.aggregate = 'receiving'"},
-		"manufacturer-wise-detail":                 {"detail", "Detail", "se.aggregate = 'receiving'"},
-		"supplier-manufacturer-wise-g-p":           {"supplier-summary", "Supplier/Manufacturer Wise G/P", "se.aggregate = 'receiving'"},
+		"manufacturer-wise-monthly-stock-movement": {"manufacturer-month-summary", "Monthly Stock Movement", "se.aggregate = 'receiving'"},
+		"manufacturer-wise-detail":                 {"manufacturer-detail", "Detail", "se.aggregate = 'receiving'"},
+		"supplier-manufacturer-wise-g-p":           {"supplier-manufacturer-summary", "Supplier/Manufacturer Wise G/P", "se.aggregate = 'receiving'"},
 		"supplier-purchase-returns-summary":        {"supplier-summary", "Summary", "se.aggregate = 'return'"},
 	}
 	for kind, want := range tests {
@@ -111,7 +111,7 @@ func TestPhaseOGoldenPurchaseModesUseRealPerModeGroupedQueries(t *testing.T) {
 		{"invoice-summary", "se.aggregate = 'receiving'", []string{"GROUP BY", "business_documents", "business_document_lines", "party_ledger_entries", "d.status = 'posted'"}, ""},
 		{"month-summary", "se.aggregate = 'receiving'", []string{"grouped_rows", "date_trunc('month'", "GROUP BY"}, ""},
 		{"day-summary", "se.aggregate = 'receiving'", []string{"grouped_rows", "occurred_at::date", "GROUP BY"}, ""},
-		{"item-summary", "se.aggregate = 'receiving'", []string{"grouped_rows", "GROUP BY item, party"}, ""},
+		{"item-summary", "se.aggregate = 'receiving'", []string{"grouped_rows", "GROUP BY category", "master_categories"}, ""},
 		{"supplier-summary", "se.aggregate = 'purchase_order'", []string{"grouped_rows", "GROUP BY party"}, ""},
 		{"detail", "se.aggregate = 'receiving'", []string{"l.item_name", "l.line_total"}, ""},
 	}
@@ -130,26 +130,41 @@ func TestPhaseOGoldenPurchaseModesUseRealPerModeGroupedQueries(t *testing.T) {
 	}
 }
 
-// TestPhaseOGoldenPurchaseLeafGroupingDimensionsDoNotMatchTheirLegacyNames
-// documents a naming/fidelity gap surfaced during golden verification:
-// "category-wise-purchase" (item-summary mode) groups by item name, not by
-// item category; "manufacturer-wise-detail" and
-// "manufacturer-wise-monthly-stock-movement" perform no manufacturer
-// join/grouping at all (they are identical, generically, to the plain
-// detail/month-summary modes); and "supplier-manufacturer-wise-g-p" groups
-// by supplier only and computes no gross-profit/gross-purchase figure. See
-// the companion doc for what a real per-leaf projection would require.
-func TestPhaseOGoldenPurchaseLeafGroupingDimensionsDoNotMatchTheirLegacyNames(t *testing.T) {
+// TestPhaseOGoldenPurchaseLeafGroupingDimensionsNowMatchTheirLegacyNames
+// documents the fix (2026-08-09 bug-fix wave) for the naming/fidelity gap
+// this test used to lock as an open bug: "category-wise-purchase"
+// (item-summary mode) previously grouped by item name, not item category;
+// "manufacturer-wise-detail" and "manufacturer-wise-monthly-stock-movement"
+// performed no manufacturer join/grouping at all. Both are now fixed -
+// category-wise-purchase groups by resolved category via master_categories
+// (docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md), and the two
+// manufacturer-wise leaves got dedicated "manufacturer-detail"/
+// "manufacturer-month-summary" modes with a real master_manufacturers join
+// (docs/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md).
+// "supplier-manufacturer-wise-g-p" gained a manufacturer dimension on top of
+// its existing supplier grouping, but still computes no gross-profit figure
+// - that part remains a documented, undecided gap (no purchase-side G/P
+// formula could be verified against real data; see the code comment above
+// purchaseSupplierManufacturerSummaryReadModelQuery).
+func TestPhaseOGoldenPurchaseLeafGroupingDimensionsNowMatchTheirLegacyNames(t *testing.T) {
 	itemSummaryQuery := purchaseReadModelQueryMode("se.aggregate = 'receiving'", "item-summary", "")
-	if !strings.Contains(itemSummaryQuery, "GROUP BY item, party") {
-		t.Fatalf("category-wise-purchase (item-summary mode) expected to group by item, party; query:\n%s", itemSummaryQuery)
+	if !strings.Contains(itemSummaryQuery, "master_categories") {
+		t.Fatalf("category-wise-purchase (item-summary mode) expected to join master_categories (the 2026-08-09 fix); query:\n%s", itemSummaryQuery)
 	}
-	if strings.Contains(itemSummaryQuery, "ManfCode") || strings.Contains(itemSummaryQuery, "ICatCode") || strings.Contains(itemSummaryQuery, "master_items") {
-		t.Fatalf("category-wise-purchase (item-summary mode) unexpectedly joins item category/manufacturer payload; if this now exists, update the companion doc")
+	if strings.Contains(itemSummaryQuery, "GROUP BY item, party") {
+		t.Fatal("category-wise-purchase (item-summary mode) still groups by item, party - the category fix appears to have been reverted")
 	}
 
+	manufacturerDetailQuery := purchaseReadModelQueryMode("se.aggregate = 'receiving'", "manufacturer-detail", "")
+	if !strings.Contains(manufacturerDetailQuery, "master_manufacturers") {
+		t.Fatalf("manufacturer-wise-detail (manufacturer-detail mode) expected to join master_manufacturers (the 2026-08-09 fix); query:\n%s", manufacturerDetailQuery)
+	}
+
+	// The plain "detail" mode (supplier-wise-detail, supplier-wise-purchase-detail)
+	// must NOT have gained the manufacturer join - only manufacturer-wise-detail's
+	// own dedicated mode should.
 	detailQuery := purchaseReadModelQueryMode("se.aggregate = 'receiving'", "detail", "")
-	if strings.Contains(detailQuery, "master_items") || strings.Contains(detailQuery, "ManfCode") {
-		t.Fatalf("manufacturer-wise-detail (detail mode) unexpectedly joins manufacturer payload; if this now exists, update the companion doc")
+	if strings.Contains(detailQuery, "master_manufacturers") {
+		t.Fatal("plain detail mode unexpectedly joins master_manufacturers - this should only happen for the dedicated manufacturer-detail mode")
 	}
 }

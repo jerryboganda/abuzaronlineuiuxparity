@@ -86,7 +86,12 @@ func TestHistoricalReportsReadRetainedSourceRowsWithinTenantBranch(t *testing.T)
 		kind, wantDocument, wantItem string
 	}{
 		{"item-reports-history-item-name-changes", "log-1", fixture.itemLegacyID},
-		{"item-reports-stock-adjustments-stock-adjustments-detail", "100", fixture.itemLegacyID + " / B-1"},
+		// 2026-08-09 fix: this leaf's historical_stock_adjustment_lines branch
+		// now joins master_items/master_godowns to resolve real names
+		// (matching the stock_ledger branch's existing behavior) instead of
+		// showing the raw item_legacy_id - see
+		// docs/PHASE_Q_GOLDEN_VERIFICATION_ADJUSTMENT_HISTORY_2026-08-09.md.
+		{"item-reports-stock-adjustments-stock-adjustments-detail", "100", "Stock Item / B-1"},
 	} {
 		request := readModelRequest(http.MethodGet, "/v1/reports/"+test.kind+"?from=2026-08-06&to=2026-08-06", operator)
 		request.SetPathValue("kind", test.kind)

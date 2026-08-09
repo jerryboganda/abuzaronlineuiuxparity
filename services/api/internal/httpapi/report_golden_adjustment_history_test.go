@@ -39,11 +39,19 @@ import (
 // docs/PHASE_Q_GOLDEN_VERIFICATION_ADJUSTMENT_HISTORY_2026-08-09.md.
 //
 // Finding B (all six leaves resolving to the same ungrouped row-level query,
-// with no summary/detail/invoice-wise/item-wise differentiation) remains an
-// open, documented follow-up -- see the comment on stockReadModelQuery's
-// mode=="adjustment" branch. This test does not assert any such grouping;
-// it only asserts that the six leaves now return a correct, error-free
-// result instead of a 503.
+// with no summary/detail/invoice-wise/item-wise differentiation) has since
+// been partially closed: adjustment-adjustment-summary and
+// adjustment-item-wise-adjustment-summary now use real grouped queries (see
+// stockReadModelQuery's isStockAdjustmentSummaryMode/
+// isStockAdjustmentItemSummaryMode branches, and
+// TestAdjustmentSummaryModesGroupCorrectly in
+// report_fix_adjustment_grouping_test.go for grouping-specific assertions).
+// The remaining four leaves stay on the shared ungrouped "adjustment" query,
+// documented there. This test only asserts that all six leaves return a
+// correct, error-free result instead of a 503; for the two now-grouped
+// leaves it seeds a single adjustment row per item so the grouped and
+// ungrouped shapes coincide (one summary row == one detail row) and the
+// original [-1, 3] two-row assertion below still applies to all six.
 //
 // This test proves the fix two ways: (1) replaying the exact query text
 // directly against Postgres and asserting it now succeeds and returns the
@@ -215,6 +223,20 @@ func TestAdjustmentReportLeavesReturnNormalizedRowsAfterParameterGapFix(t *testi
 			t.Errorf("%s decode: %v, body = %s", kind, err, recorder.Body.String())
 			continue
 		}
+		if kind == "adjustment-item-wise-adjustment-summary" {
+			// This leaf is grouped by item/godown/day (see
+			// isStockAdjustmentItemSummaryMode), so the two same-item,
+			// same-day rows collapse into one net row: 3 - 1 = 2 quantity,
+			// (3*4.00) + (-1*4.00) = 8.0000 value.
+			if len(body.Rows) != 1 {
+				t.Errorf("%s rows = %+v, want exactly 1 grouped row (item/day summary collapses the 2 seeded rows)", kind, body.Rows)
+				continue
+			}
+			if !reportNumericEqual(body.Rows[0].Quantity, "2") || !reportNumericEqual(body.Rows[0].Amount, "8.0000") {
+				t.Errorf("%s row = %+v, want net quantity 2 / net amount 8.0000", kind, body.Rows[0])
+			}
+			continue
+		}
 		if len(body.Rows) != 2 {
 			t.Errorf("%s rows = %+v, want exactly the 2 seeded adjustment rows", kind, body.Rows)
 			continue
@@ -298,11 +320,13 @@ func TestItemHistoryPriceDifferenceReportLeaksItemNameIntoPriceColumn(t *testing
 	if len(body.Rows) != 1 {
 		t.Fatalf("rows = %+v, want exactly 1 seeded row", body.Rows)
 	}
-	// Correct behavior (once fixed) should leave Quantity ("Previous")
-	// blank, since old_sale_price is NULL and there is no previous price to
-	// show. Current behavior leaks the item name instead.
-	if body.Rows[0].Quantity != "Panadol 500mg" {
-		t.Fatalf("Previous price column = %q, want the current (buggy) value \"Panadol 500mg\" (an item name, not a price or blank) -- if this now returns \"\" the COALESCE bug was fixed; replace this assertion and the Phase Q doc finding instead of deleting the test", body.Rows[0].Quantity)
+	// Fixed behavior: Quantity ("Previous") is blank, since old_sale_price
+	// is NULL and there is no previous price to show. The COALESCE fallback
+	// to h.old_name (the item's name) has been removed from
+	// historicalReportQuery's default branch, so the item name no longer
+	// leaks into the price column.
+	if body.Rows[0].Quantity != "" {
+		t.Fatalf("Previous price column = %q, want \"\" (old_sale_price is NULL; must not leak the item name \"Panadol 500mg\")", body.Rows[0].Quantity)
 	}
 	if body.Rows[0].Amount != "99.5000" {
 		t.Fatalf("Current price column = %q, want \"99.5000\" (new_sale_price was non-NULL so this half is unaffected)", body.Rows[0].Amount)

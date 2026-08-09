@@ -657,6 +657,14 @@ func TestPhaseOReportRegistryCoversCapturedPurchaseLeaves(t *testing.T) {
 				if len(definition.Columns) != 10 || definition.Columns[0].Label != "Purchase Order" || definition.Columns[6].Label != "Disparity Qty" {
 					t.Fatalf("columns do not describe the canonical purchase-order disparity projection: %+v", definition.Columns)
 				}
+			} else if spec.purchaseMode == "item-summary" {
+				// category-wise-purchase (2026-08-09 fix): grouped by resolved
+				// item category via master_categories, not by supplier - see
+				// docs/PHASE_N_LEGACY_SEMANTICS_RESEARCH_2026-08-09.md and
+				// docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md.
+				if len(definition.Columns) != 6 || definition.Columns[2].Label != "Category" {
+					t.Fatalf("columns do not describe source-backed purchase category summary: %+v", definition.Columns)
+				}
 			} else if isPurchaseSummaryMode(spec.purchaseMode) {
 				if len(definition.Columns) != 6 || definition.Columns[2].Label != "Supplier" {
 					t.Fatalf("columns do not describe source-backed purchase %s summary: %+v", spec.purchaseMode, definition.Columns)
@@ -792,9 +800,13 @@ func TestPurchaseSummaryModesUseExplicitBuckets(t *testing.T) {
 			condition: "se.aggregate = 'receiving'",
 		},
 		"category-wise-purchase": {
+			// 2026-08-09 fix: groups by resolved item category via
+			// master_categories, not by item/party - see
+			// docs/PHASE_N_LEGACY_SEMANTICS_RESEARCH_2026-08-09.md and
+			// docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md.
 			mode:      "item-summary",
-			fragment:  "GROUP BY item, party",
-			label:     "Item",
+			fragment:  "GROUP BY category",
+			label:     "Category",
 			condition: "se.aggregate = 'receiving'",
 		},
 		"purchase-order-supplier-wise": {
@@ -819,8 +831,12 @@ func TestPurchaseSummaryModesUseExplicitBuckets(t *testing.T) {
 				t.Errorf("%s %s query is missing %q", kind, test.mode, fragment)
 			}
 		}
+		wantCol2Label := "Supplier"
+		if kind == "category-wise-purchase" {
+			wantCol2Label = "Category"
+		}
 		definition := reportDefinitionFor(kind)
-		if len(definition.Columns) != 6 || definition.Columns[0].Label != test.label || definition.Columns[2].Label != "Supplier" {
+		if len(definition.Columns) != 6 || definition.Columns[0].Label != test.label || definition.Columns[2].Label != wantCol2Label {
 			t.Errorf("%s definition columns = %+v", kind, definition.Columns)
 		}
 		if !strings.Contains(definition.ProjectionNote, test.mode) || !strings.Contains(definition.ProjectionNote, "tax") {

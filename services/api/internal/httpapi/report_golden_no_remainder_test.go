@@ -123,14 +123,23 @@ func TestPhaseNORemainderSalesLeavesUseGenericRawPassthrough(t *testing.T) {
 }
 
 // TestPhaseNORemainderPurchaseDetailModeLeavesAreByteIdenticalQueries
-// documents that supplier-wise-detail, supplier-wise-purchase-detail, and
-// manufacturer-wise-detail (mode="detail", aggregate="receiving") all
-// dispatch to purchaseReadModelQueryMode with identical parameters and
-// therefore produce byte-identical SQL text and results - manufacturer-wise-detail
-// was already golden-verified in docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md
-// (113,526 line rows, qty 4,860,933.0000, amount 2,702,608,926.7900), and
-// this identity is why that same verification transfers directly to the
-// other two leaf kinds.
+// documents that supplier-wise-detail and supplier-wise-purchase-detail
+// (mode="detail", aggregate="receiving") dispatch to purchaseReadModelQueryMode
+// with identical parameters and therefore produce byte-identical SQL text
+// and results - both were golden-verified in
+// docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md /
+// docs/PHASE_N_O_GOLDEN_VERIFICATION_REMAINDER_2026-08-09.md
+// (113,526 line rows, qty 4,860,933.0000, amount 2,702,608,926.7900).
+//
+// manufacturer-wise-detail used to share this exact identity (same
+// mode/aggregate, no manufacturer-specific column) until the 2026-08-09
+// bug-fix wave gave it its own dedicated "manufacturer-detail" mode with a
+// real master_manufacturers join (see
+// docs/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md) - it is no
+// longer byte-identical to the other two leaves by design, so this test now
+// only asserts identity between the two that still share it, plus that
+// manufacturer-wise-detail has genuinely diverged (still receiving-scoped,
+// but with its own mode and a manufacturer join).
 func TestPhaseNORemainderPurchaseDetailModeLeavesAreByteIdenticalQueries(t *testing.T) {
 	pagination := "LIMIT $6 OFFSET $7"
 	receiving := "se.aggregate = 'receiving'"
@@ -154,19 +163,22 @@ func TestPhaseNORemainderPurchaseDetailModeLeavesAreByteIdenticalQueries(t *test
 	if supplierWisePurchaseDetailSpec.purchaseMode != "detail" || supplierWisePurchaseDetailSpec.aggregateCondition != receiving {
 		t.Fatalf("supplier-wise-purchase-detail: mode/aggregate = %q/%q, want detail/%q", supplierWisePurchaseDetailSpec.purchaseMode, supplierWisePurchaseDetailSpec.aggregateCondition, receiving)
 	}
-	if manufacturerWiseDetailSpec.purchaseMode != "detail" || manufacturerWiseDetailSpec.aggregateCondition != receiving {
-		t.Fatalf("manufacturer-wise-detail: mode/aggregate = %q/%q, want detail/%q", manufacturerWiseDetailSpec.purchaseMode, manufacturerWiseDetailSpec.aggregateCondition, receiving)
+	if manufacturerWiseDetailSpec.purchaseMode != "manufacturer-detail" || manufacturerWiseDetailSpec.aggregateCondition != receiving {
+		t.Fatalf("manufacturer-wise-detail: mode/aggregate = %q/%q, want manufacturer-detail/%q (the 2026-08-09 fix) - if this reverted, the manufacturer join was lost", manufacturerWiseDetailSpec.purchaseMode, manufacturerWiseDetailSpec.aggregateCondition, receiving)
 	}
 
 	supplierWiseDetailQuery := purchaseReadModelQueryMode(supplierWiseDetailSpec.aggregateCondition, supplierWiseDetailSpec.purchaseMode, pagination)
 	supplierWisePurchaseDetailQuery := purchaseReadModelQueryMode(supplierWisePurchaseDetailSpec.aggregateCondition, supplierWisePurchaseDetailSpec.purchaseMode, pagination)
 	manufacturerWiseDetailQuery := purchaseReadModelQueryMode(manufacturerWiseDetailSpec.aggregateCondition, manufacturerWiseDetailSpec.purchaseMode, pagination)
 
-	if supplierWiseDetailQuery != manufacturerWiseDetailQuery {
-		t.Fatalf("supplier-wise-detail query text differs from manufacturer-wise-detail; these were expected to be byte-identical (same mode/aggregate, no supplier-specific column exists)")
+	if supplierWiseDetailQuery != supplierWisePurchaseDetailQuery {
+		t.Fatalf("supplier-wise-detail query text differs from supplier-wise-purchase-detail; these were expected to be byte-identical (same mode/aggregate, no supplier-specific column exists)")
 	}
-	if supplierWisePurchaseDetailQuery != manufacturerWiseDetailQuery {
-		t.Fatalf("supplier-wise-purchase-detail query text differs from manufacturer-wise-detail; these were expected to be byte-identical (same mode/aggregate, no supplier-specific column exists)")
+	if !strings.Contains(manufacturerWiseDetailQuery, "master_manufacturers") {
+		t.Fatalf("manufacturer-wise-detail query no longer joins master_manufacturers - the 2026-08-09 fix appears to have been lost:\n%s", manufacturerWiseDetailQuery)
+	}
+	if manufacturerWiseDetailQuery == supplierWiseDetailQuery {
+		t.Fatal("manufacturer-wise-detail is byte-identical to supplier-wise-detail again - expected it to have diverged with its own manufacturer join since the 2026-08-09 fix")
 	}
 }
 

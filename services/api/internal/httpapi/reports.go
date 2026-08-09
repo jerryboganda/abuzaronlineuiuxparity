@@ -365,8 +365,8 @@ var phaseOReportRegistry = func() map[string]reportSpec {
 		{"supplier-wise-detail", "Detail", "se.aggregate = 'receiving'", "detail"},
 		{"supplier-wise-purchase-detail", "Purchase Detail", "se.aggregate = 'receiving'", "detail"},
 		{"supplier-wise-advance-income-tax", "Advance Income Tax", "se.aggregate = 'receiving'", "summary"},
-		{"manufacturer-wise-detail", "Detail", "se.aggregate = 'receiving'", "detail"},
-		{"manufacturer-wise-monthly-stock-movement", "Monthly Stock Movement", "se.aggregate = 'receiving'", "month-summary"},
+		{"manufacturer-wise-detail", "Detail", "se.aggregate = 'receiving'", "manufacturer-detail"},
+		{"manufacturer-wise-monthly-stock-movement", "Monthly Stock Movement", "se.aggregate = 'receiving'", "manufacturer-month-summary"},
 		{"monthly-purchase-graph", "Monthly Purchase Graph", "se.aggregate = 'receiving'", "month-summary"},
 		{"category-wise-purchase", "Category Wise Purchase", "se.aggregate = 'receiving'", "item-summary"},
 		{"days-summary", "Days Summary", "se.aggregate = 'receiving'", "day-summary"},
@@ -374,7 +374,7 @@ var phaseOReportRegistry = func() map[string]reportSpec {
 		{"net-purchase-summary", "Net Purchase Summary", "se.aggregate = 'receiving'", "invoice-summary"},
 		{"supplier-category-wise-input-sales-tax-report", "Input Sales Tax Report", "se.aggregate = 'receiving'", "invoice-summary"},
 		{"withholding-tax-deduction", "Withholding Tax Deduction", "se.aggregate = 'receiving'", "invoice-summary"},
-		{"supplier-manufacturer-wise-g-p", "Supplier/Manufacturer Wise G/P", "se.aggregate = 'receiving'", "supplier-summary"},
+		{"supplier-manufacturer-wise-g-p", "Supplier/Manufacturer Wise G/P", "se.aggregate = 'receiving'", "supplier-manufacturer-summary"},
 		{"supplier-purchase-returns-detail", "Detail", "se.aggregate = 'return'", "detail"},
 		{"supplier-purchase-returns-summary", "Summary", "se.aggregate = 'return'", "supplier-summary"},
 	} {
@@ -447,20 +447,34 @@ var phaseQReportRegistry = func() map[string]reportSpec {
 		registry[kind] = spec
 	}
 	adjustments := []struct {
-		kind  string
-		title string
+		kind      string
+		title     string
+		stockMode string
 	}{
-		{"adjustment-adjustment-summary", "Adjustment Summary"},
-		{"adjustment-adjustment-detail", "Adjustment Detail"},
-		{"adjustment-adjustment-summary-inv-wise", "Adjustment Summary Inv. Wise"},
-		{"adjustment-adjustment-detail-inv-wise", "Adjustment Detail Inv. wise"},
-		{"adjustment-adjustment-summary-detail", "Adjustment Summary/Detail"},
-		{"adjustment-item-wise-adjustment-summary", "Item Wise Adjustment Summary"},
+		// "adjustment-summary" and "adjustment-item-summary" are real grouping
+		// variants (see stockReadModelQuery's "adjustment" mode family below).
+		// The remaining three leaves stay on the plain "adjustment" row-level
+		// mode: stock_ledger adjustment rows carry no adjustment-document/
+		// reference identity (source_document_id is always NULL for
+		// direction='adjustment' -- adjustments are not a business_documents
+		// kind, and source_line_key is a generic "inventory-row-0"/"row-0"
+		// marker, not a per-adjustment-header key), so an invoice/document-wise
+		// grouping cannot be built with genuine confidence from this read
+		// model. "Summary/Detail" is also left as row-level detail because a
+		// combined summary+detail view is not representable as a single flat
+		// query. See stockReadModelQuery's "adjustment" mode comment for the
+		// full rationale.
+		{"adjustment-adjustment-summary", "Adjustment Summary", "adjustment-summary"},
+		{"adjustment-adjustment-detail", "Adjustment Detail", "adjustment"},
+		{"adjustment-adjustment-summary-inv-wise", "Adjustment Summary Inv. Wise", "adjustment"},
+		{"adjustment-adjustment-detail-inv-wise", "Adjustment Detail Inv. wise", "adjustment"},
+		{"adjustment-adjustment-summary-detail", "Adjustment Summary/Detail", "adjustment"},
+		{"adjustment-item-wise-adjustment-summary", "Item Wise Adjustment Summary", "adjustment-item-summary"},
 	}
 	for _, report := range adjustments {
 		add(report.kind, report.title, reportSpec{
 			stockReadModel: true,
-			stockMode:      "adjustment",
+			stockMode:      report.stockMode,
 		})
 	}
 	for _, report := range []struct {
@@ -508,7 +522,7 @@ var phaseQReportRegistry = func() map[string]reportSpec {
 		{"listing-items-list", "Items List", "item"},
 		{"listing-manufacturer-list", "Manufacturer List", "manufacturer"},
 		{"listing-group-rights-list", "Group Rights List", "roles"},
-		{"listing-item-list-class-wise", "Item List Class Wise", "item_class"},
+		{"listing-item-list-class-wise", "Item List Class Wise", "item_category"},
 		{"listing-groupwise-user-list", "GroupWise User List", "users"},
 		{"listing-sale-person-scope-manufacturer-sub-area-wise-sales-person-conflict", "Manufacturer/Sub Area Wise Sales Person Conflict", "users"},
 	} {
@@ -907,6 +921,14 @@ func isStockNarcoticsMode(mode string) bool {
 	return mode == "narcotics-movement" || mode == "narcotics-generic"
 }
 
+func isStockAdjustmentSummaryMode(mode string) bool {
+	return mode == "adjustment-summary"
+}
+
+func isStockAdjustmentItemSummaryMode(mode string) bool {
+	return mode == "adjustment-item-summary"
+}
+
 func isStockExpiryClassMode(mode string) bool {
 	return mode == "expiry-class"
 }
@@ -1030,6 +1052,26 @@ func stockReportColumns(mode string) []reportColumn {
 			{Key: "item", Label: "Item", DataType: "text", Sortable: true},
 			{Key: "quantity", Label: "Quantity", DataType: "number", Sortable: true},
 			{Key: "amount", Label: "Unit Cost", DataType: "currency", Sortable: true},
+		}
+	}
+	if isStockAdjustmentSummaryMode(mode) {
+		return []reportColumn{
+			{Key: "document", Label: "Date", DataType: "date", Sortable: true},
+			{Key: "occurredAt", Label: "Adjustment Type", DataType: "text", Sortable: true},
+			{Key: "party", Label: "Godown", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Item", DataType: "text", Sortable: true},
+			{Key: "quantity", Label: "Net Quantity", DataType: "number", Sortable: true},
+			{Key: "amount", Label: "Net Value", DataType: "currency", Sortable: true},
+		}
+	}
+	if isStockAdjustmentItemSummaryMode(mode) {
+		return []reportColumn{
+			{Key: "document", Label: "Item Code", DataType: "text", Sortable: true},
+			{Key: "occurredAt", Label: "Date", DataType: "date", Sortable: true},
+			{Key: "party", Label: "Godown", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Item", DataType: "text", Sortable: true},
+			{Key: "quantity", Label: "Net Quantity", DataType: "number", Sortable: true},
+			{Key: "amount", Label: "Net Value", DataType: "currency", Sortable: true},
 		}
 	}
 	if isStockMovementSummaryMode(mode) {
@@ -1258,6 +1300,12 @@ func stockProjectionNote(mode string) string {
 		return "Normalized posted stock_balances are grouped by the captured Item " + stockClassificationLabel(mode) + " payload with posted-ledger gating, current on-hand, batch expiry/update, godown, item, and unit-cost fields. Exact legacy group joins, valuation, and print calculations remain unverified."
 	case "reorder-level", "optimum-level", "minimum-level", "reorder-optimum-level":
 		return "Normalized stock_balances expose on-hand plus item payload reorder/optimum/minimum thresholds, using ReorderQty/OptimumQty/MinimumQty with maintenance-field fallbacks. The below-threshold predicate, zero-stock inclusion, date semantics, and exact PowerBuilder calculations remain unverified."
+	case "adjustment":
+		return "Posted normalized stock_ledger rows with direction='adjustment' expose row-level movement id, date, item, signed quantity, and unit cost. Used as-is for the Adjustment Detail leaf, and as the documented fallback for the Summary Inv. Wise, Detail Inv. wise, and Summary/Detail leaves: stock_ledger adjustment rows carry no adjustment-document/reference identity (source_document_id is always NULL and source_line_key is a generic per-batch marker, not a per-adjustment-header key), so an invoice/document-wise grouping cannot be built with genuine confidence, and a combined summary+detail view is not representable as a single flat query. Exact legacy grouping and print calculations remain unverified."
+	case "adjustment-summary":
+		return "Posted normalized stock_ledger rows with direction='adjustment' are grouped by calendar day, adjustment type (Increase/Decrease from adjustment_sign), godown, and item; net quantity and net value apply the signed adjustment. Legacy adjustment-reason grouping and exact print calculations remain unverified."
+	case "adjustment-item-summary":
+		return "Posted normalized stock_ledger rows with direction='adjustment' are grouped by item, godown, and calendar day; net quantity and net value apply the signed adjustment. Legacy opening balances and exact print calculations remain unverified."
 	default:
 		return "Normalized posted stock_balances projection joined to stock batches, items, and godowns; legacy manufacturer/category/class/reorder/narcotics groupings and exact valuation are not implemented."
 	}
@@ -1314,7 +1362,7 @@ func salesProjectionModeNote(mode string) string {
 	case "hour-summary":
 		return "canonical and compatibility invoice rows are grouped by calendar hour and customer after invoice de-duplication; graph rendering, hourly pricing/tax treatment, and legacy calculated columns remain open"
 	case "profit-margin-detail":
-		return "canonical posted sale lines use stock allocation cost when available and compatibility rows use an explicitly supplied legacy cost; gross profit is sales amount less tax and cost, while exact PowerBuilder valuation, returns, discounts, and margin rules remain open"
+		return "canonical posted sale lines use stock ledger issue cost (falling back to stock allocation cost where the ledger has no matching row) and compatibility rows use an explicitly supplied legacy cost; gross profit is sales amount less tax and cost, while exact PowerBuilder valuation, returns, discounts, and margin rules remain open"
 	case "profit-day-summary":
 		return "canonical and compatibility profit rows are grouped by calendar day and customer; average sale price, sales amount, tax, cost, gross profit, and margin are emitted only within the bounded numeric source contract, while exact PowerBuilder day grouping and calculations remain open"
 	case "profit-customer-summary":
@@ -1488,6 +1536,10 @@ func reportDefinitionForKey(kind, registryKey string) reportDefinition {
 				retrievalScope = "tenant, branch, date, text, godown, batch, posted stock_ledger, normalized stock_balances, and item threshold payload without an alert predicate"
 			} else if isStockNarcoticsMode(spec.stockMode) {
 				retrievalScope = "tenant, branch, date, text, godown, batch, posted stock_ledger, and captured Item Narcotics/GenericName payload"
+			} else if isStockAdjustmentSummaryMode(spec.stockMode) {
+				retrievalScope = "tenant, branch, date, text, godown, batch, posted stock_ledger direction='adjustment' rows, and day/type/godown/item aggregation"
+			} else if isStockAdjustmentItemSummaryMode(spec.stockMode) {
+				retrievalScope = "tenant, branch, date, text, godown, batch, posted stock_ledger direction='adjustment' rows, and item/godown/day aggregation"
 			} else if isStockExpiryClassMode(spec.stockMode) {
 				retrievalScope = "tenant, branch, typed expiry date, text, godown, batch, posted stock_ledger, and captured Item Class payload"
 			} else if isStockClassificationMode(spec.stockMode) {
@@ -2413,7 +2465,11 @@ func salesProfitMarginReadModelQuery(aggregateCondition, pagination string) stri
 		       bl.quantity::text AS quantity,
 		       COALESCE(NULLIF(bl.legacy_payload->>'SalePrice', ''), NULLIF(bl.pricing->>'salePrice', ''), bl.unit_price::text, '') AS sale_price,
 		       COALESCE(NULLIF(bl.legacy_payload->>'Amount', ''), bl.line_total::text, bd.total_amount::text, '') AS amount,
-		       CASE WHEN allocated_cost.allocation_count > 0 THEN allocated_cost.cost::numeric(19,4)::text ELSE '' END AS cost,
+		       CASE
+				WHEN ledger_cost.line_count > 0 THEN ledger_cost.cost::numeric(19,4)::text
+				WHEN allocated_cost.allocation_count > 0 THEN allocated_cost.cost::numeric(19,4)::text
+				ELSE ''
+		       END AS cost,
 		       COALESCE(bl.tax_amount, 0)::numeric(19,4)::text AS sales_tax_value
 		FROM business_documents bd
 		LEFT JOIN master_parties mp
@@ -2422,6 +2478,14 @@ func salesProfitMarginReadModelQuery(aggregateCondition, pagination string) stri
 		JOIN business_document_lines bl
 		  ON bl.tenant_id = bd.tenant_id AND bl.branch_id = bd.branch_id
 		 AND bl.document_id = bd.id
+		LEFT JOIN LATERAL (
+			SELECT COALESCE(SUM(sl.quantity * sl.unit_cost), 0) AS cost,
+			       COUNT(*) AS line_count
+			FROM stock_ledger sl
+			WHERE sl.tenant_id = bl.tenant_id AND sl.branch_id = bl.branch_id
+			  AND sl.direction = 'out'
+			  AND sl.source_document_line_id = bl.id
+		) ledger_cost ON TRUE
 		LEFT JOIN LATERAL (
 			SELECT COALESCE(SUM(sa.quantity * sa.unit_cost), 0) AS cost,
 			       COUNT(*) AS allocation_count
@@ -3155,10 +3219,10 @@ func purchaseSummaryReportColumns(mode string) []reportColumn {
 		}
 	case "item-summary":
 		return []reportColumn{
-			{Key: "document", Label: "Item", DataType: "text", Sortable: true},
+			{Key: "document", Label: "Category", DataType: "text", Sortable: true},
 			{Key: "occurredAt", Label: "Last Posted", DataType: "date", Sortable: true},
-			{Key: "party", Label: "Supplier", DataType: "text", Sortable: true},
-			{Key: "item", Label: "Summary", DataType: "text", Sortable: true},
+			{Key: "party", Label: "Category", DataType: "text", Sortable: true},
+			{Key: "item", Label: "Category", DataType: "text", Sortable: true},
 			{Key: "quantity", Label: "Quantity", DataType: "number", Sortable: true},
 			{Key: "amount", Label: "Amount", DataType: "currency", Sortable: true},
 		}
@@ -3207,7 +3271,7 @@ func purchaseProjectionModeNote(mode string) string {
 	case "month-summary":
 		return "canonical and compatibility purchase documents are grouped by calendar month and supplier after document de-duplication; graph rendering and exact PowerBuilder tax, return, profit, and calculated columns remain open"
 	case "item-summary":
-		return "canonical and compatibility purchase lines are grouped by item and supplier with numeric quantity and amount totals; exact category joins, tax, return, profit, and calculated columns remain open"
+		return "canonical and compatibility purchase lines are grouped by resolved item-category name (master_items.payload->>'ICatCode' joined to master_categories, kind 'item_category') with numeric quantity and amount totals; exact PowerBuilder tax, return, profit, and calculated columns remain open"
 	case "supplier-summary":
 		return "canonical and compatibility purchase documents are grouped by supplier with numeric quantity and amount totals; exact PowerBuilder supplier, manufacturer, tax, profit, and return calculations remain open"
 	case "po-disparity":
@@ -3237,6 +3301,21 @@ func purchaseReadModelQuery(aggregateCondition, mode, pagination string) string 
 	quantityExpression := "SUM(COALESCE(stock.stock_quantity, l.quantity))"
 	amountExpression := "COALESCE(ple.amount, d.total_amount)"
 	groupBy := "d.document_number, d.occurred_at, mp.name, ple.amount, d.total_amount"
+	// purchase-order and purchase-return headers (d.total_amount / the linked
+	// party-ledger amount) are migration-era, best-effort fields that are
+	// frequently 0 (purchase-order: no ledger liability exists yet, and the
+	// separately-imported header total was never reconciled after lines were
+	// back-filled) or stale relative to the document's own lines
+	// (purchase-return: header/ledger amount disagrees with SUM(line_total)
+	// for 566 of 634 sandbox documents, by as much as 4x). The per-line
+	// total (quantity * unit_price - discounts + tax, i.e. l.line_total) is
+	// the canonical, hand-verified source for these two document kinds, so
+	// non-detail (per-document) modes sum it directly instead of trusting
+	// the header/ledger amount. Receiving purchases are intentionally left
+	// on the original ple.amount/d.total_amount formula (out of scope here).
+	if aggregateCondition == "se.aggregate = 'return'" || aggregateCondition == "se.aggregate = 'purchase_order'" {
+		amountExpression = "SUM(l.line_total)"
+	}
 	if detail {
 		itemExpression = "l.item_name"
 		quantityExpression = "COALESCE(stock.stock_quantity, l.quantity)"
@@ -3328,32 +3407,111 @@ func purchaseReadModelQuery(aggregateCondition, mode, pagination string) string 
 		ORDER BY occurred_at DESC, document, item ` + pagination
 }
 
+// purchaseItemSummaryReadModelQuery backs the "item-summary" purchaseMode,
+// which today is used exclusively by the "category-wise-purchase" report
+// leaf (see phaseNReportRegistry / purchaseReadModelQueryMode). Despite the
+// leaf's name, this used to group by item name instead of resolved category
+// name. Fixed to group by the real category name resolved via
+// master_items.payload->>'ICatCode' -> master_categories.legacy_id (kind
+// 'item_category') — the verified JOIN pattern from
+// docs/PHASE_N_LEGACY_SEMANTICS_RESEARCH_2026-08-09.md and
+// docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md, applied here to
+// the purchase/receiving side per docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md.
 func purchaseItemSummaryReadModelQuery(aggregateCondition, pagination string) string {
-	base := purchaseReadModelQuery(aggregateCondition, "detail", "")
+	canonicalKinds := "'pack-purchase', 'loose-purchase', 'opening-purchase'"
+	eventAggregate := "receiving"
+	if aggregateCondition == "se.aggregate = 'return'" {
+		canonicalKinds = "'purchase-return'"
+		eventAggregate = "return"
+	} else if aggregateCondition == "se.aggregate = 'purchase_order'" {
+		canonicalKinds = "'purchase-order'"
+		eventAggregate = "purchase_order"
+	}
 	return `
-		WITH purchase_rows AS (` + base + `),
+		WITH purchase_category_rows AS (
+			SELECT COALESCE(mc.name, 'UNCATEGORIZED') AS category,
+			       d.occurred_at,
+			       COALESCE(mp.name, '') AS party,
+			       COALESCE(stock.stock_quantity, l.quantity)::text AS quantity,
+			       COALESCE(NULLIF(l.legacy_payload->>'Amount', ''),
+			                NULLIF(l.legacy_payload->>'LineTotal', ''),
+			                l.line_total::text, '') AS amount
+			FROM business_documents d
+			LEFT JOIN master_parties mp
+			  ON mp.tenant_id = d.tenant_id AND mp.id = d.supplier_id
+			 AND mp.party_type = 'supplier'
+			JOIN business_document_lines l
+			  ON l.tenant_id = d.tenant_id AND l.branch_id = d.branch_id
+			 AND l.document_id = d.id
+			LEFT JOIN master_items mi
+			  ON mi.tenant_id = l.tenant_id AND mi.id = l.item_id
+			LEFT JOIN master_categories mc
+			  ON mc.tenant_id = mi.tenant_id AND mc.category_kind = 'item_category'
+			 AND mc.legacy_id = mi.payload->>'ICatCode'
+			LEFT JOIN LATERAL (
+				SELECT SUM(sl.quantity * sl.adjustment_sign) AS stock_quantity
+				FROM stock_ledger sl
+				WHERE sl.tenant_id = d.tenant_id AND sl.branch_id = d.branch_id
+				  AND sl.source_document_id = d.id
+				  AND sl.source_document_line_id = l.id
+			) stock ON TRUE
+			WHERE d.tenant_id = $1::uuid AND d.branch_id = $2::uuid
+			  AND d.kind IN (` + canonicalKinds + `)
+			  AND d.status = 'posted'
+
+			UNION ALL
+
+			SELECT COALESCE(mc.name, 'UNCATEGORIZED') AS category,
+			       se.occurred_at,
+			       COALESCE(payload_row.value->>'supplierName', payload_row.value->>'supplier',
+			                se.payload->>'supplierName', se.payload->>'supplier', '') AS party,
+			       COALESCE(payload_row.value->>'quantity', se.payload->>'quantity', '') AS quantity,
+			       COALESCE(payload_row.value->>'amount', payload_row.value->>'lineTotal',
+			                se.payload->>'totalAmount', se.payload->>'amount', '') AS amount
+			FROM sync_events se
+			LEFT JOIN LATERAL jsonb_array_elements(
+				CASE
+					WHEN jsonb_typeof(se.payload->'rows') IS DISTINCT FROM 'array' THEN jsonb_build_array(se.payload)
+					WHEN jsonb_array_length(se.payload->'rows') = 0 THEN jsonb_build_array(se.payload)
+					ELSE se.payload->'rows'
+				END
+			) AS payload_row(value) ON TRUE
+			LEFT JOIN master_items mi
+			  ON mi.tenant_id = se.tenant_id
+			 AND mi.legacy_id = COALESCE(payload_row.value->>'itemLegacyId', '')
+			LEFT JOIN master_categories mc
+			  ON mc.tenant_id = mi.tenant_id AND mc.category_kind = 'item_category'
+			 AND mc.legacy_id = mi.payload->>'ICatCode'
+			WHERE se.tenant_id = $1::uuid AND se.branch_id = $2::uuid
+			  AND se.aggregate = '` + eventAggregate + `'
+			  AND COALESCE(NULLIF(se.payload->>'status', ''), 'posted') = 'posted'
+			  AND NOT EXISTS (
+				SELECT 1
+				FROM business_documents d
+				WHERE d.tenant_id = se.tenant_id AND d.branch_id = se.branch_id
+				  AND d.status = 'posted'
+				  AND (d.id = se.aggregate_id OR d.document_number = se.payload->>'documentNumber')
+			  )
+		),
 		grouped_rows AS (
-			SELECT item,
+			SELECT category,
 			       MAX(occurred_at) AS occurred_at,
-			       party,
 			       COALESCE(SUM(CASE WHEN quantity ~ '^-?[0-9]+([.][0-9]+)?$' THEN quantity::numeric ELSE 0 END), 0) AS quantity,
 			       COALESCE(SUM(CASE WHEN amount ~ '^-?[0-9]+([.][0-9]+)?$' THEN amount::numeric ELSE 0 END), 0) AS amount
-			FROM purchase_rows
+			FROM purchase_category_rows
 			WHERE occurred_at >= $3::date
 			  AND occurred_at < ($4::date + INTERVAL '1 day')
-			  AND ($5 = '' OR document ILIKE '%' || $5 || '%'
-			       OR party ILIKE '%' || $5 || '%'
-			       OR item ILIKE '%' || $5 || '%')
-			GROUP BY item, party
+			  AND ($5 = '' OR category ILIKE '%' || $5 || '%')
+			GROUP BY category
 		)
-		SELECT item,
+		SELECT category,
 		       occurred_at::text,
-		       party,
-		       item,
+		       category,
+		       category,
 		       quantity::numeric(19,4)::text,
 		       amount::numeric(19,4)::text
 		FROM grouped_rows
-		ORDER BY item, party
+		ORDER BY category
 		` + pagination
 }
 
@@ -3395,9 +3553,235 @@ func purchaseReadModelQueryMode(aggregateCondition, mode, pagination string) str
 		return purchaseSupplierSummaryReadModelQuery(aggregateCondition, pagination)
 	case "po-disparity":
 		return purchaseOrderDisparityReadModelQuery(pagination)
+	case "manufacturer-detail":
+		return purchaseManufacturerDetailReadModelQuery(aggregateCondition, pagination)
+	case "manufacturer-month-summary":
+		return purchaseManufacturerMonthlySummaryReadModelQuery(aggregateCondition, pagination)
+	case "supplier-manufacturer-summary":
+		return purchaseSupplierManufacturerSummaryReadModelQuery(aggregateCondition, pagination)
 	default:
 		return purchaseReadModelQuery(aggregateCondition, mode, pagination)
 	}
+}
+
+// purchaseManufacturerDetailReadModelQuery is the manufacturer-grouped sibling
+// of the plain "detail" purchase read model. It resolves the manufacturer via
+// master_items.payload->>'ManfCode' joined to master_manufacturers.code, the
+// same join verified against posted sale lines in
+// docs/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md and confirmed
+// to resolve 100% of posted purchase lines for the sandbox tenant. Legacy
+// compatibility rows (sync_events) carry no item_id to join against, so they
+// surface as "Unspecified" rather than silently dropping out of the report.
+func purchaseManufacturerDetailReadModelQuery(aggregateCondition, pagination string) string {
+	canonicalKinds := "'pack-purchase', 'loose-purchase', 'opening-purchase'"
+	eventAggregate := "receiving"
+	if aggregateCondition == "se.aggregate = 'return'" {
+		canonicalKinds = "'purchase-return'"
+		eventAggregate = "return"
+	} else if aggregateCondition == "se.aggregate = 'purchase_order'" {
+		canonicalKinds = "'purchase-order'"
+		eventAggregate = "purchase_order"
+	}
+	return `
+		WITH canonical_purchase AS (
+			SELECT d.document_number AS document,
+			       d.occurred_at,
+			       COALESCE(mf.name, i.payload->>'ManfCode', 'Unspecified') AS party,
+			       l.item_name AS item,
+			       l.quantity::text AS quantity,
+			       l.line_total::text AS amount
+			FROM business_documents d
+			JOIN business_document_lines l
+			  ON l.tenant_id = d.tenant_id AND l.branch_id = d.branch_id
+			 AND l.document_id = d.id
+			LEFT JOIN master_items i
+			  ON i.tenant_id = d.tenant_id AND i.id = l.item_id
+			LEFT JOIN master_manufacturers mf
+			  ON mf.tenant_id = i.tenant_id AND mf.code = i.payload->>'ManfCode'
+			WHERE d.tenant_id = $1::uuid AND d.branch_id = $2::uuid
+			  AND d.kind IN (` + canonicalKinds + `)
+			  AND d.status = 'posted'
+
+			UNION ALL
+
+			SELECT compatibility.document, compatibility.occurred_at,
+			       'Unspecified' AS party,
+			       compatibility.item,
+			       compatibility.quantity, compatibility.amount
+			FROM (
+				SELECT DISTINCT ON (
+					COALESCE(NULLIF(se.payload->>'documentNumber', ''), se.aggregate_id::text)
+				)
+					COALESCE(NULLIF(se.payload->>'documentNumber', ''), se.aggregate_id::text) AS document,
+					se.occurred_at,
+					COALESCE(se.payload->>'itemName', se.payload->'rows'->0->>'itemName', '') AS item,
+					COALESCE(se.payload->>'quantity', se.payload->'rows'->0->>'quantity', '') AS quantity,
+					COALESCE(se.payload->>'totalAmount', se.payload->>'amount', '') AS amount,
+					se.aggregate_id,
+					se.payload->>'documentNumber' AS payload_document_number
+				FROM sync_events se
+				WHERE se.tenant_id = $1::uuid AND se.branch_id = $2::uuid
+				  AND se.aggregate = '` + eventAggregate + `'
+				  AND COALESCE(NULLIF(se.payload->>'status', ''), 'posted') = 'posted'
+				ORDER BY
+					COALESCE(NULLIF(se.payload->>'documentNumber', ''), se.aggregate_id::text),
+					se.occurred_at DESC, se.event_id DESC
+			) compatibility
+			WHERE NOT EXISTS (
+				SELECT 1
+				FROM business_documents d
+				WHERE d.tenant_id = $1::uuid AND d.branch_id = $2::uuid
+				  AND d.status = 'posted'
+				  AND (d.id = compatibility.aggregate_id
+				       OR d.document_number = compatibility.payload_document_number)
+			)
+		)
+		SELECT document, occurred_at::text, party, item, quantity, amount
+		FROM canonical_purchase
+		WHERE occurred_at >= $3::date
+		  AND occurred_at < ($4::date + INTERVAL '1 day')
+		  AND ($5 = '' OR document ILIKE '%' || $5 || '%'
+		       OR party ILIKE '%' || $5 || '%'
+		       OR item ILIKE '%' || $5 || '%')
+		ORDER BY occurred_at DESC, document, item ` + pagination
+}
+
+// purchaseManufacturerMonthlySummaryReadModelQuery buckets the manufacturer
+// detail rows by calendar month and manufacturer, giving
+// manufacturer-wise-monthly-stock-movement an actual manufacturer dimension
+// instead of the previously unfiltered/ungrouped purchase feed.
+func purchaseManufacturerMonthlySummaryReadModelQuery(aggregateCondition, pagination string) string {
+	base := purchaseManufacturerDetailReadModelQuery(aggregateCondition, "")
+	return `
+		WITH purchase_rows AS (` + base + `),
+		grouped_rows AS (
+			SELECT date_trunc('month', occurred_at::date)::date AS period,
+			       MAX(occurred_at) AS occurred_at,
+			       party,
+			       COALESCE(SUM(CASE WHEN quantity ~ '^-?[0-9]+([.][0-9]+)?$' THEN quantity::numeric ELSE 0 END), 0) AS quantity,
+			       COALESCE(SUM(CASE WHEN amount ~ '^-?[0-9]+([.][0-9]+)?$' THEN amount::numeric ELSE 0 END), 0) AS amount
+			FROM purchase_rows
+			GROUP BY date_trunc('month', occurred_at::date)::date, party
+		)
+		SELECT period::text,
+		       occurred_at::text,
+		       party,
+		       'Manufacturer purchase summary',
+		       quantity::numeric(19,4)::text,
+		       amount::numeric(19,4)::text
+		FROM grouped_rows
+		ORDER BY period DESC, party
+		` + pagination
+}
+
+// purchaseSupplierManufacturerSummaryReadModelQuery groups posted purchase
+// lines by both supplier and manufacturer, closing the "no manufacturer
+// join/grouping at all" gap for supplier-manufacturer-wise-g-p.
+//
+// It does NOT compute a gross-profit figure. A purchase-side "G/P" has no
+// verified data source: the sale-side gross-profit fix path
+// (docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_B_2026-08-09.md) uses
+// stock_ledger COGS against sale revenue, which has no purchase-side analog
+// -- a purchase line's own cost is its own amount, so "purchase cost minus
+// purchase cost" is not a meaningful margin. Candidate interpretations (cost
+// vs. current sale price, or purchase-vs-return ratio) were not verified
+// against real data and are not implemented here; this leaf still needs a
+// product decision on what "G/P" should mean for a purchase report before a
+// gross-profit column can be added with confidence.
+func purchaseSupplierManufacturerSummaryReadModelQuery(aggregateCondition, pagination string) string {
+	canonicalKinds := "'pack-purchase', 'loose-purchase', 'opening-purchase'"
+	eventAggregate := "receiving"
+	if aggregateCondition == "se.aggregate = 'return'" {
+		canonicalKinds = "'purchase-return'"
+		eventAggregate = "return"
+	} else if aggregateCondition == "se.aggregate = 'purchase_order'" {
+		canonicalKinds = "'purchase-order'"
+		eventAggregate = "purchase_order"
+	}
+	return `
+		WITH canonical_purchase AS (
+			SELECT d.document_number AS document,
+			       d.occurred_at,
+			       COALESCE(mp.name, '') AS supplier,
+			       COALESCE(mf.name, i.payload->>'ManfCode', 'Unspecified') AS manufacturer,
+			       l.quantity::text AS quantity,
+			       l.line_total::text AS amount
+			FROM business_documents d
+			JOIN business_document_lines l
+			  ON l.tenant_id = d.tenant_id AND l.branch_id = d.branch_id
+			 AND l.document_id = d.id
+			LEFT JOIN master_parties mp
+			  ON mp.tenant_id = d.tenant_id AND mp.id = d.supplier_id
+			 AND mp.party_type = 'supplier'
+			LEFT JOIN master_items i
+			  ON i.tenant_id = d.tenant_id AND i.id = l.item_id
+			LEFT JOIN master_manufacturers mf
+			  ON mf.tenant_id = i.tenant_id AND mf.code = i.payload->>'ManfCode'
+			WHERE d.tenant_id = $1::uuid AND d.branch_id = $2::uuid
+			  AND d.kind IN (` + canonicalKinds + `)
+			  AND d.status = 'posted'
+
+			UNION ALL
+
+			SELECT compatibility.document, compatibility.occurred_at,
+			       compatibility.supplier,
+			       'Unspecified' AS manufacturer,
+			       compatibility.quantity, compatibility.amount
+			FROM (
+				SELECT DISTINCT ON (
+					COALESCE(NULLIF(se.payload->>'documentNumber', ''), se.aggregate_id::text)
+				)
+					COALESCE(NULLIF(se.payload->>'documentNumber', ''), se.aggregate_id::text) AS document,
+					se.occurred_at,
+					COALESCE(se.payload->>'supplierName', se.payload->>'supplier', '') AS supplier,
+					COALESCE(se.payload->>'quantity', se.payload->'rows'->0->>'quantity', '') AS quantity,
+					COALESCE(se.payload->>'totalAmount', se.payload->>'amount', '') AS amount,
+					se.aggregate_id,
+					se.payload->>'documentNumber' AS payload_document_number
+				FROM sync_events se
+				WHERE se.tenant_id = $1::uuid AND se.branch_id = $2::uuid
+				  AND se.aggregate = '` + eventAggregate + `'
+				  AND COALESCE(NULLIF(se.payload->>'status', ''), 'posted') = 'posted'
+				ORDER BY
+					COALESCE(NULLIF(se.payload->>'documentNumber', ''), se.aggregate_id::text),
+					se.occurred_at DESC, se.event_id DESC
+			) compatibility
+			WHERE NOT EXISTS (
+				SELECT 1
+				FROM business_documents d
+				WHERE d.tenant_id = $1::uuid AND d.branch_id = $2::uuid
+				  AND d.status = 'posted'
+				  AND (d.id = compatibility.aggregate_id
+				       OR d.document_number = compatibility.payload_document_number)
+			)
+		),
+		scoped_rows AS (
+			SELECT document, occurred_at, supplier, manufacturer, quantity, amount
+			FROM canonical_purchase
+			WHERE occurred_at >= $3::date
+			  AND occurred_at < ($4::date + INTERVAL '1 day')
+			  AND ($5 = '' OR document ILIKE '%' || $5 || '%'
+			       OR supplier ILIKE '%' || $5 || '%'
+			       OR manufacturer ILIKE '%' || $5 || '%')
+		),
+		grouped_rows AS (
+			SELECT supplier,
+			       manufacturer,
+			       MAX(occurred_at) AS occurred_at,
+			       COALESCE(SUM(CASE WHEN quantity ~ '^-?[0-9]+([.][0-9]+)?$' THEN quantity::numeric ELSE 0 END), 0) AS quantity,
+			       COALESCE(SUM(CASE WHEN amount ~ '^-?[0-9]+([.][0-9]+)?$' THEN amount::numeric ELSE 0 END), 0) AS amount
+			FROM scoped_rows
+			GROUP BY supplier, manufacturer
+		)
+		SELECT supplier,
+		       occurred_at::text,
+		       supplier,
+		       manufacturer,
+		       quantity::numeric(19,4)::text,
+		       amount::numeric(19,4)::text
+		FROM grouped_rows
+		ORDER BY supplier, manufacturer
+		` + pagination
 }
 
 // purchaseOrderDisparityReadModelQuery compares canonical posted purchase
@@ -4130,18 +4514,116 @@ func stockReadModelQuery(mode, pagination string) string {
 			ORDER BY occurred_at DESC, movement_id
 			` + pagination
 	}
+	if isStockAdjustmentSummaryMode(mode) {
+		// "adjustment-adjustment-summary" leaf. Grouped by day, adjustment
+		// type (Increase/Decrease derived from adjustment_sign), godown, and
+		// item -- mirroring stockMovementSummaryReadModelQuery's grouping,
+		// narrowed to direction='adjustment' rows only and keyed on sign
+		// instead of direction (all rows here already share the same
+		// direction, so direction itself cannot differentiate them).
+		return `
+			WITH posted_adjustment_rows AS (
+				SELECT l.occurred_at::date AS movement_date,
+				       CASE WHEN l.adjustment_sign = 1 THEN 'INCREASE' ELSE 'DECREASE' END AS adjustment_type,
+				       (l.quantity * l.adjustment_sign) AS signed_quantity,
+				       l.unit_cost,
+				       b.item_legacy_id,
+				       b.batch_number,
+				       COALESCE(g.name, '') AS godown,
+				       COALESCE(NULLIF(i.name, ''), b.item_legacy_id) AS item_name
+				FROM stock_ledger l
+				JOIN sync_events se
+				  ON se.tenant_id = l.tenant_id AND se.event_id = l.source_event_id
+				JOIN stock_batches b
+				  ON b.tenant_id = l.tenant_id AND b.branch_id = l.branch_id AND b.id = l.batch_id
+				LEFT JOIN master_godowns g
+				  ON g.tenant_id = b.tenant_id AND g.id = b.godown_id
+				LEFT JOIN master_items i
+				  ON i.tenant_id = b.tenant_id AND i.id = b.item_id
+				WHERE l.tenant_id = $1::uuid AND l.branch_id = $2::uuid
+				  AND l.direction = 'adjustment'
+				  AND COALESCE(NULLIF(se.payload->>'status', ''), 'posted') = 'posted'
+				  AND l.occurred_at >= $3::date
+				  AND l.occurred_at < ($4::date + INTERVAL '1 day')
+				  AND ($5 = '' OR b.item_legacy_id ILIKE '%' || $5 || '%'
+				       OR COALESCE(i.name, '') ILIKE '%' || $5 || '%'
+				       OR COALESCE(g.name, '') ILIKE '%' || $5 || '%'
+				       OR b.batch_number ILIKE '%' || $5 || '%')
+				  AND ($6 = '' OR b.godown_id = $6::uuid)
+				  AND ($7 = '' OR b.batch_number ILIKE '%' || $7 || '%')
+			)
+			SELECT movement_date::text,
+			       adjustment_type,
+			       godown,
+			       item_name,
+			       SUM(signed_quantity)::text,
+			       SUM(signed_quantity * unit_cost)::text
+			FROM posted_adjustment_rows
+			GROUP BY movement_date, adjustment_type, godown, item_name
+			ORDER BY movement_date DESC, adjustment_type, item_name, godown
+			` + pagination
+	}
+	if isStockAdjustmentItemSummaryMode(mode) {
+		// "adjustment-item-wise-adjustment-summary" leaf. Grouped by item,
+		// godown, and day -- mirroring stockItemSummaryReadModelQuery's
+		// grouping, narrowed to direction='adjustment' rows only.
+		return `
+			WITH posted_adjustment_rows AS (
+				SELECT l.occurred_at::date AS movement_date,
+				       b.item_legacy_id,
+				       COALESCE(NULLIF(i.name, ''), b.item_legacy_id) AS item_name,
+				       COALESCE(g.name, '') AS godown,
+				       (l.quantity * l.adjustment_sign) AS signed_quantity,
+				       l.unit_cost
+				FROM stock_ledger l
+				JOIN sync_events se
+				  ON se.tenant_id = l.tenant_id AND se.event_id = l.source_event_id
+				JOIN stock_batches b
+				  ON b.tenant_id = l.tenant_id AND b.branch_id = l.branch_id AND b.id = l.batch_id
+				LEFT JOIN master_items i
+				  ON i.tenant_id = b.tenant_id AND i.id = b.item_id
+				LEFT JOIN master_godowns g
+				  ON g.tenant_id = b.tenant_id AND g.id = b.godown_id
+				WHERE l.tenant_id = $1::uuid AND l.branch_id = $2::uuid
+				  AND l.direction = 'adjustment'
+				  AND COALESCE(NULLIF(se.payload->>'status', ''), 'posted') = 'posted'
+				  AND l.occurred_at >= $3::date
+				  AND l.occurred_at < ($4::date + INTERVAL '1 day')
+				  AND ($5 = '' OR b.item_legacy_id ILIKE '%' || $5 || '%'
+				       OR COALESCE(i.name, '') ILIKE '%' || $5 || '%'
+				       OR COALESCE(g.name, '') ILIKE '%' || $5 || '%'
+				       OR b.batch_number ILIKE '%' || $5 || '%')
+				  AND ($6 = '' OR b.godown_id = $6::uuid)
+				  AND ($7 = '' OR b.batch_number ILIKE '%' || $7 || '%')
+			)
+			SELECT item_legacy_id,
+			       movement_date::text,
+			       godown,
+			       item_name,
+			       SUM(signed_quantity)::text,
+			       SUM(signed_quantity * unit_cost)::text
+			FROM posted_adjustment_rows
+			GROUP BY item_legacy_id, movement_date, godown, item_name
+			ORDER BY movement_date DESC, item_name, godown, item_legacy_id
+			` + pagination
+	}
 	if mode == "adjustment" {
-		// NOTE: all six adjustment-* report leaves (phaseQReportRegistry,
-		// reports.go ~437-453) resolve to this single row-level query -- there
-		// is no summary/detail/invoice-wise/item-wise differentiation yet
-		// (Phase Q Finding B, docs/PHASE_Q_GOLDEN_VERIFICATION_ADJUSTMENT_HISTORY_2026-08-09.md).
-		// Building real grouping variants would require assigning each leaf a
-		// distinct stockMode in the registry and teaching stockReportColumns/
-		// stockProjectionNote about them, which is outside this fix's scope
-		// (the parameter-gap crash below) and would mean guessing at
-		// undocumented legacy PowerBuilder grouping semantics. Left as a
-		// documented follow-up; this branch keeps the correct, working
-		// row-level detail output for all six leaves.
+		// NOTE: three of the six adjustment-* report leaves --
+		// adjustment-adjustment-summary-inv-wise, adjustment-adjustment-
+		// detail-inv-wise, and adjustment-adjustment-summary-detail -- still
+		// resolve to this row-level query alongside adjustment-adjustment-
+		// detail (phaseQReportRegistry, reports.go ~449-478). This is
+		// deliberate, not deferred: stock_ledger adjustment rows carry no
+		// adjustment-document/reference identity (source_document_id is
+		// always NULL for direction='adjustment' rows -- adjustments are not
+		// a business_documents kind -- and source_line_key is a generic
+		// per-batch marker like "inventory-row-0"/"row-0", not a
+		// per-adjustment-header key), so an invoice/document-wise grouping
+		// cannot be built with genuine confidence from this read model, and
+		// "Summary/Detail" is not representable as a single flat query.
+		// adjustment-adjustment-summary and adjustment-item-wise-adjustment-
+		// summary DO get real grouping above (isStockAdjustmentSummaryMode /
+		// isStockAdjustmentItemSummaryMode).
 		return `
 			SELECT l.id::text, l.occurred_at::text, l.direction,
 			       COALESCE(NULLIF(i.name, ''), b.item_legacy_id),
@@ -4594,6 +5076,7 @@ func financeReadModelQuery(mode, pagination string) string {
 				                         WHERE l2.tenant_id = d.tenant_id
 				                           AND l2.branch_id = d.branch_id
 				                           AND l2.document_id = d.id
+				                           AND l2.advance_tax_rate > 0
 				                       )
 				                     AND NULLIF(d.legacy_payload->>'AdvanceTaxAmt', '') ~ '^-?[0-9]+(\.[0-9]+)?$'
 				                THEN (d.legacy_payload->>'AdvanceTaxAmt')::numeric END,
@@ -4861,12 +5344,16 @@ func historicalReportQuery(mode, pagination string) string {
 			WITH adjustment_rows AS (
 				SELECT h.adjustment_legacy_id AS document,
 				       h.occurred_at,
-				       concat_ws(' / ', NULLIF(h.godown_legacy_id, ''), NULLIF(h.user_legacy_id, '')) AS party,
-				       h.item_legacy_id || CASE WHEN h.batch = '' THEN '' ELSE ' / ' || h.batch END AS item,
+				       concat_ws(' / ', NULLIF(COALESCE(NULLIF(hg.name, ''), h.godown_legacy_id), ''), NULLIF(h.user_legacy_id, '')) AS party,
+				       COALESCE(NULLIF(hi.name, ''), h.item_legacy_id) || CASE WHEN h.batch = '' THEN '' ELSE ' / ' || h.batch END AS item,
 				       h.loose_quantity::text AS quantity,
 				       h.price::text AS amount,
-				       concat_ws(' ', h.payload::text, h.adjustment_legacy_id, h.item_legacy_id, h.godown_legacy_id, h.batch) AS search_text
+				       concat_ws(' ', h.payload::text, h.adjustment_legacy_id, h.item_legacy_id, h.godown_legacy_id, h.batch, hi.name, hg.name) AS search_text
 				FROM historical_stock_adjustment_lines h
+				LEFT JOIN master_items hi
+				  ON hi.tenant_id = h.tenant_id AND hi.id = h.item_id
+				LEFT JOIN master_godowns hg
+				  ON hg.tenant_id = h.tenant_id AND hg.id = h.godown_id
 				WHERE h.tenant_id = $1::uuid AND h.branch_id = $2::uuid
 				  AND h.occurred_at >= $3::date
 				  AND h.occurred_at < ($4::date + INTERVAL '1 day')
@@ -4911,13 +5398,50 @@ func historicalReportQuery(mode, pagination string) string {
 		       h.occurred_at::text,
 		       concat_ws(' / ', NULLIF(h.user_legacy_id, ''), NULLIF(h.change_reason, '')),
 		       h.item_legacy_id,
-		       CASE WHEN h.report_kind IN ('item-price-difference', 'item-sale-price')
-		            THEN COALESCE(h.old_sale_price::text, h.old_name, '')
-		            ELSE h.old_name END,
-		       CASE WHEN h.report_kind IN ('item-price-difference', 'item-sale-price')
-		            THEN COALESCE(h.new_sale_price::text, h.new_name, '')
-		            ELSE h.new_name END
+		       CASE
+		           WHEN h.report_kind IN ('item-price-difference', 'item-sale-price')
+		                THEN COALESCE(h.old_sale_price::text, '')
+		           WHEN h.report_kind = 'item-basic-data'
+		                THEN COALESCE(basic.old_value, '')
+		           ELSE h.old_name
+		       END,
+		       CASE
+		           WHEN h.report_kind IN ('item-price-difference', 'item-sale-price')
+		                THEN COALESCE(h.new_sale_price::text, '')
+		           WHEN h.report_kind = 'item-basic-data'
+		                THEN COALESCE(basic.new_value, '')
+		           ELSE h.new_name
+		       END
 		FROM historical_item_changes h
+		LEFT JOIN LATERAL (
+		    SELECT p.payload AS prev_payload
+		    FROM historical_item_changes p
+		    WHERE p.tenant_id = h.tenant_id
+		      AND p.branch_id = h.branch_id
+		      AND p.item_legacy_id = h.item_legacy_id
+		      AND p.occurred_at < h.occurred_at
+		    ORDER BY p.occurred_at DESC
+		    LIMIT 1
+		) prev ON h.report_kind = 'item-basic-data'
+		LEFT JOIN LATERAL (
+		    SELECT
+		        string_agg(field.name || '=' || COALESCE(old_lc.value, ''), '; ' ORDER BY field.ord)
+		            FILTER (WHERE old_lc.value IS DISTINCT FROM new_lc.value) AS old_value,
+		        string_agg(field.name || '=' || COALESCE(new_lc.value, ''), '; ' ORDER BY field.ord)
+		            FILTER (WHERE old_lc.value IS DISTINCT FROM new_lc.value) AS new_value
+		    FROM unnest(ARRAY['customicode', 'stock', 'active', 'iccode', 'icatcode', 'packcode',
+		                       'manfcode', 'packunits', 'location1', 'remarks1', 'reorderqty',
+		                       'optimumqty', 'restricted', 'taxable', 'itemtypecode', 'measureunitcode',
+		                       'genericcode', 'gcode']) WITH ORDINALITY AS field(name, ord)
+		    LEFT JOIN LATERAL (
+		        SELECT lower(key) AS key, value
+		        FROM jsonb_each_text(COALESCE(prev.prev_payload, '{}'::jsonb))
+		    ) old_lc ON old_lc.key = field.name
+		    LEFT JOIN LATERAL (
+		        SELECT lower(key) AS key, value
+		        FROM jsonb_each_text(h.payload)
+		    ) new_lc ON new_lc.key = field.name
+		) basic ON h.report_kind = 'item-basic-data'
 		WHERE h.tenant_id = $1::uuid AND h.branch_id = $2::uuid
 		  AND h.report_kind = $6
 		  AND h.occurred_at >= $3::date
