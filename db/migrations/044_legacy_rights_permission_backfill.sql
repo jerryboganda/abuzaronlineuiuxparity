@@ -7,7 +7,7 @@
 -- permission strings requirePermission() gates on. That leaves the three
 -- non-admin legacy groups (REMOTE, SALES OFFICER, SHIFT INCHARGE) with no
 -- working permissions at all -- see
--- docs/PHASE_R_SECURITY_RIGHTS_VERIFICATION_2026-08-08.md for the original
+-- docs/evidence/PHASE_R_SECURITY_RIGHTS_VERIFICATION_2026-08-08.md for the original
 -- finding.
 --
 -- This migration backfills group_rights.permission using the reviewed,

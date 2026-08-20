@@ -16,13 +16,13 @@ import (
 
 // TestManufacturerPurchaseQueriesJoinMasterManufacturers is the static
 // regression guard for the fix documented in
-// docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md
+// docs/evidence/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md
 // ("manufacturer-wise-detail", "manufacturer-wise-monthly-stock-movement",
 // "supplier-manufacturer-wise-g-p" have no manufacturer join/grouping at
 // all). Each of the three leaves must now route through a query that joins
 // master_manufacturers via master_items.payload->>'ManfCode', the join
 // verified against real data in
-// docs/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md.
+// docs/evidence/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md.
 func TestManufacturerPurchaseQueriesJoinMasterManufacturers(t *testing.T) {
 	pagination := "LIMIT $6 OFFSET $7"
 	aggregate := "se.aggregate = 'receiving'"
@@ -44,7 +44,7 @@ func TestManufacturerPurchaseQueriesJoinMasterManufacturers(t *testing.T) {
 			"mf.code = i.payload->>'ManfCode'",
 		) {
 			t.Errorf("%s: expected query to join master_manufacturers via master_items.payload->>'ManfCode', "+
-				"query changed, re-verify against docs/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md:\n%s",
+				"query changed, re-verify against docs/evidence/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md:\n%s",
 				tc.name, tc.query)
 		}
 	}

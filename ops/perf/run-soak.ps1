@@ -215,7 +215,7 @@ function Get-WriteItemIds {
     $response = Invoke-RestMethod -UseBasicParsing -WebSession $Session -TimeoutSec 15 -Uri $uri
     if (-not $response.items -or $response.items.Count -eq 0) {
         throw "No items matched search '$Search' in the write-load tenant; cannot post a document. " +
-            'Seed demo items (see docs/ACCEPTANCE_EVIDENCE_2026-08-07.md, "demo tenant seeded") first.'
+            'Seed demo items (see docs/evidence/ACCEPTANCE_EVIDENCE_2026-08-07.md, "demo tenant seeded") first.'
     }
     return @($response.items | ForEach-Object { [pscustomobject]@{ id = $_.id; price = $_.payload.SalePrice } })
 }

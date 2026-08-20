@@ -34,7 +34,7 @@ import (
 // `503 report_read_failed` regardless of data. That column reference is now
 // qualified as `sb.updated_at` in reports.go, and this test asserts the
 // resulting golden rows instead of the crash. See
-// docs/PHASE_P_GOLDEN_VERIFICATION_BALANCE_2026-08-09.md for the original
+// docs/evidence/PHASE_P_GOLDEN_VERIFICATION_BALANCE_2026-08-09.md for the original
 // root-cause writeup. This test uses a disposable fixture tenant so the
 // ledger -> cache reconciliation half of the pipeline stays provable in
 // isolation from the separate, still-open finding that the shared
@@ -217,7 +217,7 @@ func TestStockBalanceReportGoldenReconciliation(t *testing.T) {
 	// qualifies its date filter as `sb.updated_at` (previously a bare,
 	// ambiguous `updated_at` that Postgres rejected outright -- see the
 	// package doc comment above and
-	// docs/PHASE_P_GOLDEN_VERIFICATION_BALANCE_2026-08-09.md), so the report
+	// docs/evidence/PHASE_P_GOLDEN_VERIFICATION_BALANCE_2026-08-09.md), so the report
 	// now succeeds and returns the golden rows computed from the fixture
 	// above instead of crashing.
 	if recorder.Code != http.StatusOK {

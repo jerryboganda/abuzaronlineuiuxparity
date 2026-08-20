@@ -7,7 +7,7 @@ import (
 
 // TestPhaseNGoldenSalesSummaryLeavesResolveToExpectedMode locks the registry
 // wiring for the 19 Phase N "Sales Reports" leaves verified in
-// docs/PHASE_N_GOLDEN_VERIFICATION_SUMMARY_2026-08-09.md against independent
+// docs/evidence/PHASE_N_GOLDEN_VERIFICATION_SUMMARY_2026-08-09.md against independent
 // psql cross-checks on business_documents/business_document_lines/
 // master_parties for the sandbox tenant eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee.
 // This does not assert the SQL arithmetic is correct (see the companion doc
@@ -88,7 +88,7 @@ func TestPhaseNGoldenSalesSummaryQueryModeDispatch(t *testing.T) {
 
 // TestPhaseNGoldenSalesItemSummaryAmountUsesPerLineTotal locks the fix for the
 // customer-sales-items-summary (item-summary) Amount bug documented in
-// docs/PHASE_N_GOLDEN_VERIFICATION_SUMMARY_2026-08-09.md.
+// docs/evidence/PHASE_N_GOLDEN_VERIFICATION_SUMMARY_2026-08-09.md.
 //
 // salesReadModelQuery's base CTE assigns bd.total_amount (the whole
 // document's total) to every one of a document's line rows. That is correct

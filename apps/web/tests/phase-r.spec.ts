@@ -266,7 +266,7 @@ test('REMOTE group menu-gating reflects the live migrated group_rights matrix, n
   // Pin the finding this test exists to catch: the migrated REMOTE right
   // codes are raw legacy numeric identifiers (e.g. "1", "5256") with no
   // `permission` column populated (see
-  // docs/PHASE_R_SECURITY_RIGHTS_VERIFICATION_2026-08-08.md), so today none
+  // docs/evidence/PHASE_R_SECURITY_RIGHTS_VERIFICATION_2026-08-08.md), so today none
   // of them equal a permission name legacy-menu.ts's requirementFor() gates
   // on. If this assertion ever fails, the migration finally populated the
   // mapping and the menu-gating expectation below must be revisited too.

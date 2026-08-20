@@ -1,5 +1,5 @@
 // Produced by a one-time reviewed mapping pass (2026-08-08). See
-// docs/PHASE_R_SECURITY_RIGHTS_VERIFICATION_2026-08-08.md, section
+// docs/evidence/PHASE_R_SECURITY_RIGHTS_VERIFICATION_2026-08-08.md, section
 // "2026-08-08 permission backfill", for methodology, coverage counts, and
 // the categories deliberately left unmapped.
 package httpapi

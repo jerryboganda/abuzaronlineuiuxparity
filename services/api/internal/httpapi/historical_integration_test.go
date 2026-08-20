@@ -90,7 +90,7 @@ func TestHistoricalReportsReadRetainedSourceRowsWithinTenantBranch(t *testing.T)
 		// now joins master_items/master_godowns to resolve real names
 		// (matching the stock_ledger branch's existing behavior) instead of
 		// showing the raw item_legacy_id - see
-		// docs/PHASE_Q_GOLDEN_VERIFICATION_ADJUSTMENT_HISTORY_2026-08-09.md.
+		// docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_ADJUSTMENT_HISTORY_2026-08-09.md.
 		{"item-reports-stock-adjustments-stock-adjustments-detail", "100", "Stock Item / B-1"},
 	} {
 		request := readModelRequest(http.MethodGet, "/v1/reports/"+test.kind+"?from=2026-08-06&to=2026-08-06", operator)

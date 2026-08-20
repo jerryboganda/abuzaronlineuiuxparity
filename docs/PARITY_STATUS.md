@@ -3,7 +3,7 @@
 ## Current acceptance handoff - 2026-08-07
 
 The fresh local verification and the remaining external/incomplete-data gates
-are consolidated in [`ACCEPTANCE_EVIDENCE_2026-08-07.md`](ACCEPTANCE_EVIDENCE_2026-08-07.md).
+are consolidated in [`ACCEPTANCE_EVIDENCE_2026-08-07.md`](evidence/ACCEPTANCE_EVIDENCE_2026-08-07.md).
 The implementation/test gate is green; the document deliberately does not
 claim complete canonical migration, exact every-report output, full raster
 approval, physical hardware, full-volume performance, or cutover acceptance.
@@ -12,7 +12,7 @@ approval, physical hardware, full-volume performance, or cutover acceptance.
 
 - The browser legacy shell now builds its menu tree from `parity/catalog/legacy-menu-tree-2026-08-05.json` (275 captured entries, 9 top-level menus), including recursive submenus, command IDs, keyboard shortcuts, and deterministic route metadata.
 - Purchase workflows are available at `/app/purchase/pack`, `/return`, `/opening`, `/loose`, and `/order` with editable legacy-style grids, tenant/branch/counter-scoped events, idempotency, online posting, and offline queue fallback.
-- Cash/credit sale rows now retain server-returned positive batch/expiry choices and can submit multiple distinct, quantity-aware batch allocations; Automatic FIFO remains the default while transfers, adjustments, and exact legacy allocation semantics remain open. Evidence: `docs/PHASE_H_SALES_FRONTEND_EVIDENCE_2026-08-06.md`.
+- Cash/credit sale rows now retain server-returned positive batch/expiry choices and can submit multiple distinct, quantity-aware batch allocations; Automatic FIFO remains the default while transfers, adjustments, and exact legacy allocation semantics remain open. Evidence: `docs/evidence/PHASE_H_SALES_FRONTEND_EVIDENCE_2026-08-06.md`.
 - `Maintenance > Opening Stock` now routes through the immutable inventory-event contract with inbound direction; exact PowerBuilder opening-balance semantics, source reconciliation, and UAT remain open.
 - Inventory maintenance forms now select active canonical items/godowns, validate batch identity, positive four-decimal quantity, and signed-adjustment values before emitting the event; exact legacy batch-selection UI remains open.
 - Cash/credit sales, sale returns, quotations, and refused-sales documents use concrete transaction endpoints. Sale rows also project into the scoped inventory ledger.
@@ -24,27 +24,27 @@ approval, physical hardware, full-volume performance, or cutover acceptance.
 - Item Detail now exposes the legacy supplier sub-grid (Priority, Rate, Disc%, Qty, Bonus, Days) and replaces the tenant-scoped links through `PUT /v1/master/item/{id}/suppliers`; a focused browser regression covers edit and persistence.
 - Manage → Groups now lists, creates, and updates tenant-scoped roles and their validated permission sets through `/v1/roles`, with administrator authorization, RLS-backed storage, and audit events.
 - Every captured report leaf reaches the report argument/retrieve/export surface. Four primary report projections are implemented; other catalogued report kinds use the scoped immutable-event projection until their exact legacy columns are captured.
-- Sale detail and Sales Return detail now have explicit source-backed 11-field line contracts over canonical lines plus de-duplicated compatibility rows; exact legacy grouping/calculations remain open. Evidence: `docs/PHASE_N_SALES_LINE_DETAIL_EVIDENCE_2026-08-07.md`.
-- Customer Sales now includes explicit six-field projections for Customer Wise Summary, Customer Wise Net Sales and Volume, and Customer Category Wise Net Sales (including the two captured category aliases); the category projection preserves canonical/compatibility scope and retained customer payload categories, while exact PowerBuilder joins, return/net calculations, and print output remain open. Evidence: `docs/PHASE_N_CUSTOMER_PROFIT_MARGIN_EVIDENCE_2026-08-07.md`.
-- Customer Wise Category Net Sales now adds an explicit customer/category grouping over the same bounded canonical/compatibility rows; exact PowerBuilder customer/category joins, return/net calculations, and print output remain open. Evidence: `docs/PHASE_N_CUSTOMER_PROFIT_MARGIN_EVIDENCE_2026-08-07.md`.
-- Customer Category Wise Sales Detail Report now uses the existing source-backed 11-field sale line-detail contract rather than the generic event ledger; exact category grouping and format/print output remain open. Evidence: `docs/PHASE_N_CUSTOMER_PROFIT_MARGIN_EVIDENCE_2026-08-07.md`.
-- Purchase detail and Purchase Return detail now have explicit source-backed 12-field line contracts over canonical purchase lines plus expanded, de-duplicated receiving/return compatibility rows; exact purchase grouping, tax/profit/order calculations, and print output remain open. Evidence: `docs/PHASE_O_PURCHASE_LINE_DETAIL_EVIDENCE_2026-08-07.md`.
-- Phase O purchase summary leaves now have explicit six-field document, day, month, item, or supplier aggregates over the canonical purchase/ledger read model and de-duplicated compatibility events; exact supplier/category/tax/return/profit/graph calculations and print output remain open. Evidence: `docs/PHASE_O_PURCHASE_SUMMARY_EVIDENCE_2026-08-07.md`.
-- `Stock Management Report` now uses an explicit eight-field normalized stock-balance projection with posted-ledger gating and item-payload reorder/optimum/minimum thresholds, without applying an unverified legacy alert predicate. Exact alert/status, valuation, grouping, source reconciliation, and print parity remain open. Evidence: `docs/PHASE_P_STOCK_MANAGEMENT_EVIDENCE_2026-08-07.md`.
-- Quotation Detail, Quotation Summary, and Refused Sales Detail now read canonical posted no-stock documents/lines first, de-duplicate matching compatibility events, and group quotation summaries once per document. Exact PowerBuilder columns/calculations, print output, and golden replay remain open. Evidence: `docs/PHASE_Q_NO_STOCK_DOCUMENT_EVIDENCE_2026-08-07.md`.
-- `Header Wise Transaction Summary` now reads canonical posted transaction headers across sales, returns, quotations, refusals, purchases, purchase returns, and purchase orders, with de-duplicated compatibility events and one authoritative total per header. Exact PowerBuilder labels/calculations, opening-balance treatment, print output, and golden replay remain open. Evidence: `docs/PHASE_Q_HEADER_TRANSACTION_EVIDENCE_2026-08-07.md`.
-- The eight captured Reprinting leaves now read canonical posted sale/purchase line or invoice-summary projections with tenant/branch/date/text scope and explicit compatibility fallback. Exact PowerBuilder selection, summary sections, format calculations, print output, and golden replay remain open. Evidence: `docs/PHASE_Q_REPRINT_EVIDENCE_2026-08-07.md`.
-- `Item Reports > Deleted Sale Items Log` now reads a retained `dbo.DeletedSaleItem` projection through a guarded historical loader with tenant/branch/date/text scope and a six-field Svelte contract. Exact PowerBuilder columns, deletion order, calculations, print output, and source reconciliation remain open. Evidence: `docs/PHASE_Q_DELETED_SALE_ITEMS_EVIDENCE_2026-08-07.md`.
-- Stock Adjustments Detail now unions retained imported AdjHeader/AdjDetail rows with posted normalized signed stock-ledger adjustments while preserving tenant/branch/date/text scope; exact legacy grouping, calculations, source reconciliation, and print output remain open. Evidence: `docs/PHASE_Q_STOCK_ADJUSTMENT_EVIDENCE_2026-08-07.md`.
-- Reorder Level, Optimum Level, Minimum Level, and Reorder/Optimum Level now use a distinct normalized stock-balance projection with item-payload thresholds, maintenance-key fallbacks, posted-ledger gating, and tenant/branch/date/godown/batch scope. Exact comparison, grouping, source reconciliation, and print output remain open. Evidence: `docs/PHASE_P_STOCK_LEVEL_EVIDENCE_2026-08-07.md`.
-- Item Stock Register Summary now uses a distinct normalized posted stock-ledger aggregation by item, godown, and calendar day with signed net quantity and net value. Opening-balance, valuation, grouping, source reconciliation, and print output remain open. Evidence: `docs/PHASE_P_ITEM_STOCK_SUMMARY_EVIDENCE_2026-08-07.md`.
-- Stock and Sales now uses normalized current balances joined to canonical posted sale allocations for the requested period and exposes On Hand plus Sales Qty; exact period/as-of, return, valuation, grouping, source reconciliation, and print output remain open. Evidence: `docs/PHASE_P_STOCK_SALES_EVIDENCE_2026-08-07.md`.
-- The two captured narcotics movement reports now filter posted normalized stock-ledger rows by the Item master Narcotics payload flag, and the generic-type narcotics report groups the captured GenericName/GenericCode payload by day, godown, and item. Exact legacy flag semantics, generic grouping, return/opening treatment, source reconciliation, and print output remain open. Evidence: `docs/PHASE_P_NARCOTICS_STOCK_EVIDENCE_2026-08-07.md`.
-- `Expiry Report(Class Wise)` now uses a distinct typed-expiry/class projection over normalized balances, preserving tenant/branch/date/text/godown/batch scope. Exact class-code joins, date semantics, source reconciliation, and print output remain open. Evidence: `docs/PHASE_P_EXPIRY_CLASS_EVIDENCE_2026-08-07.md`.
-- The captured Stock-in-Hand Manufacturer, Manufacturer Format2, Category, and Class leaves now use explicit Item-payload classification projections over normalized balances with posted-ledger gating. Exact group joins, valuation, supplier association, source reconciliation, and print output remain open. Evidence: `docs/PHASE_P_STOCK_CLASSIFICATION_EVIDENCE_2026-08-07.md`.
-- `Daily Stock IN/OUT` and `Stock IN/OUT(Date Wise)` now use an explicit posted stock-ledger aggregate by calendar day, direction, godown, and item with signed quantity and net value. Opening balances, exact date-wise grouping, source reconciliation, and print output remain open. Evidence: `docs/PHASE_P_STOCK_MOVEMENT_SUMMARY_EVIDENCE_2026-08-07.md`.
-- `Stock In hand > Supplier Manufacturer Association` now uses an explicit normalized stock-balance projection joining the captured Item Manufacturer payload and tenant-scoped `item_suppliers` supplier names. Exact priority/association joins, valuation, source reconciliation, and print output remain open. Evidence: `docs/PHASE_P_STOCK_SUPPLIER_MANUFACTURER_EVIDENCE_2026-08-07.md`.
-- Report workflows now include the legacy retrieval-arguments dialog (areas, date range, cash/credit selection), validated server-backed format selection, print preview with a legacy-style toolbar/ruler/letterhead and loaded-row paging, CSV export, browser Save-as-PDF, Excel-compatible workbook export, and a captured daily-sales-detail loading state. Exact PowerBuilder format calculations and golden output remain open; see `docs/PHASE_M_REPORT_PREVIEW_EVIDENCE_2026-08-07.md`.
+- Sale detail and Sales Return detail now have explicit source-backed 11-field line contracts over canonical lines plus de-duplicated compatibility rows; exact legacy grouping/calculations remain open. Evidence: `docs/evidence/PHASE_N_SALES_LINE_DETAIL_EVIDENCE_2026-08-07.md`.
+- Customer Sales now includes explicit six-field projections for Customer Wise Summary, Customer Wise Net Sales and Volume, and Customer Category Wise Net Sales (including the two captured category aliases); the category projection preserves canonical/compatibility scope and retained customer payload categories, while exact PowerBuilder joins, return/net calculations, and print output remain open. Evidence: `docs/evidence/PHASE_N_CUSTOMER_PROFIT_MARGIN_EVIDENCE_2026-08-07.md`.
+- Customer Wise Category Net Sales now adds an explicit customer/category grouping over the same bounded canonical/compatibility rows; exact PowerBuilder customer/category joins, return/net calculations, and print output remain open. Evidence: `docs/evidence/PHASE_N_CUSTOMER_PROFIT_MARGIN_EVIDENCE_2026-08-07.md`.
+- Customer Category Wise Sales Detail Report now uses the existing source-backed 11-field sale line-detail contract rather than the generic event ledger; exact category grouping and format/print output remain open. Evidence: `docs/evidence/PHASE_N_CUSTOMER_PROFIT_MARGIN_EVIDENCE_2026-08-07.md`.
+- Purchase detail and Purchase Return detail now have explicit source-backed 12-field line contracts over canonical purchase lines plus expanded, de-duplicated receiving/return compatibility rows; exact purchase grouping, tax/profit/order calculations, and print output remain open. Evidence: `docs/evidence/PHASE_O_PURCHASE_LINE_DETAIL_EVIDENCE_2026-08-07.md`.
+- Phase O purchase summary leaves now have explicit six-field document, day, month, item, or supplier aggregates over the canonical purchase/ledger read model and de-duplicated compatibility events; exact supplier/category/tax/return/profit/graph calculations and print output remain open. Evidence: `docs/evidence/PHASE_O_PURCHASE_SUMMARY_EVIDENCE_2026-08-07.md`.
+- `Stock Management Report` now uses an explicit eight-field normalized stock-balance projection with posted-ledger gating and item-payload reorder/optimum/minimum thresholds, without applying an unverified legacy alert predicate. Exact alert/status, valuation, grouping, source reconciliation, and print parity remain open. Evidence: `docs/evidence/PHASE_P_STOCK_MANAGEMENT_EVIDENCE_2026-08-07.md`.
+- Quotation Detail, Quotation Summary, and Refused Sales Detail now read canonical posted no-stock documents/lines first, de-duplicate matching compatibility events, and group quotation summaries once per document. Exact PowerBuilder columns/calculations, print output, and golden replay remain open. Evidence: `docs/evidence/PHASE_Q_NO_STOCK_DOCUMENT_EVIDENCE_2026-08-07.md`.
+- `Header Wise Transaction Summary` now reads canonical posted transaction headers across sales, returns, quotations, refusals, purchases, purchase returns, and purchase orders, with de-duplicated compatibility events and one authoritative total per header. Exact PowerBuilder labels/calculations, opening-balance treatment, print output, and golden replay remain open. Evidence: `docs/evidence/PHASE_Q_HEADER_TRANSACTION_EVIDENCE_2026-08-07.md`.
+- The eight captured Reprinting leaves now read canonical posted sale/purchase line or invoice-summary projections with tenant/branch/date/text scope and explicit compatibility fallback. Exact PowerBuilder selection, summary sections, format calculations, print output, and golden replay remain open. Evidence: `docs/evidence/PHASE_Q_REPRINT_EVIDENCE_2026-08-07.md`.
+- `Item Reports > Deleted Sale Items Log` now reads a retained `dbo.DeletedSaleItem` projection through a guarded historical loader with tenant/branch/date/text scope and a six-field Svelte contract. Exact PowerBuilder columns, deletion order, calculations, print output, and source reconciliation remain open. Evidence: `docs/evidence/PHASE_Q_DELETED_SALE_ITEMS_EVIDENCE_2026-08-07.md`.
+- Stock Adjustments Detail now unions retained imported AdjHeader/AdjDetail rows with posted normalized signed stock-ledger adjustments while preserving tenant/branch/date/text scope; exact legacy grouping, calculations, source reconciliation, and print output remain open. Evidence: `docs/evidence/PHASE_Q_STOCK_ADJUSTMENT_EVIDENCE_2026-08-07.md`.
+- Reorder Level, Optimum Level, Minimum Level, and Reorder/Optimum Level now use a distinct normalized stock-balance projection with item-payload thresholds, maintenance-key fallbacks, posted-ledger gating, and tenant/branch/date/godown/batch scope. Exact comparison, grouping, source reconciliation, and print output remain open. Evidence: `docs/evidence/PHASE_P_STOCK_LEVEL_EVIDENCE_2026-08-07.md`.
+- Item Stock Register Summary now uses a distinct normalized posted stock-ledger aggregation by item, godown, and calendar day with signed net quantity and net value. Opening-balance, valuation, grouping, source reconciliation, and print output remain open. Evidence: `docs/evidence/PHASE_P_ITEM_STOCK_SUMMARY_EVIDENCE_2026-08-07.md`.
+- Stock and Sales now uses normalized current balances joined to canonical posted sale allocations for the requested period and exposes On Hand plus Sales Qty; exact period/as-of, return, valuation, grouping, source reconciliation, and print output remain open. Evidence: `docs/evidence/PHASE_P_STOCK_SALES_EVIDENCE_2026-08-07.md`.
+- The two captured narcotics movement reports now filter posted normalized stock-ledger rows by the Item master Narcotics payload flag, and the generic-type narcotics report groups the captured GenericName/GenericCode payload by day, godown, and item. Exact legacy flag semantics, generic grouping, return/opening treatment, source reconciliation, and print output remain open. Evidence: `docs/evidence/PHASE_P_NARCOTICS_STOCK_EVIDENCE_2026-08-07.md`.
+- `Expiry Report(Class Wise)` now uses a distinct typed-expiry/class projection over normalized balances, preserving tenant/branch/date/text/godown/batch scope. Exact class-code joins, date semantics, source reconciliation, and print output remain open. Evidence: `docs/evidence/PHASE_P_EXPIRY_CLASS_EVIDENCE_2026-08-07.md`.
+- The captured Stock-in-Hand Manufacturer, Manufacturer Format2, Category, and Class leaves now use explicit Item-payload classification projections over normalized balances with posted-ledger gating. Exact group joins, valuation, supplier association, source reconciliation, and print output remain open. Evidence: `docs/evidence/PHASE_P_STOCK_CLASSIFICATION_EVIDENCE_2026-08-07.md`.
+- `Daily Stock IN/OUT` and `Stock IN/OUT(Date Wise)` now use an explicit posted stock-ledger aggregate by calendar day, direction, godown, and item with signed quantity and net value. Opening balances, exact date-wise grouping, source reconciliation, and print output remain open. Evidence: `docs/evidence/PHASE_P_STOCK_MOVEMENT_SUMMARY_EVIDENCE_2026-08-07.md`.
+- `Stock In hand > Supplier Manufacturer Association` now uses an explicit normalized stock-balance projection joining the captured Item Manufacturer payload and tenant-scoped `item_suppliers` supplier names. Exact priority/association joins, valuation, source reconciliation, and print output remain open. Evidence: `docs/evidence/PHASE_P_STOCK_SUPPLIER_MANUFACTURER_EVIDENCE_2026-08-07.md`.
+- Report workflows now include the legacy retrieval-arguments dialog (areas, date range, cash/credit selection), validated server-backed format selection, print preview with a legacy-style toolbar/ruler/letterhead and loaded-row paging, CSV export, browser Save-as-PDF, Excel-compatible workbook export, and a captured daily-sales-detail loading state. Exact PowerBuilder format calculations and golden output remain open; see `docs/evidence/PHASE_M_REPORT_PREVIEW_EVIDENCE_2026-08-07.md`.
 - Detail/List tabs are live on purchase, sales, and master-data surfaces; sales and purchase list views query persisted tenant/branch-scoped transaction history through `/v1/transactions/{kind}` rather than rendering draft placeholders.
 - Sales and purchase List rows and toolbar Previous/Next actions now load persisted documents back into the Detail form, preserving the legacy navigation workflow instead of only changing a status message.
 - Manage → Cashier Activity Window now reads the scoped shift ledger through `GET /v1/shifts` and renders operator, open/close, status, and cash totals with a live refresh action.
@@ -61,7 +61,7 @@ approval, physical hardware, full-volume performance, or cutover acceptance.
   rejection, draft/post revision state, purchase orders, returns, free-text
   fail-closed validation, and the helper.
 - Purchase List now renders canonical `/v1/transactions/pack-purchase` rows and restores the selected invoice into Detail; the focused suite verifies the six purchase workflows end to end.
-- Purchase `Populate Items` now resolves entered quick-search or unresolved item-name values through active canonical item lookup, hydrates UUID/legacy identity, and reuses the existing batch-refresh path. Exact PowerBuilder source-selection, template, pending-due, price/tax side-effects, and raster acceptance remain open. Evidence: `docs/PHASE_I_PURCHASE_ITEM_POPULATION_EVIDENCE_2026-08-07.md`.
+- Purchase `Populate Items` now resolves entered quick-search or unresolved item-name values through active canonical item lookup, hydrates UUID/legacy identity, and reuses the existing batch-refresh path. Exact PowerBuilder source-selection, template, pending-due, price/tax side-effects, and raster acceptance remain open. Evidence: `docs/evidence/PHASE_I_PURCHASE_ITEM_POPULATION_EVIDENCE_2026-08-07.md`.
 - Purchase `Populate From Sale Template` now lists active tenant-scoped templates and loads supported line payloads into a new canonical draft before item resolution; unsupported payloads remain explicitly fail-closed. Exact PowerBuilder template, pending-due, and source-selection semantics remain open in the same evidence.
 - High-frequency contextual purchase/sales commands now have live handlers:
   list/history navigation, client-convenience batch generation, item sorting,
@@ -111,7 +111,7 @@ approval, physical hardware, full-volume performance, or cutover acceptance.
 
 A full side-by-side runtime audit (legacy exe + new stack both running, screens walked visually, menus enumerated per window, databases counted, code reviewed) found that the wave claims above describe *surface* coverage, not functional parity. Authoritative documents:
 
-- `docs/GAP_ANALYSIS_2026-08-06.md` — 15 verified gap areas (G1–G15) with evidence in `tmp/gap-audit/`.
+- `docs/archive/GAP_ANALYSIS_2026-08-06.md` — 15 verified gap areas (G1–G15) with evidence in `tmp/gap-audit/`.
 - `docs/PARITY_FIX_PLAN_A-Z.md` — 26-phase plan to reach 100% visual + functional parity.
 
 Corrections to earlier claims:
@@ -184,7 +184,7 @@ acceptance, or exact screen/workflow parity gates.
 
 The legacy catalog is fully reachable, but true 100% functional and pixel parity is not yet proven. The captured interior states cover representative transaction, master, preference, report-loading, maintenance-dialog, and change-user workflows; remaining leaves still need their own legacy screen/workflow capture, exact field rules, report columns, printing/hardware behavior, and screenshot/keyboard acceptance before they can be marked parity-complete. The reports menu has 186 entries and 151 non-blank leaf reports; the remaining leaves still require exact legacy report-column evidence rather than a generic projection. Printer, barcode, cash-drawer, biometric, SMS/email, and complete historical SQL Server migration acceptance are also still open.
 
-- Open Cash Sale Return and Open Credit Sale Return now have distinct canonical document kinds and source-free stock/finance projections; see `docs/PHASE_H_OPEN_SALE_RETURN_EVIDENCE_2026-08-06.md`.
+- Open Cash Sale Return and Open Credit Sale Return now have distinct canonical document kinds and source-free stock/finance projections; see `docs/evidence/PHASE_H_OPEN_SALE_RETURN_EVIDENCE_2026-08-06.md`.
 - Sales Return report/history leaves now read posted source-bound and open return lines from the canonical `business_documents` read model, while retaining deduplicated `sale_return` compatibility events during migration; see the Phase N follow-up evidence.
 - Invoice-summary sales and sales-return leaves now group each document once, summing line quantity while retaining the canonical document amount; multi-line invoices no longer repeat the full total per line. Exact legacy tax/profit/format columns remain open.
 - The direct Purchase Return report route now uses the canonical purchase-return read model with posted document/line authority and compatibility-event de-duplication; the focused PostgreSQL route test passes.
@@ -215,7 +215,7 @@ The legacy catalog is fully reachable, but true 100% functional and pixel parity
   dependents, and is idempotent on replay. Cash-sale, sale-return,
   purchase-return, and dependency-blocking integration coverage passes; exact
   legacy void-dialog semantics, historical reversal mapping, and UAT remain
-  open. See `docs/PHASE_T_VOID_REVERSAL_EVIDENCE_2026-08-07.md`.
+  open. See `docs/evidence/PHASE_T_VOID_REVERSAL_EVIDENCE_2026-08-07.md`.
 
 Evidence: [`tmp/phase-s-t-maintenance-evidence-2026-08-06.md`](../tmp/phase-s-t-maintenance-evidence-2026-08-06.md).
 
@@ -227,7 +227,7 @@ Value, Item Disc, SalesTax Value, Amount, Expiry Date, and Batch Number columns.
 Retained historical line payload values are preferred for imported legacy
 figures, while typed pricing and stock-allocation snapshots serve newly posted
 documents. The focused PostgreSQL/Go and Playwright evidence is recorded in
-[`docs/PHASE_N_DAILY_SALES_DETAIL_EVIDENCE_2026-08-07.md`](PHASE_N_DAILY_SALES_DETAIL_EVIDENCE_2026-08-07.md).
+[`docs/evidence/PHASE_N_DAILY_SALES_DETAIL_EVIDENCE_2026-08-07.md`](evidence/PHASE_N_DAILY_SALES_DETAIL_EVIDENCE_2026-08-07.md).
 Exact ten-format calculations, migrated golden-output comparison, and the
 remaining report leaves are still open.
 
@@ -236,7 +236,7 @@ remaining report leaves are still open.
 The measured bounded disposable probes, idempotent read indexes, timeout and
 request-observability controls, cold-start result, and unrun eight-hour soak
 setup are recorded in
-[`PHASE_W_PERFORMANCE_EVIDENCE_2026-08-07.md`](PHASE_W_PERFORMANCE_EVIDENCE_2026-08-07.md).
+[`PHASE_W_PERFORMANCE_EVIDENCE_2026-08-07.md`](evidence/PHASE_W_PERFORMANCE_EVIDENCE_2026-08-07.md).
 The fixture loaded 25,000 stock rows and 10,000 GL journals rather than the
 3.2M/1M targets; full-volume p95, document-post `<1s`, and soak acceptance
 remain open.
@@ -253,7 +253,7 @@ document-detail read hydrates the contextual Populate Purchase Invoice and
 Populate Purchase Return Invoice draft flows with persisted lines,
 supplier/godown/source references, batch/expiry, discount, and tax metadata.
 The focused Go/PostgreSQL and Playwright evidence is recorded in
-`docs/PHASE_I_PURCHASE_HISTORY_POPULATION_EVIDENCE_2026-08-07.md`.
+`docs/evidence/PHASE_I_PURCHASE_HISTORY_POPULATION_EVIDENCE_2026-08-07.md`.
 
 The local migration bookkeeping was also rechecked with tenant scope: the
 aggregate has 501,024 resolved, 404 ignored, and 32 open
@@ -270,7 +270,7 @@ semantics therefore remain explicit acceptance boundaries.
 The Window registry now uses validated tab-scoped persistence and internal
 client navigation. A focused browser workflow proves Main Window -> Cash Sale,
 Window-menu activation back to Main Window, and hard-reload restoration of the
-Cash Sale tab. Evidence: [`docs/PHASE_C_WINDOW_MDI_EVIDENCE_2026-08-07.md`](PHASE_C_WINDOW_MDI_EVIDENCE_2026-08-07.md).
+Cash Sale tab. Evidence: [`docs/evidence/PHASE_C_WINDOW_MDI_EVIDENCE_2026-08-07.md`](evidence/PHASE_C_WINDOW_MDI_EVIDENCE_2026-08-07.md).
 
 This does not close exact PowerBuilder MDI acceptance: cascade/tile/layer
 geometry, close/minimize/restore behavior, focus/keyboard traversal, and the
@@ -283,7 +283,7 @@ the shared `LegacyMenuBar` used by the main shell and contextual child windows.
 `No` retains the current window and `Yes` navigates to the change-user login
 route. The focused browser evidence covers both the main shell and a report
 child window and is recorded in
-[`docs/PHASE_C_CHANGE_USER_EVIDENCE_2026-08-07.md`](PHASE_C_CHANGE_USER_EVIDENCE_2026-08-07.md).
+[`docs/evidence/PHASE_C_CHANGE_USER_EVIDENCE_2026-08-07.md`](evidence/PHASE_C_CHANGE_USER_EVIDENCE_2026-08-07.md).
 Confirmed navigation clears the tab-scoped persisted MDI registry at the
 session boundary and requests server-session invalidation before login.
 Full operator/session acceptance and contextual raster/focus review remain
@@ -309,7 +309,7 @@ payload keys, and write the operation/audit record in the same transaction.
 The API accepts the JSON-number payload emitted by Svelte numeric inputs, and
 the browser renderer permits decimal values such as `12.75`. Focused Go and
 Playwright evidence is recorded in
-[`docs/PHASE_S_ITEM_MAINTENANCE_EVIDENCE_2026-08-07.md`](PHASE_S_ITEM_MAINTENANCE_EVIDENCE_2026-08-07.md).
+[`docs/evidence/PHASE_S_ITEM_MAINTENANCE_EVIDENCE_2026-08-07.md`](evidence/PHASE_S_ITEM_MAINTENANCE_EVIDENCE_2026-08-07.md).
 
 This closes only the four bounded mutation contracts. Effective dates are
 validated/audited but are not a claim of scheduled price history; remaining
@@ -328,7 +328,7 @@ existing `master_records` API. Their forms retain source-informed keys such as
 focused API integration checks the constraint plus create/list/update/delete
 isolation for `price-policy`.
 
-Evidence: [`docs/PHASE_F_AUXILIARY_MASTER_EVIDENCE_2026-08-07.md`](PHASE_F_AUXILIARY_MASTER_EVIDENCE_2026-08-07.md).
+Evidence: [`docs/evidence/PHASE_F_AUXILIARY_MASTER_EVIDENCE_2026-08-07.md`](evidence/PHASE_F_AUXILIARY_MASTER_EVIDENCE_2026-08-07.md).
 
 This is a real tenant-scoped operational CRUD path, not a claim of full source
 data migration. Legacy validation messages, dependent lookups, pricing/tax/
@@ -343,7 +343,7 @@ rows, and sends the actual tier array to the authenticated exact-decimal
 preview. Canonical purchase documents inherit a valid tenant-scoped
 ItemSuppliers discount/bonus scheme when the command does not provide an
 explicit line override. Focused Go and browser evidence is recorded in
-[`docs/PHASE_G_PRICING_WORKFLOW_EVIDENCE_2026-08-07.md`](PHASE_G_PRICING_WORKFLOW_EVIDENCE_2026-08-07.md).
+[`docs/evidence/PHASE_G_PRICING_WORKFLOW_EVIDENCE_2026-08-07.md`](evidence/PHASE_G_PRICING_WORKFLOW_EVIDENCE_2026-08-07.md).
 
 Customer/group `GroupAllowedPrice` assignment, PricePolicyDetail date
 semantics, complete policy promotion, ItemSuppliers day semantics, and the
@@ -384,7 +384,7 @@ godown scoped and is covered by PostgreSQL integration and focused Playwright
 checks. This is bounded source-backed coverage; exact PowerBuilder grouping,
 valuation, print output, full StockReport rerun, and the remaining stock-report
 families remain acceptance work. See
-`docs/PHASE_P_HISTORICAL_STOCK_BACK_DATE_EVIDENCE_2026-08-07.md`.
+`docs/evidence/PHASE_P_HISTORICAL_STOCK_BACK_DATE_EVIDENCE_2026-08-07.md`.
 
 ## VirtualGl GL Journal follow-up - 2026-08-07
 
@@ -396,7 +396,7 @@ values with tenant, branch, date, text-filter, and pagination scope. The
 database-backed fixture and focused report checks are green; exact account
 names, opening balances, fiscal-period/grouping rules, historical ledger and
 tax reconciliation, print output, and PowerBuilder golden replay remain open.
-See `docs/PHASE_K_HISTORICAL_GL_EVIDENCE_2026-08-07.md`.
+See `docs/evidence/PHASE_K_HISTORICAL_GL_EVIDENCE_2026-08-07.md`.
 
 The captured `Accounts Ledger` alias now uses the same bounded historical
 VirtualGl union as the Trial Balance: posted canonical journal lines and
@@ -416,7 +416,7 @@ canonical/compatibility sales projections. Invoice rows are de-duplicated
 before day/month grouping; item rows are grouped by item/customer; each
 exposes a typed six-column summary contract. Exact PowerBuilder grouping,
 net/return/tax/profit columns, print output, and golden replay remain open.
-See `docs/PHASE_N_CUSTOMER_INVOICE_SUMMARY_EVIDENCE_2026-08-07.md`.
+See `docs/evidence/PHASE_N_CUSTOMER_INVOICE_SUMMARY_EVIDENCE_2026-08-07.md`.
 
 The captured Customer Sales Invoice Wise Profit Margin Detail leaf now uses
 an 11-field canonical/compatibility projection with posted sale price, amount,
@@ -424,7 +424,7 @@ tax, FIFO allocation cost when available, gross profit, and margin. Rows
 without an explicit source cost leave profit and margin blank. Exact
 PowerBuilder valuation, discount/return/tax rules, print output, and golden
 replay remain open. See
-`docs/PHASE_N_CUSTOMER_PROFIT_MARGIN_EVIDENCE_2026-08-07.md`.
+`docs/evidence/PHASE_N_CUSTOMER_PROFIT_MARGIN_EVIDENCE_2026-08-07.md`.
 
 `Daily Sales Summary with Profit (Day wise grouping)` now aggregates the same
 bounded profit rows by calendar day/customer and gates aggregate cost/profit/
@@ -435,7 +435,7 @@ valuation, and output remain open.
 now aggregates those bounded rows by customer with last-posted date and
 average sale price, using the same complete source-cost gate for cost/profit/
 margin. Exact PowerBuilder customer grouping, valuation, and output remain
-open in `docs/PHASE_N_CUSTOMER_PROFIT_MARGIN_EVIDENCE_2026-08-07.md`.
+open in `docs/evidence/PHASE_N_CUSTOMER_PROFIT_MARGIN_EVIDENCE_2026-08-07.md`.
 
 The neighboring `Customer Wise Summary` and `Net Sales and Volume` leaves now
 use de-duplicated invoice rows grouped by customer with last-posted date,
@@ -461,7 +461,7 @@ implementation intentionally does not derive withholding from purchase-line
 advance tax. Focused migration/API/report and Svelte checks passed; source
 import counts, exact legacy grouping/certificate semantics, print formats,
 and UAT remain open. See
-`docs/PHASE_Q_WITHHOLDING_TAX_EVIDENCE_2026-08-07.md`.
+`docs/evidence/PHASE_Q_WITHHOLDING_TAX_EVIDENCE_2026-08-07.md`.
 
 The reviewed customer/supplier payment stream now has a source-backed
 `historical_party_payment_allocations` target and guarded `-wave payments`
@@ -472,7 +472,7 @@ Exact payment counts/totals, source amount semantics, invoice allocation,
 return allocation, canonical entry workflow, and print/UAT parity remain open;
 the separate SaleReceivableAdj adjustment stream is retained but its exact
 legacy posting/grouping remains unverified. See
-`docs/PHASE_K_PARTY_PAYMENT_EVIDENCE_2026-08-07.md`.
+`docs/evidence/PHASE_K_PARTY_PAYMENT_EVIDENCE_2026-08-07.md`.
 
 The reviewed `SRAllocationHeader/Detail` and `PRAllocationHeader/Detail` return
 allocation streams are now retained separately and exposed in bounded customer
@@ -494,7 +494,7 @@ a bounded due date from the source purchase date. Both expose NOT DUE, 0-30,
 31-60, 61-90, and 91+ buckets; missing or invalid terms remain explicitly
 unaged. Source import, payment allocation, exact bucket/date/return semantics,
 print output, and UAT remain open in
-docs/PHASE_Q_RECEIVABLES_AGING_EVIDENCE_2026-08-07.md.
+docs/evidence/PHASE_Q_RECEIVABLES_AGING_EVIDENCE_2026-08-07.md.
 
 The aging aggregates now use retained business-document `balance_amount` for
 posted debit/credit entries, preventing fully paid migrated documents from
@@ -511,7 +511,7 @@ Numeric business_documents legacy_payload.AdvanceTaxAmt is a guarded first-line
 fallback only; generic line
 tax_amount is not relabeled, and rows without positive amount evidence are
 omitted. Focused API/source and web checks are recorded in
-docs/PHASE_Q_ADVANCE_TAX_EVIDENCE_2026-08-07.md. SQL Server source
+docs/evidence/PHASE_Q_ADVANCE_TAX_EVIDENCE_2026-08-07.md. SQL Server source
 reconciliation, exact grouping/rate/base/rounding semantics, print output,
 database replay, and UAT remain open.
 
@@ -533,7 +533,7 @@ idempotent target conflict handling, and explicit migration exceptions. The
 focused command and migration-config checks passed without opening either
 database. Source execution/count reconciliation, full return-line promotion,
 exact legacy calculations, report/print output, and UAT remain open. See
-`docs/PHASE_E_SALE_LINE_IMPORT_EVIDENCE_2026-08-07.md`.
+`docs/evidence/PHASE_E_SALE_LINE_IMPORT_EVIDENCE_2026-08-07.md`.
 
 ## Party statement source-scope follow-up - 2026-08-07
 
@@ -542,7 +542,7 @@ source-backed return-allocation unions as the finance query
 (`SRAllocationDetail` and `PRAllocationDetail`). Focused API query/definition
 tests passed. Exact historical settlement/grouping/print semantics and live
 reconciliation remain open; see
-`docs/PHASE_Q_PARTY_STATEMENT_SCOPE_EVIDENCE_2026-08-07.md`.
+`docs/evidence/PHASE_Q_PARTY_STATEMENT_SCOPE_EVIDENCE_2026-08-07.md`.
 
 ## Purchase-order source promotion follow-up - 2026-08-07
 
@@ -552,7 +552,7 @@ scope, `PurOrderHeader`/item dependency checks, retained order payload,
 idempotent target identity, and explicit exceptions. Focused package checks
 passed without database execution. Source count/quantity/amount reconciliation,
 exact order calculations, print output, and UAT remain open; see
-`docs/PHASE_E_PURCHASE_ORDER_LINE_IMPORT_EVIDENCE_2026-08-07.md`.
+`docs/evidence/PHASE_E_PURCHASE_ORDER_LINE_IMPORT_EVIDENCE_2026-08-07.md`.
 
 ## Return-line source promotion follow-up - 2026-08-07
 
@@ -563,7 +563,7 @@ retained mode-specific payloads, idempotent target conflicts, and auditable
 exceptions. Focused tests and vet passed without database execution. Canonical
 source execution, return count/quantity/amount reconciliation, exact legacy
 calculations, stock/ledger effects, print output, and UAT remain open; see
-`docs/PHASE_E_RETURN_LINE_IMPORT_EVIDENCE_2026-08-07.md`.
+`docs/evidence/PHASE_E_RETURN_LINE_IMPORT_EVIDENCE_2026-08-07.md`.
 
 ## Unified party-ledger running balance follow-up - 2026-08-07
 
@@ -572,7 +572,7 @@ unified canonical, payment, adjustment, and return-allocation stream using a
 stable occurred-at/row-id window. Focused finance tests passed without database
 execution. Exact PowerBuilder opening, same-time ordering, settlement, print,
 and live reconciliation semantics remain open; see
-`docs/PHASE_K_PARTY_PAYMENT_EVIDENCE_2026-08-07.md`.
+`docs/evidence/PHASE_K_PARTY_PAYMENT_EVIDENCE_2026-08-07.md`.
 
 ## Transaction-history filter follow-up - 2026-08-07
 
@@ -580,7 +580,7 @@ Sales List and Purchase List now expose the authenticated transaction-history
 `filter` query through a shared legacy-style `Filter / Retrieve` toolbar. The
 Svelte check passed with 0 errors and 0 warnings. Exact PowerBuilder wildcard,
 sorting, focus, raster, live-data, and UAT parity remain open; see
-`docs/PHASE_I_TRANSACTION_HISTORY_FILTER_EVIDENCE_2026-08-07.md`.
+`docs/evidence/PHASE_I_TRANSACTION_HISTORY_FILTER_EVIDENCE_2026-08-07.md`.
 
 ## Purchase-label edge workflow follow-up - 2026-08-07
 
@@ -588,7 +588,7 @@ Purchase `Print Purchase Labels` now sends typed label rows to the existing
 edge ESC/POS route and retains browser preview as the unavailable-adapter
 fallback. Software checks pass; physical label geometry, legacy byte/raster
 comparison, and operator UAT remain open in
-`docs/PHASE_U_HARDWARE_EVIDENCE.md`.
+`docs/evidence/PHASE_U_HARDWARE_EVIDENCE.md`.
 
 ## Barcode UI wiring, biometric/SMS/SMTP plumbing, and cutover tooling follow-up - 2026-08-08
 
@@ -604,8 +604,8 @@ Maintenance test-email/test-sms actions
 code-complete and unit/integration-tested; it does not claim a physical
 scanner, printer, biometric reader, or a live SMTP/SMS send was exercised,
 and no biometric matching algorithm exists by design. See
-`docs/PHASE_U_HARDWARE_EVIDENCE.md` and
-`docs/PHASE_U_DEVICE_ACCEPTANCE_CHECKLIST.md` for the itemized evidence.
+`docs/evidence/PHASE_U_HARDWARE_EVIDENCE.md` and
+`docs/evidence/PHASE_U_DEVICE_ACCEPTANCE_CHECKLIST.md` for the itemized evidence.
 
 Separately, `ops/cutover/validate-go-no-go.ps1` and `ops/cutover/rollback.ps1`
 (new) mechanize the go/no-go decision rule and the rollback runbook steps,

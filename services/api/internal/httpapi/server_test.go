@@ -660,8 +660,8 @@ func TestPhaseOReportRegistryCoversCapturedPurchaseLeaves(t *testing.T) {
 			} else if spec.purchaseMode == "item-summary" {
 				// category-wise-purchase (2026-08-09 fix): grouped by resolved
 				// item category via master_categories, not by supplier - see
-				// docs/PHASE_N_LEGACY_SEMANTICS_RESEARCH_2026-08-09.md and
-				// docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md.
+				// docs/evidence/PHASE_N_LEGACY_SEMANTICS_RESEARCH_2026-08-09.md and
+				// docs/evidence/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md.
 				if len(definition.Columns) != 6 || definition.Columns[2].Label != "Category" {
 					t.Fatalf("columns do not describe source-backed purchase category summary: %+v", definition.Columns)
 				}
@@ -802,8 +802,8 @@ func TestPurchaseSummaryModesUseExplicitBuckets(t *testing.T) {
 		"category-wise-purchase": {
 			// 2026-08-09 fix: groups by resolved item category via
 			// master_categories, not by item/party - see
-			// docs/PHASE_N_LEGACY_SEMANTICS_RESEARCH_2026-08-09.md and
-			// docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md.
+			// docs/evidence/PHASE_N_LEGACY_SEMANTICS_RESEARCH_2026-08-09.md and
+			// docs/evidence/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md.
 			mode:      "item-summary",
 			fragment:  "GROUP BY category",
 			label:     "Category",

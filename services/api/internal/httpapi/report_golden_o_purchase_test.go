@@ -7,7 +7,7 @@ import (
 
 // TestPhaseOGoldenPurchaseLeavesResolveToExpectedMode locks the registry
 // wiring for the 14 Phase O purchase/supplier leaves verified in
-// docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md against independent
+// docs/evidence/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md against independent
 // psql cross-checks on business_documents/business_document_lines/
 // stock_ledger/party_ledger_entries/master_parties for the sandbox tenant
 // eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee.
@@ -83,7 +83,7 @@ func TestPhaseOGoldenPurchaseLeavesReportEventLedgerProjectionStatus(t *testing.
 
 // TestPhaseOGoldenPurchaseModesUseRealPerModeGroupedQueries documents the
 // query-dispatch finding backing the psql cross-checks in
-// docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md: purchaseReadModelQueryMode
+// docs/evidence/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md: purchaseReadModelQueryMode
 // routes each mode to a dedicated grouped-aggregation query (not the generic
 // sync_events passthrough at the bottom of the report handler), and every
 // mode's grouped totals were independently reproduced via a differently
@@ -137,10 +137,10 @@ func TestPhaseOGoldenPurchaseModesUseRealPerModeGroupedQueries(t *testing.T) {
 // "manufacturer-wise-detail" and "manufacturer-wise-monthly-stock-movement"
 // performed no manufacturer join/grouping at all. Both are now fixed -
 // category-wise-purchase groups by resolved category via master_categories
-// (docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md), and the two
+// (docs/evidence/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md), and the two
 // manufacturer-wise leaves got dedicated "manufacturer-detail"/
 // "manufacturer-month-summary" modes with a real master_manufacturers join
-// (docs/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md).
+// (docs/evidence/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md).
 // "supplier-manufacturer-wise-g-p" gained a manufacturer dimension on top of
 // its existing supplier grouping, but still computes no gross-profit figure
 // - that part remains a documented, undecided gap (no purchase-side G/P

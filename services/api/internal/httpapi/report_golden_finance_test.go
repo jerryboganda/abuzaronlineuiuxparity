@@ -15,7 +15,7 @@ import (
 )
 
 // Phase Q golden-verification tests for the financeMode-based report leaves
-// assigned to this pass (see docs/PHASE_Q_GOLDEN_VERIFICATION_FINANCE_2026-08-09.md
+// assigned to this pass (see docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_FINANCE_2026-08-09.md
 // for the full investigation, including the 4 leaves -- voucher-register,
 // withholding-tax-deduction, receivables-aging, payables-aging -- that either
 // have no real data to verify against in this database or whose due-date

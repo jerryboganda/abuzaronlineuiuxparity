@@ -15,7 +15,7 @@ import (
 )
 
 // This file regression-tests the fix for the "category-wise-purchase" bug
-// documented in docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md
+// documented in docs/evidence/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md
 // ("item-summary x receiving (category-wise-purchase)"): the report is
 // titled "Category Wise Purchase" but its query
 // (purchaseItemSummaryReadModelQuery, purchaseMode "item-summary", the mode
@@ -23,8 +23,8 @@ import (
 // item name / supplier instead of resolved item category, so the report
 // never actually grouped by category despite its name.
 //
-// The verified fix, from docs/PHASE_N_LEGACY_SEMANTICS_RESEARCH_2026-08-09.md
-// and docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md: join
+// The verified fix, from docs/evidence/PHASE_N_LEGACY_SEMANTICS_RESEARCH_2026-08-09.md
+// and docs/evidence/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md: join
 // master_items.payload->>'ICatCode' to master_categories.legacy_id (kind
 // 'item_category'), which resolves 100% of master_items rows in the
 // sandbox tenant to a real category name (MEDICINES, NARCOTICS, CONSUMER,
@@ -48,7 +48,7 @@ func TestCategoryWisePurchaseQueryJoinsMasterCategories(t *testing.T) {
 	) {
 		t.Fatalf("expected purchaseItemSummaryReadModelQuery to join master_categories via "+
 			"master_items.payload->>'ICatCode' and group/order by the resolved category name - "+
-			"query changed, re-verify against docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md "+
+			"query changed, re-verify against docs/evidence/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md "+
 			"before updating this test:\n%s", query)
 	}
 
@@ -208,7 +208,7 @@ func TestCategoryWisePurchaseReportGroupsByRealCategoryNames(t *testing.T) {
 	}
 
 	// Known real category names for the sandbox tenant's item_category
-	// rows (docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md).
+	// rows (docs/evidence/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md).
 	knownCategories := map[string]bool{
 		"MEDICINES": true, "NARCOTICS": true, "CONSUMER": true,
 		"COUNSELING": true, "DIAGNOSTIC": true, "MILK": true,

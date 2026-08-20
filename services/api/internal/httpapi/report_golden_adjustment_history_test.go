@@ -36,7 +36,7 @@ import (
 // ILIKE ...)" godown/batch-number predicates the sibling `movement` /
 // `narcotics-movement` branch already uses, so $6/$7 are now referenced and
 // inferable. See
-// docs/PHASE_Q_GOLDEN_VERIFICATION_ADJUSTMENT_HISTORY_2026-08-09.md.
+// docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_ADJUSTMENT_HISTORY_2026-08-09.md.
 //
 // Finding B (all six leaves resolving to the same ungrouped row-level query,
 // with no summary/detail/invoice-wise/item-wise differentiation) has since
@@ -268,7 +268,7 @@ func TestAdjustmentReportLeavesReturnNormalizedRowsAfterParameterGapFix(t *testi
 // "currency") for this generic historyMode branch, so nothing at the
 // transport layer catches an item name landing in what is supposed to be a
 // price value. See
-// docs/PHASE_Q_GOLDEN_VERIFICATION_ADJUSTMENT_HISTORY_2026-08-09.md.
+// docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_ADJUSTMENT_HISTORY_2026-08-09.md.
 func TestItemHistoryPriceDifferenceReportLeaksItemNameIntoPriceColumn(t *testing.T) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {

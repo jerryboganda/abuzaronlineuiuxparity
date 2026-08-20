@@ -7,7 +7,7 @@ import (
 
 // TestGoldenReprintingLeavesQueryTextIsIdenticalToNonReprintCounterpart is a
 // Go-level lock for the Phase Q golden-verification finding documented in
-// docs/PHASE_Q_GOLDEN_VERIFICATION_DOCUMENT_REPRINT_2026-08-09.md: every
+// docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_DOCUMENT_REPRINT_2026-08-09.md: every
 // reprinting-* leaf assigned to that pass resolves to the byte-identical SQL
 // query text as its non-reprint counterpart leaf (sale-detail, sale-summary,
 // purchase-detail). reprintMode only changes metadata/columns in
@@ -102,7 +102,7 @@ func TestGoldenQuotationLeavesUseDocumentReadModelWithQuotationKind(t *testing.T
 
 // TestGoldenHeaderWiseTransactionSummaryIncludesMigratedSaleReturnKindSpelling
 // locks the fix for a genuine data-coverage bug found during Phase Q golden
-// verification (see docs/PHASE_Q_GOLDEN_VERIFICATION_DOCUMENT_REPRINT_2026-08-09.md):
+// verification (see docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_DOCUMENT_REPRINT_2026-08-09.md):
 // headerTransactionReadModelQuery's canonical kind IN-list previously used
 // only the live-app sale-return kind spellings ('cash-return',
 // 'credit-return', 'open-cash-return', 'open-credit-return') and omitted the

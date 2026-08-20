@@ -270,7 +270,7 @@ func TestStockLifecycleIntegration(t *testing.T) {
 // only, and asserts the outbound stock_ledger/stock_allocations unit_cost is
 // the hand-computed weighted average across BOTH batches — not either
 // batch's own cost. This is the moving-average policy from
-// docs/PHASE_J_STOCK_VALUATION_POLICY_2026-08-08.md.
+// docs/evidence/PHASE_J_STOCK_VALUATION_POLICY_2026-08-08.md.
 func TestStockMovingAverageCostAppliesToOutboundSale(t *testing.T) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {

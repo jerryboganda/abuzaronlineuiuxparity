@@ -17,7 +17,7 @@ import (
 // tenant) has ever carried - the leaf was structurally guaranteed to return
 // zero rows. The corrected adminKind is "item_category", a real, populated
 // master_records.kind value (confirmed 7 rows for the legacy-reference-sandbox
-// tenant per docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md, and
+// tenant per docs/evidence/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md, and
 // matching the "item-category"/"item_category" family already used by the
 // sibling admin-listing leaves in this same registry block).
 func TestItemListClassWiseUsesRealMasterRecordsKind(t *testing.T) {

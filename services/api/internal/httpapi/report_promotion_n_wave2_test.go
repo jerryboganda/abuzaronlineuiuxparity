@@ -19,7 +19,7 @@ import (
 // "category-wise-item-category-wise-monthly-sales" (a new mode backed by a
 // verified master_categories join) as promotion candidates and found
 // supporting evidence for all three (see
-// docs/PHASE_N_REPORT_PROMOTION_WAVE2_2026-08-09.md), but left them
+// docs/evidence/PHASE_N_REPORT_PROMOTION_WAVE2_2026-08-09.md), but left them
 // unpromoted this pass: the first two collide with a concurrently-written
 // diagnostic test file (report_golden_n_salereturn_test.go) that already
 // pins both leaves' current salesMode == "", and the third would require

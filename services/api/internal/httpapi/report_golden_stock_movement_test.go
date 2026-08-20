@@ -7,7 +7,7 @@ import (
 
 // TestPhaseGoldenStockMovementLeavesResolveToExpectedStockMode locks the
 // registry wiring for the 12 Phase P stock movement/register leaves verified
-// in docs/PHASE_P_GOLDEN_VERIFICATION_MOVEMENT_2026-08-09.md against
+// in docs/evidence/PHASE_P_GOLDEN_VERIFICATION_MOVEMENT_2026-08-09.md against
 // independent psql cross-checks on stock_ledger/stock_balances/stock_allocations.
 func TestPhaseGoldenStockMovementLeavesResolveToExpectedStockMode(t *testing.T) {
 	tests := map[string]struct {

@@ -7,7 +7,7 @@ import (
 
 // TestPhaseNORemainderLeavesResolveToExpectedMode locks the registry wiring
 // for the 7 Phase N/O "remainder" leaves verified in
-// docs/PHASE_N_O_GOLDEN_VERIFICATION_REMAINDER_2026-08-09.md:
+// docs/evidence/PHASE_N_O_GOLDEN_VERIFICATION_REMAINDER_2026-08-09.md:
 //   - 3 Phase N Sales Reports leaves (item-wise-item-wise-net-sales,
 //     sale-return-summary-inv-type-wise, dead-item-list) that fall through
 //     the salesMode switch in phaseNReportRegistry with no case, so
@@ -15,7 +15,7 @@ import (
 //   - 4 Phase O purchaseReadModel leaves (purchase-return-summary,
 //     supplier-wise-detail, supplier-wise-purchase-detail,
 //     supplier-purchase-returns-detail) not covered by
-//     docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md's 14-leaf set.
+//     docs/evidence/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md's 14-leaf set.
 func TestPhaseNORemainderLeavesResolveToExpectedMode(t *testing.T) {
 	salesTests := map[string]struct {
 		title     string
@@ -127,15 +127,15 @@ func TestPhaseNORemainderSalesLeavesUseGenericRawPassthrough(t *testing.T) {
 // (mode="detail", aggregate="receiving") dispatch to purchaseReadModelQueryMode
 // with identical parameters and therefore produce byte-identical SQL text
 // and results - both were golden-verified in
-// docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md /
-// docs/PHASE_N_O_GOLDEN_VERIFICATION_REMAINDER_2026-08-09.md
+// docs/evidence/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md /
+// docs/evidence/PHASE_N_O_GOLDEN_VERIFICATION_REMAINDER_2026-08-09.md
 // (113,526 line rows, qty 4,860,933.0000, amount 2,702,608,926.7900).
 //
 // manufacturer-wise-detail used to share this exact identity (same
 // mode/aggregate, no manufacturer-specific column) until the 2026-08-09
 // bug-fix wave gave it its own dedicated "manufacturer-detail" mode with a
 // real master_manufacturers join (see
-// docs/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md) - it is no
+// docs/evidence/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md) - it is no
 // longer byte-identical to the other two leaves by design, so this test now
 // only asserts identity between the two that still share it, plus that
 // manufacturer-wise-detail has genuinely diverged (still receiving-scoped,
@@ -188,7 +188,7 @@ func TestPhaseNORemainderPurchaseDetailModeLeavesAreByteIdenticalQueries(t *test
 // SQL (purchaseReadModelQuery), not a raw passthrough - matching the
 // invoice-summary-mode finding already established for purchase-summary/
 // purchase-summary2/net-purchase-summary (receiving aggregate) in
-// docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md. Golden totals
+// docs/evidence/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md. Golden totals
 // independently reproduced for this leaf (see companion doc):
 // 634 documents, qty 57,868.0000, amount 3,526,551.0000 - MATCHED exactly
 // against an independent CTE-based cross-check.

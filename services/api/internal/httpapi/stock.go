@@ -67,7 +67,7 @@ func stockAllocationPolicy() (string, error) {
 		// on-hand quantity/expiry housekeeping (a real, separate concern —
 		// see resolveStockChoices/fifoStockChoices), but outbound unit_cost
 		// comes from weightedAverageStockCost instead of the consumed batch's
-		// own cost. See docs/PHASE_J_STOCK_VALUATION_POLICY_2026-08-08.md.
+		// own cost. See docs/evidence/PHASE_J_STOCK_VALUATION_POLICY_2026-08-08.md.
 		return policy, nil
 	default:
 		return "", fmt.Errorf("unsupported stock allocation policy %q; configure fifo or moving-average", policy)

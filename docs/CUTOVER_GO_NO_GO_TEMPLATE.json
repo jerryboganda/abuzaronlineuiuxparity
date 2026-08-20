@@ -116,7 +116,7 @@
       "id": "s0_s1_acceptance_domains",
       "required": true,
       "status": "blocked",
-      "command": "Review docs/ACCEPTANCE_EVIDENCE_2026-08-07.md and docs/GAP_ANALYSIS_2026-08-06.md",
+      "command": "Review docs/evidence/ACCEPTANCE_EVIDENCE_2026-08-07.md and docs/archive/GAP_ANALYSIS_2026-08-06.md",
       "expected": "No open S0/S1 gap and every acceptance domain has an artifact or signed exception",
       "evidence": "ACCEPTANCE_EVIDENCE_2026-08-07.md",
       "currentBlocker": "Canonical migration, exact business/report parity, and remaining S1 workflow acceptance are open."

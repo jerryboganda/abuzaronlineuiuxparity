@@ -15,7 +15,7 @@ import (
 
 // TestDailySaleDetailReportSalesTaxValuePrefersLineTaxAmount is the
 // regression test for the "SalesTax Value" masking bug documented in
-// docs/PHASE_N_O_GOLDEN_VERIFICATION_CORE_2026-08-09.md ("Leaf 1 --
+// docs/evidence/PHASE_N_O_GOLDEN_VERIFICATION_CORE_2026-08-09.md ("Leaf 1 --
 // sale-detail / Daily Sale Detail").
 //
 // dailySalesDetailReadModelQuery's sales_tax_value column used to be

@@ -26,3 +26,8 @@ Cargo.lock
 *.pbd
 *.exe
 
+
+# Agent / SDD session artifacts
+.agents/
+.superpowers/
+

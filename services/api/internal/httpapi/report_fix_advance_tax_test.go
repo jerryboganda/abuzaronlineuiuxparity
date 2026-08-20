@@ -15,7 +15,7 @@ import (
 
 // TestAdvanceTaxFallbackFindsRateOnAnyLineNotJustFirst is the regression
 // guard for the fix to the bug documented in
-// docs/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md,
+// docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md,
 // "supplier-wise-advance-income-tax" (financeMode "tax-advance-input"):
 // the LATERAL fallback that attaches invoice-level legacy AdvanceTaxAmt to a
 // document was gated to fire only on the document's MIN(line_number) row,
@@ -45,7 +45,7 @@ func TestAdvanceTaxFallbackFindsRateOnAnyLineNotJustFirst(t *testing.T) {
 			t.Errorf("mode %q: expected the AdvanceTaxAmt fallback's MIN(line_number) subquery to be "+
 				"restricted to lines with advance_tax_rate > 0, so it lands on the same physical row the "+
 				"outer WHERE selects - query changed, re-verify against "+
-				"docs/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md before updating this test:\n%s",
+				"docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md before updating this test:\n%s",
 				mode, query)
 		}
 		if strings.Contains(query, "AND l2.document_id = d.id\n\t\t\t\t                       )") {

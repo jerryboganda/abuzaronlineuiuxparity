@@ -15,7 +15,7 @@ import (
 
 // TestAdjustmentSummaryModesGroupCorrectly is a regression test for the
 // previously-deferred grouping gap (Phase Q Finding B,
-// docs/PHASE_Q_GOLDEN_VERIFICATION_ADJUSTMENT_HISTORY_2026-08-09.md, and the
+// docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_ADJUSTMENT_HISTORY_2026-08-09.md, and the
 // comment on stockReadModelQuery's "adjustment" mode family, reports.go).
 //
 // Two of the six adjustment-* leaves now get real aggregation:

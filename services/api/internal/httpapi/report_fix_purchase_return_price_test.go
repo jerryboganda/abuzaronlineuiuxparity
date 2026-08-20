@@ -8,7 +8,7 @@ import (
 
 // This file regression-tests the fix for the purchase-return-detail
 // "Purchase Price" bug documented in
-// docs/PHASE_N_O_GOLDEN_VERIFICATION_CORE_2026-08-09.md ("Leaf 4 -
+// docs/evidence/PHASE_N_O_GOLDEN_VERIFICATION_CORE_2026-08-09.md ("Leaf 4 -
 // purchase-return-detail"): purchase-return legacy rows store the actual
 // per-unit return price under the payload key 'PRPrice' (not 'PurPrice'),
 // so the purchase_price COALESCE in purchaseLineDetailReadModelQuery always

@@ -3414,9 +3414,9 @@ func purchaseReadModelQuery(aggregateCondition, mode, pagination string) string 
 // name. Fixed to group by the real category name resolved via
 // master_items.payload->>'ICatCode' -> master_categories.legacy_id (kind
 // 'item_category') — the verified JOIN pattern from
-// docs/PHASE_N_LEGACY_SEMANTICS_RESEARCH_2026-08-09.md and
-// docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md, applied here to
-// the purchase/receiving side per docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md.
+// docs/evidence/PHASE_N_LEGACY_SEMANTICS_RESEARCH_2026-08-09.md and
+// docs/evidence/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_A_2026-08-09.md, applied here to
+// the purchase/receiving side per docs/evidence/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md.
 func purchaseItemSummaryReadModelQuery(aggregateCondition, pagination string) string {
 	canonicalKinds := "'pack-purchase', 'loose-purchase', 'opening-purchase'"
 	eventAggregate := "receiving"
@@ -3568,7 +3568,7 @@ func purchaseReadModelQueryMode(aggregateCondition, mode, pagination string) str
 // of the plain "detail" purchase read model. It resolves the manufacturer via
 // master_items.payload->>'ManfCode' joined to master_manufacturers.code, the
 // same join verified against posted sale lines in
-// docs/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md and confirmed
+// docs/evidence/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md and confirmed
 // to resolve 100% of posted purchase lines for the sandbox tenant. Legacy
 // compatibility rows (sync_events) carry no item_id to join against, so they
 // surface as "Unspecified" rather than silently dropping out of the report.
@@ -3680,7 +3680,7 @@ func purchaseManufacturerMonthlySummaryReadModelQuery(aggregateCondition, pagina
 //
 // It does NOT compute a gross-profit figure. A purchase-side "G/P" has no
 // verified data source: the sale-side gross-profit fix path
-// (docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_B_2026-08-09.md) uses
+// (docs/evidence/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_B_2026-08-09.md) uses
 // stock_ledger COGS against sale revenue, which has no purchase-side analog
 // -- a purchase line's own cost is its own amount, so "purchase cost minus
 // purchase cost" is not a meaningful margin. Candidate interpretations (cost

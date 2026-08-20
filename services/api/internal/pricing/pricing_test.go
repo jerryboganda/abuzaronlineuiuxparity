@@ -422,7 +422,7 @@ func TestMoneyString(t *testing.T) {
 // rows are a direct copy of Saledetail.Rate (see
 // migration/maps/phase-e-historical-documents.json) -- it demonstrates that
 // Calculate's inclusive-tax arithmetic is legacy-faithful when exercised
-// against real invoice numbers. See docs/PHASE_G_PRICING_GOLDEN_REPLAY_2026-08-08.md.
+// against real invoice numbers. See docs/evidence/PHASE_G_PRICING_GOLDEN_REPLAY_2026-08-08.md.
 func TestCalculateReproducesRealLegacySaleInvoiceLines(t *testing.T) {
 	gst := func() *TaxRule { return &TaxRule{Kind: TaxGST, Rate: percent(1800), Inclusive: true} }
 

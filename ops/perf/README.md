@@ -149,7 +149,7 @@ whole segment). A tenant code containing `legacy`, `reference`, `canonical`,
 flag** -- this specifically blocks the `legacy-reference-sandbox` tenant,
 which holds real reconciled data from the canonical migration and must never
 receive synthetic writes. The seeded `demo` tenant (8 synthetic `DEMO-`
-items, 2 godowns; see `docs/ACCEPTANCE_EVIDENCE_2026-08-07.md`) is the
+items, 2 godowns; see `docs/evidence/ACCEPTANCE_EVIDENCE_2026-08-07.md`) is the
 known-good target.
 
 On first use against a tenant, write-load mode auto-provisions (idempotently)

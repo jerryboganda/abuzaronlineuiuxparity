@@ -8,7 +8,7 @@ import (
 // TestPhaseNGoldenManufacturerLeavesResolveToExpectedRegistryShape locks the
 // registry wiring for the 6 Phase N "Manufacturer Wise" (Sales Reports)
 // leaves verified in
-// docs/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md. All six sit in
+// docs/evidence/PHASE_N_GOLDEN_VERIFICATION_MANUFACTURER_2026-08-09.md. All six sit in
 // phaseNReportRegistry with salesReadModel=true and no salesMode case wired
 // (mode stays "" — see the switch in reports.go around lines 284-317), so
 // each dispatches to the plain 6-column generic salesReadModelQuery, not a
@@ -53,7 +53,7 @@ func TestPhaseNGoldenManufacturerLeavesResolveToExpectedRegistryShape(t *testing
 // query, matching the same "no manufacturer join at all despite the name"
 // finding already documented for the O-phase siblings
 // (manufacturer-wise-detail, manufacturer-wise-monthly-stock-movement) in
-// docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md.
+// docs/evidence/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md.
 func TestPhaseNGoldenManufacturerLeavesReportEventLedgerProjectionStatus(t *testing.T) {
 	kinds := []string{
 		"manufacturer-wise-sales",

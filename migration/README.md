@@ -431,7 +431,7 @@ of kind `purchase-return`, and preserves
 scoped set-based upserts, positive-quantity validation, idempotent conflict
 handling, and auditable mappings/exceptions. Source execution and return-line
 count/quantity/amount reconciliation remain required before acceptance; see
-`docs/PHASE_E_RETURN_LINE_IMPORT_EVIDENCE_2026-08-07.md`.
+`docs/evidence/PHASE_E_RETURN_LINE_IMPORT_EVIDENCE_2026-08-07.md`.
 
 The two small tax-rate mappings use the generic bounded importer and
 reconciler with `-from-table 0 -to-table 2`; their focused evidence is recorded

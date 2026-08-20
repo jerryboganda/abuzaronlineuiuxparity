@@ -16,8 +16,8 @@ import (
 
 // TestProfitMarginDetailReportUsesStockLedgerCogsFallback is the regression
 // test for the gap documented in
-// docs/PHASE_N_GOLDEN_VERIFICATION_SUMMARY_2026-08-09.md and
-// docs/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_B_2026-08-09.md:
+// docs/evidence/PHASE_N_GOLDEN_VERIFICATION_SUMMARY_2026-08-09.md and
+// docs/evidence/PHASE_N_GOLDEN_VERIFICATION_CATEGORY_B_2026-08-09.md:
 // salesProfitMarginReadModelQuery (backing both
 // "customer-sales-invoice-wise-profit-margin-detail" and
 // "customer-sales-customer-category-wise-sales-customer-wise-gross-profit")

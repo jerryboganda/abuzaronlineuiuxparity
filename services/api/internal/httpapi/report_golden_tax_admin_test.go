@@ -15,7 +15,7 @@ import (
 
 // TestPhaseGoldenTaxAdminLeavesResolveToExpectedMode locks the registry
 // wiring for the 13 Phase Q tax/admin leaves verified in
-// docs/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md against
+// docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md against
 // independent psql cross-checks on business_document_lines/business_documents/
 // master_parties/master_items/master_manufacturers/roles/group_rights/users.
 func TestPhaseGoldenTaxAdminLeavesResolveToExpectedMode(t *testing.T) {
@@ -89,7 +89,7 @@ func TestAdvanceTaxFallbackFindsRateOnAnyLine(t *testing.T) {
 			t.Errorf("mode %q: expected query to still fall back to the document's MIN(line_number) "+
 				"row that carries advance_tax_rate > 0, and to require l.advance_tax_rate > 0 on that "+
 				"same outer row - query changed, re-verify against "+
-				"docs/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md before updating this test:\n%s",
+				"docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md before updating this test:\n%s",
 				mode, query)
 		}
 		if !strings.Contains(query, "l2.advance_tax_rate > 0") {
@@ -122,7 +122,7 @@ func TestGroupRightsListMatchesGroupRightsAfterJoinFix(t *testing.T) {
 	if !containsAll(query, "FROM roles r", "JOIN group_rights gr") {
 		t.Fatalf("expected the roles admin query to read FROM roles JOIN group_rights "+
 			"(the fixed query shape) - query changed, re-verify against "+
-			"docs/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md before updating this test:\n%s", query)
+			"docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md before updating this test:\n%s", query)
 	}
 	if strings.Contains(query, "role_permissions") {
 		t.Errorf("roles admin query still references role_permissions, the empty table this bug fix "+
@@ -185,7 +185,7 @@ func TestGroupRightsListMatchesGroupRightsAfterJoinFix(t *testing.T) {
 	roleRows.Close()
 
 	if wantTotal != 726 {
-		t.Fatalf("group_rights row count for the sandbox tenant = %d, want 726 (docs/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md figure) -- re-verify before trusting this test", wantTotal)
+		t.Fatalf("group_rights row count for the sandbox tenant = %d, want 726 (docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md figure) -- re-verify before trusting this test", wantTotal)
 	}
 	for code, want := range map[string]int{
 		"ADMINISTRATOR":  486,
@@ -286,13 +286,13 @@ func TestTaxOutputModeIsSharedVerbatimAcrossDifferentlyDimensionedLeaves(t *test
 		}
 		if query != first {
 			t.Errorf("%s: tax-output query diverged from %s - if this is an intentional NTN/category "+
-				"dimensioning fix, update docs/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md",
+				"dimensioning fix, update docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md",
 				kind, sharedKinds[0])
 		}
 	}
 	if containsAll(first, "NTNNo") || containsAll(first, "CustCatCode") {
 		t.Errorf("tax-output query now references NTNNo/CustCatCode - if this is an intentional fix, "+
-			"update docs/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md accordingly:\n%s", first)
+			"update docs/evidence/PHASE_Q_GOLDEN_VERIFICATION_TAX_ADMIN_2026-08-09.md accordingly:\n%s", first)
 	}
 }
 

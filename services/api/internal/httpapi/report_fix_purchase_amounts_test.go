@@ -7,8 +7,8 @@ import (
 
 // This file locks the fix for two confirmed amount bugs in
 // purchaseReadModelQuery's amountExpression, investigated and documented in
-// docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md and
-// docs/PHASE_N_O_GOLDEN_VERIFICATION_REMAINDER_2026-08-09.md.
+// docs/evidence/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md and
+// docs/evidence/PHASE_N_O_GOLDEN_VERIFICATION_REMAINDER_2026-08-09.md.
 //
 // Ground truth, confirmed by hand against real sandbox-tenant documents
 // (tenant eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee) via direct psql inspection
@@ -117,7 +117,7 @@ func TestPurchaseOrderSupplierWiseAmountExpressionUsesLineTotalSum(t *testing.T)
 // pack-purchase/loose-purchase/opening-purchase documents, used by
 // purchase-summary and friends) is untouched by this fix and continues to
 // use COALESCE(ple.amount, d.total_amount), matching the already-verified
-// MATCHED result in docs/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md
+// MATCHED result in docs/evidence/PHASE_O_GOLDEN_VERIFICATION_PURCHASE_2026-08-09.md
 // (6,418 docs, amount 198,071,256.0000). Any further receiving-side amount
 // issue is out of scope for this fix and is left for a dedicated
 // investigation/agent.

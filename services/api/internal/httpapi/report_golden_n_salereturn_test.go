@@ -8,7 +8,7 @@ import (
 // TestPhaseNGoldenSaleReturnLeavesResolveToExpectedMode locks the registry
 // wiring for the 5 Phase N "Daily Reports/Sales Return" + "Sales Reports"
 // leaves verified in
-// docs/PHASE_N_GOLDEN_VERIFICATION_SALE_RETURN_2026-08-09.md against
+// docs/evidence/PHASE_N_GOLDEN_VERIFICATION_SALE_RETURN_2026-08-09.md against
 // independent psql cross-checks on business_documents/business_document_lines
 // for the sandbox tenant eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee, branch
 // ffffffff-ffff-ffff-ffff-ffffffffffff.
@@ -144,7 +144,7 @@ func TestPhaseNGoldenSaleReturnKindCoverage(t *testing.T) {
 //
 // This is the exact same defect class already found and fixed for the
 // sibling sale leaf: dailySalesDetailReadModelQuery (used by sale-detail,
-// see docs/PHASE_N_O_GOLDEN_VERIFICATION_CORE_2026-08-09.md leaf 1) now puts
+// see docs/evidence/PHASE_N_O_GOLDEN_VERIFICATION_CORE_2026-08-09.md leaf 1) now puts
 // bl.tax_amount::numeric(19,2)::text FIRST in its COALESCE chain, with a
 // comment explaining exactly this "legacy_payload SalesTax is always a stuck
 // literal 0.00" data fact. That fix was never propagated to
