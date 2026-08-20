@@ -1,5 +1,16 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 pricing / credit-limit / godown transfer
+
+Not 100% parity. Closed four named remaining-work gates in AbuzarNext:
+
+- Credit-limit posting now honors `Check Cr Limit In Cr Sales:` (default Yes).
+- Priced sales overlay item `PricePolicy` tiers and enforce `GroupAllowedPrice`.
+- Godown transfer posts FIFO stock out/in via `POST /v1/maintenance/godown-transfer`.
+- Menu extras: Godown, Areas, Customer Group, Godown Transfer.
+
+Evidence: Go unit tests in `pricing_policy_test.go` / preference registry tests. Godown-transfer and credit-limit-off integration tests skip without `DATABASE_URL`. Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Current acceptance handoff - 2026-08-07
 
 The fresh local verification and the remaining external/incomplete-data gates

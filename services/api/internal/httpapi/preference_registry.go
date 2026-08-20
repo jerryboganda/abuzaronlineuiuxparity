@@ -99,6 +99,7 @@ Cash Sale Initial Focus:
 Credit Sale Initial Focus:
 Fiscalization Machine IP:
 Allow Zero Retail Price:
+Check Cr Limit In Cr Sales:
 Customer Balance:
 Reference No. 2:
 Reference No. 3:
@@ -528,6 +529,9 @@ var explicitPreferenceDefaults = map[string]string{
 	"Others\x00SMS Expiry (in Hours):":                            "24",
 	"Others\x00Refresh Time (Seconds):":                           "15",
 	"Others\x00Activity Period (Minutes):":                        "30",
+	"Sale\x00Check Cr Limit In Cr Sales:":                         "Yes",
+	"Sale\x00Price # in Cash Sale:":                               "1",
+	"Sale\x00Price # in Credit Sale:":                             "1",
 	"Others\x00Distributor Code:":                                 "90",
 	"Others\x00Retail Price(%) for Sale Inv.:":                    "0.00",
 	"Others\x00Auto Purge Posted Sale Time(Minutes)":              "60",
@@ -688,6 +692,10 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Captured legacy SQL-Agent/msdb schedule; PostgreSQL scheduler adapter is not configured.", "not_configured"
 	case category == "Report" && strings.Contains(lower, "default header"):
 		return "Mapped to the report definition letterhead name used by the existing report loader.", "wired"
+	case category == "Sale" && strings.Contains(lower, "check cr limit"):
+		return "When Yes, credit-sale posting is blocked if the customer's CrLimit would be exceeded. When No, the limit is observational only.", "wired"
+	case category == "Sale" && (strings.Contains(lower, "price # in cash sale") || strings.Contains(lower, "price # in credit sale")):
+		return "Sets the default sale price level (1-10) when the document does not specify priceLevel.", "wired"
 	case strings.Contains(lower, "price #") || strings.Contains(lower, "retail price"):
 		return "Stored for the captured preference contract; the current pricing API does not implicitly read this setting.", "stored_only"
 	case strings.Contains(lower, "gst") || strings.Contains(lower, "sales tax") || strings.Contains(lower, "pct code") || strings.Contains(lower, "extra tax"):

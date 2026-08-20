@@ -6,6 +6,21 @@ Date: 2026-08-09. Companion to `PARITY_FIX_PLAN_A-Z.md`, `GAP_ANALYSIS_2026-08-0
 
 ---
 
+## Progress update — 2026-08-09, pricing / credit-limit / godown-transfer wave
+
+Highest-leverage functional slice after the reports-gap waves. **100% functional parity is still not achieved.** This wave closed four named remaining-work gates in code; live `DATABASE_URL` integration and golden SQL Server replay remain open.
+
+Shipped:
+
+- **Phase V / credit limit:** `Preferences.Check Cr Limit In Cr Sales:` is in the Sale registry (default Yes). `enforceCreditSaleLimit` now no-ops when the effective value is No. Integration subtest exists (skipped without `DATABASE_URL`).
+- **Phase G:** priced sales (`cash-sale` / `credit-sale` / `quotation` / `refused-sale`) overlay `PricePolicy` quantity/expiry tiers onto the selected sale-price level, and reject operator `GroupAllowedPrice` misses with HTTP 403 `price_level_not_allowed`. Default `Price # in Cash/Credit Sale` is read when the document omits `priceLevel`. Unit tests: `TestPriceLevelAllowedHonorsGroupAllowedPrice`, `TestSelectPricePolicyTierPicksHighestQualifyingUnexpiredRow`. Golden `pricing.Calculate()` replay against live SQL Server is still **not** done.
+- **Phase J:** `POST /v1/maintenance/godown-transfer` FIFO-moves on-hand stock between godowns (paired `stock_ledger` out/in, dest batch via `lockOrCreatePurchaseBatch`). UI: `/app/maintenance/godown-transfer`. Parser unit test plus `TestGodownTransferMovesStock` (skipped without `DATABASE_URL`).
+- **Phase F:** captured-menu extras now inject Godown, Areas, Customer Group, and Godown Transfer. Areas / Customer Group use the existing master form (thin `master_records`); Godown was already canonical.
+
+Still open at the same priority as before: remaining ~437 stored-only preferences, voucher posting, PO fetch, report golden vs SQL Server, pixel-parity catalog, Accounting/Payroll/eRx extra PBDs.
+
+---
+
 ## ⚠ Corrections to prior claims (read this first)
 
 A few things previously reported as done in this session's evidence docs — including two items marked `completed` on the running task list — do **not** hold up under independent verification:
@@ -92,20 +107,20 @@ Documented, not yet fixed (needs either a legacy-semantics judgment call or an o
 | C | Menu catalog incl. contextual | PARTIAL — only 5 of dozens of window types captured |
 | D | Shell & MDI chrome | PARTIAL — tabbed nav real, toolbar/status-bar/geometry missing |
 | E | Data migration & reconciliation | PARTIAL — 16/16 metrics matched, but hygiene gaps (see corrections) |
-| F | Master data engine | PARTIAL — ~22/24 kinds have forms, 3 named kinds unreachable, no shared list-chrome |
-| G | Pricing & discount policies | PARTIAL — real engine exists but tiers/GroupAllowedPrice unimplemented, replay claim overstated |
+| F | Master data engine | PARTIAL — Godown/Areas/Customer Group now menu-reachable; CustomerGroup category/detail still thin; no shared list-chrome |
+| G | Pricing & discount policies | PARTIAL — PricePolicy overlay + GroupAllowedPrice now on priced sales; golden `pricing.Calculate()` replay still overstated |
 | H | Sales workflows | PARTIAL — real screens/lifecycle, no raster gate, pack/loose fix only spot-verified |
 | I | Purchase workflows | PARTIAL — batch numbers not legacy-format, PO-fetch open |
-| J | Inventory & stock engine | PARTIAL — moving-average done; **godown transfers: zero implementation** |
+| J | Inventory & stock engine | PARTIAL — moving-average done; godown transfer implemented (unit tests; DB integration skipped without DATABASE_URL) |
 | K | Financial core (GL/ledgers) | PARTIAL — credit-limit done; vouchers schema-only, no VirtualGl reconciliation |
 | L | Tax engine | PARTIAL — engine real, legacy rates unmigrated, no paisa-replay, no tax register |
 | M | Reports engine core | PARTIAL — dialogs/preview/export real, Daily Sale Detail pixel-diff never run |
 | N–Q | 151 report leaves | **UPDATED 2026-08-09 — see "Progress update" above: 114/151 evidence-verified, ≥79/151 confirmed correct or fixed, ~15 bugs found (9 fixed)** |
 | R | Security & rights | PARTIAL — backfill mechanism real (433/486 codes), admin bypass + 3/4 groups untested with real data |
-| S | Maintenance module | PARTIAL — backup/restore real; import/export stub; **preferences 1/437 wired**; R0002 undecided |
+| S | Maintenance module | PARTIAL — backup/restore real; import/export stub; godown transfer live; **preferences 4 wired / rest stored_only**; R0002 undecided |
 | T | Manage module & sessions | PARTIAL — session monitor & rights-matrix UI real; no legacy password rules; no SMS/email templates |
 | U | Hardware integrations | DONE-VERIFIED (software side; physical validation explicitly out of scope) |
-| V | Preferences full parity | PARTIAL — **1 of 441 preferences wired to real behavior**; no legacy-value migration; `CheckCrLimitInCrSales` not even inventoried |
+| V | Preferences full parity | PARTIAL — **4 of ~441 preferences wired** (report header, Check Cr Limit, Price # cash/credit); no legacy-value migration |
 | W | Performance & scale | OUT OF SCOPE (documented 2026-08-08) — cited numbers verified accurate |
 | X | Pixel-parity sweep | **PARTIAL, essentially not started** — catalog doesn't exist, baselines dir empty, only 3-4 screens diffed |
 | Y | Functional acceptance/UAT | OUT OF SCOPE (documented 2026-08-08) — 16/16 reconciliation verified accurate |
@@ -291,11 +306,11 @@ OUT OF SCOPE (documented 2026-08-08). One nuance: `docs/RUNBOOK_CUTOVER.md` alre
 
 1. **Report leaves golden verification (N–Q)** — wave 1 done 2026-08-09 (114/151 evidence-verified, 9 bugs fixed); 37 leaves untouched and ~6 documented bugs still open (see progress update above). Still the largest gap in the project, but no longer a 0% start.
 2. **Pixel-parity sweep (Phase X)** — catalog doesn't exist, baseline directory is empty; needs to start from scratch.
-3. **Preferences wiring (Phase V/S)** — 440 of 441 preferences have no backend behavior.
-4. **Pricing engine real logic (Phase G)** — PricePolicy tiers and GroupAllowedPrice are completely unimplemented for sales; the "golden replay" claim needs to be redone for real.
+3. **Preferences wiring (Phase V/S)** — ~437 of ~441 preferences still have no backend behavior (credit-limit + cash/credit default price # now wired).
+4. **Pricing engine real logic (Phase G)** — PricePolicy tiers and GroupAllowedPrice now apply on priced-sale posting; redo golden replay so invoices are computed by `pricing.Calculate()`, not copied from source.
 5. **Security hardening (Phase R)** — make ADMINISTRATOR table-driven or explicitly ratify the bypass; get real menu-snapshot tests for all 4 groups, not 1.
-6. **Master data gaps (Phase F)** — wire Godown/CustomerGroup/Areas into the menu; extract the shared list-chrome component.
-7. **Stock engine gaps (Phase J/K)** — godown transfers (zero implementation), StockReport reconciliation, voucher posting, VirtualGl balance check.
+6. **Master data gaps (Phase F)** — Godown/Areas/Customer Group are menu-reachable; still need CustomerGroup category/detail depth and shared list-chrome.
+7. **Stock engine gaps (Phase J/K)** — godown transfers implemented; StockReport reconciliation, voucher posting, VirtualGl balance check remain.
 8. **Tax engine completion (Phase L)** — migrate legacy rate tables, paisa-exact replay, tax register report.
 9. **Maintenance stubs (Phase S/T)** — import/export adapters, legacy password rules, SMS/email templates, R0002 decision.
 10. **Data-migration hygiene (Phase E)** — finish orphan cleanup, do the 20-item spot-check, root-cause the 8 dropped rows and the tax_amount=0 anomaly.

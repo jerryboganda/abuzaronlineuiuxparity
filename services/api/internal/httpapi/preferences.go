@@ -1,8 +1,10 @@
 package httpapi
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 )
@@ -387,4 +389,60 @@ func preferenceReadValues(r *http.Request, tx *sql.Tx, operator *sessionContext,
 		values[category][strings.ToLower(strings.TrimSpace(caption))] = value
 	}
 	return values, rows.Err()
+}
+
+func effectivePreferenceValue(ctx context.Context, tx *sql.Tx, operator *sessionContext, category, caption string) (string, error) {
+	if operator == nil {
+		return "", nil
+	}
+	var value sql.NullString
+	err := tx.QueryRowContext(ctx, `
+		SELECT value
+		FROM (
+			SELECT value,
+			       row_number() OVER (
+			           PARTITION BY caption
+			           ORDER BY CASE WHEN branch_id = $2::uuid THEN 0 ELSE 1 END
+			       ) AS preference_rank
+			FROM tenant_preferences
+			WHERE tenant_id = $1::uuid AND category = $3 AND caption = $4
+			  AND (branch_id IS NULL OR branch_id = $2::uuid)
+		) scoped
+		WHERE preference_rank = 1
+	`, operator.TenantID, operator.BranchID, category, caption).Scan(&value)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	if !value.Valid {
+		return "", nil
+	}
+	return strings.TrimSpace(value.String), nil
+}
+
+func effectivePreferenceYes(ctx context.Context, tx *sql.Tx, operator *sessionContext, category, caption string, defaultYes bool) (bool, error) {
+	value, err := effectivePreferenceValue(ctx, tx, operator, category, caption)
+	if err != nil {
+		return defaultYes, err
+	}
+	if value == "" {
+		definition, ok := preferenceDefinitionMap(category)[caption]
+		if ok && strings.TrimSpace(definition.Default) != "" {
+			value = strings.TrimSpace(definition.Default)
+		} else if defaultYes {
+			return true, nil
+		} else {
+			return false, nil
+		}
+	}
+	switch strings.ToLower(value) {
+	case "no", "false", "0", "n":
+		return false, nil
+	case "yes", "true", "1", "y":
+		return true, nil
+	default:
+		return defaultYes, nil
+	}
 }

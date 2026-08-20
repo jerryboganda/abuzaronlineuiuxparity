@@ -158,6 +158,10 @@ func (s *Server) maintenanceAction(w http.ResponseWriter, r *http.Request) {
 		s.handleChannelSend(w, r, operator, kind, payload, channelKindSMS)
 		return
 	}
+	if kind == "godown-transfer" {
+		s.handleGodownTransfer(w, r, operator, payload)
+		return
+	}
 
 	tx, err := s.beginScopedTx(r.Context(), operator)
 	if err != nil {

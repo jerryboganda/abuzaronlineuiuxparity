@@ -701,4 +701,24 @@ func TestCreditLimitEnforcement(t *testing.T) {
 			t.Fatalf("zero-limit credit-sale status=%d body=%s", status, body)
 		}
 	})
+
+	t.Run("Check Cr Limit In Cr Sales No skips enforcement", func(t *testing.T) {
+		if _, err := database.ExecContext(ctx, `
+			INSERT INTO tenant_preferences (tenant_id, branch_id, category, caption, value, position, updated_at)
+			VALUES ($1::uuid, $2::uuid, 'Sale', 'Check Cr Limit In Cr Sales:', 'No', 0, now())
+		`, fixture.tenantID, fixture.branchID); err != nil {
+			t.Fatalf("seed credit-limit preference: %v", err)
+		}
+		customerID := newCustomer(t, "PrefOff", limitPayload)
+		first := creditSaleCommand(customerID, "00000000-0000-0000-0000-0000000000c6", "credit-limit-pref-first", "1")
+		firstStatus, _, firstBody := executeDocumentHandler(t, server, operator, first)
+		if firstStatus != http.StatusOK {
+			t.Fatalf("first preference-off credit-sale status=%d body=%s", firstStatus, firstBody)
+		}
+		second := creditSaleCommand(customerID, "00000000-0000-0000-0000-0000000000c7", "credit-limit-pref-second", "1")
+		secondStatus, response, secondBody := executeDocumentHandler(t, server, operator, second)
+		if secondStatus != http.StatusOK || response.Document.Status != "posted" {
+			t.Fatalf("preference-off over-limit credit-sale status=%d body=%s, want posted", secondStatus, secondBody)
+		}
+	})
 }

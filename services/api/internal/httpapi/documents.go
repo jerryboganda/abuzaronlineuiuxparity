@@ -1131,15 +1131,17 @@ func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 // convention where CrLimit is either absent or an explicit 0 placeholder for
 // cash-sale-style customer records.
 //
-// Simplification note: legacy gates this behind a tenant-level preference
-// (Preferences.CheckCrLimitInCrSales, parity/catalog/sqlserver-schema.json)
-// that has not yet been migrated into preference_registry.go. Until that
-// preference exists, this check is unconditionally enabled whenever a
-// customer has a positive CrLimit — that is the only case where enforcement
-// can have any effect at all given current data, so it is not equivalent to
-// legacy's preference-gated behavior; it is only observationally
-// indistinguishable from it today.
+// Legacy gates this behind Preferences.CheckCrLimitInCrSales. The reviewed
+// default is Yes, matching the previously unconditional enforcement. When the
+// saved value is No, posting proceeds even if CrLimit would be exceeded.
 func enforceCreditSaleLimit(ctx context.Context, tx *sql.Tx, operator *sessionContext, customerID string, documentTotal pricing.Money) error {
+	enabled, err := effectivePreferenceYes(ctx, tx, operator, "Sale", "Check Cr Limit In Cr Sales:", true)
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
+	}
 	var rawLimit sql.NullString
 	if err := tx.QueryRowContext(ctx, `
 		SELECT payload->>'CrLimit'
@@ -1331,14 +1333,17 @@ func (s *Server) priceDocument(ctx context.Context, tx *sql.Tx, operator *sessio
 		return pricedDocument{}, errors.New("document kind is invalid")
 	}
 	priceLevel := draft.PriceLevel
-	if priceLevel == 0 {
-		priceLevel = 1
-	}
 	if draft.Pricing != nil && draft.Pricing.PriceLevel != 0 {
 		priceLevel = draft.Pricing.PriceLevel
 	}
+	if priceLevel == 0 {
+		priceLevel = defaultSalePriceLevel(ctx, tx, operator, draft.Kind)
+	}
 	if priceLevel < 1 || priceLevel > 10 {
 		return pricedDocument{}, errors.New("priceLevel must be between 1 and 10")
+	}
+	if isPricedSaleDocumentKind(draft.Kind) && !priceLevelAllowed(operator, priceLevel) {
+		return pricedDocument{}, fmt.Errorf("price level %d is not in the operator's GroupAllowedPrice list", priceLevel)
 	}
 	priced := pricedDocument{lines: make([]pricedDocumentLine, 0, len(draft.Lines))}
 	preview := pricingPreviewRequest{PriceLevel: priceLevel, Lines: make([]pricingPreviewLine, 0, len(draft.Lines))}
@@ -1385,6 +1390,12 @@ func (s *Server) priceDocument(ctx context.Context, tx *sql.Tx, operator *sessio
 		tiers, err := canonicalItemPriceTiers(item.Payload, line.UnitPrice, priceLevel)
 		if err != nil {
 			return pricedDocument{}, fmt.Errorf("line %d: %w", index+1, err)
+		}
+		if isPricedSaleDocumentKind(draft.Kind) {
+			tiers, line.DiscountPercent, err = applyItemPricePolicy(ctx, tx, operator.TenantID, item.ID, line.Quantity, priceLevel, tiers, line.DiscountPercent, draft.OccurredAt)
+			if err != nil {
+				return pricedDocument{}, fmt.Errorf("line %d price policy: %w", index+1, err)
+			}
 		}
 		supplierScheme := line.SupplierScheme
 		if supplierScheme == nil && isPurchaseDocumentKind(draft.Kind) && strings.TrimSpace(draft.SupplierID) != "" {
@@ -1973,6 +1984,8 @@ func documentCommandErrorStatus(err error) (int, string) {
 		return http.StatusConflict, "document_revision_conflict"
 	case strings.Contains(message, "not found"):
 		return http.StatusNotFound, "document_not_found"
+	case strings.Contains(message, "groupallowedprice"):
+		return http.StatusForbidden, "price_level_not_allowed"
 	default:
 		return http.StatusUnprocessableEntity, "document_rejected"
 	}

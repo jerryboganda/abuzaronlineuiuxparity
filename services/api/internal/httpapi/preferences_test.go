@@ -79,7 +79,14 @@ func TestPreferenceRuntimeStatusOnlyClaimsProvenBehavior(t *testing.T) {
 		if definition.RuntimeStatus != "wired" {
 			continue
 		}
-		if definition.Category != "Report" || definition.Caption != "Default Header On Report:" {
+		key := definition.Category + "/" + definition.Caption
+		switch key {
+		case "Report/Default Header On Report:",
+			"Sale/Check Cr Limit In Cr Sales:",
+			"Sale/Price # in Cash Sale:",
+			"Sale/Price # in Credit Sale:":
+			continue
+		default:
 			t.Fatalf("unreviewed preference marked wired: %s/%s", definition.Category, definition.Caption)
 		}
 	}

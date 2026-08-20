@@ -250,7 +250,53 @@ export function buildLegacyMenus(items: LegacyMenuCatalogItem[] = legacyMenuCata
   }
 
   addWindowShellActions(menus.find((menu) => menu.label === 'Window')?.actions ?? [], windows);
+  addUncapturedParityActions(menus);
   return menus.map((menu) => ({ ...menu, actions: cleanActions(menu.actions) }));
+}
+
+function addUncapturedParityActions(menus: LegacyMenu[]): void {
+  const pushIfMissing = (menuLabel: string, action: MenuAction) => {
+    const menu = menus.find((candidate) => candidate.label === menuLabel);
+    if (!menu) return;
+    if (menu.actions.some((candidate) => candidate.label === action.label)) return;
+    menu.actions.push(action);
+  };
+  pushIfMissing('Basic Data', {
+    label: 'Godown',
+    key: 'Basic Data > Godown',
+    legacyPath: 'Basic Data > Godown',
+    href: '/app/master/godown',
+    implementation: 'implemented',
+    requiredPermission: 'master.read',
+    mappingStatus: 'unambiguous'
+  });
+  pushIfMissing('Basic Data', {
+    label: 'Areas',
+    key: 'Basic Data > Areas',
+    legacyPath: 'Basic Data > Areas',
+    href: '/app/master/areas',
+    implementation: 'implemented',
+    requiredPermission: 'master.read',
+    mappingStatus: 'unambiguous'
+  });
+  pushIfMissing('Basic Data', {
+    label: 'Customer Group',
+    key: 'Basic Data > Customer Group',
+    legacyPath: 'Basic Data > Customer Group',
+    href: '/app/master/customer-group',
+    implementation: 'implemented',
+    requiredPermission: 'master.read',
+    mappingStatus: 'unambiguous'
+  });
+  pushIfMissing('Maintenance', {
+    label: 'Godown Transfer',
+    key: 'Maintenance > Godown Transfer',
+    legacyPath: 'Maintenance > Godown Transfer',
+    href: '/app/maintenance/godown-transfer',
+    implementation: 'implemented',
+    requiredPermission: 'maintenance.write',
+    mappingStatus: 'unambiguous'
+  });
 }
 
 function correctCashSaleFileLabels(menus: LegacyMenu[]): LegacyMenu[] {
