@@ -39,6 +39,8 @@
   const pageSize = 50;
   let serverHasMore = false;
   let error = '';
+  let applyDefaultReportDate = false;
+  let showAccountInReports = false;
   const api = new AbuzarApi();
 
   $: kind = $page?.params?.kind ?? 'daily-sales-detail';
@@ -80,6 +82,28 @@
     void api.session().then((result) => {
       if (result.authenticated && result.context) authenticatedUsername = result.context.username || 'ADMIN';
     }).catch(() => { /* captured title remains available while the session resolves */ });
+    void api.preferences('Report').then((reportPrefs) => {
+      const items = reportPrefs.registry ?? reportPrefs.items ?? [];
+      const yes = (value: string | undefined) => /^(yes|true|1|y)$/i.test(value || 'No');
+      let defaultStart = '';
+      for (const item of items) {
+        if (item.caption === 'Apply Default Date for Report Arg. Window?') applyDefaultReportDate = yes(item.value);
+        if (item.caption === 'Show Account in Reports:') showAccountInReports = yes(item.value);
+        if (item.caption === 'Default Start Date:') defaultStart = (item.value || '').slice(0, 10);
+      }
+      if (applyDefaultReportDate && /^\d{4}-\d{2}-\d{2}$/.test(defaultStart)) {
+        let hasSavedFrom = false;
+        try {
+          const saved = JSON.parse(window.localStorage.getItem(reportInputStorageKey()) ?? window.localStorage.getItem(`abuzar.report.${kind}`) ?? '{}') as { fromDate?: string };
+          hasSavedFrom = Boolean(saved.fromDate);
+        } catch {
+          hasSavedFrom = false;
+        }
+        if (!hasSavedFrom) fromDate = defaultStart;
+      }
+    }).catch(() => {
+      /* operators without preferences.read keep today and hide the extra account column */
+    });
     if (kind === 'daily-sales-detail') {
       loading = true;
       window.setTimeout(() => { loading = false; showArguments = true; }, 1800);
@@ -419,7 +443,7 @@
       {#if definition.projectionNote}<small class="legacy-report-fallback-note">{definition.projectionNote}</small>{:else if definition.projectionStatus === 'generic-fallback'}<small class="legacy-report-fallback-note">Generic event-ledger fallback; exact legacy projection is not implemented.</small>{/if}
     </div>
     {#if error}<p class="legacy-report-error" role="alert">{error}</p>{/if}
-    <div class="legacy-report-grid-wrap"><table class="legacy-report-grid"><thead><tr>{#each definition.columns as column}<th><button type="button" onclick={() => sortBy(column.key)}>{column.label} {sortColumn === column.key ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</button></th>{/each}</tr></thead><tbody>{#if retrieved && visibleRows.length > 0}{#each visibleRows as row}<tr>{#each definition.columns as column}<td>{cellValue(row, column)}</td>{/each}</tr>{/each}{:else if retrieved}<tr><td colspan={definition.columns.length}>No rows match the selected scope.</td></tr>{:else}<tr><td colspan={definition.columns.length}>Report results appear here after Retrieve.</td></tr>{/if}</tbody></table></div>
+    <div class="legacy-report-grid-wrap"><table class="legacy-report-grid"><thead><tr>{#each definition.columns as column}<th><button type="button" onclick={() => sortBy(column.key)}>{column.label} {sortColumn === column.key ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</button></th>{/each}{#if showAccountInReports}<th class="legacy-sale-optional-field">Account</th>{/if}</tr></thead><tbody>{#if retrieved && visibleRows.length > 0}{#each visibleRows as row}<tr>{#each definition.columns as column}<td>{cellValue(row, column)}</td>{/each}{#if showAccountInReports}<td class="legacy-sale-optional-field">{row.alternateAccountCode || row.party}</td>{/if}</tr>{/each}{:else if retrieved}<tr><td colspan={definition.columns.length + (showAccountInReports ? 1 : 0)}>No rows match the selected scope.</td></tr>{:else}<tr><td colspan={definition.columns.length + (showAccountInReports ? 1 : 0)}>Report results appear here after Retrieve.</td></tr>{/if}</tbody></table></div>
     {#if retrieved}<div class="legacy-report-pagination" role="navigation" aria-label="Report pages"><span>Rows {rows.length === 0 ? 0 : ((reportPage - 1) * pageSize) + 1}–{((reportPage - 1) * pageSize) + rows.length}{serverHasMore ? ' · More pages' : ''}</span><button type="button" onclick={() => { if (reportPage > 1) void retrieve(1); }} disabled={reportPage === 1}>|◀</button><button type="button" onclick={() => movePage(-1)} disabled={reportPage === 1}>◀</button><span>Page {reportPage}{serverHasMore ? ` of at least ${pageCount}` : ` of ${pageCount}`}</span><button type="button" onclick={() => movePage(1)} disabled={!serverHasMore}>▶</button><button type="button" onclick={() => { if (!serverHasMore) reportPage = pageCount; }} disabled={serverHasMore}>▶|</button></div>{/if}
   </div>{/if}
   {#if showArguments}<div class="legacy-report-dialog-backdrop" role="presentation"><div onpointerdown={() => { dialogInteractive = true; }} class:legacy-report-dialog-captured={!dialogInteractive} class="legacy-report-dialog" role="dialog" aria-modal="true" aria-label={definition.retrieval.title} tabindex="-1"><h2>{definition.retrieval.title}</h2><fieldset><legend>Selection List</legend><div class="legacy-report-selection-columns"><div><label for="selectable-area">Selectable Areas</label><select id="selectable-area" size="11" bind:value={selectableArea}>{#each definition.retrieval.areas as area}<option>{area}</option>{/each}</select></div><div><label for="selected-areas">Selected Areas</label><select id="selected-areas" size="11" multiple value={selectedAreas}>{#each selectedAreas as area}<option>{area}</option>{/each}</select></div></div><div class="legacy-report-selection-actions"><button type="button" onclick={addArea}>Add</button><button type="button" onclick={removeArea}>Remove</button><label for="all-areas"><input id="all-areas" type="checkbox" bind:checked={allAreas} /> All</label></div></fieldset><fieldset><legend>Date</legend><label for="report-start-date">Start Date:<input id="report-start-date" type="date" bind:value={fromDate} /></label><label for="report-end-date">End Date:<input id="report-end-date" type="date" bind:value={toDate} /></label></fieldset>{#if definition.retrieval.supportsCashCredit}<div class="legacy-report-checks"><label for="report-cash"><input id="report-cash" type="checkbox" bind:checked={cash} /> Cash</label><label for="report-credit"><input id="report-credit" type="checkbox" bind:checked={credit} /> Credit</label></div>{/if}<div class="legacy-report-dialog-actions"><button type="button" onclick={confirmArguments}>Ok</button><button type="button" onclick={() => { showArguments = false; dialogInteractive = false; }}>Cancel</button></div></div></div>{/if}
@@ -444,7 +468,7 @@
     <div class="legacy-report-preview-workspace"><div class="legacy-report-preview-page-wrap" style={`--preview-scale: ${previewZoom / 100}`}><article class="legacy-report-preview-page">
       <div class="legacy-report-letterhead"><strong>{definition.letterhead.name}</strong><span>{definition.letterhead.line2} / {definition.letterhead.line3}</span><span>Phone(s): {definition.letterhead.phone}{#if definition.letterhead.fax} · Fax: {definition.letterhead.fax}{/if}</span></div>
       <div class="legacy-report-preview-meta"><span>{title} · {format}</span><span>Page {reportPage} / {pageCount} · Preview {previewPage} / {previewPageCount}</span></div>
-      <table class="legacy-report-grid"><thead><tr>{#each definition.columns as column}<th>{column.label}</th>{/each}</tr></thead><tbody>{#if previewVisibleRows.length > 0}{#each previewVisibleRows as row}<tr>{#each definition.columns as column}<td>{cellValue(row, column)}</td>{/each}</tr>{/each}{:else}<tr><td colspan={definition.columns.length}>No rows loaded for this report page.</td></tr>{/if}</tbody></table>
+      <table class="legacy-report-grid"><thead><tr>{#each definition.columns as column}<th>{column.label}</th>{/each}{#if showAccountInReports}<th class="legacy-sale-optional-field">Account</th>{/if}</tr></thead><tbody>{#if previewVisibleRows.length > 0}{#each previewVisibleRows as row}<tr>{#each definition.columns as column}<td>{cellValue(row, column)}</td>{/each}{#if showAccountInReports}<td class="legacy-sale-optional-field">{row.alternateAccountCode || row.party}</td>{/if}</tr>{/each}{:else}<tr><td colspan={definition.columns.length + (showAccountInReports ? 1 : 0)}>No rows loaded for this report page.</td></tr>{/if}</tbody></table>
     </article></div></div>
   </div></div>{/if}
   <footer class="legacy-transaction-footer"><span role="status">{status}</span><a href="/app/legacy">Back to main window</a></footer>

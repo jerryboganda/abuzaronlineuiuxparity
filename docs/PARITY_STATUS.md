@@ -1,5 +1,16 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 purchase Ask New PO / net rate / report date+account / quotation days
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- `Purchase/Ask New Purchase Order No.:` prompts on purchase-order save; `Purchase Return/Ask Pur. Invoice No.:` prompts on return save.
+- `Purchase/Show Net Rate:` overlay-hidden Net Rate column.
+- Report `Apply Default Date for Report Arg. Window?` seeds from `Default Start Date` when no saved fromDate; `Show Account in Reports` overlay-hidden Account column.
+- Quotation Delivery/Validity Days and Payment To seed overlay-hidden header fields.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 purchase Ask PO / credit days / LC
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

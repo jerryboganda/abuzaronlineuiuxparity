@@ -109,6 +109,16 @@
   let grn = '';
   let guaranteePerson = '';
   let saleType = '';
+  let reference2 = '';
+  let reference3 = '';
+  let reference4 = '';
+  let salesPerson = '';
+  let doctor = '';
+  let saleMessage = '';
+  let accountFor = '';
+  let deliveryDays = '';
+  let validityDays = '';
+  let paymentTo = '';
   let remarks = '';
   let busy = false;
   let message = '';
@@ -1057,6 +1067,9 @@
               if (item.caption === 'Show P/O Rate:') showPoRate = preferenceYes(item.value);
               if (item.caption === 'Show P/O Discount (%):') showPoDiscount = preferenceYes(item.value);
               if (item.caption === 'Show Special Rate:') showSpecialRate = preferenceYes(item.value);
+              if (item.caption === 'Delivery Days:') deliveryDays = item.value || deliveryDays;
+              if (item.caption === 'Validity Days:') validityDays = item.value || validityDays;
+              if (item.caption === 'Payment To:') paymentTo = item.value || paymentTo;
             }
           } catch {
             /* quotation extras stay hidden when Quotation prefs cannot be read */
@@ -1411,6 +1424,18 @@
         {#if kind === 'quotation' && showPoDiscount}<label class="legacy-sale-optional-field">P/O Discount %:<input aria-label="Purchase order discount" bind:value={poDiscount} /></label>{/if}
         {#if kind === 'quotation' && showSpecialRate}<label class="legacy-sale-optional-field">Special Rate:<input aria-label="Special rate" bind:value={specialRate} /></label>{/if}
         {#if (kind === 'cash-return' || kind === 'credit-return' || kind === 'open-cash-return' || kind === 'open-credit-return') && showSaleReturnAccount}<label class="legacy-sale-optional-field">Account:<input aria-label="Sale return account" bind:value={saleReturnAccount} /></label>{/if}
+        <label class="legacy-sale-optional-field">Ref. 2:<input aria-label="Reference number 2" bind:value={reference2} /></label>
+        <label class="legacy-sale-optional-field">Ref. 3:<input aria-label="Reference number 3" bind:value={reference3} /></label>
+        <label class="legacy-sale-optional-field">Ref. 4:<input aria-label="Reference number 4" bind:value={reference4} /></label>
+        <label class="legacy-sale-optional-field">Sales Person:<input aria-label="Sales person" bind:value={salesPerson} /></label>
+        <label class="legacy-sale-optional-field">Doctor:<input aria-label="Doctor" bind:value={doctor} /></label>
+        <label class="legacy-sale-optional-field">Message:<input aria-label="Sale message" bind:value={saleMessage} /></label>
+        <label class="legacy-sale-optional-field">Account For:<input aria-label="Account for" bind:value={accountFor} /></label>
+        {#if kind === 'quotation'}
+          <label class="legacy-sale-optional-field">Delivery Days:<input aria-label="Delivery days" bind:value={deliveryDays} /></label>
+          <label class="legacy-sale-optional-field">Validity Days:<input aria-label="Validity days" bind:value={validityDays} /></label>
+          <label class="legacy-sale-optional-field">Payment To:<input aria-label="Payment to" bind:value={paymentTo} /></label>
+        {/if}
       </div>
       <div class="legacy-sale-lookup" aria-label="Item lookup list">
         <table><thead><tr><th>Name</th><th>Stock</th><th>Purchase Price</th><th>Sale Price</th><th>Manufacturer</th><th>P/Pcs.</th><th>Location</th></tr></thead><tbody>

@@ -708,8 +708,20 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, saving a sale return asks for the amount paid before the document is posted.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask amount received on p/return"):
 		return "When Yes, saving a purchase return asks for the amount received before the document is posted.", "wired"
-	case category == "Purchase" && (strings.Contains(lower, "ask purchase order") || strings.Contains(lower, "ask credit days") || strings.Contains(lower, "ask l. c. no")):
+	case category == "Purchase" && (strings.Contains(lower, "ask purchase order") || strings.Contains(lower, "ask new purchase order") || strings.Contains(lower, "ask credit days") || strings.Contains(lower, "ask l. c. no")):
 		return "When Yes, purchase save/post asks for the matching header value before the document is posted.", "wired"
+	case category == "Purchase Return" && strings.Contains(lower, "ask pur. invoice"):
+		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
+	case category == "Purchase" && strings.Contains(lower, "show net rate"):
+		return "When Yes, the purchase grid shows a Net Rate column. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Report" && strings.Contains(lower, "apply default date"):
+		return "When Yes, the report argument window seeds Start Date from Default Start Date.", "wired"
+	case category == "Report" && strings.Contains(lower, "default start date"):
+		return "Source date used when Apply Default Date for Report Arg. Window is Yes.", "wired"
+	case category == "Report" && strings.Contains(lower, "show account in reports"):
+		return "When Yes, report grids show an Account column. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Quotation" && (strings.Contains(lower, "delivery days") || strings.Contains(lower, "validity days") || strings.Contains(lower, "payment to")):
+		return "Seeds the quotation Delivery Days / Validity Days / Payment To header fields (overlay-hidden at 1936x1048).", "wired"
 	case category == "General" && strings.Contains(lower, "default batch"):
 		return "Empty purchase receipt batches are filled from this value (legacy default '.').", "wired"
 	case category == "General" && strings.Contains(lower, "default expiry"):
