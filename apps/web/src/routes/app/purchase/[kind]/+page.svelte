@@ -117,6 +117,8 @@
   let askNewPurchaseOrderNo = false;
   let askPurInvoiceNo = false;
   let showNetRate = false;
+  let showUnitWeight = false;
+  let showTotalWeight = false;
   let lcNo = '';
   let showAgency = false;
   let showVehicle = false;
@@ -847,6 +849,8 @@
           if (item.caption === 'Ask L. C. No.:') askLcNo = yes(item.value);
           if (item.caption === 'Ask New Purchase Order No.:') askNewPurchaseOrderNo = yes(item.value);
           if (item.caption === 'Show Net Rate:') showNetRate = yes(item.value);
+          if (item.caption === 'Show Unit Weight:') showUnitWeight = yes(item.value);
+          if (item.caption === 'Show Total Weight:') showTotalWeight = yes(item.value);
           if (item.caption === 'Account For:') accountFor = item.value || accountFor;
         }
       } catch {
@@ -1699,7 +1703,7 @@
       </div>
       <div class="legacy-transaction-grid-wrap">
         <table class="legacy-transaction-grid" class:legacy-pack-purchase-grid={kind === 'pack'}>
-          <thead>{#if kind === 'pack'}<tr>{#each packHeaders as header}<th>{header}</th>{/each}<th class="legacy-remaining-qty">Remaining</th>{#if showNetRate}<th class="legacy-purchase-optional-field">Net Rate</th>{/if}</tr>{:else}<tr><th>No.</th><th>Quick Search</th><th>Alias Name</th><th>Alternate Alias Name</th><th>Item Name</th><th>Pack Units</th><th>Packing</th><th>Item Location</th><th>Godown</th><th>Batch</th><th>Mfg. Date</th><th>Expiry</th><th>Batch Sale Price</th><th>Quantity</th><th class="legacy-remaining-qty">Remaining</th><th>Purchase Price</th><th>Total</th>{#if showNetRate}<th class="legacy-purchase-optional-field">Net Rate</th>{/if}<th></th>{#if kind === 'return'}<th>Source Batch ID</th>{/if}</tr>{/if}</thead>
+          <thead>{#if kind === 'pack'}<tr>{#each packHeaders as header}<th>{header}</th>{/each}<th class="legacy-remaining-qty">Remaining</th>{#if showNetRate}<th class="legacy-purchase-optional-field">Net Rate</th>{/if}</tr>{:else}<tr><th>No.</th><th>Quick Search</th><th>Alias Name</th><th>Alternate Alias Name</th><th>Item Name</th><th>Pack Units</th><th>Packing</th><th>Item Location</th><th>Godown</th><th>Batch</th><th>Mfg. Date</th><th>Expiry</th><th>Batch Sale Price</th><th>Quantity</th><th class="legacy-remaining-qty">Remaining</th><th>Purchase Price</th><th>Total</th>{#if showNetRate}<th class="legacy-purchase-optional-field">Net Rate</th>{/if}{#if showUnitWeight}<th class="legacy-purchase-optional-field">Weight/Unit</th>{/if}{#if showTotalWeight}<th class="legacy-purchase-optional-field">Total Weight</th>{/if}<th></th>{#if kind === 'return'}<th>Source Batch ID</th>{/if}</tr>{/if}</thead>
           <tbody>
             {#each rows as row, index}
               <tr>
@@ -1721,6 +1725,8 @@
                 <td><input aria-label={`Purchase price ${index + 1}`} value={row.purchasePrice} oninput={(event) => updateRow(index, 'purchasePrice', event.currentTarget.value)} /></td>
                 <td>{row.total}</td>
                 {#if showNetRate}<td class="legacy-purchase-optional-field">{((Number(row.purchasePrice) || 0) * (1 - (Number(row.discountPercent) || 0) / 100)).toFixed(2)}</td>{/if}
+                {#if showUnitWeight}<td class="legacy-purchase-optional-field"></td>{/if}
+                {#if showTotalWeight}<td class="legacy-purchase-optional-field"></td>{/if}
                 <td><button type="button" aria-label={`Remove row ${index + 1}`} onclick={() => removeRow(index)}>×</button></td>
                 {#if kind === 'return'}<td><input aria-label={`Source batch ID ${index + 1}`} value={row.sourceBatchId} oninput={(event) => updateSourceBatchId(index, event.currentTarget.value)} /></td>{/if}
               </tr>

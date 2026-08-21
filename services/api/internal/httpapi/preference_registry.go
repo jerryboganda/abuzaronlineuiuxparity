@@ -714,6 +714,8 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
 	case category == "Purchase" && strings.Contains(lower, "show net rate"):
 		return "When Yes, the purchase grid shows a Net Rate column. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Purchase" && (strings.Contains(lower, "show unit weight") || strings.Contains(lower, "show total weight")):
+		return "When Yes, the purchase grid shows Weight/Unit or Total Weight. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "Report" && strings.Contains(lower, "apply default date"):
 		return "When Yes, the report argument window seeds Start Date from Default Start Date.", "wired"
 	case category == "Report" && strings.Contains(lower, "default start date"):

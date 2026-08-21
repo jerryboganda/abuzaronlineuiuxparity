@@ -1,5 +1,13 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 purchase weight columns
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- `Purchase/Show Unit Weight:` and `Show Total Weight:` overlay-hidden grid columns.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 extra sale/purchase header seeds
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:
