@@ -702,6 +702,10 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Empty purchase receipt batches are filled from this value (legacy default '.').", "wired"
 	case category == "General" && strings.Contains(lower, "default expiry"):
 		return "Empty purchase receipt expiry dates are filled from this value (legacy default 2030-12-12).", "wired"
+	case category == "General" && strings.Contains(lower, "max. allowed days"):
+		return "Credit-sale dueDate may not be more than this many calendar days after the document date (legacy default 30).", "wired"
+	case category == "General" && strings.Contains(lower, "prompt before printing"):
+		return "When Yes, sale and purchase Print asks for confirmation before sending the slip or opening preview.", "wired"
 	case strings.Contains(lower, "price #") || strings.Contains(lower, "retail price"):
 		return "Stored for the captured preference contract; the current pricing API does not implicitly read this setting.", "stored_only"
 	case strings.Contains(lower, "gst") || strings.Contains(lower, "sales tax") || strings.Contains(lower, "pct code") || strings.Contains(lower, "extra tax"):

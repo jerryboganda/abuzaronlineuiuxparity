@@ -349,6 +349,49 @@ func normalizeDocumentDueDate(kind, value string) (string, error) {
 	return trimmed, nil
 }
 
+func calendarDay(value string) (time.Time, bool) {
+	trimmed := strings.TrimSpace(value)
+	if len(trimmed) >= 10 {
+		if day, err := time.Parse("2006-01-02", trimmed[:10]); err == nil {
+			return day, true
+		}
+	}
+	if parsed, err := time.Parse(time.RFC3339, trimmed); err == nil {
+		return time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, time.UTC), true
+	}
+	return time.Time{}, false
+}
+
+func creditDueDateBeyondMaxAllowed(occurredAt, dueDate string, maxDays int) bool {
+	if strings.TrimSpace(dueDate) == "" || maxDays <= 0 {
+		return false
+	}
+	occurred, ok := calendarDay(occurredAt)
+	if !ok {
+		return false
+	}
+	due, err := time.Parse("2006-01-02", strings.TrimSpace(dueDate))
+	if err != nil {
+		return false
+	}
+	return due.After(occurred.AddDate(0, 0, maxDays))
+}
+
+func maxAllowedCreditDays(ctx context.Context, tx *sql.Tx, operator *sessionContext) int {
+	const fallback = 30
+	if raw, err := effectivePreferenceValue(ctx, tx, operator, "General", "Max. Allowed Days:"); err == nil && strings.TrimSpace(raw) != "" {
+		if parsed, convErr := strconv.Atoi(strings.TrimSpace(raw)); convErr == nil && parsed > 0 {
+			return parsed
+		}
+	}
+	if definition, ok := preferenceDefinitionMap("General")["Max. Allowed Days:"]; ok {
+		if parsed, convErr := strconv.Atoi(strings.TrimSpace(definition.Default)); convErr == nil && parsed > 0 {
+			return parsed
+		}
+	}
+	return fallback
+}
+
 func inputAccountCode(input *documentPaymentRequest) string {
 	if input == nil {
 		return ""
@@ -910,6 +953,10 @@ func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 	dueDate, err := normalizeDocumentDueDate(command.Kind, draft.DueDate)
 	if err != nil {
 		return "", documentCommandResponse{}, err
+	}
+	maxDays := maxAllowedCreditDays(ctx, tx, operator)
+	if creditDueDateBeyondMaxAllowed(draft.OccurredAt, dueDate, maxDays) {
+		return "", documentCommandResponse{}, fmt.Errorf("dueDate exceeds General/Max. Allowed Days (%d)", maxDays)
 	}
 	pricingJSON, err := withPaymentPricingSnapshot(priced.pricingJSON, payment)
 	if err != nil {

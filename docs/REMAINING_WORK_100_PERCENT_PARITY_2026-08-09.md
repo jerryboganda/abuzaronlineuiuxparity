@@ -55,7 +55,18 @@ Shipped:
 - **Phase F / customer group:** payload fields for Category, GroupAllowedPrice, CreditLimit, DefaultItemDiscPerc.
 - Report SQL bugs listed later in this audit as still open were already fixed in `docs/evidence/REPORTS_BUG_FIX_WAVE_2026-08-09.md` (9/10); purchase G/P remains a product decision.
 
-Still open: ~434 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay.
+Still open: ~432 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay.
+
+## Progress update — 2026-08-09, max-days / prompt-before-print wave
+
+**100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase V / Max. Allowed Days:** credit-sale `dueDate` may not exceed the document date plus this many days (default 30). UI `max` on the due-date picker matches.
+- **Phase V / Prompt Before Printing:** when Yes, sale and purchase Print confirms before preview/slip.
+
+Still open: ~432 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay.
 
 ---
 
@@ -344,7 +355,7 @@ OUT OF SCOPE (documented 2026-08-08). One nuance: `docs/RUNBOOK_CUTOVER.md` alre
 
 1. **Report leaves golden verification (N–Q)** — wave 1 done 2026-08-09 (114/151 evidence-verified, 9 bugs fixed); 37 leaves untouched and ~6 documented bugs still open (see progress update above). Still the largest gap in the project, but no longer a 0% start.
 2. **Pixel-parity sweep (Phase X)** — catalog doesn't exist, baseline directory is empty; needs to start from scratch.
-3. **Preferences wiring (Phase V/S)** — ~434 of ~441 preferences still have no backend behavior (credit-limit, cash/credit default price #, Allow Zero Retail Price, Default Batch, Default Expiry now wired).
+3. **Preferences wiring (Phase V/S)** — ~432 of ~441 preferences still have no backend behavior (credit-limit, cash/credit default price #, Allow Zero Retail Price, Default Batch, Default Expiry, Max. Allowed Days, Prompt Before Printing now wired).
 4. **Pricing engine real logic (Phase G)** — PricePolicy tiers and GroupAllowedPrice now apply on priced-sale posting; redo golden replay so invoices are computed by `pricing.Calculate()`, not copied from source.
 5. **Security hardening (Phase R)** — make ADMINISTRATOR table-driven or explicitly ratify the bypass; get real menu-snapshot tests for all 4 groups, not 1.
 6. **Master data gaps (Phase F)** — Godown/Areas/Customer Group are menu-reachable; Customer Group now has payload category/price/credit/disc fields. Shared list-chrome remains.

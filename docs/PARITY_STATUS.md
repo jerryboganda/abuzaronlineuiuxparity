@@ -1,5 +1,14 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 max-days / prompt-before-print
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- `General/Max. Allowed Days:` (default 30) rejects credit-sale due dates beyond the document date window; the due-date picker uses the same max.
+- `General/Prompt Before Printing:` (default No) confirms before sale/purchase Print.
+
+Evidence: `TestCreditDueDateBeyondMaxAllowed`. Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 zero-price / default batch / reprint / customer-group
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

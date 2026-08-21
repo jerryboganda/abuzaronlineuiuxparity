@@ -80,6 +80,8 @@
   let salePriceMode = 'Sale Price 1';
   let transactionDate = localDateString();
   let dueDate = '';
+  let maxAllowedDays = 30;
+  let promptBeforePrinting = false;
   let remarks = '';
   let busy = false;
   let message = '';
@@ -272,12 +274,24 @@
     void applyHistoryRow(history[index < 0 ? history.length - 1 : Math.min(index, history.length - 1)]);
   }
 
+  function addCalendarDays(iso: string, days: number): string {
+    const parts = iso.split('-').map(Number);
+    if (parts.length < 3 || parts.some((part) => Number.isNaN(part))) return '';
+    const date = new Date(parts[0], parts[1] - 1, parts[2] + days);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+  $: dueDateMax = addCalendarDays(transactionDate, maxAllowedDays);
+
   function reprintDocument() {
     const filterValue = encodeURIComponent((documentNumber || '').trim());
     void goto(`/app/report/reprinting-sale?filter=${filterValue}`);
   }
 
   async function printSaleSlip() {
+    if (promptBeforePrinting && !window.confirm('Print this sale?')) {
+      message = 'Print cancelled.';
+      return;
+    }
     const slip = {
       header: 'WASEELA ABUZAR',
       store: 'Abuzar Software',
@@ -973,6 +987,20 @@
         pending = (await queue.pending()).length;
         const godownResult = await api.masterRecords('godown');
         godowns = godownResult.records.filter((record) => record.active);
+        try {
+          const general = await api.preferences('General');
+          for (const item of general.registry ?? general.items ?? []) {
+            if (item.caption === 'Max. Allowed Days:') {
+              const parsed = Number.parseInt(item.value || '30', 10);
+              if (parsed > 0) maxAllowedDays = parsed;
+            }
+            if (item.caption === 'Prompt Before Printing:') {
+              promptBeforePrinting = /^(yes|true|1|y)$/i.test(item.value || 'No');
+            }
+          }
+        } catch {
+          /* operators without preferences.read keep registry defaults */
+        }
       } catch (cause) { error = apiErrorMessage(cause, 'The API session or canonical sales context could not be loaded.'); }
     })();
     return () => { window.clearInterval(clockTimer); window.removeEventListener('online', updateOnline); window.removeEventListener('offline', updateOnline); };
@@ -1284,7 +1312,7 @@
     <div class="legacy-transaction-detail" inert={busy} aria-busy={busy}>
       <div class="legacy-sale-fields">
         <label>Inv. No:<input bind:value={documentNumber} /></label><label>Date:<input type="date" bind:value={transactionDate} /></label>
-        {#if kind === 'credit'}<label>Due Date:<input aria-label="Due date" type="date" bind:value={dueDate} /></label>{/if}
+        {#if kind === 'credit'}<label>Due Date:<input aria-label="Due date" type="date" bind:value={dueDate} max={dueDateMax} /></label>{/if}
         <label>User:<input value={session?.username ?? ''} readonly /></label><label>Godown:<select aria-label="Godown" bind:value={godownId} onchange={() => void refreshAllAvailability()}><option value="">Select active godown</option>{#each godowns as godown}<option value={godown.id}>{godown.name}</option>{/each}</select></label>
         <label>Alias Name:<input aria-label="Item lookup query" bind:value={lookupQuery} oninput={(event) => void searchItems((event.currentTarget as HTMLInputElement).value)} onkeydown={(event) => { if (barcodeScanListener.handleKeydown(event)) return; if (event.key === 'Enter') void searchItems((event.currentTarget as HTMLInputElement).value); }} /></label><label>Customer:{#if kind === 'credit' || kind === 'credit-return' || kind === 'open-credit-return'}<select aria-label="Customer" bind:value={customerId} onchange={() => { const selected = customers.find((party) => party.id === customerId); customer = selected?.name ?? ''; }}><option value="">Select active customer</option>{#each customers as party}<option value={party.id}>{party.name}</option>{/each}</select>{:else}<input bind:value={customer} readonly />{/if}</label>
         {#if kind === 'cash-return' || kind === 'credit-return'}<label>Source Inv. ID:<input aria-label="Source document ID" bind:value={sourceDocumentId} /></label><label>Source Inv. No.:<input aria-label="Source document number" bind:value={sourceDocumentNumber} /></label>{/if}

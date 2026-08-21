@@ -108,6 +108,7 @@
   let pending = 0;
   let message = '';
   let error = '';
+  let promptBeforePrinting = false;
   let rows: PurchaseRow[] = [blankRow()];
   let focusedRowIndex = 0;
   let activeTab: 'detail' | 'list' = 'detail';
@@ -406,8 +407,7 @@
         return true;
       case 'Print':
       case 'Purchase Slip':
-        message = `${action.label}: print preview ready.`;
-        window.print();
+        printPurchaseSlip(action.label);
         return true;
       case 'Reprint':
       case 'Re-Print':
@@ -776,6 +776,25 @@
     const selectedGodown = rows.find((row) => row.godown.trim())?.godown.trim().toLowerCase() ?? '';
     const godownMatch = godownRecords.find((record) => record.code.toLowerCase() === selectedGodown || record.name.toLowerCase() === selectedGodown || record.legacyId?.toLowerCase() === selectedGodown);
     godownId = godownMatch?.id ?? '';
+    try {
+      const general = await api.preferences('General');
+      for (const item of general.registry ?? general.items ?? []) {
+        if (item.caption === 'Prompt Before Printing:') {
+          promptBeforePrinting = /^(yes|true|1|y)$/i.test(item.value || 'No');
+        }
+      }
+    } catch {
+      /* operators without preferences.read keep registry default No */
+    }
+  }
+
+  function printPurchaseSlip(label = 'Purchase Slip') {
+    if (promptBeforePrinting && !window.confirm('Print this purchase?')) {
+      message = 'Print cancelled.';
+      return;
+    }
+    message = `${label}: print preview ready.`;
+    window.print();
   }
 
   const packHeaders = ['No.', 'Quick Search', 'Alias Name', 'Alternate Alias Name', 'Item Name', 'Pack Units', 'Packing', 'Item Location', 'Godown', 'Batch', 'Mfg. Date', 'Expiry', 'Batch Sale Price', 'Lock Batch', 'Lock Reason', 'Description', 'Total Pieces', 'Weight/Unit', 'Total Weight', 'Pack Capacity', 'Area/Volume', ''];
@@ -1471,7 +1490,7 @@
       <button type="button" aria-label="New document" onclick={newDocument} disabled={busy} title="New document">▱</button>
       <button type="button" aria-label="Save document" onclick={() => { void savePurchase('save'); }} disabled={busy} title="Save document">▣</button>
       <button type="button" aria-label="Void document" onclick={() => { void voidPurchase(); }} disabled={busy || !businessDocumentId} title="Void document">⊘</button>
-      <button type="button" aria-label="Print document" onclick={() => { message = 'Purchase Slip: print preview ready.'; window.print(); }} title="Print">▤</button>
+      <button type="button" aria-label="Print document" onclick={() => printPurchaseSlip()} title="Print">▤</button>
       <button type="button" class="legacy-reprint-action" aria-label="Reprint document" onclick={reprintPurchase} title="Reprint">▤*</button>
       <span class="legacy-toolbar-separator"></span>
       <button type="button" aria-label="Previous document" onclick={() => { void navigateHistory(-1); }} disabled={busy} title="Previous">◀</button>

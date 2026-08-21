@@ -268,6 +268,21 @@ func TestNormalizeDocumentDueDateOnlyAllowsCreditSales(t *testing.T) {
 	}
 }
 
+func TestCreditDueDateBeyondMaxAllowed(t *testing.T) {
+	if creditDueDateBeyondMaxAllowed("2026-08-06T00:00:00Z", "2026-09-05", 30) {
+		t.Fatal("due date exactly 30 days later should be allowed")
+	}
+	if !creditDueDateBeyondMaxAllowed("2026-08-06T00:00:00Z", "2026-09-06", 30) {
+		t.Fatal("due date 31 days later should be blocked")
+	}
+	if creditDueDateBeyondMaxAllowed("2026-08-06T00:00:00Z", "", 30) {
+		t.Fatal("empty due date should not be blocked")
+	}
+	if creditDueDateBeyondMaxAllowed("2026-08-06T00:00:00Z", "2026-08-20", 30) {
+		t.Fatal("due date within the window should be allowed")
+	}
+}
+
 func TestWithDueDatePricingSnapshotPreservesPricing(t *testing.T) {
 	result, err := withDueDatePricingSnapshot([]byte(`{"total":"12.00"}`), "2026-08-31")
 	if err != nil {
