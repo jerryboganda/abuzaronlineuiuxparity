@@ -26,6 +26,22 @@
   let accountsAnalysisDays = '30';
   let serviceAnalysisDays = '30';
   let inventoryBreakupOn = 'Category';
+  let checkManualBackupHealth = false;
+  let ageOfItemChangesDays = '';
+  let inSaleReturn = false;
+  let inBasicData = false;
+  let inAccountsModule = false;
+  let inPurchaseReturn = false;
+  let inPurchaseReturnServices = false;
+  let inAccounts = false;
+  let enableQuickSearch = false;
+  let quickSearchType = '';
+  let inventorySystem = '';
+  let inventoryMovementMethod = '';
+  let enableAliasName = false;
+  let searchItemCodeIfAliasMissing = false;
+  let allowLoginMultipleTimes = false;
+  let autoResponsiveSearch = false;
   const api = new AbuzarApi();
 
   function amount(value: string): number {
@@ -61,6 +77,29 @@
       try {
         const dashboardPrefs = await api.preferences('Dashboard');
         const yesNo = (value: string | undefined) => (value || '').trim();
+        try {
+          const generalPrefs = await api.preferences('General');
+          for (const item of generalPrefs.registry ?? generalPrefs.items ?? []) {
+            if (item.caption === 'Check Manual Backup Health At StartUp:') checkManualBackupHealth = /^(yes|true|1|y)$/i.test(item.value || 'No');
+            if (item.caption === 'Age of Item Changes For Data Carry (in Days):') ageOfItemChangesDays = item.value || ageOfItemChangesDays;
+            if (item.caption === 'In Sale/Return:') inSaleReturn = /^(yes|true|1|y)$/i.test(item.value || 'No');
+            if (item.caption === 'In Basic Data:') inBasicData = /^(yes|true|1|y)$/i.test(item.value || 'No');
+            if (item.caption === 'In Accounts Module:') inAccountsModule = /^(yes|true|1|y)$/i.test(item.value || 'No');
+            if (item.caption === 'In Purchase/Purchase Return:') inPurchaseReturn = /^(yes|true|1|y)$/i.test(item.value || 'No');
+            if (item.caption === 'In Purchase/Purchase Return Services:') inPurchaseReturnServices = /^(yes|true|1|y)$/i.test(item.value || 'No');
+            if (item.caption === 'In Accounts:') inAccounts = /^(yes|true|1|y)$/i.test(item.value || 'No');
+            if (item.caption === 'Enable Quick Search:') enableQuickSearch = /^(yes|true|1|y)$/i.test(item.value || 'No');
+            if (item.caption === 'Quick Search Type:') quickSearchType = item.value || quickSearchType;
+            if (item.caption === 'Inventory System:') inventorySystem = item.value || inventorySystem;
+            if (item.caption === 'Inventory Movement Method:') inventoryMovementMethod = item.value || inventoryMovementMethod;
+            if (item.caption === 'Enable Alias Name:') enableAliasName = /^(yes|true|1|y)$/i.test(item.value || 'No');
+            if (item.caption === 'Search Item Code if Alias Name Not Found:') searchItemCodeIfAliasMissing = /^(yes|true|1|y)$/i.test(item.value || 'No');
+            if (item.caption === 'Allow Login A User Multiple Times:') allowLoginMultipleTimes = /^(yes|true|1|y)$/i.test(item.value || 'No');
+            if (item.caption === 'Auto Responsive Search With Alternate Alias Name:') autoResponsiveSearch = /^(yes|true|1|y)$/i.test(item.value || 'No');
+          }
+        } catch {
+          /* general extras keep defaults */
+        }
         for (const item of dashboardPrefs.registry ?? dashboardPrefs.items ?? []) {
           if (item.caption === 'Sales Analysis Days Lim.:') {
             const parsed = Number.parseInt(item.value || '1', 10);
@@ -218,7 +257,7 @@
         </article>
       </section>
       <section class="legacy-sale-optional-field" aria-label="Dashboard analysis limits">
-        <p class="muted">Summary {summaryAnalysisDays}d · Purchase {purchaseAnalysisDays}d · Receipt {receiptAnalysisDays}d · Issue {issueAnalysisDays}d · Adjustment {adjustmentAnalysisDays}d · Godown transfer {godownTransferAnalysisDays}d · Accounts {accountsAnalysisDays}d · Service {serviceAnalysisDays}d · Breakup {inventoryBreakupOn}</p>
+        <p class="muted">Summary {summaryAnalysisDays}d · Purchase {purchaseAnalysisDays}d · Receipt {receiptAnalysisDays}d · Issue {issueAnalysisDays}d · Adjustment {adjustmentAnalysisDays}d · Godown transfer {godownTransferAnalysisDays}d · Accounts {accountsAnalysisDays}d · Service {serviceAnalysisDays}d · Breakup {inventoryBreakupOn} · Age of item changes {ageOfItemChangesDays || '—'}d{#if checkManualBackupHealth} · Backup health extra{/if}{#if inSaleReturn} · In Sale/Return{/if}{#if inBasicData} · In Basic Data{/if}{#if inAccountsModule} · In Accounts Module{/if}{#if inPurchaseReturn} · In Purchase/Return{/if}{#if inPurchaseReturnServices} · In Purchase/Return Services{/if}{#if inAccounts} · In Accounts{/if}{#if enableQuickSearch} · Quick search extra{/if}{quickSearchType ? ` · Quick search type ${quickSearchType}` : ''}{inventorySystem ? ` · ${inventorySystem}` : ''}{inventoryMovementMethod ? ` · ${inventoryMovementMethod}` : ''}{#if enableAliasName} · Alias extra{/if}{#if searchItemCodeIfAliasMissing} · Alias code extra{/if}{#if allowLoginMultipleTimes} · Multi-login extra{/if}{#if autoResponsiveSearch} · Responsive search extra{/if}</p>
       </section>
 
       <section class="content-grid">

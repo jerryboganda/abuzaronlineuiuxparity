@@ -178,6 +178,21 @@
   let showPosMiscCharges = false;
   let showPosInvoiceDiscount = false;
   let showPosInvoiceFlatDiscount = false;
+  let posSaleSetsDeals = false;
+  let posAutoProduction = false;
+  let posAskAssociateInvoices = false;
+  let posCheckDueDate = false;
+  let posResetInvBalance = false;
+  let posCashDrawerComPort = '';
+  let cashSaleInitialFocus = '';
+  let creditSaleInitialFocus = '';
+  let allowQuotationDuplicateItems = false;
+  let saleReturnUpdateAvgPrice = false;
+  let allowEmptySaleInvOnReturn = false;
+  let posPromptZeroStock = false;
+  let posLockSaleQtyBonus = false;
+  let posLockItemName = false;
+  let posMustSaveOnExit = false;
   let alternateAliasName = '';
   let itemFlatDiscount = '';
   let bonusQty = '';
@@ -1166,6 +1181,8 @@
               if (item.caption === 'Doctor:') doctor = item.value || doctor;
               if (item.caption === 'Message:') saleMessage = item.value || saleMessage;
               if (item.caption === 'Account For:') accountFor = item.value || accountFor;
+              if (item.caption === 'Cash Sale Initial Focus:') cashSaleInitialFocus = item.value || cashSaleInitialFocus;
+              if (item.caption === 'Credit Sale Initial Focus:') creditSaleInitialFocus = item.value || creditSaleInitialFocus;
               if (item.caption === 'Loyalty Points:') loyaltyPoints = item.value || loyaltyPoints;
               if (item.caption === 'Currency:') currency = item.value || currency;
               if (item.caption === 'Motor Vehicle:') motorVehicle = item.value || motorVehicle;
@@ -1225,6 +1242,7 @@
               if (item.caption === 'Allow Quotation Above Avg. Price:') allowQuotationAboveAvg = preferenceYes(item.value);
               if (item.caption === 'Drop Box - Auto Fetch Prices Of Branch P/O:') dropBoxFetchPrices = item.value || dropBoxFetchPrices;
               if (item.caption === 'Drop Box - Auto Fetch Discounts Of Branch P/O:') dropBoxFetchDiscounts = item.value || dropBoxFetchDiscounts;
+              if (item.caption === 'Allow Duplicate Items:') allowQuotationDuplicateItems = preferenceYes(item.value);
             }
           } catch {
             /* quotation extras stay hidden when Quotation prefs cannot be read */
@@ -1258,6 +1276,8 @@
               if (item.caption === 'Auto Post Sale Return Allocation:') autoPostSaleReturnAllocation = preferenceYes(item.value);
               if (item.caption === 'Allow Same Batch Return Multiple Times:') allowSameBatchReturn = preferenceYes(item.value);
               if (item.caption === 'Fetch FBR POS Fee For Reference S/R:') fetchFbrPosFee = preferenceYes(item.value);
+              if (item.caption === 'Update Avg. Price:') saleReturnUpdateAvgPrice = preferenceYes(item.value);
+              if (item.caption === 'Allow Empty Sale Inv # in Unposted S/R Module:') allowEmptySaleInvOnReturn = preferenceYes(item.value);
               if (item.caption === 'Round Item Total (decimal places):' && item.value?.trim()) {
                 const places = Number(item.value);
                 if (Number.isFinite(places) && places >= 0 && places <= 6) roundItemTotalPlaces = places;
@@ -1302,6 +1322,16 @@
               if (item.caption === 'Misc. Charges:') showPosMiscCharges = preferenceYes(item.value);
               if (item.caption === 'Invoice Discount %:') showPosInvoiceDiscount = preferenceYes(item.value);
               if (item.caption === 'Invoice Flat Discount:') showPosInvoiceFlatDiscount = preferenceYes(item.value);
+              if (item.caption === 'Sale Sets/Deals In POS:') posSaleSetsDeals = preferenceYes(item.value);
+              if (item.caption === 'Auto Production In POS:') posAutoProduction = preferenceYes(item.value);
+              if (item.caption === 'Ask Associate Sale Invoices on Saving:') posAskAssociateInvoices = preferenceYes(item.value);
+              if (item.caption === 'Check Due Date on Saving:') posCheckDueDate = preferenceYes(item.value);
+              if (item.caption === 'Reset Inv. Balance Field in Footer On Saving') posResetInvBalance = preferenceYes(item.value);
+              if (item.caption === 'Default Cash Drawer COM Port') posCashDrawerComPort = item.value || posCashDrawerComPort;
+              if (item.caption === 'Prompt For Zero Stock:') posPromptZeroStock = preferenceYes(item.value);
+              if (item.caption === 'Lock Sale Qty/Bonus:') posLockSaleQtyBonus = preferenceYes(item.value);
+              if (item.caption === 'Lock Item Name:') posLockItemName = preferenceYes(item.value);
+              if (item.caption === 'Must Save Invoice on Exit:') posMustSaveOnExit = preferenceYes(item.value);
             }
           } catch {
             /* POS extras stay hidden when Point of Sale prefs cannot be read */
@@ -1678,6 +1708,8 @@
         <label class="legacy-sale-optional-field">Doctor:<input aria-label="Doctor" bind:value={doctor} /></label>
         <label class="legacy-sale-optional-field">Message:<input aria-label="Sale message" bind:value={saleMessage} /></label>
         <label class="legacy-sale-optional-field">Account For:<input aria-label="Account for" bind:value={accountFor} /></label>
+        <label class="legacy-sale-optional-field">Cash Sale Initial Focus:<input aria-label="Cash sale initial focus extra" bind:value={cashSaleInitialFocus} /></label>
+        <label class="legacy-sale-optional-field">Credit Sale Initial Focus:<input aria-label="Credit sale initial focus extra" bind:value={creditSaleInitialFocus} /></label>
         <label class="legacy-sale-optional-field">Loyalty Points:<input aria-label="Loyalty points" bind:value={loyaltyPoints} /></label>
         <label class="legacy-sale-optional-field">Currency:<input aria-label="Currency" bind:value={currency} /></label>
         <label class="legacy-sale-optional-field">Motor Vehicle:<input aria-label="Motor vehicle" bind:value={motorVehicle} /></label>
@@ -1720,6 +1752,16 @@
         {#if showPosMiscCharges}<label class="legacy-sale-optional-field">POS Misc. Charges:<input type="checkbox" checked={showPosMiscCharges} disabled /></label>{/if}
         {#if showPosInvoiceDiscount}<label class="legacy-sale-optional-field">POS Invoice Discount %:<input type="checkbox" checked={showPosInvoiceDiscount} disabled /></label>{/if}
         {#if showPosInvoiceFlatDiscount}<label class="legacy-sale-optional-field">POS Invoice Flat Discount:<input type="checkbox" checked={showPosInvoiceFlatDiscount} disabled /></label>{/if}
+        {#if posSaleSetsDeals}<label class="legacy-sale-optional-field">Sale Sets/Deals In POS:<input type="checkbox" checked={posSaleSetsDeals} disabled /></label>{/if}
+        {#if posAutoProduction}<label class="legacy-sale-optional-field">Auto Production In POS:<input type="checkbox" checked={posAutoProduction} disabled /></label>{/if}
+        {#if posAskAssociateInvoices}<label class="legacy-sale-optional-field">Ask Associate Sale Invoices on Saving:<input type="checkbox" checked={posAskAssociateInvoices} disabled /></label>{/if}
+        {#if posCheckDueDate}<label class="legacy-sale-optional-field">Check Due Date on Saving:<input type="checkbox" checked={posCheckDueDate} disabled /></label>{/if}
+        {#if posResetInvBalance}<label class="legacy-sale-optional-field">Reset Inv. Balance Field in Footer On Saving:<input type="checkbox" checked={posResetInvBalance} disabled /></label>{/if}
+        <label class="legacy-sale-optional-field">Default Cash Drawer COM Port:<input aria-label="Default cash drawer COM port extra" bind:value={posCashDrawerComPort} /></label>
+        {#if posPromptZeroStock}<label class="legacy-sale-optional-field">Prompt For Zero Stock:<input type="checkbox" checked={posPromptZeroStock} disabled /></label>{/if}
+        {#if posLockSaleQtyBonus}<label class="legacy-sale-optional-field">Lock Sale Qty/Bonus:<input type="checkbox" checked={posLockSaleQtyBonus} disabled /></label>{/if}
+        {#if posLockItemName}<label class="legacy-sale-optional-field">Lock Item Name:<input type="checkbox" checked={posLockItemName} disabled /></label>{/if}
+        {#if posMustSaveOnExit}<label class="legacy-sale-optional-field">Must Save Invoice on Exit:<input type="checkbox" checked={posMustSaveOnExit} disabled /></label>{/if}
         {#if aggregate === 'sale_return'}
           <label class="legacy-sale-optional-field">Payment Mode:<input aria-label="Sale return payment mode" bind:value={paymentModeAmtPaid} /></label>
           <label class="legacy-sale-optional-field">Payment A/C:<input aria-label="Sale return payment account" bind:value={paymentAccountAmtPaid} /></label>
@@ -1742,6 +1784,8 @@
           {#if autoPostSaleReturnAllocation}<label class="legacy-sale-optional-field">Auto Post Sale Return Allocation:<input type="checkbox" checked={autoPostSaleReturnAllocation} disabled /></label>{/if}
           {#if allowSameBatchReturn}<label class="legacy-sale-optional-field">Allow Same Batch Return Multiple Times:<input type="checkbox" checked={allowSameBatchReturn} disabled /></label>{/if}
           {#if fetchFbrPosFee}<label class="legacy-sale-optional-field">Fetch FBR POS Fee For Reference S/R:<input type="checkbox" checked={fetchFbrPosFee} disabled /></label>{/if}
+          {#if saleReturnUpdateAvgPrice}<label class="legacy-sale-optional-field">Update Avg. Price:<input type="checkbox" checked={saleReturnUpdateAvgPrice} disabled /></label>{/if}
+          {#if allowEmptySaleInvOnReturn}<label class="legacy-sale-optional-field">Allow Empty Sale Inv # in Unposted S/R Module:<input type="checkbox" checked={allowEmptySaleInvOnReturn} disabled /></label>{/if}
         {/if}
         {#if kind === 'quotation' && showQuotationRefNo}<label class="legacy-sale-optional-field">Quotation Ref.:<input aria-label="Quotation reference number" bind:value={quotationRefNo} /></label>{/if}
         {#if kind === 'quotation'}
@@ -1765,6 +1809,7 @@
           {#if allowQuotationAboveAvg}<label class="legacy-sale-optional-field">Allow Quotation Above Avg. Price:<input type="checkbox" checked={allowQuotationAboveAvg} disabled /></label>{/if}
           <label class="legacy-sale-optional-field">Drop Box Auto Fetch Prices:<input aria-label="Drop box auto fetch prices" bind:value={dropBoxFetchPrices} /></label>
           <label class="legacy-sale-optional-field">Drop Box Auto Fetch Discounts:<input aria-label="Drop box auto fetch discounts" bind:value={dropBoxFetchDiscounts} /></label>
+          {#if allowQuotationDuplicateItems}<label class="legacy-sale-optional-field">Allow Duplicate Items:<input type="checkbox" checked={allowQuotationDuplicateItems} disabled /></label>{/if}
         {/if}
       </div>
       <div class="legacy-sale-lookup" aria-label="Item lookup list">

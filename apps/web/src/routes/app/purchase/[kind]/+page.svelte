@@ -172,6 +172,13 @@
   let applySupplierAssociatedQuotation = false;
   let considerIssueQty = false;
   let considerReceiptQty = false;
+  let allowEmptyPurchaseInvoice = false;
+  let purchaseReturnUpdateAvgPrice = false;
+  let allowPurchaseReturnBelowAvg = false;
+  let autoUpdateTransitStock = false;
+  let updateReorderQtyAtSaving = false;
+  let updateMinimumQtyAtSaving = false;
+  let updateOptimumQtyAtSaving = false;
   let paymentModeAmtReceived = '';
   let paymentAccountAmtReceived = '';
   let roundItemTotalPlaces: number | null = null;
@@ -969,6 +976,9 @@
           if (item.caption === 'Price in Purchase Return:') priceInPurchaseReturn = item.value || priceInPurchaseReturn;
           if (item.caption === 'Show P/Return in Activity Monitor:' && /^(yes|true|1|y)$/i.test(item.value || 'No')) showPurchaseReturnInActivityMonitor = true;
           if (item.caption === 'Auto Post:' && /^(yes|true|1|y)$/i.test(item.value || 'No')) autoPostPurchaseReturn = true;
+          if (item.caption === 'Allow Empty Pur. Invoice No.:' && /^(yes|true|1|y)$/i.test(item.value || 'No')) allowEmptyPurchaseInvoice = true;
+          if (item.caption === 'Update Avg. Price On P/R:' && /^(yes|true|1|y)$/i.test(item.value || 'No')) purchaseReturnUpdateAvgPrice = true;
+          if (item.caption === 'Allow P/R Below Avg. Price:' && /^(yes|true|1|y)$/i.test(item.value || 'No')) allowPurchaseReturnBelowAvg = true;
           if (item.caption === 'Round Item Total (decimal places):' && item.value?.trim()) {
             const places = Number(item.value);
             if (Number.isFinite(places) && places >= 0 && places <= 6) roundItemTotalPlaces = places;
@@ -1012,6 +1022,10 @@
           if (item.caption === 'Apply Supplier Associated Quotation:') applySupplierAssociatedQuotation = yes(item.value);
           if (item.caption === 'Consider Issue Qty:') considerIssueQty = yes(item.value);
           if (item.caption === 'Consider Receipt Qty:') considerReceiptQty = yes(item.value);
+          if (item.caption === 'Auto Update Transit Stock at Posting:') autoUpdateTransitStock = yes(item.value);
+          if (item.caption === 'Update Re-Order Qty at Saving:') updateReorderQtyAtSaving = yes(item.value);
+          if (item.caption === 'Update Minimum Qty at Saving:') updateMinimumQtyAtSaving = yes(item.value);
+          if (item.caption === 'Update Optimum Qty at Saving:') updateOptimumQtyAtSaving = yes(item.value);
           if (/^Line[1-8]:$/.test(item.caption) && item.value?.trim()) purchaseOrderPrintLines = [...purchaseOrderPrintLines, item.value.trim()];
           if (item.caption === 'Purchase Order Footer:') purchaseOrderFooter = item.value || purchaseOrderFooter;
         }
@@ -1866,6 +1880,9 @@
           <label class="legacy-purchase-optional-field">Price in P/Return:<input aria-label="Price in purchase return" bind:value={priceInPurchaseReturn} /></label>
           {#if showPurchaseReturnInActivityMonitor}<label class="legacy-purchase-optional-field">Show P/Return in Activity Monitor:<input type="checkbox" checked={showPurchaseReturnInActivityMonitor} disabled /></label>{/if}
           {#if autoPostPurchaseReturn}<label class="legacy-purchase-optional-field">Auto Post:<input type="checkbox" checked={autoPostPurchaseReturn} disabled /></label>{/if}
+          {#if allowEmptyPurchaseInvoice}<label class="legacy-purchase-optional-field">Allow Empty Pur. Invoice No.:<input type="checkbox" checked={allowEmptyPurchaseInvoice} disabled /></label>{/if}
+          {#if purchaseReturnUpdateAvgPrice}<label class="legacy-purchase-optional-field">Update Avg. Price On P/R:<input type="checkbox" checked={purchaseReturnUpdateAvgPrice} disabled /></label>{/if}
+          {#if allowPurchaseReturnBelowAvg}<label class="legacy-purchase-optional-field">Allow P/R Below Avg. Price:<input type="checkbox" checked={allowPurchaseReturnBelowAvg} disabled /></label>{/if}
         {/if}
         {#if kind === 'order' && showSupplierReference}<label class="legacy-purchase-optional-field">Supplier Ref.:<input aria-label="Supplier reference" bind:value={supplierReference} /></label>{/if}
         {#if kind === 'order' && showDeliveryPlace}<label class="legacy-purchase-optional-field">Delivery Place:<input aria-label="Delivery place" bind:value={deliveryPlace} /></label>{/if}
@@ -1888,6 +1905,10 @@
           {#if applySupplierAssociatedQuotation}<label class="legacy-purchase-optional-field">Apply Supplier Associated Quotation:<input type="checkbox" checked={applySupplierAssociatedQuotation} disabled /></label>{/if}
           {#if considerIssueQty}<label class="legacy-purchase-optional-field">Consider Issue Qty:<input type="checkbox" checked={considerIssueQty} disabled /></label>{/if}
           {#if considerReceiptQty}<label class="legacy-purchase-optional-field">Consider Receipt Qty:<input type="checkbox" checked={considerReceiptQty} disabled /></label>{/if}
+          {#if autoUpdateTransitStock}<label class="legacy-purchase-optional-field">Auto Update Transit Stock at Posting:<input type="checkbox" checked={autoUpdateTransitStock} disabled /></label>{/if}
+          {#if updateReorderQtyAtSaving}<label class="legacy-purchase-optional-field">Update Re-Order Qty at Saving:<input type="checkbox" checked={updateReorderQtyAtSaving} disabled /></label>{/if}
+          {#if updateMinimumQtyAtSaving}<label class="legacy-purchase-optional-field">Update Minimum Qty at Saving:<input type="checkbox" checked={updateMinimumQtyAtSaving} disabled /></label>{/if}
+          {#if updateOptimumQtyAtSaving}<label class="legacy-purchase-optional-field">Update Optimum Qty at Saving:<input type="checkbox" checked={updateOptimumQtyAtSaving} disabled /></label>{/if}
         {/if}
         {#if kind === 'pack' || kind === 'loose' || kind === 'opening'}<label class="legacy-purchase-optional-field">Purchase Type:<input aria-label="Purchase type" bind:value={purchaseType} /></label>{/if}
         {#if kind === 'order' && showMiscCharges}<label class="legacy-purchase-optional-field">Misc. Charges:<input aria-label="Miscellaneous charges" bind:value={miscCharges} /></label>{/if}

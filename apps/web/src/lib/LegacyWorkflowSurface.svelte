@@ -175,6 +175,8 @@
   let showAdjustmentHeader = false;
   let showAdjustmentAvgPrice = false;
   let showAdjustmentInActivityMonitor = false;
+  let adjBufferPendingDue = false;
+  let adjUpdateAvgPrice = false;
   let adjustmentHeader = '';
   let adjustmentAvgPrice = '';
   let adjustmentAlternateAlias = '';
@@ -308,6 +310,8 @@
         if (item.caption === 'Alternate Alias Name:') adjustmentAlternateAlias = item.value || adjustmentAlternateAlias;
         if (item.caption === 'Adjustment Qty:' && quantity === '1' && (item.value || '').trim()) quantity = item.value.trim();
         if (item.caption === 'Show Adjustments in Activity Monitor:') showAdjustmentInActivityMonitor = preferenceYes(item.value);
+        if (item.caption === 'In Adj. Buffer, Pending Due Effect:') adjBufferPendingDue = preferenceYes(item.value);
+        if (item.caption === 'Update Avg. Price:') adjUpdateAvgPrice = preferenceYes(item.value);
       }
     } catch {
       /* overlay extras stay default */
@@ -1007,6 +1011,8 @@
           {#if showAdjustmentAvgPrice}<label class="legacy-workflow-optional-field">Update Avg. Price:<input bind:value={adjustmentAvgPrice} /></label>{/if}
           <label class="legacy-workflow-optional-field">Alternate Alias Name:<input bind:value={adjustmentAlternateAlias} /></label>
           {#if showAdjustmentInActivityMonitor}<label class="legacy-workflow-optional-field">Show Adjustments in Activity Monitor:<input type="checkbox" checked={showAdjustmentInActivityMonitor} disabled /></label>{/if}
+          {#if adjBufferPendingDue}<label class="legacy-workflow-optional-field">In Adj. Buffer, Pending Due Effect:<input type="checkbox" checked={adjBufferPendingDue} disabled /></label>{/if}
+          {#if adjUpdateAvgPrice}<label class="legacy-workflow-optional-field">Update Avg. Price:<input type="checkbox" checked={adjUpdateAvgPrice} disabled /></label>{/if}
         {/if}
         {#if kind === 'cashier-job'}<label>Shift action:<select bind:value={shiftAction}><option value="open">Open shift</option><option value="close">Close shift</option></select></label><label>Amount:<input type="number" step="0.01" bind:value={amount} /></label>
           <div class="legacy-workflow-optional-field">

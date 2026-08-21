@@ -2,6 +2,10 @@
 
 Date: 2026-08-09. Companion to `PARITY_FIX_PLAN_A-Z.md`, `GAP_ANALYSIS_2026-08-06.md`, `PARITY_STATUS.md`, `HANDOFF_2026-08-08.md`.
 
+## Progress update — 2026-08-09, remaining leftover overlay extras (no mutations)
+
+Not 100% parity. Wired remaining overlay-hidden extras for inventory/search/module flags, sale/POS leftover flags, and return/PO/adjustment leftover flags without mutating FIFO, alias search, avg price, empty invoices, reorder/transit, or hardware. Leftover dump ~40 stored-only rows: Schedule (not_configured), Ask User/Password, Use LCD/drawer/barcode, Email/SMS secrets. Still open: pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list.
+
 ## Progress update — 2026-08-09, leftover fetch/retail/PO/Others overlay extras
 
 Not 100% parity. Wired sale-return/quotation fetch extras, purchase retail-price extra, PO apply/enforce/consider flags, Adjustment Show Batch/Expiry, Others replication extras, and BasicData due-default/sales-person-scope extras. SMS API keys remain stored_only. Leftover dump ~83 stored-only (including Schedule not_configured, passwords, POS hardware, FEFO/inventory system, empty-invoice, avg-price mutations).

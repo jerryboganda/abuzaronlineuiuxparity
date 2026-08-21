@@ -1,5 +1,16 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 remaining leftover overlay extras (no mutations)
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Dashboard extras for inventory system/movement, alias/quick-search flags, module In-* flags, backup age, and multi-login extras without changing FIFO, search, or auth.
+- Sale/POS leftover overlay flags (initial focus, zero-stock/lock/must-save extras) without enforcing those behaviors.
+- Sale-return/purchase-return/PO/adjustment leftover flags without mutating avg price, empty invoices, or reorder/transit stock.
+- Leftover dump now ~40 stored-only rows: Schedule (not_configured), Ask User/Password, Use LCD/drawer/barcode, and Email/SMS secrets.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 leftover fetch/retail/PO/Others overlay extras
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

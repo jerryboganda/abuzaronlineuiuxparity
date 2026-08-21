@@ -784,6 +784,22 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, the matching POS extra is shown on cash/credit sale. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "Point of Sale" && (strings.Contains(lower, "sales person") || strings.Contains(lower, "loyalty points") || strings.Contains(lower, "item discount") || strings.Contains(lower, "item flat discount") || strings.Contains(lower, "item gst") || strings.Contains(lower, "item unit sales tax") || strings.Contains(lower, "invoice gst") || strings.Contains(lower, "misc. charges") || strings.Contains(lower, "invoice discount") || strings.Contains(lower, "invoice flat discount")):
 		return "Seeds overlay-hidden POS sales-person/loyalty extras and column flags on cash/credit sale.", "wired"
+	case category == "Point of Sale" && (strings.Contains(lower, "sale sets/deals") || strings.Contains(lower, "auto production") || strings.Contains(lower, "ask associate sale invoices") || strings.Contains(lower, "check due date on saving") || strings.Contains(lower, "reset inv. balance") || strings.Contains(lower, "default cash drawer com port")):
+		return "Seeds overlay-hidden POS leftover extras. Use LCD/drawer/barcode adapters remain env-backed.", "wired"
+	case category == "General" && (strings.Contains(lower, "check manual backup health") || strings.Contains(lower, "age of item changes") || strings.HasPrefix(lower, "in ") || strings.Contains(lower, "enable quick search") || strings.Contains(lower, "quick search type") || strings.Contains(lower, "inventory system") || strings.Contains(lower, "inventory movement method") || strings.Contains(lower, "enable alias name") || strings.Contains(lower, "search item code if alias") || strings.Contains(lower, "allow login a user multiple times") || strings.Contains(lower, "auto responsive search")):
+		return "Seeds overlay-hidden dashboard extras. Inventory movement, alias search, multi-login, and backup health are not executed from these values.", "wired"
+	case category == "Sale Return" && (strings.Contains(lower, "update avg. price") || strings.Contains(lower, "allow empty sale inv")):
+		return "When Yes, the matching sale-return extra is shown. Average price and empty invoice numbers are not mutated.", "wired"
+	case category == "Purchase Return" && (strings.Contains(lower, "allow empty pur") || strings.Contains(lower, "update avg. price") || strings.Contains(lower, "allow p/r below avg")):
+		return "When Yes, the matching purchase-return extra is shown. Average price, empty invoice numbers, and below-avg posting are not mutated.", "wired"
+	case category == "Adjustment" && strings.Contains(lower, "update avg. price") && !strings.Contains(lower, "show update avg"):
+		return "When Yes, the matching adjustment extra is shown. Average price is not mutated.", "wired"
+	case category == "Purchase Order" && (strings.Contains(lower, "auto update transit stock") || strings.Contains(lower, "update re-order qty") || strings.Contains(lower, "update minimum qty") || strings.Contains(lower, "update optimum qty")):
+		return "When Yes, the matching purchase-order extra is shown. Transit/reorder/min/optimum quantities are not mutated.", "wired"
+	case category == "Point of Sale" && (strings.Contains(lower, "prompt for zero stock") || strings.Contains(lower, "lock sale qty") || strings.Contains(lower, "lock item name") || strings.Contains(lower, "must save invoice")):
+		return "When Yes, the matching POS extra is shown. Zero-stock, lock, and must-save behaviors are not enforced.", "wired"
+	case category == "Adjustment" && strings.Contains(lower, "in adj. buffer"):
+		return "When Yes, the matching adjustment extra is shown. Default No keeps the overlay clean.", "wired"
 	case (category == "Sale Return" || category == "Quotation" || category == "Purchase Return" || category == "Purchase Order" || category == "Adjustment") && strings.Contains(lower, "activity monitor"):
 		return "When Yes, the matching activity-monitor extra is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "Dashboard":
@@ -800,6 +816,10 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Maps existing always-visible item-lookup columns.", "wired"
 	case category == "Sale" && (lower == "location:" || strings.Contains(lower, "purchase price")):
 		return "Maps existing always-visible sale grid Location / Purchase Price columns.", "wired"
+	case category == "Sale" && strings.Contains(lower, "initial focus"):
+		return "Seeds overlay-hidden cash/credit initial-focus extras. Focus order is not changed.", "wired"
+	case category == "Quotation" && strings.Contains(lower, "allow duplicate items"):
+		return "When Yes, the matching quotation extra is shown. Duplicate lines stay allowed; this flag does not hide lookup.", "wired"
 	case category == "Purchase" && (strings.Contains(lower, "pack units") || strings.Contains(lower, "batch number") || strings.Contains(lower, "mfg. date") || strings.Contains(lower, "expiry date") || strings.Contains(lower, "purchase price") || strings.Contains(lower, "item location") || strings.Contains(lower, "batch sale price") || strings.Contains(lower, "show supplier inv")):
 		return "Maps existing always-visible purchase grid columns (not gated behind default-No Show-*).", "wired"
 	case category == "Purchase Return" && (strings.Contains(lower, "show expiry") || strings.Contains(lower, "show purchase batch")):
