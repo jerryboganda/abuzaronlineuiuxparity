@@ -185,6 +185,11 @@
   let saleReturnItemDescription = '';
   let saleReturnTotalPieces = '';
   let saleReturnThermalPrint = '';
+  let showSrMasterCashierCash = false;
+  let showSrMasterCashierCredit = false;
+  let showSrMasterCashierInPatient = false;
+  let showSrMasterCashierBuffer = false;
+  let showSrInCashActivity = false;
   let remarks = '';
   let busy = false;
   let message = '';
@@ -1208,6 +1213,11 @@
               if (item.caption === 'Item Description:') saleReturnItemDescription = item.value || saleReturnItemDescription;
               if (item.caption === 'Total Pieces:') saleReturnTotalPieces = item.value || saleReturnTotalPieces;
               if (item.caption === 'Thermal Print Format:') saleReturnThermalPrint = item.value || saleReturnThermalPrint;
+              if (item.caption === 'Show Master Cashier Window in Cash S/R:') showSrMasterCashierCash = preferenceYes(item.value);
+              if (item.caption === 'Show Master Cashier Window in Credit S/R:') showSrMasterCashierCredit = preferenceYes(item.value);
+              if (item.caption === 'Show Master Cashier Window in In-Patient S/R:') showSrMasterCashierInPatient = preferenceYes(item.value);
+              if (item.caption === 'Show Master Cashier Window in Buffer S/R:') showSrMasterCashierBuffer = preferenceYes(item.value);
+              if (item.caption === 'Show S/R in Cash Activity Window:') showSrInCashActivity = preferenceYes(item.value);
               if (item.caption === 'Round Item Total (decimal places):' && item.value?.trim()) {
                 const places = Number(item.value);
                 if (Number.isFinite(places) && places >= 0 && places <= 6) roundItemTotalPlaces = places;
@@ -1659,6 +1669,11 @@
           <label class="legacy-sale-optional-field">Item Description:<input aria-label="Sale return item description" bind:value={saleReturnItemDescription} /></label>
           <label class="legacy-sale-optional-field">Total Pieces:<input aria-label="Sale return total pieces" bind:value={saleReturnTotalPieces} /></label>
           <label class="legacy-sale-optional-field">Thermal Print Format:<input aria-label="Sale return thermal print format" bind:value={saleReturnThermalPrint} /></label>
+          {#if showSrMasterCashierCash}<label class="legacy-sale-optional-field">Show Master Cashier Window in Cash S/R:<input type="checkbox" checked={showSrMasterCashierCash} disabled /></label>{/if}
+          {#if showSrMasterCashierCredit}<label class="legacy-sale-optional-field">Show Master Cashier Window in Credit S/R:<input type="checkbox" checked={showSrMasterCashierCredit} disabled /></label>{/if}
+          {#if showSrMasterCashierInPatient}<label class="legacy-sale-optional-field">Show Master Cashier Window in In-Patient S/R:<input type="checkbox" checked={showSrMasterCashierInPatient} disabled /></label>{/if}
+          {#if showSrMasterCashierBuffer}<label class="legacy-sale-optional-field">Show Master Cashier Window in Buffer S/R:<input type="checkbox" checked={showSrMasterCashierBuffer} disabled /></label>{/if}
+          {#if showSrInCashActivity}<label class="legacy-sale-optional-field">Show S/R in Cash Activity Window:<input type="checkbox" checked={showSrInCashActivity} disabled /></label>{/if}
         {/if}
         {#if kind === 'quotation' && showQuotationRefNo}<label class="legacy-sale-optional-field">Quotation Ref.:<input aria-label="Quotation reference number" bind:value={quotationRefNo} /></label>{/if}
         {#if kind === 'quotation'}

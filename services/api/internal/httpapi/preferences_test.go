@@ -323,7 +323,22 @@ func TestPreferenceRuntimeStatusOnlyClaimsProvenBehavior(t *testing.T) {
 			"Point of Sale/Show Master Cashier Window In POS",
 			"Point of Sale/Print Store Summary With POS Sale Inv.:",
 			"Point of Sale/Show Sale in Cashier Activity Window:",
-			"Point of Sale/Allow CTRL+D :":
+			"Point of Sale/Allow CTRL+D :",
+			"Others/Preferred Printer for Activity Monitor:",
+			"Others/SMS Expiry (in Hours):",
+			"Others/Refresh Time (Seconds):",
+			"Others/Activity Period (Minutes):",
+			"Others/Output File(s) Location :",
+			"Others/Default Location for [Save As PDF]:",
+			"Others/Select Image Scan Tool:",
+			"Report/Allow Print Setup:",
+			"BasicData/Item Packing:",
+			"BasicData/Associated Godown:",
+			"Sale Return/Show Master Cashier Window in Cash S/R:",
+			"Sale Return/Show Master Cashier Window in Credit S/R:",
+			"Sale Return/Show Master Cashier Window in In-Patient S/R:",
+			"Sale Return/Show Master Cashier Window in Buffer S/R:",
+			"Sale Return/Show S/R in Cash Activity Window:":
 			continue
 		default:
 			t.Fatalf("unreviewed preference marked wired: %s/%s", definition.Category, definition.Caption)

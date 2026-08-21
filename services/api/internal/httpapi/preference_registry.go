@@ -782,6 +782,14 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Seeds overlay-hidden POS list-view retrieval day limits.", "wired"
 	case category == "Point of Sale" && (strings.Contains(lower, "show cashier window") || strings.Contains(lower, "show master cashier window in pos") || strings.Contains(lower, "print store summary") || strings.Contains(lower, "show sale in cashier activity") || strings.Contains(lower, "allow ctrl+d")):
 		return "When Yes, the matching POS extra is shown on cash/credit sale. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Others" && (strings.Contains(lower, "preferred printer for activity monitor") || strings.Contains(lower, "sms expiry") || strings.Contains(lower, "refresh time (seconds)") || strings.Contains(lower, "activity period") || strings.Contains(lower, "output file") || strings.Contains(lower, "save as pdf") || strings.Contains(lower, "image scan tool")):
+		return "Seeds overlay-hidden report extras for printer/output locations, SMS expiry, refresh, and scan tool.", "wired"
+	case category == "Report" && strings.Contains(lower, "allow print setup"):
+		return "When Yes, the report argument pane shows Allow Print Setup. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "BasicData" && (strings.Contains(lower, "item packing") || strings.Contains(lower, "associated godown")):
+		return "Seeds overlay-hidden item-master Item Packing and Associated Godown fields.", "wired"
+	case category == "Sale Return" && (strings.Contains(lower, "show master cashier window") || strings.Contains(lower, "show s/r in cash activity")):
+		return "When Yes, the matching sale-return extra is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask pur. invoice"):
 		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
 	case category == "Purchase" && strings.Contains(lower, "show net rate"):

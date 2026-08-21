@@ -1,5 +1,15 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 others/report/item packing extras
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Others printer/output/SMS-expiry/refresh/scan-tool seeds on reports; Allow Print Setup overlay.
+- BasicData Item Packing / Associated Godown item-master seeds.
+- Sale Return Show Master Cashier / cash-activity overlay flags.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 POS overlay extras
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

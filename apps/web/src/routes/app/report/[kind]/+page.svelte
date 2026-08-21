@@ -42,6 +42,14 @@
   let applyDefaultReportDate = false;
   let showAccountInReports = false;
   let reportTerms: string[] = [];
+  let allowPrintSetup = false;
+  let outputFilesLocation = '';
+  let saveAsPdfLocation = '';
+  let imageScanTool = '';
+  let preferredActivityPrinter = '';
+  let othersSmsExpiryHours = '';
+  let othersRefreshSeconds = '';
+  let othersActivityPeriod = '';
   const api = new AbuzarApi();
 
   $: kind = $page?.params?.kind ?? 'daily-sales-detail';
@@ -100,6 +108,7 @@
           if (parsed > 0) refreshMinutes = parsed;
         }
         if (item.caption.startsWith('Report Term') && item.value?.trim()) reportTerms = [...reportTerms, item.value.trim()];
+        if (item.caption === 'Allow Print Setup:') allowPrintSetup = yes(item.value);
       }
       if (applyDefaultReportDate && /^\d{4}-\d{2}-\d{2}$/.test(defaultStart)) {
         let hasSavedFrom = false;
@@ -118,6 +127,20 @@
       }
     }).catch(() => {
       /* operators without preferences.read keep today and hide the extra account column */
+    });
+    void api.preferences('Others').then((othersPrefs) => {
+      if (cancelled) return;
+      for (const item of othersPrefs.registry ?? othersPrefs.items ?? []) {
+        if (item.caption === 'Preferred Printer for Activity Monitor:') preferredActivityPrinter = item.value || preferredActivityPrinter;
+        if (item.caption === 'SMS Expiry (in Hours):') othersSmsExpiryHours = item.value || othersSmsExpiryHours;
+        if (item.caption === 'Refresh Time (Seconds):') othersRefreshSeconds = item.value || othersRefreshSeconds;
+        if (item.caption === 'Activity Period (Minutes):') othersActivityPeriod = item.value || othersActivityPeriod;
+        if (item.caption === 'Output File(s) Location :') outputFilesLocation = item.value || outputFilesLocation;
+        if (item.caption === 'Default Location for [Save As PDF]:') saveAsPdfLocation = item.value || saveAsPdfLocation;
+        if (item.caption === 'Select Image Scan Tool:') imageScanTool = item.value || imageScanTool;
+      }
+    }).catch(() => {
+      /* others extras stay hidden when Others prefs cannot be read */
     });
     if (kind === 'daily-sales-detail') {
       loading = true;
@@ -459,6 +482,14 @@
       <label>To Date:<input type="date" bind:value={toDate} /></label>
       <label>Filter:<input bind:value={filter} placeholder="Optional filter" /></label>
       <button type="button" onclick={openArguments}>Retrieve</button>
+      <label class="legacy-sale-optional-field">Output File(s) Location:<input aria-label="Output files location" bind:value={outputFilesLocation} /></label>
+      <label class="legacy-sale-optional-field">Default Location for Save As PDF:<input aria-label="Save as PDF location" bind:value={saveAsPdfLocation} /></label>
+      <label class="legacy-sale-optional-field">Select Image Scan Tool:<input aria-label="Image scan tool" bind:value={imageScanTool} /></label>
+      <label class="legacy-sale-optional-field">Preferred Printer for Activity Monitor:<input aria-label="Activity monitor printer" bind:value={preferredActivityPrinter} /></label>
+      <label class="legacy-sale-optional-field">SMS Expiry (in Hours):<input aria-label="SMS expiry hours" bind:value={othersSmsExpiryHours} /></label>
+      <label class="legacy-sale-optional-field">Refresh Time (Seconds):<input aria-label="Others refresh seconds" bind:value={othersRefreshSeconds} /></label>
+      <label class="legacy-sale-optional-field">Activity Period (Minutes):<input aria-label="Activity period minutes" bind:value={othersActivityPeriod} /></label>
+      {#if allowPrintSetup}<label class="legacy-sale-optional-field">Allow Print Setup:<input type="checkbox" checked={allowPrintSetup} disabled /></label>{/if}
       {#if definition.projectionNote}<small class="legacy-report-fallback-note">{definition.projectionNote}</small>{:else if definition.projectionStatus === 'generic-fallback'}<small class="legacy-report-fallback-note">Generic event-ledger fallback; exact legacy projection is not implemented.</small>{/if}
     </div>
     {#if error}<p class="legacy-report-error" role="alert">{error}</p>{/if}

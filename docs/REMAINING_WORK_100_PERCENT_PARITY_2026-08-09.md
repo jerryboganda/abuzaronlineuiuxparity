@@ -2,6 +2,10 @@
 
 Date: 2026-08-09. Companion to `PARITY_FIX_PLAN_A-Z.md`, `GAP_ANALYSIS_2026-08-06.md`, `PARITY_STATUS.md`, `HANDOFF_2026-08-08.md`.
 
+## Progress update — 2026-08-09, others/report/item packing extras
+
+Not 100% parity. Wired Others output/printer/scan/SMS-expiry/refresh seeds and Report Allow Print Setup on the report pane; BasicData Item Packing / Associated Godown on item master; Sale Return Show Master Cashier and cash-activity flags.
+
 ## Progress update — 2026-08-09, POS overlay extras
 
 Not 100% parity. Wired Point of Sale invoice/delivery/device-name/list-view seeds and Show Cashier / Master Cashier / store-summary / cashier-activity / CTRL+D overlay flags on cash/credit sale. Skipped Use LCD/drawer/barcode, Prompt For Zero Stock, Must Save Invoice on Exit, Ask User/Password, Lock Qty/Name.
