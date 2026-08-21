@@ -149,10 +149,11 @@ export function hrefFor(path: string[], commandId: number): string | undefined {
     return `/app/master/${masters[leaf] ?? slug(leaf)}?legacyPath=${encodedPath}&commandId=${encodedCommand}`;
   }
   if (top === 'Maintenance' && leaf === 'Preferences') return `/app/preferences?legacyPath=${encodedPath}&commandId=${encodedCommand}`;
+  if (top === 'Maintenance' && leaf === 'Vouchers') return `/app/finance/voucher?legacyPath=${encodedPath}&commandId=${encodedCommand}`;
   if (top === 'Maintenance') return `/app/maintenance/${slug(leaf)}?legacyPath=${encodedPath}&commandId=${encodedCommand}`;
   if (top === 'Manage' && leaf === 'Users') return `/app/master/user?legacyPath=${encodedPath}&commandId=${encodedCommand}`;
   if (top === 'Manage') return `/app/manage/${slug(leaf)}?legacyPath=${encodedPath}&commandId=${encodedCommand}`;
-  if (top === 'Window' && leaf === 'Arrange Icons') return '/app';
+  if (top === 'Window' && leaf === 'Arrange Icons') return '/app/legacy';
   if (top === 'Help' && leaf === 'About') return `/app/module/about?legacyPath=${encodedPath}&commandId=${encodedCommand}`;
   // Preserve a deterministic destination for catalog coverage. The menu renderer
   // marks this as not implemented and does not navigate there until it is wired.
@@ -295,6 +296,15 @@ function addUncapturedParityActions(menus: LegacyMenu[]): void {
     href: '/app/maintenance/godown-transfer',
     implementation: 'implemented',
     requiredPermission: 'maintenance.write',
+    mappingStatus: 'unambiguous'
+  });
+  pushIfMissing('Maintenance', {
+    label: 'Vouchers',
+    key: 'Maintenance > Vouchers',
+    legacyPath: 'Maintenance > Vouchers',
+    href: '/app/finance/voucher',
+    implementation: 'implemented',
+    requiredPermission: 'finance.write',
     mappingStatus: 'unambiguous'
   });
 }

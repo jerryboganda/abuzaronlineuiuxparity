@@ -303,6 +303,10 @@ export class AbuzarApi {
     return this.request(`/v1/inventory/availability?${params.toString()}`);
   }
 
+  postVoucher(payload: Record<string, unknown>): Promise<{ kind: string; documentId?: string; eventId?: string; voucherId?: string; status: string; message?: string }> {
+    return this.request('/v1/finance/vouchers', { method: 'POST', body: JSON.stringify(payload) });
+  }
+
   maintenance(kind: string, payload: Record<string, unknown> = {}): Promise<{ kind: string; status: string; outcome?: string; operationId?: string; message?: string; saved?: number; checks?: Array<{ table: string; rows: number; status: string }> }> {
     return this.request(`/v1/maintenance/${encodeURIComponent(kind)}`, { method: 'POST', body: JSON.stringify(payload) });
   }

@@ -50,9 +50,56 @@
     });
   });
 
+  const toolbarCommands = [
+    { label: 'New', command: 'new' },
+    { label: 'Spray', command: 'spray' },
+    { label: 'Save', command: 'save' },
+    { label: 'Erase', command: 'erase' },
+    { label: 'First', command: 'first' },
+    { label: 'Previous', command: 'previous' },
+    { label: 'Next', command: 'next' },
+    { label: 'Last', command: 'last' },
+    { label: 'Print', command: 'print' },
+    { label: 'Exit', command: 'exit' }
+  ];
+
   function setStatus(value: string) {
     status = value;
     notice = '';
+  }
+
+  function runToolbar(label: string) {
+    if (navigationBlocked) {
+      notice = 'Wait for the active document command to finish.';
+      status = 'Command in progress';
+      return;
+    }
+    if (label === 'Spray' || label === 'Erase') {
+      setStatus(`${label}: ready`);
+      return;
+    }
+    if (label === 'Exit') {
+      navigate('/app/legacy');
+      return;
+    }
+    const action: MenuAction = {
+      label,
+      key: `Toolbar > ${label}`,
+      legacyPath: `Toolbar > ${label}`,
+      implementation: 'implemented',
+      mappingStatus: 'unambiguous'
+    };
+    if (onCommand?.(action)) return;
+    setStatus(label);
+  }
+
+  function handleFocusIn(event: FocusEvent) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.closest('.legacy-menu-bar, .legacy-mdi-tabs, .legacy-shell-toolbar')) return;
+    const labelled = target.getAttribute('aria-label') || target.closest('label')?.textContent || '';
+    const hint = labelled.replace(/\s+/g, ' ').trim();
+    if (hint) setStatus(`Specify ${hint}`);
   }
 
   function enableChangeUserInteractive() {
@@ -169,7 +216,7 @@
   }
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} onfocusin={handleFocusIn} />
 
 {#snippet renderActions(actions: MenuAction[])}
   {#each actions as action}
@@ -220,6 +267,19 @@
     </div>
   {/each}
 </nav>
+
+<div class="legacy-shell-toolbar legacy-transaction-toolbar" role="toolbar" aria-label="Document toolbar">
+  {#each toolbarCommands as command}
+    <button
+      type="button"
+      data-command={command.command}
+      title={command.label}
+      aria-label={command.label}
+      disabled={navigationBlocked}
+      onclick={() => runToolbar(command.label)}
+    ></button>
+  {/each}
+</div>
 
 <div class="legacy-mdi-tabs" data-layout={$legacyWindowRegistry.layout} role="tablist" aria-label="Open document windows">
   {#each registryWindows as item, index}

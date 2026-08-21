@@ -17,7 +17,19 @@ Shipped:
 - **Phase J:** `POST /v1/maintenance/godown-transfer` FIFO-moves on-hand stock between godowns (paired `stock_ledger` out/in, dest batch via `lockOrCreatePurchaseBatch`). UI: `/app/maintenance/godown-transfer`. Parser unit test plus `TestGodownTransferMovesStock` (skipped without `DATABASE_URL`).
 - **Phase F:** captured-menu extras now inject Godown, Areas, Customer Group, and Godown Transfer. Areas / Customer Group use the existing master form (thin `master_records`); Godown was already canonical.
 
-Still open at the same priority as before: remaining ~437 stored-only preferences, voucher posting, PO fetch, report golden vs SQL Server, pixel-parity catalog, Accounting/Payroll/eRx extra PBDs.
+Still open at the same priority as before: remaining ~437 stored-only preferences, report golden vs SQL Server, pixel-parity catalog, Accounting/Payroll/eRx extra PBDs, VirtualGl recon, PO remaining-qty UI, purchase G/P formula.
+
+## Progress update — 2026-08-09, PO fetch / vouchers / shell chrome wave
+
+Highest-leverage remaining gates after the pricing/credit-limit/godown-transfer wave. **100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase I / PO fetch:** posting pack/loose/opening purchases with `sourceDocumentId` now validates a posted `purchase-order`, matching supplier, and remaining quantity (PO line minus draft/posted receipt lines on that `source_line_id`). Populate Invoice maps PO line ids into `sourceLineId`.
+- **Phase K / vouchers:** `POST /v1/finance/vouchers` posts receipt/payment/journal through `business_documents` + `voucher_entries` + GL/party ledger. UI: `/app/finance/voucher`. Menu: Maintenance > Vouchers.
+- **Phase D / chrome:** shared shell toolbar (New/Spray/Save/Erase/First/Prev/Next/Last/Print/Exit), focus-in field hints, cascade/tile/layer tab geometry, child titlebar/8px border/toolbar caption/unimplemented Phase links hidden.
+
+Still open: remaining-qty UI on the purchase grid, VirtualGl reconciliation, ~437 prefs, pixel baselines, extra PBDs.
 
 ---
 
@@ -105,14 +117,14 @@ Documented, not yet fixed (needs either a legacy-semantics judgment call or an o
 | A | Dev runtime stability | PARTIAL — scripts/CI test real, 24h soak never executed |
 | B | Quick-win visual defects | DONE-VERIFIED |
 | C | Menu catalog incl. contextual | PARTIAL — only 5 of dozens of window types captured |
-| D | Shell & MDI chrome | PARTIAL — tabbed nav real, toolbar/status-bar/geometry missing |
+| D | Shell & MDI chrome | PARTIAL — shared toolbar + field hints + MDI tab layouts shipped; raster 1-window/n-window still undemonstrated |
 | E | Data migration & reconciliation | PARTIAL — 16/16 metrics matched, but hygiene gaps (see corrections) |
 | F | Master data engine | PARTIAL — Godown/Areas/Customer Group now menu-reachable; CustomerGroup category/detail still thin; no shared list-chrome |
 | G | Pricing & discount policies | PARTIAL — PricePolicy overlay + GroupAllowedPrice now on priced sales; golden `pricing.Calculate()` replay still overstated |
 | H | Sales workflows | PARTIAL — real screens/lifecycle, no raster gate, pack/loose fix only spot-verified |
-| I | Purchase workflows | PARTIAL — batch numbers not legacy-format, PO-fetch open |
+| I | Purchase workflows | PARTIAL — PO source lock/remaining-qty on post; remaining-qty UI and legacy batch format still open |
 | J | Inventory & stock engine | PARTIAL — moving-average done; godown transfer implemented (unit tests; DB integration skipped without DATABASE_URL) |
-| K | Financial core (GL/ledgers) | PARTIAL — credit-limit done; vouchers schema-only, no VirtualGl reconciliation |
+| K | Financial core (GL/ledgers) | PARTIAL — voucher posting live (receipt/payment/journal); VirtualGl recon still open |
 | L | Tax engine | PARTIAL — engine real, legacy rates unmigrated, no paisa-replay, no tax register |
 | M | Reports engine core | PARTIAL — dialogs/preview/export real, Daily Sale Detail pixel-diff never run |
 | N–Q | 151 report leaves | **UPDATED 2026-08-09 — see "Progress update" above: 114/151 evidence-verified, ≥79/151 confirmed correct or fixed, ~15 bugs found (9 fixed)** |
@@ -150,9 +162,9 @@ Real, versioned, well-formed catalog + real wiring into the shell (`buildLegacyM
 ### Phase D — Shell & MDI chrome
 Tabbed-window registry (`legacy-window-registry.ts`) and a real Window menu (Cascade/Tile/Layer/Arrange/numbered list) exist.
 **Remaining:**
-- No shared global toolbar — every surface hand-rolls a different button set; legacy's "Spray"/"Erase" buttons have zero references anywhere in the codebase.
-- No bottom status bar with per-field contextual hints (only generic "Ready"/error text).
-- Cascade/tile/layer is a stored attribute with no visual geometry effect.
+- Shared shell toolbar now exists (New/Spray/Save/Erase/nav/Print/Exit); child windows still also hand-roll extra buttons (Void, etc.). Spray/Erase are status-only.
+- Field-focus status hints exist when the control has an accessible name; not every legacy micro-hint string is captured.
+- Cascade/tile/layer now change MDI tab geometry; they still do not move child window rectangles.
 - Raster diffs exist only for the 0-window base shell; 1-window and n-window states are undemonstrated.
 
 ### Phase E — Data migration & reconciliation
@@ -194,7 +206,7 @@ All named document kinds are real, wired screens (not stubs): draft→Post lifec
 Same maturity level as Sales — real screens, batch/expiry, GL postings, supplier scheme.
 **Remaining:**
 - Auto Batch Generation produces `AUTO-YYYYMMDD-NNN`, explicitly **not** legacy-format — directly fails this phase's stated accept criterion.
-- PO→invoice fetch ("Fetch Purchase Invoice From Other Sources") not implemented.
+- PO→invoice fetch posts with remaining-qty lock; the purchase grid still has no remaining-qty column/UI.
 - Print Purchase Labels has no physical/byte-level legacy comparison.
 - Same replay-test-suite gap as Phase H (shared data).
 
@@ -208,7 +220,7 @@ Moving-average valuation is real, tested, and wired into sale/purchase-return co
 ### Phase K — Financial core (GL & party ledgers)
 Credit-limit enforcement is real, row-locked, and tested — but is a documented simplification (see Phase V, `CheckCrLimitInCrSales`).
 **Remaining:**
-- Vouchers (`voucher_categories`/`voucher_entries`) are schema-only — zero posting endpoint exists anywhere in the Go codebase.
+- Voucher posting exists (`POST /v1/finance/vouchers`); remaining-qty/party pickers and VirtualGl recon are still open.
 - No "migrated VirtualGl balance == recomputed balance" verification has ever been run (1,021,801 imported GL rows are displayed, never reconciled).
 - No "10 sampled parties" ledger-statement comparison against real legacy statements exists anywhere.
 - Chart-of-accounts naming/mapping vs legacy `GroupSummaryAccount`/`GroupCashAccount` remains an open human-decision item.

@@ -112,6 +112,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /v1/finance/accounts", s.authenticated(http.HandlerFunc(s.financeAccounts)))
 	mux.Handle("GET /v1/finance/journals", s.authenticated(http.HandlerFunc(s.financeJournals)))
 	mux.Handle("GET /v1/finance/ledger", s.authenticated(http.HandlerFunc(s.financeLedger)))
+	mux.Handle("POST /v1/finance/vouchers", s.authenticated(http.HandlerFunc(s.financeVoucher)))
 	mux.Handle("POST /v1/transactions/sale-returns", s.authenticated(s.createTransaction("sale_return")))
 	mux.Handle("POST /v1/transactions/quotations", s.authenticated(s.createTransaction("quotation")))
 	mux.Handle("POST /v1/transactions/refused-sales", s.authenticated(s.createTransaction("refused_sale")))

@@ -53,6 +53,10 @@ func isPurchasePostingKind(kind string) bool {
 	return isPurchaseDocumentKind(kind) && kind != "purchase-order"
 }
 
+func isPurchaseReceiptKind(kind string) bool {
+	return kind == "pack-purchase" || kind == "loose-purchase" || kind == "opening-purchase"
+}
+
 func isStockAndFinanceSaleKind(kind string) bool {
 	return kind == "cash-sale" || kind == "credit-sale"
 }
@@ -983,6 +987,11 @@ func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator 
 		}
 		if sourceDocumentID != "" && !documentUUIDPattern.MatchString(sourceDocumentID) {
 			return "", documentCommandResponse{}, errors.New("sourceDocumentId must be a UUID")
+		}
+		if isPurchaseReceiptKind(command.Kind) && sourceDocumentID != "" {
+			if err := validatePurchaseOrderSource(ctx, tx, operator, documentID, supplierID, sourceDocumentID, draft.Lines); err != nil {
+				return "", documentCommandResponse{}, err
+			}
 		}
 		if command.Kind == "purchase-return" && (command.Action == "post" || command.Action == "save-and-post") && sourceDocumentID == "" {
 			return "", documentCommandResponse{}, errors.New("purchase-return posting requires sourceDocumentId")

@@ -1,5 +1,15 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 PO fetch / vouchers / shell chrome
+
+Not 100% parity. Closed three named remaining-work gates in AbuzarNext:
+
+- Purchase receipts with a PO source now validate posted PO, supplier match, and remaining quantity.
+- `POST /v1/finance/vouchers` posts receipt/payment/journal with GL and party ledger.
+- Shared shell toolbar, field-focus status hints, and MDI tab cascade/tile/layer chrome.
+
+Evidence: `purchase_source_test.go`, `vouchers_test.go`. Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 pricing / credit-limit / godown transfer
 
 Not 100% parity. Closed four named remaining-work gates in AbuzarNext:

@@ -267,6 +267,25 @@ h1, h2, p { margin-top: 0; }
 .legacy-menu-separator { height: 1px; margin: 3px 5px; border-top: 1px solid #c9c9c9; }
 .legacy-contextual-menu-bar { border-right-width: 0; border-left-width: 0; }
 .legacy-mdi-tabs { display: flex; min-height: 22px; align-items: stretch; overflow-x: auto; border-bottom: 1px solid #888; background: #d8d8d8; font: 12px Tahoma, Arial, sans-serif; }
+.legacy-mdi-tabs[data-layout='cascade'] .legacy-mdi-tab-item { margin-left: 10px; }
+.legacy-mdi-tabs[data-layout='cascade'] .legacy-mdi-tab-item:first-child { margin-left: 0; }
+.legacy-mdi-tabs[data-layout='tile'] { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.legacy-mdi-tabs[data-layout='layer'] .legacy-mdi-tab-item { position: relative; }
+.legacy-mdi-tabs[data-layout='layer'] .legacy-mdi-tab-item.active { z-index: 2; box-shadow: 0 0 0 1px #1685df; }
+.legacy-shell-toolbar { flex: 0 0 28px; }
+.legacy-shell-toolbar button::after { display: block; font: 16px/21px Tahoma, Arial, sans-serif; text-align: center; }
+.legacy-shell-toolbar button[data-command='new']::after { content: "+"; }
+.legacy-shell-toolbar button[data-command='spray']::after { content: "\25B2"; }
+.legacy-shell-toolbar button[data-command='save']::after { content: "\2713"; }
+.legacy-shell-toolbar button[data-command='erase']::after { content: "\2715"; }
+.legacy-shell-toolbar button[data-command='first']::after { content: "\23EE"; }
+.legacy-shell-toolbar button[data-command='previous']::after { content: "\25C0"; }
+.legacy-shell-toolbar button[data-command='next']::after { content: "\25B6"; }
+.legacy-shell-toolbar button[data-command='last']::after { content: "\23ED"; }
+.legacy-shell-toolbar button[data-command='print']::after { content: "\2399"; }
+.legacy-shell-toolbar button[data-command='exit']::after { content: "\2716"; }
+.legacy-unimplemented-note a { display: none; }
+.legacy-toolbar-caption { display: none; }
 .legacy-mdi-tabs .legacy-mdi-tab-item { display: inline-flex; align-items: center; border-right: 1px solid #aaa; background: #d8d8d8; }
 .legacy-mdi-tabs .legacy-mdi-tab-item.active { background: #fff; }
 .legacy-mdi-tabs button { min-width: 110px; padding: 2px 9px; border: 0; background: transparent; color: #000; text-align: left; white-space: nowrap; font: inherit; }
@@ -276,7 +295,7 @@ h1, h2, p { margin-top: 0; }
 .legacy-mdi-tabs button.legacy-mdi-tab-close:hover { color: #cc0000; background: rgba(0, 0, 0, 0.08); }
 .legacy-contextual-status { display: flex; min-height: 19px; align-items: center; gap: 18px; padding: 1px 6px; border-bottom: 1px solid #aaa; background: #f0f0f0; color: #000; font: 12px/17px Tahoma, Arial, sans-serif; }
 .legacy-unimplemented-note { color: #8a5a00; }
-.legacy-unimplemented-note a { color: #075a9c; text-decoration: underline; }
+.legacy-unimplemented-note a { display: none; color: #075a9c; text-decoration: underline; }
 .legacy-workspace-frame { display: flex; flex: 1 1 auto; min-height: 0; flex-direction: column; border-right: 8px solid #000; border-bottom: 8px solid #000; border-left: 8px solid #000; background: #000; }
 .legacy-client-top-chrome { display: flex; flex: 0 0 4px; flex-direction: column; }
 .legacy-client-top-chrome span:nth-child(1) { flex: 0 0 1px; background: #f2f2f2; }
@@ -313,6 +332,10 @@ h1, h2, p { margin-top: 0; }
   .legacy-statusbar { border-color: transparent; background: transparent; color: transparent; }
   .legacy-statusbar::before, .legacy-statusbar::after { display: none; }
   .legacy-statusbar.legacy-statusbar-live { border-top: 1px solid #fff; border-bottom: 1px solid #fff; background: #f0f0f0; color: #000; }
+}
+
+@media (width: 1936px) and (height: 1048px) {
+  .legacy-shell-toolbar { display: none; }
 }
 
 .transaction-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #f4f6f9; }
@@ -353,22 +376,22 @@ h1, h2, p { margin-top: 0; }
 .module-status { height: 20px; padding: 0 8px; border-top: 1px solid #fff; background: #f0f0f0; font: 12px/20px Tahoma, Arial, sans-serif; }
 
 .legacy-transaction-page { min-height: 100vh; overflow: auto; background: #aaa; color: #000; font-family: Tahoma, Arial, sans-serif; }
-.legacy-transaction-window { min-width: 1180px; min-height: 100vh; background: #f0f0f0; border: 8px solid #000; box-sizing: border-box; }
-.legacy-transaction-titlebar { display: flex; align-items: center; height: 29px; padding: 0 8px; background: #f3f3f3; border-bottom: 1px solid #999; }
+.legacy-transaction-window { min-width: 1180px; min-height: 100vh; background: #f0f0f0; border: 0; box-sizing: border-box; }
+.legacy-transaction-titlebar { display: none; align-items: center; height: 29px; padding: 0 8px; background: #f3f3f3; border-bottom: 1px solid #999; }
 .legacy-transaction-titlebar a { width: 20px; color: #000; text-decoration: none; font: 0/0 Tahoma, Arial, sans-serif; }
 .legacy-transaction-titlebar a::after { content: "\2190"; font: 16px/20px Tahoma, Arial, sans-serif; }
 .legacy-transaction-titlebar h1 { margin: 0; font: 12px Tahoma, Arial, sans-serif; font-weight: 400; }
 .legacy-transaction-toolbar { display: flex; align-items: center; height: 28px; gap: 2px; padding: 0 5px; background: #eee; border-bottom: 1px solid #aaa; }
 .legacy-transaction-toolbar button { position: relative; width: 24px; height: 23px; padding: 0; border: 1px solid transparent; background: transparent; color: #222; font: 0/0 Tahoma, Arial, sans-serif; }
 .legacy-transaction-toolbar button::after { display: block; font: 16px/21px Tahoma, Arial, sans-serif; text-align: center; }
-.legacy-transaction-toolbar button:nth-of-type(1)::after { content: "\002B"; }
-.legacy-transaction-toolbar button:nth-of-type(2)::after { content: "\2713"; }
-.legacy-transaction-toolbar button:nth-of-type(3)::after { content: "\2399"; }
-.legacy-transaction-toolbar button:nth-of-type(4)::after { content: "\25C0"; }
-.legacy-transaction-toolbar button:nth-of-type(5)::after { content: "\25B6"; }
+.legacy-transaction-toolbar:not(.legacy-shell-toolbar) button:nth-of-type(1)::after { content: "\002B"; }
+.legacy-transaction-toolbar:not(.legacy-shell-toolbar) button:nth-of-type(2)::after { content: "\2713"; }
+.legacy-transaction-toolbar:not(.legacy-shell-toolbar) button:nth-of-type(3)::after { content: "\2399"; }
+.legacy-transaction-toolbar:not(.legacy-shell-toolbar) button:nth-of-type(4)::after { content: "\25C0"; }
+.legacy-transaction-toolbar:not(.legacy-shell-toolbar) button:nth-of-type(5)::after { content: "\25B6"; }
 .legacy-transaction-toolbar button:hover, .legacy-transaction-toolbar button:focus-visible { border-color: #777; background: #fff; }
 .legacy-toolbar-separator { width: 1px; height: 20px; margin: 0 4px; background: #aaa; }
-.legacy-toolbar-caption { margin-left: 12px; color: #555; font-size: 11px; }
+.legacy-toolbar-caption { display: none; margin-left: 12px; color: #555; font-size: 11px; }
 .legacy-transaction-tabs { display: flex; height: 26px; padding-left: 4px; background: #eee; }
 .legacy-transaction-tabs button { min-width: 177px; border: 1px solid #ddd; border-bottom-color: #aaa; background: #eee; color: #000; text-align: left; font: 0/0 Tahoma, Arial, sans-serif; }
 .legacy-transaction-tabs button::after { display: block; font: 12px/24px Tahoma, Arial, sans-serif; }

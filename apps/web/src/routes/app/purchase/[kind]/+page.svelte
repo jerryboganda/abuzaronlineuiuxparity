@@ -249,7 +249,7 @@
       sourceDocumentId = sourceDocument?.id || document.sourceDocumentId || '';
       sourceDocumentNumber = sourceDocument?.documentNumber || document.sourceDocumentNumber || '';
       creditDays = sourceDocument?.creditDays ?? document.creditDays ?? '';
-      rows = purchaseRowsFromDocument(document, historyMode === 'populate-return');
+      rows = purchaseRowsFromDocument(document, historyMode === 'populate-return' || historyMode === 'populate-invoice');
       focusedRowIndex = 0;
       if (historyMode === 'populate-return') await prepareReturnSourceBatches(document);
       if (requestRevision !== workflowRevision || requestId !== historySelectionRequestId) return;
