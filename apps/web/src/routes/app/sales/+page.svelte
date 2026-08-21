@@ -92,6 +92,14 @@
   let showGuarantee = false;
   let showSaleType = false;
   let showItemImage = false;
+  let showPoRate = false;
+  let showPoDiscount = false;
+  let showSpecialRate = false;
+  let showSaleReturnAccount = false;
+  let poRate = '';
+  let poDiscount = '';
+  let specialRate = '';
+  let saleReturnAccount = '';
   let agency = '';
   let vehicle = '';
   let shipTo = '';
@@ -1042,6 +1050,24 @@
           } catch {
             /* sale header extras stay hidden when Sale prefs cannot be read */
           }
+          try {
+            const quotationPrefs = await api.preferences('Quotation');
+            for (const item of quotationPrefs.registry ?? quotationPrefs.items ?? []) {
+              if (item.caption === 'Show P/O Rate:') showPoRate = preferenceYes(item.value);
+              if (item.caption === 'Show P/O Discount (%):') showPoDiscount = preferenceYes(item.value);
+              if (item.caption === 'Show Special Rate:') showSpecialRate = preferenceYes(item.value);
+            }
+          } catch {
+            /* quotation extras stay hidden when Quotation prefs cannot be read */
+          }
+          try {
+            const saleReturnPrefs = await api.preferences('Sale Return');
+            for (const item of saleReturnPrefs.registry ?? saleReturnPrefs.items ?? []) {
+              if (item.caption === 'Show Account for Sale Return:') showSaleReturnAccount = preferenceYes(item.value);
+            }
+          } catch {
+            /* sale-return account stays hidden when Sale Return prefs cannot be read */
+          }
         } catch {
           /* operators without preferences.read keep registry defaults */
         }
@@ -1371,6 +1397,10 @@
         {#if showGuarantee}<label class="legacy-sale-optional-field">Guarantee Person:<input aria-label="Guarantee person" bind:value={guaranteePerson} /></label>{/if}
         {#if showSaleType}<label class="legacy-sale-optional-field">Sale Type:<input aria-label="Sale type" bind:value={saleType} /></label>{/if}
         {#if showItemImage}<span class="legacy-sale-optional-field legacy-sale-item-photo" aria-label="Item image">Item Photo</span>{/if}
+        {#if kind === 'quotation' && showPoRate}<label class="legacy-sale-optional-field">P/O Rate:<input aria-label="Purchase order rate" bind:value={poRate} /></label>{/if}
+        {#if kind === 'quotation' && showPoDiscount}<label class="legacy-sale-optional-field">P/O Discount %:<input aria-label="Purchase order discount" bind:value={poDiscount} /></label>{/if}
+        {#if kind === 'quotation' && showSpecialRate}<label class="legacy-sale-optional-field">Special Rate:<input aria-label="Special rate" bind:value={specialRate} /></label>{/if}
+        {#if (kind === 'cash-return' || kind === 'credit-return' || kind === 'open-cash-return' || kind === 'open-credit-return') && showSaleReturnAccount}<label class="legacy-sale-optional-field">Account:<input aria-label="Sale return account" bind:value={saleReturnAccount} /></label>{/if}
       </div>
       <div class="legacy-sale-lookup" aria-label="Item lookup list">
         <table><thead><tr><th>Name</th><th>Stock</th><th>Purchase Price</th><th>Sale Price</th><th>Manufacturer</th><th>P/Pcs.</th><th>Location</th></tr></thead><tbody>

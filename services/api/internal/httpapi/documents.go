@@ -1511,23 +1511,29 @@ func (s *Server) priceDocument(ctx context.Context, tx *sql.Tx, operator *sessio
 }
 
 func zeroRetailPriceBlocked(kind string, allowZero bool, unitPrice pricing.Money) bool {
-	if kind != "cash-sale" && kind != "credit-sale" {
+	if kind != "cash-sale" && kind != "credit-sale" && kind != "quotation" {
 		return false
 	}
 	return !allowZero && unitPrice <= 0
 }
 
 func enforceZeroRetailPricePolicy(ctx context.Context, tx *sql.Tx, operator *sessionContext, kind string, priced pricedDocument) error {
-	if kind != "cash-sale" && kind != "credit-sale" {
+	category, caption := "", ""
+	switch kind {
+	case "cash-sale", "credit-sale":
+		category, caption = "Sale", "Allow Zero Retail Price:"
+	case "quotation":
+		category, caption = "Quotation", "Allow Quotation On Zero Price:"
+	default:
 		return nil
 	}
-	allowZero, err := effectivePreferenceYes(ctx, tx, operator, "Sale", "Allow Zero Retail Price:", false)
+	allowZero, err := effectivePreferenceYes(ctx, tx, operator, category, caption, false)
 	if err != nil {
 		return err
 	}
 	for index, line := range priced.lines {
 		if zeroRetailPriceBlocked(kind, allowZero, line.result.ResolvedUnitPrice) {
-			return fmt.Errorf("line %d retail price is zero; Sale/Allow Zero Retail Price is No", index+1)
+			return fmt.Errorf("line %d retail price is zero; %s/%s is No", index+1, category, strings.TrimSuffix(caption, ":"))
 		}
 	}
 	return nil

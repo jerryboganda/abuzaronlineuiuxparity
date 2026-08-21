@@ -1,5 +1,15 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 quotation zero-price / quotation Show-* / sale-return account
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- `Quotation/Allow Quotation On Zero Price:` (default No) blocks zero-price quotation lines.
+- Quotation `Show P/O Rate`, `Show P/O Discount (%)`, `Show Special Rate` header fields (overlay-hidden).
+- `Sale Return/Show Account for Sale Return:` header field (overlay-hidden).
+
+Evidence: `TestZeroRetailPriceBlockedForCashAndCreditSales`. Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 purchase Show-* / application title / P-return copies
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

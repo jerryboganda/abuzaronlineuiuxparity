@@ -698,6 +698,12 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Sets the default sale price level (1-10) when the document does not specify priceLevel.", "wired"
 	case category == "Sale" && strings.Contains(lower, "allow zero retail price"):
 		return "When No, cash/credit sale posting rejects lines whose resolved retail price is zero.", "wired"
+	case category == "Quotation" && strings.Contains(lower, "allow quotation on zero price"):
+		return "When No, quotation posting rejects lines whose resolved retail price is zero.", "wired"
+	case category == "Quotation" && (strings.Contains(lower, "show p/o rate") || strings.Contains(lower, "show p/o discount") || strings.Contains(lower, "show special rate")):
+		return "When Yes, the matching quotation header field is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Sale Return" && strings.Contains(lower, "show account for sale return"):
+		return "When Yes, the sale-return account field is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "General" && strings.Contains(lower, "default batch"):
 		return "Empty purchase receipt batches are filled from this value (legacy default '.').", "wired"
 	case category == "General" && strings.Contains(lower, "default expiry"):

@@ -48,6 +48,12 @@ func TestZeroRetailPriceBlockedForCashAndCreditSales(t *testing.T) {
 	if zeroRetailPriceBlocked("pack-purchase", false, 0) {
 		t.Fatal("purchase documents are not gated by Allow Zero Retail Price")
 	}
+	if !zeroRetailPriceBlocked("quotation", false, 0) {
+		t.Fatal("quotation zero price should be blocked when Allow Quotation On Zero Price is No")
+	}
+	if zeroRetailPriceBlocked("quotation", true, 0) {
+		t.Fatal("quotation zero price should be allowed when Allow Quotation On Zero Price is Yes")
+	}
 }
 
 func TestDocumentCommandValidationCoversLifecycleAndRevisionRequirements(t *testing.T) {
