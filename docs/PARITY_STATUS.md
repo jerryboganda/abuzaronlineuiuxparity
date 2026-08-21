@@ -1,5 +1,13 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 PO line Show-* extras
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Purchase Order Show Item Sale Tax / Item GST % / Item Flat Discount / Disc. Perc. 2 overlay-hidden columns.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 supplier balance / return headers / quotation extras
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:
