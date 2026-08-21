@@ -96,6 +96,7 @@
   let showPoDiscount = false;
   let showSpecialRate = false;
   let showSaleReturnAccount = false;
+  let askAmountPaidOnSaleReturn = false;
   let poRate = '';
   let poDiscount = '';
   let specialRate = '';
@@ -1064,6 +1065,7 @@
             const saleReturnPrefs = await api.preferences('Sale Return');
             for (const item of saleReturnPrefs.registry ?? saleReturnPrefs.items ?? []) {
               if (item.caption === 'Show Account for Sale Return:') showSaleReturnAccount = preferenceYes(item.value);
+              if (item.caption === 'Ask Amount Paid on S/Return Saving:') askAmountPaidOnSaleReturn = preferenceYes(item.value);
             }
           } catch {
             /* sale-return account stays hidden when Sale Return prefs cannot be read */
@@ -1307,6 +1309,14 @@
   }
 
   async function submitSale(status: 'draft' | 'posted' = 'posted', action?: 'save' | 'post' | 'save-and-post') {
+    if (askAmountPaidOnSaleReturn && aggregate === 'sale_return') {
+      const paid = window.prompt('Amount paid on sale return', cashTendered || '0');
+      if (paid == null) {
+        message = 'Save cancelled.';
+        return;
+      }
+      cashTendered = paid;
+    }
     const requestRevision = workflowRevision;
     busy = true; message = ''; error = '';
     let event: SyncEnvelope | undefined;

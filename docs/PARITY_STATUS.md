@@ -1,5 +1,14 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 return amount-paid prompts
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- `Sale Return/Ask Amount Paid on S/Return Saving:` prompts before sale-return save/post.
+- `Purchase Return/Ask Amount Received on P/Return Saving:` prompts before purchase-return save/post.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 quotation zero-price / quotation Show-* / sale-return account
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

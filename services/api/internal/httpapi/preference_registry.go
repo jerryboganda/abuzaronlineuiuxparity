@@ -704,6 +704,10 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, the matching quotation header field is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "Sale Return" && strings.Contains(lower, "show account for sale return"):
 		return "When Yes, the sale-return account field is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Sale Return" && strings.Contains(lower, "ask amount paid on s/return"):
+		return "When Yes, saving a sale return asks for the amount paid before the document is posted.", "wired"
+	case category == "Purchase Return" && strings.Contains(lower, "ask amount received on p/return"):
+		return "When Yes, saving a purchase return asks for the amount received before the document is posted.", "wired"
 	case category == "General" && strings.Contains(lower, "default batch"):
 		return "Empty purchase receipt batches are filled from this value (legacy default '.').", "wired"
 	case category == "General" && strings.Contains(lower, "default expiry"):

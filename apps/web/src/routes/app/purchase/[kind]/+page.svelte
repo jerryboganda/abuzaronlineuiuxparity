@@ -110,6 +110,7 @@
   let error = '';
   let promptBeforePrinting = false;
   let askPrintCopies = false;
+  let askAmountReceivedOnPurchaseReturn = false;
   let showAgency = false;
   let showVehicle = false;
   let showShipTo = false;
@@ -827,6 +828,9 @@
           if (item.caption === 'Ask No. of Copies to Print:' && /^(yes|true|1|y)$/i.test(item.value || 'No')) {
             askPrintCopies = true;
           }
+          if (item.caption === 'Ask Amount Received on P/Return Saving:' && /^(yes|true|1|y)$/i.test(item.value || 'No')) {
+            askAmountReceivedOnPurchaseReturn = true;
+          }
         }
       } catch {
         /* purchase-return copy prompt stays off unless General already enabled it */
@@ -1429,6 +1433,13 @@
   }
 
   async function savePurchase(action: 'save' | 'post' | 'save-and-post' = 'save-and-post') {
+    if (askAmountReceivedOnPurchaseReturn && kind === 'return') {
+      const received = window.prompt('Amount received on purchase return', '0');
+      if (received == null) {
+        message = 'Save cancelled.';
+        return;
+      }
+    }
     const requestRevision = workflowRevision;
     busy = true;
     message = '';
