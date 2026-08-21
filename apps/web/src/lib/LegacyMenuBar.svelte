@@ -49,7 +49,9 @@
       notice = 'Access rights are unavailable; commands remain disabled.';
     });
     void api.preferences('General').then((general) => {
-      const title = (general.registry ?? general.items ?? []).find((item) => item.caption === 'Application Title:')?.value?.trim();
+      const items = general.registry ?? general.items ?? [];
+      const title = items.find((item) => item.caption === 'Application Title:')?.value?.trim()
+        || items.find((item) => item.caption === 'Business Short Name:')?.value?.trim();
       if (title) document.title = title;
     }).catch(() => {
       /* operators without preferences.read keep the registry default title */

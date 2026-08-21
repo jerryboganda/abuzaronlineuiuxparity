@@ -1,5 +1,14 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 quotation remote / PO extras / short name
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Quotation remote qty overlay seeds; PO Item Alert / packs fraction / page size / supplier consideration seeds.
+- General Business Short Name falls back the browser title when Application Title is empty.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 leftover header seeds / detail report extras
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

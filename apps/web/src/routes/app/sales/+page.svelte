@@ -136,6 +136,12 @@
   let paymentAccountAmtPaid = '';
   let roundItemTotalPlaces: number | null = null;
   let quotationPackUnits = '';
+  let remoteNetSaleQty = '';
+  let remoteStockInHand = '';
+  let remoteReorderQty = '';
+  let remoteOptimumQty = '';
+  let remoteMinQty = '';
+  let remotePoQty = '';
   let printWarrantedInvoice = '';
   let fiscalizationMachineIp = '';
   let showItemDisc = false;
@@ -1160,6 +1166,12 @@
               if (item.caption === 'Quantity Denomination:') quotationQuantityDenomination = item.value || quotationQuantityDenomination;
               if (item.caption === 'Pack Units:') quotationPackUnits = item.value || quotationPackUnits;
               if (item.caption === 'Claimable Discount %:') showQuotationClaimableDisc = preferenceYes(item.value);
+              if (item.caption === 'Remote Net Sale Qty:') remoteNetSaleQty = item.value || remoteNetSaleQty;
+              if (item.caption === 'Remote Stock in Hand:') remoteStockInHand = item.value || remoteStockInHand;
+              if (item.caption === 'Remote Re-Order Qty:') remoteReorderQty = item.value || remoteReorderQty;
+              if (item.caption === 'Remote Optimum Qty:') remoteOptimumQty = item.value || remoteOptimumQty;
+              if (item.caption === 'Remote Min Qty:') remoteMinQty = item.value || remoteMinQty;
+              if (item.caption === 'Remote P/O Qty:') remotePoQty = item.value || remotePoQty;
             }
           } catch {
             /* quotation extras stay hidden when Quotation prefs cannot be read */
@@ -1596,6 +1608,12 @@
           <label class="legacy-sale-optional-field">Color:<input aria-label="Quotation color" bind:value={quotationColor} /></label>
           <label class="legacy-sale-optional-field">Qty Denomination:<input aria-label="Quantity denomination" bind:value={quotationQuantityDenomination} /></label>
           <label class="legacy-sale-optional-field">Pack Units:<input aria-label="Quotation pack units" bind:value={quotationPackUnits} /></label>
+          <label class="legacy-sale-optional-field">Remote Net Sale Qty:<input aria-label="Remote net sale quantity" bind:value={remoteNetSaleQty} /></label>
+          <label class="legacy-sale-optional-field">Remote Stock:<input aria-label="Remote stock in hand" bind:value={remoteStockInHand} /></label>
+          <label class="legacy-sale-optional-field">Remote Re-Order Qty:<input aria-label="Remote reorder quantity" bind:value={remoteReorderQty} /></label>
+          <label class="legacy-sale-optional-field">Remote Optimum Qty:<input aria-label="Remote optimum quantity" bind:value={remoteOptimumQty} /></label>
+          <label class="legacy-sale-optional-field">Remote Min Qty:<input aria-label="Remote minimum quantity" bind:value={remoteMinQty} /></label>
+          <label class="legacy-sale-optional-field">Remote P/O Qty:<input aria-label="Remote purchase-order quantity" bind:value={remotePoQty} /></label>
         {/if}
       </div>
       <div class="legacy-sale-lookup" aria-label="Item lookup list">

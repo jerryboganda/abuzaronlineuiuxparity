@@ -156,6 +156,10 @@
   let purchaseReturnItemDescription = '';
   let purchaseReturnTotalPieces = '';
   let priceInPurchaseReturn = '';
+  let purchaseOrderItemAlert = '';
+  let requiredPacksFractionTreatment = '';
+  let purchaseOrderPageSize = '';
+  let poSupplierConsideration = '';
   let paymentModeAmtReceived = '';
   let paymentAccountAmtReceived = '';
   let roundItemTotalPlaces: number | null = null;
@@ -980,6 +984,10 @@
           if (item.caption === 'Show Item Flat Discount:') showItemFlatDiscount = yes(item.value);
           if (item.caption === 'Show Disc. Perc. 2.:') showDiscPerc2 = yes(item.value);
           if (item.caption === 'Default Purchase Order Category' && item.value?.trim()) purchaseType = item.value;
+          if (item.caption === 'Item Alert:') purchaseOrderItemAlert = item.value || purchaseOrderItemAlert;
+          if (item.caption === 'Required Packs Fraction Treatment:') requiredPacksFractionTreatment = item.value || requiredPacksFractionTreatment;
+          if (item.caption === 'Page Size for print out:') purchaseOrderPageSize = item.value || purchaseOrderPageSize;
+          if (item.caption === 'P/O Supplier Consideration:') poSupplierConsideration = item.value || poSupplierConsideration;
           if (/^Line[1-8]:$/.test(item.caption) && item.value?.trim()) purchaseOrderPrintLines = [...purchaseOrderPrintLines, item.value.trim()];
           if (item.caption === 'Purchase Order Footer:') purchaseOrderFooter = item.value || purchaseOrderFooter;
         }
@@ -1839,6 +1847,12 @@
         {#if kind === 'order' && showRemarks2}<label class="legacy-purchase-optional-field">Remarks 2:<input aria-label="Remarks 2" bind:value={remarks2} /></label>{/if}
         {#if kind === 'order' && showPurchaseType}<label class="legacy-purchase-optional-field">Purchase Type:<input aria-label="Purchase type" bind:value={purchaseType} /></label>{/if}
         {#if kind === 'order' && showRemarks3}<label class="legacy-purchase-optional-field">Remarks 3:<input aria-label="Remarks 3" bind:value={remarks3} /></label>{/if}
+        {#if kind === 'order'}
+          <label class="legacy-purchase-optional-field">Item Alert:<input aria-label="Purchase order item alert" bind:value={purchaseOrderItemAlert} /></label>
+          <label class="legacy-purchase-optional-field">Packs Fraction:<input aria-label="Required packs fraction treatment" bind:value={requiredPacksFractionTreatment} /></label>
+          <label class="legacy-purchase-optional-field">Page Size:<input aria-label="Purchase order page size" bind:value={purchaseOrderPageSize} /></label>
+          <label class="legacy-purchase-optional-field">Supplier Consideration:<input aria-label="Purchase order supplier consideration" bind:value={poSupplierConsideration} /></label>
+        {/if}
         {#if kind === 'pack' || kind === 'loose' || kind === 'opening'}<label class="legacy-purchase-optional-field">Purchase Type:<input aria-label="Purchase type" bind:value={purchaseType} /></label>{/if}
         {#if kind === 'order' && showMiscCharges}<label class="legacy-purchase-optional-field">Misc. Charges:<input aria-label="Miscellaneous charges" bind:value={miscCharges} /></label>{/if}
         {#if kind === 'order' && showInvoiceDiscount}<label class="legacy-purchase-optional-field">Invoice Discount %:<input aria-label="Invoice discount percent" bind:value={invoiceDiscount} /></label>{/if}

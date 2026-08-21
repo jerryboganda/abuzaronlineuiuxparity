@@ -758,6 +758,12 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Seeds overlay-hidden sale-return header extras captured from the legacy column/header contract.", "wired"
 	case category == "Purchase Return" && (strings.Contains(lower, "alternate alias name") || strings.Contains(lower, "packing description") || strings.Contains(lower, "item description") || strings.Contains(lower, "total pieces") || strings.Contains(lower, "price in purchase return")):
 		return "Seeds overlay-hidden purchase-return header extras captured from the legacy column/header contract.", "wired"
+	case category == "Quotation" && strings.Contains(lower, "remote "):
+		return "Seeds overlay-hidden quotation remote quantity fields (net sale, stock, reorder, optimum, min, P/O).", "wired"
+	case category == "Purchase Order" && (strings.Contains(lower, "item alert") || strings.Contains(lower, "required packs fraction") || strings.Contains(lower, "page size for print out") || strings.Contains(lower, "p/o supplier consideration")):
+		return "Seeds overlay-hidden purchase-order Item Alert / packs fraction / page size / supplier consideration fields.", "wired"
+	case category == "General" && strings.Contains(lower, "business short name"):
+		return "Falls back the browser document title when Application Title is empty.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask pur. invoice"):
 		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
 	case category == "Purchase" && strings.Contains(lower, "show net rate"):
