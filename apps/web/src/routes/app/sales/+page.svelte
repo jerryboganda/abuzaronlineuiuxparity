@@ -202,6 +202,19 @@
   let showSrInCashActivity = false;
   let showSrInActivityMonitor = false;
   let showQuotationInActivityMonitor = false;
+  let saleReturnBatch = '';
+  let saleReturnExpiry = '';
+  let fetchLatestItemSalesInfo = false;
+  let autoLocateReferencedSaleReturn = false;
+  let autoPostSaleReturnAllocation = false;
+  let allowSameBatchReturn = false;
+  let fetchFbrPosFee = false;
+  let fetchLatestSalePrice = false;
+  let allowQuotationBelowAvg = false;
+  let allowQuotationBelowRpp = false;
+  let allowQuotationAboveAvg = false;
+  let dropBoxFetchPrices = '';
+  let dropBoxFetchDiscounts = '';
   let remarks = '';
   let busy = false;
   let message = '';
@@ -1206,6 +1219,12 @@
               if (item.caption === 'Remote Min Qty:') remoteMinQty = item.value || remoteMinQty;
               if (item.caption === 'Remote P/O Qty:') remotePoQty = item.value || remotePoQty;
               if (item.caption === 'Show Quotation in Activity Monitor:') showQuotationInActivityMonitor = preferenceYes(item.value);
+              if (item.caption === 'Fetch Latest Sale Price:') fetchLatestSalePrice = preferenceYes(item.value);
+              if (item.caption === 'Allow Quotation Below Avg. Price:') allowQuotationBelowAvg = preferenceYes(item.value);
+              if (item.caption === 'Allow Quotation Below RPP:') allowQuotationBelowRpp = preferenceYes(item.value);
+              if (item.caption === 'Allow Quotation Above Avg. Price:') allowQuotationAboveAvg = preferenceYes(item.value);
+              if (item.caption === 'Drop Box - Auto Fetch Prices Of Branch P/O:') dropBoxFetchPrices = item.value || dropBoxFetchPrices;
+              if (item.caption === 'Drop Box - Auto Fetch Discounts Of Branch P/O:') dropBoxFetchDiscounts = item.value || dropBoxFetchDiscounts;
             }
           } catch {
             /* quotation extras stay hidden when Quotation prefs cannot be read */
@@ -1232,6 +1251,13 @@
               if (item.caption === 'Show Master Cashier Window in Buffer S/R:') showSrMasterCashierBuffer = preferenceYes(item.value);
               if (item.caption === 'Show S/R in Cash Activity Window:') showSrInCashActivity = preferenceYes(item.value);
               if (item.caption === 'Show Sale Return in Activity Monitor:') showSrInActivityMonitor = preferenceYes(item.value);
+              if (item.caption === 'Batch:') saleReturnBatch = item.value || saleReturnBatch;
+              if (item.caption === 'Expiry:') saleReturnExpiry = item.value || saleReturnExpiry;
+              if (item.caption === 'Fetch Latest Item Sales Info.:') fetchLatestItemSalesInfo = preferenceYes(item.value);
+              if (item.caption === 'Auto Locate Referenced Sale Return:') autoLocateReferencedSaleReturn = preferenceYes(item.value);
+              if (item.caption === 'Auto Post Sale Return Allocation:') autoPostSaleReturnAllocation = preferenceYes(item.value);
+              if (item.caption === 'Allow Same Batch Return Multiple Times:') allowSameBatchReturn = preferenceYes(item.value);
+              if (item.caption === 'Fetch FBR POS Fee For Reference S/R:') fetchFbrPosFee = preferenceYes(item.value);
               if (item.caption === 'Round Item Total (decimal places):' && item.value?.trim()) {
                 const places = Number(item.value);
                 if (Number.isFinite(places) && places >= 0 && places <= 6) roundItemTotalPlaces = places;
@@ -1709,6 +1735,13 @@
           {#if showSrMasterCashierBuffer}<label class="legacy-sale-optional-field">Show Master Cashier Window in Buffer S/R:<input type="checkbox" checked={showSrMasterCashierBuffer} disabled /></label>{/if}
           {#if showSrInCashActivity}<label class="legacy-sale-optional-field">Show S/R in Cash Activity Window:<input type="checkbox" checked={showSrInCashActivity} disabled /></label>{/if}
           {#if showSrInActivityMonitor}<label class="legacy-sale-optional-field">Show Sale Return in Activity Monitor:<input type="checkbox" checked={showSrInActivityMonitor} disabled /></label>{/if}
+          <label class="legacy-sale-optional-field">Batch:<input aria-label="Sale return batch extra" bind:value={saleReturnBatch} /></label>
+          <label class="legacy-sale-optional-field">Expiry:<input aria-label="Sale return expiry extra" bind:value={saleReturnExpiry} /></label>
+          {#if fetchLatestItemSalesInfo}<label class="legacy-sale-optional-field">Fetch Latest Item Sales Info.:<input type="checkbox" checked={fetchLatestItemSalesInfo} disabled /></label>{/if}
+          {#if autoLocateReferencedSaleReturn}<label class="legacy-sale-optional-field">Auto Locate Referenced Sale Return:<input type="checkbox" checked={autoLocateReferencedSaleReturn} disabled /></label>{/if}
+          {#if autoPostSaleReturnAllocation}<label class="legacy-sale-optional-field">Auto Post Sale Return Allocation:<input type="checkbox" checked={autoPostSaleReturnAllocation} disabled /></label>{/if}
+          {#if allowSameBatchReturn}<label class="legacy-sale-optional-field">Allow Same Batch Return Multiple Times:<input type="checkbox" checked={allowSameBatchReturn} disabled /></label>{/if}
+          {#if fetchFbrPosFee}<label class="legacy-sale-optional-field">Fetch FBR POS Fee For Reference S/R:<input type="checkbox" checked={fetchFbrPosFee} disabled /></label>{/if}
         {/if}
         {#if kind === 'quotation' && showQuotationRefNo}<label class="legacy-sale-optional-field">Quotation Ref.:<input aria-label="Quotation reference number" bind:value={quotationRefNo} /></label>{/if}
         {#if kind === 'quotation'}
@@ -1726,6 +1759,12 @@
           <label class="legacy-sale-optional-field">Remote Min Qty:<input aria-label="Remote minimum quantity" bind:value={remoteMinQty} /></label>
           <label class="legacy-sale-optional-field">Remote P/O Qty:<input aria-label="Remote purchase-order quantity" bind:value={remotePoQty} /></label>
           {#if showQuotationInActivityMonitor}<label class="legacy-sale-optional-field">Show Quotation in Activity Monitor:<input type="checkbox" checked={showQuotationInActivityMonitor} disabled /></label>{/if}
+          {#if fetchLatestSalePrice}<label class="legacy-sale-optional-field">Fetch Latest Sale Price:<input type="checkbox" checked={fetchLatestSalePrice} disabled /></label>{/if}
+          {#if allowQuotationBelowAvg}<label class="legacy-sale-optional-field">Allow Quotation Below Avg. Price:<input type="checkbox" checked={allowQuotationBelowAvg} disabled /></label>{/if}
+          {#if allowQuotationBelowRpp}<label class="legacy-sale-optional-field">Allow Quotation Below RPP:<input type="checkbox" checked={allowQuotationBelowRpp} disabled /></label>{/if}
+          {#if allowQuotationAboveAvg}<label class="legacy-sale-optional-field">Allow Quotation Above Avg. Price:<input type="checkbox" checked={allowQuotationAboveAvg} disabled /></label>{/if}
+          <label class="legacy-sale-optional-field">Drop Box Auto Fetch Prices:<input aria-label="Drop box auto fetch prices" bind:value={dropBoxFetchPrices} /></label>
+          <label class="legacy-sale-optional-field">Drop Box Auto Fetch Discounts:<input aria-label="Drop box auto fetch discounts" bind:value={dropBoxFetchDiscounts} /></label>
         {/if}
       </div>
       <div class="legacy-sale-lookup" aria-label="Item lookup list">

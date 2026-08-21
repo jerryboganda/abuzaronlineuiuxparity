@@ -81,7 +81,7 @@
     ],
     'interface-setting': [
       { key: 'interfaceType', label: 'Interface', kind: 'select', value: 'Printer', options: ['Printer', 'Barcode', 'Cash Drawer', 'SMS', 'Email'] }, { key: 'enabled', label: 'Enabled', kind: 'select', value: 'No', options: ['Yes', 'No'] }, { key: 'endpoint', label: 'Endpoint / Port' },
-      { key: 'smtpServer', label: 'SMTP Server', optional: true }, { key: 'smtpPort', label: 'SMTP Port', optional: true }, { key: 'fromName', label: 'From/Sender Name', optional: true }, { key: 'emailUser', label: 'Email User ID', optional: true }, { key: 'smtpAuth', label: 'SMTP Server Requires Authentication', kind: 'select', value: 'No', options: ['Yes', 'No'], optional: true }, { key: 'smtpEncryption', label: 'SMTP Encryption Type', kind: 'select', value: 'None', options: ['None', 'SSL', 'TLS'], optional: true }, { key: 'emailSubject', label: 'Email Subject', optional: true }, { key: 'emailBody', label: 'Email Body', optional: true }, { key: 'smsMethod', label: 'SMS Method', optional: true }, { key: 'smsProvider', label: 'Web SMS Provider', optional: true }, { key: 'smsUser', label: 'Web SMS User ID', optional: true }, { key: 'smsMask', label: 'Web SMS Mask', optional: true }, { key: 'smsApiKey', label: 'Web SMS API Key', optional: true }
+      { key: 'smtpServer', label: 'SMTP Server', optional: true }, { key: 'smtpPort', label: 'SMTP Port', optional: true }, { key: 'fromName', label: 'From/Sender Name', optional: true }, { key: 'emailUser', label: 'Email User ID', optional: true }, { key: 'smtpAuth', label: 'SMTP Server Requires Authentication', kind: 'select', value: 'No', options: ['Yes', 'No'], optional: true }, { key: 'smtpEncryption', label: 'SMTP Encryption Type', kind: 'select', value: 'None', options: ['None', 'SSL', 'TLS'], optional: true }, { key: 'emailSubject', label: 'Email Subject', optional: true }, { key: 'emailBody', label: 'Email Body', optional: true }, { key: 'smsMethod', label: 'SMS Method', optional: true }, { key: 'smsProvider', label: 'Web SMS Provider', optional: true },       { key: 'smsUser', label: 'Web SMS User ID', optional: true }, { key: 'smsMask', label: 'Web SMS Mask', optional: true }
     ],
     'update-item-basic-data': [
       { key: 'itemCode', label: 'Item Code' }, { key: 'field', label: 'Field', kind: 'select', value: 'Name', options: ['Name', 'Manufacturer', 'Category', 'Class', 'Location'] }, { key: 'value', label: 'New Value' }
@@ -398,7 +398,6 @@
         if (item.caption === 'Web SMS Provider:') next.smsProvider = item.value || next.smsProvider || '';
         if (item.caption === 'Web SMS User ID:') next.smsUser = item.value || next.smsUser || '';
         if (item.caption === 'Web SMS Mask:') next.smsMask = item.value || next.smsMask || '';
-        if (item.caption === 'Web SMS API Key:') next.smsApiKey = item.value || next.smsApiKey || '';
       }
       extraValues = next;
     } catch {

@@ -792,8 +792,8 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Stored only; email passwords are not copied into the interface-setting overlay or SMTP_* env.", "stored_only"
 	case category == "Email":
 		return "Seeds overlay-hidden interface-setting SMTP extras. The edge SMTP adapter still reads SMTP_* environment variables.", "wired"
-	case category == "SMS" && strings.Contains(lower, "web sms password"):
-		return "Stored only; SMS passwords are not copied into the interface-setting overlay or SMS_GATEWAY_* env.", "stored_only"
+	case category == "SMS" && (strings.Contains(lower, "web sms password") || strings.Contains(lower, "api key")):
+		return "Stored only; SMS passwords and API keys are not copied into the interface-setting overlay or SMS_GATEWAY_* env.", "stored_only"
 	case category == "SMS":
 		return "Seeds overlay-hidden interface-setting SMS extras. The edge SMS adapter still reads SMS_GATEWAY_* environment variables.", "wired"
 	case category == "General" && (lower == "item name:" || lower == "manufacturer:" || lower == "sale price:" || lower == "stock:" || strings.Contains(lower, "item location")):
@@ -804,6 +804,24 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Maps existing always-visible purchase grid columns (not gated behind default-No Show-*).", "wired"
 	case category == "Purchase Return" && (strings.Contains(lower, "show expiry") || strings.Contains(lower, "show purchase batch")):
 		return "Maps existing purchase-return Batch/Expiry columns (not gated behind default-No Show-*).", "wired"
+	case category == "Sale Return" && (lower == "batch:" || lower == "expiry:"):
+		return "Seeds overlay-hidden sale-return batch/expiry extras.", "wired"
+	case category == "Sale Return" && (strings.Contains(lower, "fetch latest item sales info") || strings.Contains(lower, "auto locate referenced sale return") || strings.Contains(lower, "auto post sale return allocation") || strings.Contains(lower, "allow same batch return") || strings.Contains(lower, "fetch fbr pos fee")):
+		return "When Yes, the matching sale-return extra is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Purchase" && strings.Contains(lower, "show/update retail price"):
+		return "Seeds overlay-hidden purchase retail-price extra.", "wired"
+	case category == "Purchase Return" && strings.Contains(lower, "auto post"):
+		return "When Yes, the Auto Post extra is shown on purchase return. Default No keeps the overlay clean.", "wired"
+	case category == "Quotation" && (strings.Contains(lower, "fetch latest sale price") || strings.Contains(lower, "allow quotation below") || strings.Contains(lower, "allow quotation above") || strings.Contains(lower, "drop box")):
+		return "Seeds overlay-hidden quotation fetch/price extras. Price floors are not enforced from these flags.", "wired"
+	case category == "Adjustment" && (strings.Contains(lower, "show batch") || strings.Contains(lower, "show expiry")):
+		return "Maps existing always-visible stock-adjustment Batch/Expiry fields.", "wired"
+	case category == "Purchase Order" && (strings.Contains(lower, "apply supplier items only") || strings.Contains(lower, "apply associated quotation") || strings.Contains(lower, "show un-posted p/ret") || strings.Contains(lower, "enforce supplier/item association") || strings.Contains(lower, "fetch last purchase info") || strings.Contains(lower, "apply supplier associated quotation") || strings.Contains(lower, "consider issue qty") || strings.Contains(lower, "consider receipt qty")):
+		return "Seeds overlay-hidden purchase-order extras. Saving does not mutate reorder/min/optimum/transit stock.", "wired"
+	case category == "Others" && (strings.Contains(lower, "synchronize parent server stock") || strings.Contains(lower, "keep child server invoice") || strings.Contains(lower, "copy child server invoice") || strings.Contains(lower, "prepare purchase dump") || strings.Contains(lower, "prepare sales dump") || strings.Contains(lower, "save sale history before data migration") || strings.Contains(lower, "auto purge posted sale")):
+		return "Seeds overlay-hidden replication/migration extras on the report pane. No parent/child sync or dump is executed.", "wired"
+	case category == "BasicData" && (strings.Contains(lower, "allow due default value") || strings.Contains(lower, "sales person scope")):
+		return "Seeds overlay-hidden item-master extras.", "wired"
 	case category == "Others" && (strings.Contains(lower, "preferred printer for activity monitor") || strings.Contains(lower, "sms expiry") || strings.Contains(lower, "refresh time (seconds)") || strings.Contains(lower, "activity period") || strings.Contains(lower, "output file") || strings.Contains(lower, "save as pdf") || strings.Contains(lower, "image scan tool")):
 		return "Seeds overlay-hidden report extras for printer/output locations, SMS expiry, refresh, and scan tool.", "wired"
 	case category == "Report" && strings.Contains(lower, "allow print setup"):

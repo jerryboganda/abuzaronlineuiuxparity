@@ -50,6 +50,13 @@
   let othersSmsExpiryHours = '';
   let othersRefreshSeconds = '';
   let othersActivityPeriod = '';
+  let synchronizeParentStock = false;
+  let keepChildInvoiceNo = false;
+  let copyChildInvoiceNo = false;
+  let preparePurchaseDump = false;
+  let prepareSalesDump = false;
+  let saveSaleHistoryBeforeMigration = '';
+  let autoPurgePostedSaleMinutes = '';
   const api = new AbuzarApi();
 
   $: kind = $page?.params?.kind ?? 'daily-sales-detail';
@@ -138,6 +145,13 @@
         if (item.caption === 'Output File(s) Location :') outputFilesLocation = item.value || outputFilesLocation;
         if (item.caption === 'Default Location for [Save As PDF]:') saveAsPdfLocation = item.value || saveAsPdfLocation;
         if (item.caption === 'Select Image Scan Tool:') imageScanTool = item.value || imageScanTool;
+        if (item.caption === 'Synchronize Parent Server Stock:') synchronizeParentStock = /^(yes|true|1|y)$/i.test(item.value || 'No');
+        if (item.caption === 'Keep Child Server Invoice No Intact:') keepChildInvoiceNo = /^(yes|true|1|y)$/i.test(item.value || 'No');
+        if (item.caption === 'Copy Child Server Invoice No in Ref # 1:') copyChildInvoiceNo = /^(yes|true|1|y)$/i.test(item.value || 'No');
+        if (item.caption === 'Prepare Purchase Dump Before Data Migration:') preparePurchaseDump = /^(yes|true|1|y)$/i.test(item.value || 'No');
+        if (item.caption === 'Prepare Sales Dump Before Data Migration:') prepareSalesDump = /^(yes|true|1|y)$/i.test(item.value || 'No');
+        if (item.caption === 'Save Sale History Before Data Migration:') saveSaleHistoryBeforeMigration = item.value || saveSaleHistoryBeforeMigration;
+        if (item.caption === 'Auto Purge Posted Sale Time(Minutes)') autoPurgePostedSaleMinutes = item.value || autoPurgePostedSaleMinutes;
       }
     }).catch(() => {
       /* others extras stay hidden when Others prefs cannot be read */
@@ -490,6 +504,13 @@
       <label class="legacy-sale-optional-field">Refresh Time (Seconds):<input aria-label="Others refresh seconds" bind:value={othersRefreshSeconds} /></label>
       <label class="legacy-sale-optional-field">Activity Period (Minutes):<input aria-label="Activity period minutes" bind:value={othersActivityPeriod} /></label>
       {#if allowPrintSetup}<label class="legacy-sale-optional-field">Allow Print Setup:<input type="checkbox" checked={allowPrintSetup} disabled /></label>{/if}
+      {#if synchronizeParentStock}<label class="legacy-sale-optional-field">Synchronize Parent Server Stock:<input type="checkbox" checked={synchronizeParentStock} disabled /></label>{/if}
+      {#if keepChildInvoiceNo}<label class="legacy-sale-optional-field">Keep Child Server Invoice No Intact:<input type="checkbox" checked={keepChildInvoiceNo} disabled /></label>{/if}
+      {#if copyChildInvoiceNo}<label class="legacy-sale-optional-field">Copy Child Server Invoice No in Ref # 1:<input type="checkbox" checked={copyChildInvoiceNo} disabled /></label>{/if}
+      {#if preparePurchaseDump}<label class="legacy-sale-optional-field">Prepare Purchase Dump Before Data Migration:<input type="checkbox" checked={preparePurchaseDump} disabled /></label>{/if}
+      {#if prepareSalesDump}<label class="legacy-sale-optional-field">Prepare Sales Dump Before Data Migration:<input type="checkbox" checked={prepareSalesDump} disabled /></label>{/if}
+      <label class="legacy-sale-optional-field">Save Sale History Before Data Migration:<input aria-label="Save sale history before migration" bind:value={saveSaleHistoryBeforeMigration} /></label>
+      <label class="legacy-sale-optional-field">Auto Purge Posted Sale Time (Minutes):<input aria-label="Auto purge posted sale minutes" bind:value={autoPurgePostedSaleMinutes} /></label>
       {#if definition.projectionNote}<small class="legacy-report-fallback-note">{definition.projectionNote}</small>{:else if definition.projectionStatus === 'generic-fallback'}<small class="legacy-report-fallback-note">Generic event-ledger fallback; exact legacy projection is not implemented.</small>{/if}
     </div>
     {#if error}<p class="legacy-report-error" role="alert">{error}</p>{/if}

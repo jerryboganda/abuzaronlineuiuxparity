@@ -1,5 +1,17 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 leftover fetch/retail/PO/Others overlay extras
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Sale-return batch/expiry extras and fetch/auto-post overlay flags; quotation fetch/price/drop-box extras (floors not enforced).
+- Purchase Show/Update Retail Price extra; purchase-return Auto Post; PO apply/enforce/consider/fetch extras without reorder/transit mutations.
+- Adjustment Show Batch/Expiry maps existing stock-adjustment fields.
+- Others replication/migration extras on reports; BasicData due-default and sales-person-scope extras.
+- SMS API keys stay stored_only and are not copied into the overlay.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 dashboard / activity-monitor / POS leftover / Email-SMS overlay
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:
