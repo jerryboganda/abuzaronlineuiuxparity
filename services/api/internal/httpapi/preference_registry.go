@@ -722,6 +722,10 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, report grids show an Account column. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "Report" && strings.Contains(lower, "refresh time"):
 		return "Auto-retrieves the open report on this interval after the first Retrieve (default 1 minute).", "wired"
+	case category == "Report" && strings.Contains(lower, "report term"):
+		return "Non-empty Report Term 1-6 values are shown on the report print letterhead (overlay-hidden at 1936x1048).", "wired"
+	case category == "BasicData" && (strings.Contains(lower, "lock item sale price") || strings.Contains(lower, "lock item disc")):
+		return "When Yes, the matching item master Sales Price or Sale Disc(%) field is read-only.", "wired"
 	case category == "Quotation" && strings.HasPrefix(lower, "line"):
 		return "Non-empty Line1-8 values are joined into the quotation print footer.", "wired"
 	case category == "Purchase Order" && (strings.HasPrefix(lower, "line") || strings.Contains(lower, "purchase order footer")):

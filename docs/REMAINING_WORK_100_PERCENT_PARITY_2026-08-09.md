@@ -149,6 +149,16 @@ Shipped:
 
 Still open: ~355 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
 
+## Progress update — 2026-08-09, item price locks / report terms
+
+**100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase V:** item-master Sale Price / Sale Disc(%) locks; Report Term 1-6 on print letterhead.
+
+Still open: ~347 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
+
 ---
 
 ## ⚠ Corrections to prior claims (read this first)

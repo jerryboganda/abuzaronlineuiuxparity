@@ -1,5 +1,14 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 item price locks / report terms
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- `BasicData/Lock Item Sale Price:` and `Lock Item Disc. (%):` make the matching item-master fields read-only when Yes.
+- `Report Term 1-6` appear on the report print letterhead (overlay-hidden).
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 report refresh / quotation and PO print lines
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

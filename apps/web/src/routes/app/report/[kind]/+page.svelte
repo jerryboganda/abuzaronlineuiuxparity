@@ -41,6 +41,7 @@
   let error = '';
   let applyDefaultReportDate = false;
   let showAccountInReports = false;
+  let reportTerms: string[] = [];
   const api = new AbuzarApi();
 
   $: kind = $page?.params?.kind ?? 'daily-sales-detail';
@@ -98,6 +99,7 @@
           const parsed = Number.parseInt(item.value || '1', 10);
           if (parsed > 0) refreshMinutes = parsed;
         }
+        if (item.caption.startsWith('Report Term') && item.value?.trim()) reportTerms = [...reportTerms, item.value.trim()];
       }
       if (applyDefaultReportDate && /^\d{4}-\d{2}-\d{2}$/.test(defaultStart)) {
         let hasSavedFrom = false;
@@ -483,7 +485,7 @@
     <div class="legacy-report-preview-ruler" aria-hidden="true"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span></div>
     <div class="legacy-report-preview-status">Report page {reportPage}{serverHasMore ? ' · More records available' : ''} · {fromDate} to {toDate}</div>
     <div class="legacy-report-preview-workspace"><div class="legacy-report-preview-page-wrap" style={`--preview-scale: ${previewZoom / 100}`}><article class="legacy-report-preview-page">
-      <div class="legacy-report-letterhead"><strong>{definition.letterhead.name}</strong><span>{definition.letterhead.line2} / {definition.letterhead.line3}</span><span>Phone(s): {definition.letterhead.phone}{#if definition.letterhead.fax} · Fax: {definition.letterhead.fax}{/if}</span></div>
+      <div class="legacy-report-letterhead"><strong>{definition.letterhead.name}</strong><span>{definition.letterhead.line2} / {definition.letterhead.line3}</span><span>Phone(s): {definition.letterhead.phone}{#if definition.letterhead.fax} · Fax: {definition.letterhead.fax}{/if}</span>{#if reportTerms.length}<span class="legacy-sale-optional-field">{reportTerms.join(' · ')}</span>{/if}</div>
       <div class="legacy-report-preview-meta"><span>{title} · {format}</span><span>Page {reportPage} / {pageCount} · Preview {previewPage} / {previewPageCount}</span></div>
       <table class="legacy-report-grid"><thead><tr>{#each definition.columns as column}<th>{column.label}</th>{/each}{#if showAccountInReports}<th class="legacy-sale-optional-field">Account</th>{/if}</tr></thead><tbody>{#if previewVisibleRows.length > 0}{#each previewVisibleRows as row}<tr>{#each definition.columns as column}<td>{cellValue(row, column)}</td>{/each}{#if showAccountInReports}<td class="legacy-sale-optional-field">{row.alternateAccountCode || row.party}</td>{/if}</tr>{/each}{:else}<tr><td colspan={definition.columns.length + (showAccountInReports ? 1 : 0)}>No rows loaded for this report page.</td></tr>{/if}</tbody></table>
     </article></div></div>
