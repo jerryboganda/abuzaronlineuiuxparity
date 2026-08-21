@@ -750,6 +750,14 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Seeds overlay-hidden purchase PCT Code and Sales Tax Schedule header fields.", "wired"
 	case category == "Quotation" && strings.Contains(lower, "claimable discount"):
 		return "When Yes, the quotation grid shows a Claimable Disc. column. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Sale" && (strings.Contains(lower, "alternate alias name") || strings.Contains(lower, "item flat discount") || strings.Contains(lower, "bonus qty") || strings.Contains(lower, "item unit sales tax") || strings.Contains(lower, "claimable item") || strings.Contains(lower, "item packing") || strings.Contains(lower, "packing description") || strings.Contains(lower, "item description") || strings.Contains(lower, "batch no") || strings.Contains(lower, "item weight per unit") || strings.Contains(lower, "packing factor per unit")):
+		return "Seeds overlay-hidden sale header extras captured from the legacy column/header contract.", "wired"
+	case category == "Purchase" && (strings.Contains(lower, "alternate alias name") || strings.Contains(lower, "pre-disc. price") || strings.Contains(lower, "flat discount") || strings.Contains(lower, "packing description") || strings.Contains(lower, "p/o qty") || strings.Contains(lower, "bonus quantity") || strings.Contains(lower, "item description") || lower == "sales tax:" || strings.Contains(lower, "pur. tax") || strings.Contains(lower, "total pieces") || strings.Contains(lower, "mark-up") || lower == "manufacturer:" || strings.Contains(lower, "sale return basis")):
+		return "Seeds overlay-hidden purchase header extras captured from the legacy column/header contract.", "wired"
+	case category == "Sale Return" && (strings.Contains(lower, "page size") || strings.Contains(lower, "alternate alias name") || strings.Contains(lower, "packing description") || strings.Contains(lower, "item description") || strings.Contains(lower, "total pieces") || strings.Contains(lower, "thermal print format")):
+		return "Seeds overlay-hidden sale-return header extras captured from the legacy column/header contract.", "wired"
+	case category == "Purchase Return" && (strings.Contains(lower, "alternate alias name") || strings.Contains(lower, "packing description") || strings.Contains(lower, "item description") || strings.Contains(lower, "total pieces") || strings.Contains(lower, "price in purchase return")):
+		return "Seeds overlay-hidden purchase-return header extras captured from the legacy column/header contract.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask pur. invoice"):
 		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
 	case category == "Purchase" && strings.Contains(lower, "show net rate"):

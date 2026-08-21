@@ -239,6 +239,19 @@ Still open: ~288 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon
 
 ---
 
+## Progress update — 2026-08-09, leftover header seeds / detail report extras
+
+**100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase V:** Overlay-hidden header seeds for remaining Sale/Purchase/Sale Return/Purchase Return column-contract captions (alias, packing, description, tax, bonus, batch no, pieces, thermal format, price in P/Return).
+- **Phase N:** `category-wise-item-wise-sale-discounts-detail` and `manufacturer-wise-sales-detail-and-summary` reuse line-detail.
+
+Still open: ~252 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
+
+---
+
 ## ⚠ Corrections to prior claims (read this first)
 
 A few things previously reported as done in this session's evidence docs — including two items marked `completed` on the running task list — do **not** hold up under independent verification:

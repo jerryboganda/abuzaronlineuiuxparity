@@ -64,6 +64,8 @@ func TestPhaseNSiblingLeavesReuseExistingSalesModes(t *testing.T) {
 		{"item-wise-item-wise-net-sales", "item-summary"},
 		{"slow-fast-moving-items", "item-summary"},
 		{"net-sale-summary", "invoice-summary"},
+		{"category-wise-item-wise-sale-discounts-detail", "line-detail"},
+		{"manufacturer-wise-sales-detail-and-summary", "line-detail"},
 	}
 	for _, test := range cases {
 		spec, ok := reportSpecForKey(test.kind)

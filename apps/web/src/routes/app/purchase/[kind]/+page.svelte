@@ -138,6 +138,24 @@
   let showPurchaseNetMargin = false;
   let pctCode = '';
   let salesTaxSchedule = '';
+  let purchaseAlternateAlias = '';
+  let preDiscPrice = '';
+  let flatDiscount = '';
+  let packingDescription = '';
+  let poQty = '';
+  let bonusQuantity = '';
+  let itemDescription = '';
+  let salesTax = '';
+  let purTax = '';
+  let totalPieces = '';
+  let markup = '';
+  let manufacturer = '';
+  let saleReturnBasis = '';
+  let purchaseReturnAlternateAlias = '';
+  let purchaseReturnPackingDescription = '';
+  let purchaseReturnItemDescription = '';
+  let purchaseReturnTotalPieces = '';
+  let priceInPurchaseReturn = '';
   let paymentModeAmtReceived = '';
   let paymentAccountAmtReceived = '';
   let roundItemTotalPlaces: number | null = null;
@@ -893,6 +911,19 @@
           if (item.caption === 'Net Margin %:') showPurchaseNetMargin = yes(item.value);
           if (item.caption === 'PCT Code:') pctCode = item.value || pctCode;
           if (item.caption === 'Sales Tax Schedule:') salesTaxSchedule = item.value || salesTaxSchedule;
+          if (item.caption === 'Alternate Alias Name:') purchaseAlternateAlias = item.value || purchaseAlternateAlias;
+          if (item.caption === 'Pre-Disc. Price:') preDiscPrice = item.value || preDiscPrice;
+          if (item.caption === 'Flat Discount:') flatDiscount = item.value || flatDiscount;
+          if (item.caption === 'Packing Description:') packingDescription = item.value || packingDescription;
+          if (item.caption === 'P/O Qty:') poQty = item.value || poQty;
+          if (item.caption === 'Bonus Quantity:') bonusQuantity = item.value || bonusQuantity;
+          if (item.caption === 'Item Description:') itemDescription = item.value || itemDescription;
+          if (item.caption === 'Sales Tax:') salesTax = item.value || salesTax;
+          if (item.caption === 'Pur. Tax:') purTax = item.value || purTax;
+          if (item.caption === 'Total Pieces:') totalPieces = item.value || totalPieces;
+          if (item.caption === 'Mark-up:') markup = item.value || markup;
+          if (item.caption === 'Manufacturer:') manufacturer = item.value || manufacturer;
+          if (item.caption === 'Sale Return Basis:') saleReturnBasis = item.value || saleReturnBasis;
         }
       } catch {
         /* purchase header extras stay hidden when Purchase prefs cannot be read */
@@ -914,6 +945,11 @@
           if (item.caption === 'Show Pack Qty.:' && /^(yes|true|1|y)$/i.test(item.value || 'No')) showPackQty = true;
           if (item.caption === 'Payment Mode Amt. Received in P/Return:') paymentModeAmtReceived = item.value || paymentModeAmtReceived;
           if (item.caption === 'Payment A/C for Amt. Received in P/Return:') paymentAccountAmtReceived = item.value || paymentAccountAmtReceived;
+          if (item.caption === 'Alternate Alias Name:') purchaseReturnAlternateAlias = item.value || purchaseReturnAlternateAlias;
+          if (item.caption === 'Packing Description:') purchaseReturnPackingDescription = item.value || purchaseReturnPackingDescription;
+          if (item.caption === 'Item Description:') purchaseReturnItemDescription = item.value || purchaseReturnItemDescription;
+          if (item.caption === 'Total Pieces:') purchaseReturnTotalPieces = item.value || purchaseReturnTotalPieces;
+          if (item.caption === 'Price in Purchase Return:') priceInPurchaseReturn = item.value || priceInPurchaseReturn;
           if (item.caption === 'Round Item Total (decimal places):' && item.value?.trim()) {
             const places = Number(item.value);
             if (Number.isFinite(places) && places >= 0 && places <= 6) roundItemTotalPlaces = places;
@@ -1774,9 +1810,27 @@
         <label class="legacy-purchase-optional-field">Supplier Balance:<input aria-label="Supplier balance" bind:value={supplierBalance} /></label>
         <label class="legacy-purchase-optional-field">PCT Code:<input aria-label="PCT code" bind:value={pctCode} /></label>
         <label class="legacy-purchase-optional-field">Sales Tax Schedule:<input aria-label="Sales tax schedule" bind:value={salesTaxSchedule} /></label>
+        <label class="legacy-purchase-optional-field">Alternate Alias:<input aria-label="Purchase alternate alias" bind:value={purchaseAlternateAlias} /></label>
+        <label class="legacy-purchase-optional-field">Pre-Disc. Price:<input aria-label="Pre-discount price" bind:value={preDiscPrice} /></label>
+        <label class="legacy-purchase-optional-field">Flat Discount:<input aria-label="Flat discount" bind:value={flatDiscount} /></label>
+        <label class="legacy-purchase-optional-field">Packing Description:<input aria-label="Packing description" bind:value={packingDescription} /></label>
+        <label class="legacy-purchase-optional-field">P/O Qty:<input aria-label="Purchase order quantity" bind:value={poQty} /></label>
+        <label class="legacy-purchase-optional-field">Bonus Qty:<input aria-label="Bonus quantity" bind:value={bonusQuantity} /></label>
+        <label class="legacy-purchase-optional-field">Item Description:<input aria-label="Item description" bind:value={itemDescription} /></label>
+        <label class="legacy-purchase-optional-field">Sales Tax:<input aria-label="Sales tax" bind:value={salesTax} /></label>
+        <label class="legacy-purchase-optional-field">Pur. Tax:<input aria-label="Purchase tax" bind:value={purTax} /></label>
+        <label class="legacy-purchase-optional-field">Total Pieces:<input aria-label="Total pieces" bind:value={totalPieces} /></label>
+        <label class="legacy-purchase-optional-field">Mark-up:<input aria-label="Mark-up" bind:value={markup} /></label>
+        <label class="legacy-purchase-optional-field">Manufacturer:<input aria-label="Manufacturer" bind:value={manufacturer} /></label>
+        <label class="legacy-purchase-optional-field">Sale Return Basis:<input aria-label="Sale return basis" bind:value={saleReturnBasis} /></label>
         {#if kind === 'return'}
           <label class="legacy-purchase-optional-field">Payment Mode:<input aria-label="Purchase return payment mode" bind:value={paymentModeAmtReceived} /></label>
           <label class="legacy-purchase-optional-field">Payment A/C:<input aria-label="Purchase return payment account" bind:value={paymentAccountAmtReceived} /></label>
+          <label class="legacy-purchase-optional-field">Alternate Alias:<input aria-label="Purchase return alternate alias" bind:value={purchaseReturnAlternateAlias} /></label>
+          <label class="legacy-purchase-optional-field">Packing Description:<input aria-label="Purchase return packing description" bind:value={purchaseReturnPackingDescription} /></label>
+          <label class="legacy-purchase-optional-field">Item Description:<input aria-label="Purchase return item description" bind:value={purchaseReturnItemDescription} /></label>
+          <label class="legacy-purchase-optional-field">Total Pieces:<input aria-label="Purchase return total pieces" bind:value={purchaseReturnTotalPieces} /></label>
+          <label class="legacy-purchase-optional-field">Price in P/Return:<input aria-label="Price in purchase return" bind:value={priceInPurchaseReturn} /></label>
         {/if}
         {#if kind === 'order' && showSupplierReference}<label class="legacy-purchase-optional-field">Supplier Ref.:<input aria-label="Supplier reference" bind:value={supplierReference} /></label>{/if}
         {#if kind === 'order' && showDeliveryPlace}<label class="legacy-purchase-optional-field">Delivery Place:<input aria-label="Delivery place" bind:value={deliveryPlace} /></label>{/if}

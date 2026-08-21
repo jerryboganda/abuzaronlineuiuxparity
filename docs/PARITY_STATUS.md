@@ -1,5 +1,14 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 leftover header seeds / detail report extras
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Overlay-hidden sale/purchase/return header seeds for remaining column-contract captions (alias, packing, description, tax, bonus, batch no, etc.).
+- Phase N: category-wise item-wise sale discounts detail and manufacturer-wise sales detail-and-summary reuse line-detail.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 sale/purchase tax-discount grid extras
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

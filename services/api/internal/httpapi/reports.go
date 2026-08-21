@@ -334,6 +334,8 @@ var phaseNReportRegistry = func() map[string]reportSpec {
 			mode = "item-summary"
 		case "net-sale-summary":
 			mode = "invoice-summary"
+		case "category-wise-item-wise-sale-discounts-detail", "manufacturer-wise-sales-detail-and-summary":
+			mode = "line-detail"
 		}
 		registry[report.kind] = reportSpec{title: report.title, aggregateCondition: condition, salesReadModel: true, salesMode: mode}
 	}

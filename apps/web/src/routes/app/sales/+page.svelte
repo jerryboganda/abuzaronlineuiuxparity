@@ -146,6 +146,23 @@
   let showPreDiscount = false;
   let showClaimableDisc = false;
   let showQuotationClaimableDisc = false;
+  let alternateAliasName = '';
+  let itemFlatDiscount = '';
+  let bonusQty = '';
+  let itemUnitSalesTax = '';
+  let claimableItem = '';
+  let itemPacking = '';
+  let packingDescription = '';
+  let itemDescription = '';
+  let batchNo = '';
+  let itemWeightPerUnit = '';
+  let packingFactorPerUnit = '';
+  let saleReturnPageSize = '';
+  let saleReturnAlternateAlias = '';
+  let saleReturnPackingDescription = '';
+  let saleReturnItemDescription = '';
+  let saleReturnTotalPieces = '';
+  let saleReturnThermalPrint = '';
   let remarks = '';
   let busy = false;
   let message = '';
@@ -1109,6 +1126,17 @@
               if (item.caption === 'Disc. % On Credit Sale:') showDiscOnCreditSale = preferenceYes(item.value);
               if (item.caption === 'Pre-Discount %age:') showPreDiscount = preferenceYes(item.value);
               if (item.caption === 'Claimable Disc.%:') showClaimableDisc = preferenceYes(item.value);
+              if (item.caption === 'Alternate Alias Name:') alternateAliasName = item.value || alternateAliasName;
+              if (item.caption === 'Item Flat Discount:') itemFlatDiscount = item.value || itemFlatDiscount;
+              if (item.caption === 'Bonus Qty:') bonusQty = item.value || bonusQty;
+              if (item.caption === 'Item Unit Sales Tax:') itemUnitSalesTax = item.value || itemUnitSalesTax;
+              if (item.caption === 'Claimable Item:') claimableItem = item.value || claimableItem;
+              if (item.caption === 'Item Packing:') itemPacking = item.value || itemPacking;
+              if (item.caption === 'Packing Description:') packingDescription = item.value || packingDescription;
+              if (item.caption === 'Item Description:') itemDescription = item.value || itemDescription;
+              if (item.caption === 'Batch No:') batchNo = item.value || batchNo;
+              if (item.caption === 'Item Weight Per Unit:') itemWeightPerUnit = item.value || itemWeightPerUnit;
+              if (item.caption === 'Packing Factor Per Unit:') packingFactorPerUnit = item.value || packingFactorPerUnit;
               if (item.caption === 'Ask Header:') askSaleHeader = preferenceYes(item.value);
               if (item.caption === 'Customer Balance:') customerBalance = item.value || customerBalance;
             }
@@ -1145,6 +1173,13 @@
               if (item.caption === 'Header On Sale Return:') askSaleReturnHeader = preferenceYes(item.value);
               if (item.caption === 'Payment Mode Amt. Paid in S/Return:') paymentModeAmtPaid = item.value || paymentModeAmtPaid;
               if (item.caption === 'Payment A/C for Amt. Paid in S/Return:') paymentAccountAmtPaid = item.value || paymentAccountAmtPaid;
+              if (item.caption === 'Page Size:') saleReturnPageSize = item.value || saleReturnPageSize;
+              if (item.caption === 'Sale Return Page Size:') saleReturnPageSize = item.value || saleReturnPageSize;
+              if (item.caption === 'Alternate Alias Name:') saleReturnAlternateAlias = item.value || saleReturnAlternateAlias;
+              if (item.caption === 'Packing Description:') saleReturnPackingDescription = item.value || saleReturnPackingDescription;
+              if (item.caption === 'Item Description:') saleReturnItemDescription = item.value || saleReturnItemDescription;
+              if (item.caption === 'Total Pieces:') saleReturnTotalPieces = item.value || saleReturnTotalPieces;
+              if (item.caption === 'Thermal Print Format:') saleReturnThermalPrint = item.value || saleReturnThermalPrint;
               if (item.caption === 'Round Item Total (decimal places):' && item.value?.trim()) {
                 const places = Number(item.value);
                 if (Number.isFinite(places) && places >= 0 && places <= 6) roundItemTotalPlaces = places;
@@ -1531,9 +1566,26 @@
         <label class="legacy-sale-optional-field">Customer Balance:<input aria-label="Customer balance" bind:value={customerBalance} /></label>
         <label class="legacy-sale-optional-field">Print Warranted Invoice:<input aria-label="Print warranted invoice" bind:value={printWarrantedInvoice} /></label>
         <label class="legacy-sale-optional-field">Fiscalization Machine IP:<input aria-label="Fiscalization machine IP" bind:value={fiscalizationMachineIp} /></label>
+        <label class="legacy-sale-optional-field">Alternate Alias:<input aria-label="Alternate alias name" bind:value={alternateAliasName} /></label>
+        <label class="legacy-sale-optional-field">Item Flat Discount:<input aria-label="Item flat discount" bind:value={itemFlatDiscount} /></label>
+        <label class="legacy-sale-optional-field">Bonus Qty:<input aria-label="Bonus quantity" bind:value={bonusQty} /></label>
+        <label class="legacy-sale-optional-field">Item Unit Sales Tax:<input aria-label="Item unit sales tax" bind:value={itemUnitSalesTax} /></label>
+        <label class="legacy-sale-optional-field">Claimable Item:<input aria-label="Claimable item" bind:value={claimableItem} /></label>
+        <label class="legacy-sale-optional-field">Item Packing:<input aria-label="Item packing" bind:value={itemPacking} /></label>
+        <label class="legacy-sale-optional-field">Packing Description:<input aria-label="Packing description" bind:value={packingDescription} /></label>
+        <label class="legacy-sale-optional-field">Item Description:<input aria-label="Item description" bind:value={itemDescription} /></label>
+        <label class="legacy-sale-optional-field">Batch No:<input aria-label="Batch number" bind:value={batchNo} /></label>
+        <label class="legacy-sale-optional-field">Weight/Unit:<input aria-label="Item weight per unit" bind:value={itemWeightPerUnit} /></label>
+        <label class="legacy-sale-optional-field">Packing Factor:<input aria-label="Packing factor per unit" bind:value={packingFactorPerUnit} /></label>
         {#if aggregate === 'sale_return'}
           <label class="legacy-sale-optional-field">Payment Mode:<input aria-label="Sale return payment mode" bind:value={paymentModeAmtPaid} /></label>
           <label class="legacy-sale-optional-field">Payment A/C:<input aria-label="Sale return payment account" bind:value={paymentAccountAmtPaid} /></label>
+          <label class="legacy-sale-optional-field">Page Size:<input aria-label="Sale return page size" bind:value={saleReturnPageSize} /></label>
+          <label class="legacy-sale-optional-field">Alternate Alias:<input aria-label="Sale return alternate alias" bind:value={saleReturnAlternateAlias} /></label>
+          <label class="legacy-sale-optional-field">Packing Description:<input aria-label="Sale return packing description" bind:value={saleReturnPackingDescription} /></label>
+          <label class="legacy-sale-optional-field">Item Description:<input aria-label="Sale return item description" bind:value={saleReturnItemDescription} /></label>
+          <label class="legacy-sale-optional-field">Total Pieces:<input aria-label="Sale return total pieces" bind:value={saleReturnTotalPieces} /></label>
+          <label class="legacy-sale-optional-field">Thermal Print Format:<input aria-label="Sale return thermal print format" bind:value={saleReturnThermalPrint} /></label>
         {/if}
         {#if kind === 'quotation' && showQuotationRefNo}<label class="legacy-sale-optional-field">Quotation Ref.:<input aria-label="Quotation reference number" bind:value={quotationRefNo} /></label>{/if}
         {#if kind === 'quotation'}
