@@ -129,6 +129,16 @@ Shipped:
 
 Still open: ~391 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
 
+## Progress update — 2026-08-09, copy remarks / PO Show-* / sale extra seeds
+
+**100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase V:** Copy Remarks in Item Description on sale-return / purchase-return / purchase-order; purchase-order Show-* header extras; sale Ref 2/3/4 / person / doctor / message / account-for seeds.
+
+Still open: ~374 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
+
 ---
 
 ## ⚠ Corrections to prior claims (read this first)

@@ -28,6 +28,49 @@ func purchaseDefaultExpiryDate() string {
 	return "2030-12-12"
 }
 
+func remarksCopyPreference(kind string) (category, caption string, ok bool) {
+	switch kind {
+	case "cash-return", "credit-return", "open-cash-return", "open-credit-return":
+		return "Sale Return", "Copy Remarks in Item Description:", true
+	case "purchase-return":
+		return "Purchase Return", "Copy Remarks in Item Description:", true
+	case "purchase-order":
+		return "Purchase Order", "Copy Remarks in Item Description", true
+	default:
+		return "", "", false
+	}
+}
+
+func copyRemarksIntoEmptyLineNotes(remarks string, lines []documentLineRequest) {
+	remarks = strings.TrimSpace(remarks)
+	if remarks == "" {
+		return
+	}
+	for index := range lines {
+		if strings.TrimSpace(lines[index].Notes) == "" {
+			lines[index].Notes = remarks
+		}
+	}
+}
+
+func applyCopyRemarksInItemDescription(ctx context.Context, tx *sql.Tx, operator *sessionContext, kind string, draft *documentDraftRequest) error {
+	if draft == nil {
+		return nil
+	}
+	category, caption, ok := remarksCopyPreference(kind)
+	if !ok {
+		return nil
+	}
+	enabled, err := effectivePreferenceYes(ctx, tx, operator, category, caption, false)
+	if err != nil {
+		return err
+	}
+	if enabled {
+		copyRemarksIntoEmptyLineNotes(draft.Remarks, draft.Lines)
+	}
+	return nil
+}
+
 func applyPurchaseRegistryDefaults(lines []documentLineRequest) {
 	defaultBatch := purchaseRegistryDefault("General", "Default Batch:", ".")
 	defaultExpiry := purchaseDefaultExpiryDate()

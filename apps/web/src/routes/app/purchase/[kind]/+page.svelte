@@ -127,6 +127,20 @@
   let showSupplierAmount = false;
   let showGrn = false;
   let showItemImage = false;
+  let showSupplierReference = false;
+  let showDeliveryPlace = false;
+  let showUsagePalace = false;
+  let showRequiredDate = false;
+  let showRemarks2 = false;
+  let showPurchaseType = false;
+  let showRemarks3 = false;
+  let supplierReference = '';
+  let deliveryPlace = '';
+  let usagePalace = '';
+  let requiredDate = '';
+  let remarks2 = '';
+  let purchaseType = '';
+  let remarks3 = '';
   let agency = '';
   let vehicle = '';
   let shipTo = '';
@@ -849,6 +863,21 @@
         }
       } catch {
         /* purchase-return copy prompt stays off unless General already enabled it */
+      }
+      try {
+        const purchaseOrderPrefs = await api.preferences('Purchase Order');
+        const yes = (value: string | undefined) => /^(yes|true|1|y)$/i.test(value || 'No');
+        for (const item of purchaseOrderPrefs.registry ?? purchaseOrderPrefs.items ?? []) {
+          if (item.caption === 'Show Supplier Reference:') showSupplierReference = yes(item.value);
+          if (item.caption === 'Show Delivery Place:') showDeliveryPlace = yes(item.value);
+          if (item.caption === 'Show Usage Palace:') showUsagePalace = yes(item.value);
+          if (item.caption === 'Show Required Date:') showRequiredDate = yes(item.value);
+          if (item.caption === 'Show Remarks 2:') showRemarks2 = yes(item.value);
+          if (item.caption === 'Show Purchase Type:') showPurchaseType = yes(item.value);
+          if (item.caption === 'Show Remarks 3:') showRemarks3 = yes(item.value);
+        }
+      } catch {
+        /* purchase-order extras stay hidden when Purchase Order prefs cannot be read */
       }
     } catch {
       /* operators without preferences.read keep registry default No */
@@ -1636,6 +1665,13 @@
         {#if showSupplierAmount}<label class="legacy-purchase-optional-field">Supplier Amount:<input aria-label="Supplier amount" bind:value={supplierAmount} /></label>{/if}
         {#if showGrn}<label class="legacy-purchase-optional-field">GRN No.:<input aria-label="GRN number" bind:value={grn} /></label>{/if}
         {#if showItemImage}<span class="legacy-purchase-optional-field legacy-purchase-item-photo" aria-label="Item image">Item Photo</span>{/if}
+        {#if kind === 'order' && showSupplierReference}<label class="legacy-purchase-optional-field">Supplier Ref.:<input aria-label="Supplier reference" bind:value={supplierReference} /></label>{/if}
+        {#if kind === 'order' && showDeliveryPlace}<label class="legacy-purchase-optional-field">Delivery Place:<input aria-label="Delivery place" bind:value={deliveryPlace} /></label>{/if}
+        {#if kind === 'order' && showUsagePalace}<label class="legacy-purchase-optional-field">Usage Palace:<input aria-label="Usage palace" bind:value={usagePalace} /></label>{/if}
+        {#if kind === 'order' && showRequiredDate}<label class="legacy-purchase-optional-field">Required Date:<input type="date" aria-label="Required date" bind:value={requiredDate} /></label>{/if}
+        {#if kind === 'order' && showRemarks2}<label class="legacy-purchase-optional-field">Remarks 2:<input aria-label="Remarks 2" bind:value={remarks2} /></label>{/if}
+        {#if kind === 'order' && showPurchaseType}<label class="legacy-purchase-optional-field">Purchase Type:<input aria-label="Purchase type" bind:value={purchaseType} /></label>{/if}
+        {#if kind === 'order' && showRemarks3}<label class="legacy-purchase-optional-field">Remarks 3:<input aria-label="Remarks 3" bind:value={remarks3} /></label>{/if}
          {#if kind === 'pack' || kind === 'loose' || kind === 'opening'}<label>Credit Days:<input aria-label="Credit days" inputmode="numeric" bind:value={creditDays} /></label><label class="legacy-remaining-qty">Source PO #:<input aria-label="Source purchase order number" bind:value={sourceDocumentNumber} /></label>{/if}
          {#if kind === 'return'}<label>Source Document ID:<input aria-label="Source document ID" bind:value={sourceDocumentId} /></label><label>Source Document #:<input aria-label="Source document number" bind:value={sourceDocumentNumber} /></label>{/if}
       </div>

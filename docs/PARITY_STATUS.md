@@ -1,5 +1,15 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 copy remarks / PO Show-* / sale extra seeds
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Copy Remarks in Item Description fills empty line notes from header remarks on sale-return, purchase-return, and purchase-order save/post.
+- Purchase Order Show Supplier Reference / Delivery Place / Usage Palace / Required Date / Remarks 2 / Purchase Type / Remarks 3 (overlay-hidden).
+- Sale Reference No. 2/3/4, Sales Person, Doctor, Message, and Account For seed overlay-hidden header fields.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 purchase Ask New PO / net rate / report date+account / quotation days
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

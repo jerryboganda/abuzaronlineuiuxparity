@@ -1057,6 +1057,13 @@
               if (item.caption === 'Show Guarantee Person:') showGuarantee = preferenceYes(item.value);
               if (item.caption === 'Show Sale Type:') showSaleType = preferenceYes(item.value);
               if (item.caption === 'Show Item Image/Photo:') showItemImage = preferenceYes(item.value);
+              if (item.caption === 'Reference No. 2:') reference2 = item.value || reference2;
+              if (item.caption === 'Reference No. 3:') reference3 = item.value || reference3;
+              if (item.caption === 'Reference No. 4:') reference4 = item.value || reference4;
+              if (item.caption === 'Sales Person:') salesPerson = item.value || salesPerson;
+              if (item.caption === 'Doctor:') doctor = item.value || doctor;
+              if (item.caption === 'Message:') saleMessage = item.value || saleMessage;
+              if (item.caption === 'Account For:') accountFor = item.value || accountFor;
             }
           } catch {
             /* sale header extras stay hidden when Sale prefs cannot be read */

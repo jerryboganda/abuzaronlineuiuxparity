@@ -938,6 +938,9 @@ func claimDocumentCommand(ctx context.Context, tx *sql.Tx, operator *sessionCont
 
 func (s *Server) saveBusinessDocument(ctx context.Context, tx *sql.Tx, operator *sessionContext, command documentCommandRequest) (string, documentCommandResponse, error) {
 	draft := command.Document
+	if err := applyCopyRemarksInItemDescription(ctx, tx, operator, command.Kind, draft); err != nil {
+		return "", documentCommandResponse{}, err
+	}
 	priced, err := s.priceDocument(ctx, tx, operator, draft)
 	if err != nil {
 		return "", documentCommandResponse{}, err

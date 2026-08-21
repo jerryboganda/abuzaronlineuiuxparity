@@ -722,6 +722,14 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, report grids show an Account column. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "Quotation" && (strings.Contains(lower, "delivery days") || strings.Contains(lower, "validity days") || strings.Contains(lower, "payment to")):
 		return "Seeds the quotation Delivery Days / Validity Days / Payment To header fields (overlay-hidden at 1936x1048).", "wired"
+	case category == "Sale" && (strings.Contains(lower, "reference no. 2") || strings.Contains(lower, "reference no. 3") || strings.Contains(lower, "reference no. 4") || strings.Contains(lower, "sales person") || lower == "account for:" || lower == "message:" || lower == "doctor:"):
+		return "Seeds overlay-hidden sale header fields (Ref 2/3/4, Sales Person, Doctor, Message, Account For).", "wired"
+	case (category == "Sale Return" || category == "Purchase Return") && strings.Contains(lower, "copy remarks in item description"):
+		return "When Yes, empty document line notes are filled from header remarks on save/post.", "wired"
+	case category == "Purchase Order" && strings.Contains(lower, "copy remarks in item description"):
+		return "When Yes, empty purchase-order line notes are filled from header remarks on save/post.", "wired"
+	case category == "Purchase Order" && (strings.Contains(lower, "show supplier reference") || strings.Contains(lower, "show delivery place") || strings.Contains(lower, "show usage palace") || strings.Contains(lower, "show required date") || strings.Contains(lower, "show remarks 2") || strings.Contains(lower, "show purchase type") || strings.Contains(lower, "show remarks 3")):
+		return "When Yes, the matching purchase-order header field is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "General" && strings.Contains(lower, "default batch"):
 		return "Empty purchase receipt batches are filled from this value (legacy default '.').", "wired"
 	case category == "General" && strings.Contains(lower, "default expiry"):

@@ -20,6 +20,40 @@ func TestRemainingQuantityNeverNegative(t *testing.T) {
 	}
 }
 
+func TestCopyRemarksIntoEmptyLineNotes(t *testing.T) {
+	lines := []documentLineRequest{
+		{Notes: ""},
+		{Notes: "keep"},
+		{Notes: "   "},
+	}
+	copyRemarksIntoEmptyLineNotes("  header remarks  ", lines)
+	if lines[0].Notes != "header remarks" {
+		t.Fatalf("empty notes = %q, want header remarks", lines[0].Notes)
+	}
+	if lines[1].Notes != "keep" {
+		t.Fatalf("existing notes overwritten: %q", lines[1].Notes)
+	}
+	if lines[2].Notes != "header remarks" {
+		t.Fatalf("whitespace notes = %q, want header remarks", lines[2].Notes)
+	}
+	copyRemarksIntoEmptyLineNotes("   ", lines)
+	if lines[1].Notes != "keep" {
+		t.Fatalf("blank remarks mutated existing notes: %q", lines[1].Notes)
+	}
+}
+
+func TestRemarksCopyPreferenceKinds(t *testing.T) {
+	if _, _, ok := remarksCopyPreference("cash-sale"); ok {
+		t.Fatal("cash-sale should not copy remarks")
+	}
+	if category, caption, ok := remarksCopyPreference("purchase-order"); !ok || category != "Purchase Order" || caption != "Copy Remarks in Item Description" {
+		t.Fatalf("purchase-order copy remarks pref = %s/%s ok=%v", category, caption, ok)
+	}
+	if category, caption, ok := remarksCopyPreference("purchase-return"); !ok || category != "Purchase Return" {
+		t.Fatalf("purchase-return copy remarks pref = %s/%s ok=%v", category, caption, ok)
+	}
+}
+
 func TestApplyPurchaseRegistryDefaultsFillsEmptyBatchAndExpiry(t *testing.T) {
 	lines := []documentLineRequest{
 		{BatchNumber: "", ExpiryDate: ""},
