@@ -708,8 +708,18 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, saving a sale return asks for the amount paid before the document is posted.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask amount received on p/return"):
 		return "When Yes, saving a purchase return asks for the amount received before the document is posted.", "wired"
-	case category == "Purchase" && (strings.Contains(lower, "ask purchase order") || strings.Contains(lower, "ask new purchase order") || strings.Contains(lower, "ask credit days") || strings.Contains(lower, "ask l. c. no")):
+	case category == "Purchase" && (strings.Contains(lower, "ask purchase order") || strings.Contains(lower, "ask new purchase order") || strings.Contains(lower, "ask credit days") || strings.Contains(lower, "ask l. c. no") || strings.Contains(lower, "ask purchase type") || lower == "ask header:"):
 		return "When Yes, purchase save/post asks for the matching header value before the document is posted.", "wired"
+	case category == "Sale" && lower == "ask header:":
+		return "When Yes, cash/credit sale save/post asks for the header/remarks value.", "wired"
+	case category == "Quotation" && lower == "ask header:":
+		return "When Yes, quotation save/post asks for the header/remarks value.", "wired"
+	case category == "Sale" && strings.Contains(lower, "customer balance"):
+		return "Seeds the overlay-hidden Customer Balance sale header field.", "wired"
+	case category == "Quotation" && strings.Contains(lower, "show ref. no"):
+		return "When Yes, the quotation shows an extra Ref. No. field. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Purchase Return" && lower == "account for:":
+		return "Seeds the overlay-hidden purchase-return Account For header field.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask pur. invoice"):
 		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
 	case category == "Purchase" && strings.Contains(lower, "show net rate"):
@@ -744,8 +754,8 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, empty document line notes are filled from header remarks on save/post.", "wired"
 	case category == "Purchase Order" && strings.Contains(lower, "copy remarks in item description"):
 		return "When Yes, empty purchase-order line notes are filled from header remarks on save/post.", "wired"
-	case category == "Purchase Order" && (strings.Contains(lower, "show supplier reference") || strings.Contains(lower, "show delivery place") || strings.Contains(lower, "show usage palace") || strings.Contains(lower, "show required date") || strings.Contains(lower, "show remarks 2") || strings.Contains(lower, "show purchase type") || strings.Contains(lower, "show remarks 3")):
-		return "When Yes, the matching purchase-order header field is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Purchase Order" && (strings.Contains(lower, "show supplier reference") || strings.Contains(lower, "show delivery place") || strings.Contains(lower, "show usage palace") || strings.Contains(lower, "show required date") || strings.Contains(lower, "show remarks 2") || strings.Contains(lower, "show purchase type") || strings.Contains(lower, "show remarks 3") || strings.Contains(lower, "show misc.charges") || strings.Contains(lower, "show invoice discount") || strings.Contains(lower, "show invoice gst") || strings.Contains(lower, "show invoice flat discount") || strings.Contains(lower, "show grand total") || strings.Contains(lower, "show item remarks")):
+		return "When Yes, the matching purchase-order header or remarks field is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "General" && strings.Contains(lower, "default batch"):
 		return "Empty purchase receipt batches are filled from this value (legacy default '.').", "wired"
 	case category == "General" && strings.Contains(lower, "default expiry"):

@@ -116,6 +116,18 @@
   let askLcNo = false;
   let askNewPurchaseOrderNo = false;
   let askPurInvoiceNo = false;
+  let askHeader = false;
+  let askPurchaseType = false;
+  let showMiscCharges = false;
+  let showInvoiceDiscount = false;
+  let showInvoiceGst = false;
+  let showInvoiceFlatDiscount = false;
+  let showGrandTotal = false;
+  let showItemRemarks = false;
+  let miscCharges = '';
+  let invoiceDiscount = '';
+  let invoiceGst = '';
+  let invoiceFlatDiscount = '';
   let showNetRate = false;
   let showUnitWeight = false;
   let showTotalWeight = false;
@@ -852,6 +864,8 @@
           if (item.caption === 'Show Unit Weight:') showUnitWeight = yes(item.value);
           if (item.caption === 'Show Total Weight:') showTotalWeight = yes(item.value);
           if (item.caption === 'Account For:') accountFor = item.value || accountFor;
+          if (item.caption === 'Ask Header:') askHeader = yes(item.value);
+          if (item.caption === 'Ask Purchase Type:') askPurchaseType = yes(item.value);
         }
       } catch {
         /* purchase header extras stay hidden when Purchase prefs cannot be read */
@@ -868,6 +882,7 @@
           if (item.caption === 'Ask Pur. Invoice No.:' && /^(yes|true|1|y)$/i.test(item.value || 'No')) {
             askPurInvoiceNo = true;
           }
+          if (item.caption === 'Account For:') accountFor = item.value || accountFor;
         }
       } catch {
         /* purchase-return copy prompt stays off unless General already enabled it */
@@ -883,6 +898,12 @@
           if (item.caption === 'Show Remarks 2:') showRemarks2 = yes(item.value);
           if (item.caption === 'Show Purchase Type:') showPurchaseType = yes(item.value);
           if (item.caption === 'Show Remarks 3:') showRemarks3 = yes(item.value);
+          if (item.caption === 'Show Misc.Charges:') showMiscCharges = yes(item.value);
+          if (item.caption === 'Show Invoice Discount (%):') showInvoiceDiscount = yes(item.value);
+          if (item.caption === 'Show Invoice GST (%):') showInvoiceGst = yes(item.value);
+          if (item.caption === 'Show Invoice Flat Discount:') showInvoiceFlatDiscount = yes(item.value);
+          if (item.caption === 'Show Grand Total:') showGrandTotal = yes(item.value);
+          if (item.caption === 'Show Item Remarks/Description:') showItemRemarks = yes(item.value);
           if (/^Line[1-8]:$/.test(item.caption) && item.value?.trim()) purchaseOrderPrintLines = [...purchaseOrderPrintLines, item.value.trim()];
           if (item.caption === 'Purchase Order Footer:') purchaseOrderFooter = item.value || purchaseOrderFooter;
         }
@@ -1538,6 +1559,22 @@
       }
       sourceDocumentNumber = value;
     }
+    if (askHeader && (kind === 'pack' || kind === 'loose' || kind === 'opening' || kind === 'order')) {
+      const value = window.prompt('Header', remarks);
+      if (value == null) {
+        message = 'Save cancelled.';
+        return;
+      }
+      remarks = value;
+    }
+    if (askPurchaseType && (kind === 'pack' || kind === 'loose' || kind === 'opening' || kind === 'order')) {
+      const value = window.prompt('Purchase type', purchaseType);
+      if (value == null) {
+        message = 'Save cancelled.';
+        return;
+      }
+      purchaseType = value;
+    }
     const requestRevision = workflowRevision;
     busy = true;
     message = '';
@@ -1687,6 +1724,12 @@
         {#if kind === 'order' && showRemarks2}<label class="legacy-purchase-optional-field">Remarks 2:<input aria-label="Remarks 2" bind:value={remarks2} /></label>{/if}
         {#if kind === 'order' && showPurchaseType}<label class="legacy-purchase-optional-field">Purchase Type:<input aria-label="Purchase type" bind:value={purchaseType} /></label>{/if}
         {#if kind === 'order' && showRemarks3}<label class="legacy-purchase-optional-field">Remarks 3:<input aria-label="Remarks 3" bind:value={remarks3} /></label>{/if}
+        {#if kind === 'pack' || kind === 'loose' || kind === 'opening'}<label class="legacy-purchase-optional-field">Purchase Type:<input aria-label="Purchase type" bind:value={purchaseType} /></label>{/if}
+        {#if kind === 'order' && showMiscCharges}<label class="legacy-purchase-optional-field">Misc. Charges:<input aria-label="Miscellaneous charges" bind:value={miscCharges} /></label>{/if}
+        {#if kind === 'order' && showInvoiceDiscount}<label class="legacy-purchase-optional-field">Invoice Discount %:<input aria-label="Invoice discount percent" bind:value={invoiceDiscount} /></label>{/if}
+        {#if kind === 'order' && showInvoiceGst}<label class="legacy-purchase-optional-field">Invoice GST %:<input aria-label="Invoice GST percent" bind:value={invoiceGst} /></label>{/if}
+        {#if kind === 'order' && showInvoiceFlatDiscount}<label class="legacy-purchase-optional-field">Invoice Flat Discount:<input aria-label="Invoice flat discount" bind:value={invoiceFlatDiscount} /></label>{/if}
+        {#if kind === 'order' && showGrandTotal}<label class="legacy-purchase-optional-field">Grand Total:<input aria-label="Grand total" readonly value={rows.reduce((sum, row) => sum + (Number(row.purchasePrice) || 0) * (Number(row.quantity) || 0), 0).toFixed(2)} /></label>{/if}
          {#if kind === 'pack' || kind === 'loose' || kind === 'opening'}<label>Credit Days:<input aria-label="Credit days" inputmode="numeric" bind:value={creditDays} /></label><label class="legacy-remaining-qty">Source PO #:<input aria-label="Source purchase order number" bind:value={sourceDocumentNumber} /></label>{/if}
          {#if kind === 'return'}<label>Source Document ID:<input aria-label="Source document ID" bind:value={sourceDocumentId} /></label><label>Source Document #:<input aria-label="Source document number" bind:value={sourceDocumentNumber} /></label>{/if}
       </div>
@@ -1703,7 +1746,7 @@
       </div>
       <div class="legacy-transaction-grid-wrap">
         <table class="legacy-transaction-grid" class:legacy-pack-purchase-grid={kind === 'pack'}>
-          <thead>{#if kind === 'pack'}<tr>{#each packHeaders as header}<th>{header}</th>{/each}<th class="legacy-remaining-qty">Remaining</th>{#if showNetRate}<th class="legacy-purchase-optional-field">Net Rate</th>{/if}</tr>{:else}<tr><th>No.</th><th>Quick Search</th><th>Alias Name</th><th>Alternate Alias Name</th><th>Item Name</th><th>Pack Units</th><th>Packing</th><th>Item Location</th><th>Godown</th><th>Batch</th><th>Mfg. Date</th><th>Expiry</th><th>Batch Sale Price</th><th>Quantity</th><th class="legacy-remaining-qty">Remaining</th><th>Purchase Price</th><th>Total</th>{#if showNetRate}<th class="legacy-purchase-optional-field">Net Rate</th>{/if}{#if showUnitWeight}<th class="legacy-purchase-optional-field">Weight/Unit</th>{/if}{#if showTotalWeight}<th class="legacy-purchase-optional-field">Total Weight</th>{/if}<th></th>{#if kind === 'return'}<th>Source Batch ID</th>{/if}</tr>{/if}</thead>
+          <thead>{#if kind === 'pack'}<tr>{#each packHeaders as header}<th>{header}</th>{/each}<th class="legacy-remaining-qty">Remaining</th>{#if showNetRate}<th class="legacy-purchase-optional-field">Net Rate</th>{/if}</tr>{:else}<tr><th>No.</th><th>Quick Search</th><th>Alias Name</th><th>Alternate Alias Name</th><th>Item Name</th><th>Pack Units</th><th>Packing</th><th>Item Location</th><th>Godown</th><th>Batch</th><th>Mfg. Date</th><th>Expiry</th><th>Batch Sale Price</th><th>Quantity</th><th class="legacy-remaining-qty">Remaining</th><th>Purchase Price</th><th>Total</th>{#if showNetRate}<th class="legacy-purchase-optional-field">Net Rate</th>{/if}{#if showUnitWeight}<th class="legacy-purchase-optional-field">Weight/Unit</th>{/if}{#if showTotalWeight}<th class="legacy-purchase-optional-field">Total Weight</th>{/if}{#if kind === 'order' && showItemRemarks}<th class="legacy-purchase-optional-field">Item Remarks</th>{/if}<th></th>{#if kind === 'return'}<th>Source Batch ID</th>{/if}</tr>{/if}</thead>
           <tbody>
             {#each rows as row, index}
               <tr>
@@ -1727,6 +1770,7 @@
                 {#if showNetRate}<td class="legacy-purchase-optional-field">{((Number(row.purchasePrice) || 0) * (1 - (Number(row.discountPercent) || 0) / 100)).toFixed(2)}</td>{/if}
                 {#if showUnitWeight}<td class="legacy-purchase-optional-field"></td>{/if}
                 {#if showTotalWeight}<td class="legacy-purchase-optional-field"></td>{/if}
+                {#if kind === 'order' && showItemRemarks}<td class="legacy-purchase-optional-field"></td>{/if}
                 <td><button type="button" aria-label={`Remove row ${index + 1}`} onclick={() => removeRow(index)}>×</button></td>
                 {#if kind === 'return'}<td><input aria-label={`Source batch ID ${index + 1}`} value={row.sourceBatchId} oninput={(event) => updateSourceBatchId(index, event.currentTarget.value)} /></td>{/if}
               </tr>

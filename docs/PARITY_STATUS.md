@@ -1,5 +1,17 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 ask-header / PO invoice extras
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Sale/Purchase/Quotation Ask Header prompts remarks on save.
+- Purchase Ask Purchase Type prompt.
+- Sale Customer Balance and Quotation Show Ref. No. overlay fields.
+- Purchase Return Account For seed.
+- PO Show Misc.Charges / Invoice Discount / Invoice GST / Invoice Flat Discount / Grand Total / Item Remarks.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 purchase weight columns
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

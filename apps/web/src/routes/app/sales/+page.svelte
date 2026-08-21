@@ -97,6 +97,11 @@
   let showSpecialRate = false;
   let showSaleReturnAccount = false;
   let askAmountPaidOnSaleReturn = false;
+  let askSaleHeader = false;
+  let askQuotationHeader = false;
+  let showQuotationRefNo = false;
+  let quotationRefNo = '';
+  let customerBalance = '';
   let poRate = '';
   let poDiscount = '';
   let specialRate = '';
@@ -1071,6 +1076,8 @@
               if (item.caption === 'Loyalty Points:') loyaltyPoints = item.value || loyaltyPoints;
               if (item.caption === 'Currency:') currency = item.value || currency;
               if (item.caption === 'Motor Vehicle:') motorVehicle = item.value || motorVehicle;
+              if (item.caption === 'Ask Header:') askSaleHeader = preferenceYes(item.value);
+              if (item.caption === 'Customer Balance:') customerBalance = item.value || customerBalance;
             }
           } catch {
             /* sale header extras stay hidden when Sale prefs cannot be read */
@@ -1085,6 +1092,8 @@
               if (item.caption === 'Validity Days:') validityDays = item.value || validityDays;
               if (item.caption === 'Payment To:') paymentTo = item.value || paymentTo;
               if (/^Line[1-8]:$/.test(item.caption) && item.value?.trim()) quotationPrintLines = [...quotationPrintLines, item.value.trim()];
+              if (item.caption === 'Ask Header:') askQuotationHeader = preferenceYes(item.value);
+              if (item.caption === 'Show Ref. No.:') showQuotationRefNo = preferenceYes(item.value);
             }
           } catch {
             /* quotation extras stay hidden when Quotation prefs cannot be read */
@@ -1346,6 +1355,22 @@
       }
       cashTendered = paid;
     }
+    if (askSaleHeader && (kind === 'cash' || kind === 'credit' || kind === 'refused')) {
+      const value = window.prompt('Header', remarks);
+      if (value == null) {
+        message = 'Save cancelled.';
+        return;
+      }
+      remarks = value;
+    }
+    if (askQuotationHeader && kind === 'quotation') {
+      const value = window.prompt('Header', remarks);
+      if (value == null) {
+        message = 'Save cancelled.';
+        return;
+      }
+      remarks = value;
+    }
     const requestRevision = workflowRevision;
     busy = true; message = ''; error = '';
     let event: SyncEnvelope | undefined;
@@ -1450,6 +1475,8 @@
         <label class="legacy-sale-optional-field">Loyalty Points:<input aria-label="Loyalty points" bind:value={loyaltyPoints} /></label>
         <label class="legacy-sale-optional-field">Currency:<input aria-label="Currency" bind:value={currency} /></label>
         <label class="legacy-sale-optional-field">Motor Vehicle:<input aria-label="Motor vehicle" bind:value={motorVehicle} /></label>
+        <label class="legacy-sale-optional-field">Customer Balance:<input aria-label="Customer balance" bind:value={customerBalance} /></label>
+        {#if kind === 'quotation' && showQuotationRefNo}<label class="legacy-sale-optional-field">Quotation Ref.:<input aria-label="Quotation reference number" bind:value={quotationRefNo} /></label>{/if}
         {#if kind === 'quotation'}
           <label class="legacy-sale-optional-field">Delivery Days:<input aria-label="Delivery days" bind:value={deliveryDays} /></label>
           <label class="legacy-sale-optional-field">Validity Days:<input aria-label="Validity days" bind:value={validityDays} /></label>

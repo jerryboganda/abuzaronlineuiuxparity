@@ -179,6 +179,16 @@ Shipped:
 
 Still open: ~340 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
 
+## Progress update — 2026-08-09, ask-header / PO invoice extras
+
+**100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase V:** Ask Header on sale/purchase/quotation; Ask Purchase Type; Customer Balance; Quotation Show Ref. No.; purchase-return Account For; PO invoice Show-* extras.
+
+Still open: ~325 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
+
 ---
 
 ## ⚠ Corrections to prior claims (read this first)
