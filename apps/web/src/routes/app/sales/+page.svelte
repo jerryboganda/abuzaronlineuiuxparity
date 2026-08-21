@@ -82,6 +82,24 @@
   let dueDate = '';
   let maxAllowedDays = 30;
   let promptBeforePrinting = false;
+  let askPrintCopies = false;
+  let showAgency = false;
+  let showVehicle = false;
+  let showShipTo = false;
+  let showAssociatedPurchase = false;
+  let showSupplierInv = false;
+  let showGrn = false;
+  let showGuarantee = false;
+  let showSaleType = false;
+  let showItemImage = false;
+  let agency = '';
+  let vehicle = '';
+  let shipTo = '';
+  let associatedPurchaseInv = '';
+  let supplierInv = '';
+  let grn = '';
+  let guaranteePerson = '';
+  let saleType = '';
   let remarks = '';
   let busy = false;
   let message = '';
@@ -287,10 +305,21 @@
     void goto(`/app/report/reprinting-sale?filter=${filterValue}`);
   }
 
+  function preferenceYes(value: string | undefined): boolean {
+    return /^(yes|true|1|y)$/i.test(value || 'No');
+  }
+
   async function printSaleSlip() {
     if (promptBeforePrinting && !window.confirm('Print this sale?')) {
       message = 'Print cancelled.';
       return;
+    }
+    if (askPrintCopies) {
+      const copies = window.prompt('Number of copies', '1');
+      if (copies == null) {
+        message = 'Print cancelled.';
+        return;
+      }
     }
     const slip = {
       header: 'WASEELA ABUZAR',
@@ -994,9 +1023,24 @@
               const parsed = Number.parseInt(item.value || '30', 10);
               if (parsed > 0) maxAllowedDays = parsed;
             }
-            if (item.caption === 'Prompt Before Printing:') {
-              promptBeforePrinting = /^(yes|true|1|y)$/i.test(item.value || 'No');
+            if (item.caption === 'Prompt Before Printing:') promptBeforePrinting = preferenceYes(item.value);
+            if (item.caption === 'Ask No. of copies in print dialog:') askPrintCopies = preferenceYes(item.value);
+          }
+          try {
+            const salePrefs = await api.preferences('Sale');
+            for (const item of salePrefs.registry ?? salePrefs.items ?? []) {
+              if (item.caption === 'Show Agency:') showAgency = preferenceYes(item.value);
+              if (item.caption === 'Show Vehicle:') showVehicle = preferenceYes(item.value);
+              if (item.caption === 'Show Ship To:') showShipTo = preferenceYes(item.value);
+              if (item.caption === 'Show Associated Purchase Inv. Code:') showAssociatedPurchase = preferenceYes(item.value);
+              if (item.caption === 'Show Supplier Inv. Code:') showSupplierInv = preferenceYes(item.value);
+              if (item.caption === 'Show GRN:') showGrn = preferenceYes(item.value);
+              if (item.caption === 'Show Guarantee Person:') showGuarantee = preferenceYes(item.value);
+              if (item.caption === 'Show Sale Type:') showSaleType = preferenceYes(item.value);
+              if (item.caption === 'Show Item Image/Photo:') showItemImage = preferenceYes(item.value);
             }
+          } catch {
+            /* sale header extras stay hidden when Sale prefs cannot be read */
           }
         } catch {
           /* operators without preferences.read keep registry defaults */
@@ -1318,6 +1362,15 @@
         {#if kind === 'cash-return' || kind === 'credit-return'}<label>Source Inv. ID:<input aria-label="Source document ID" bind:value={sourceDocumentId} /></label><label>Source Inv. No.:<input aria-label="Source document number" bind:value={sourceDocumentNumber} /></label>{/if}
         <label>Ref.:<input bind:value={reference} /></label><label>Remarks:<input bind:value={remarks} /></label>
         <label>SalePrice:#<select aria-label="Sale price tier" bind:value={salePriceMode} onchange={repriceRowsForSelectedTier}>{#each Array(10) as _, index}<option>Sale Price {index + 1}</option>{/each}</select></label>
+        {#if showAgency}<label class="legacy-sale-optional-field">Agency:<input aria-label="Agency" bind:value={agency} /></label>{/if}
+        {#if showVehicle}<label class="legacy-sale-optional-field">Vehicle:<input aria-label="Vehicle" bind:value={vehicle} /></label>{/if}
+        {#if showShipTo}<label class="legacy-sale-optional-field">Ship To:<input aria-label="Ship To" bind:value={shipTo} /></label>{/if}
+        {#if showAssociatedPurchase}<label class="legacy-sale-optional-field">Assoc. Pur. Inv.:<input aria-label="Associated purchase invoice" bind:value={associatedPurchaseInv} /></label>{/if}
+        {#if showSupplierInv}<label class="legacy-sale-optional-field">Supplier Inv.:<input aria-label="Supplier invoice" bind:value={supplierInv} /></label>{/if}
+        {#if showGrn}<label class="legacy-sale-optional-field">GRN:<input aria-label="GRN" bind:value={grn} /></label>{/if}
+        {#if showGuarantee}<label class="legacy-sale-optional-field">Guarantee Person:<input aria-label="Guarantee person" bind:value={guaranteePerson} /></label>{/if}
+        {#if showSaleType}<label class="legacy-sale-optional-field">Sale Type:<input aria-label="Sale type" bind:value={saleType} /></label>{/if}
+        {#if showItemImage}<span class="legacy-sale-optional-field legacy-sale-item-photo" aria-label="Item image">Item Photo</span>{/if}
       </div>
       <div class="legacy-sale-lookup" aria-label="Item lookup list">
         <table><thead><tr><th>Name</th><th>Stock</th><th>Purchase Price</th><th>Sale Price</th><th>Manufacturer</th><th>P/Pcs.</th><th>Location</th></tr></thead><tbody>

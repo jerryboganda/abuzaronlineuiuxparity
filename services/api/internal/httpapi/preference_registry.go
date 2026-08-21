@@ -706,6 +706,10 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Credit-sale dueDate may not be more than this many calendar days after the document date (legacy default 30).", "wired"
 	case category == "General" && strings.Contains(lower, "prompt before printing"):
 		return "When Yes, sale and purchase Print asks for confirmation before sending the slip or opening preview.", "wired"
+	case category == "General" && strings.Contains(lower, "ask no. of copies"):
+		return "When Yes, sale and purchase Print asks how many copies before preview.", "wired"
+	case category == "Sale" && strings.HasPrefix(lower, "show "):
+		return "When Yes, the matching cash/credit sale header field is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case strings.Contains(lower, "price #") || strings.Contains(lower, "retail price"):
 		return "Stored for the captured preference contract; the current pricing API does not implicitly read this setting.", "stored_only"
 	case strings.Contains(lower, "gst") || strings.Contains(lower, "sales tax") || strings.Contains(lower, "pct code") || strings.Contains(lower, "extra tax"):

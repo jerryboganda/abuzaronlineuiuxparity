@@ -89,7 +89,17 @@ func TestPreferenceRuntimeStatusOnlyClaimsProvenBehavior(t *testing.T) {
 			"General/Default Batch:",
 			"General/Default Expiry:",
 			"General/Max. Allowed Days:",
-			"General/Prompt Before Printing:":
+			"General/Prompt Before Printing:",
+			"General/Ask No. of copies in print dialog:",
+			"Sale/Show Agency:",
+			"Sale/Show Vehicle:",
+			"Sale/Show Ship To:",
+			"Sale/Show Associated Purchase Inv. Code:",
+			"Sale/Show Supplier Inv. Code:",
+			"Sale/Show GRN:",
+			"Sale/Show Guarantee Person:",
+			"Sale/Show Sale Type:",
+			"Sale/Show Item Image/Photo:":
 			continue
 		default:
 			t.Fatalf("unreviewed preference marked wired: %s/%s", definition.Category, definition.Caption)

@@ -1,5 +1,15 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 report sibling promotion / sale Show-* / print copies
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Phase N sibling leaves reuse existing `line-detail` / `invoice-summary` / `hour-summary` / `item-summary` contracts (`sale-detail-format-2`, `sales-return-detail-inv-wise`, `hourly-sales-graph`, `item-wise-item-wise-net-sales`, and related invoice-summary aliases).
+- Sale `Show Agency/Vehicle/Ship To/GRN/...` header fields appear when those prefs are Yes (default No; overlay-hidden at 1936x1048).
+- `Ask No. of copies in print dialog:` prompts before sale/purchase Print.
+
+Evidence: `TestPhaseNSiblingLeavesReuseExistingSalesModes`, `TestSalesReturnDetailInvWiseUsesLineDetailProjection`. Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 max-days / prompt-before-print
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

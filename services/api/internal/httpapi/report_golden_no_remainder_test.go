@@ -8,7 +8,7 @@ import (
 // TestPhaseNORemainderLeavesResolveToExpectedMode locks the registry wiring
 // for the 7 Phase N/O "remainder" leaves verified in
 // docs/evidence/PHASE_N_O_GOLDEN_VERIFICATION_REMAINDER_2026-08-09.md:
-//   - 3 Phase N Sales Reports leaves (item-wise-item-wise-net-sales,
+//   - 2 Phase N Sales Reports leaves (
 //     sale-return-summary-inv-type-wise, dead-item-list) that fall through
 //     the salesMode switch in phaseNReportRegistry with no case, so
 //     spec.salesMode == "" for all three.
@@ -21,7 +21,6 @@ func TestPhaseNORemainderLeavesResolveToExpectedMode(t *testing.T) {
 		title     string
 		aggregate string
 	}{
-		"item-wise-item-wise-net-sales":     {"Item Wise Net Sales", reportSaleAggregate},
 		"sale-return-summary-inv-type-wise": {"Sale/Return Summary Inv. Type Wise", reportSaleOrReturn},
 		"dead-item-list":                    {"Dead Item List", reportSaleAggregate},
 	}
@@ -75,12 +74,11 @@ func TestPhaseNORemainderLeavesResolveToExpectedMode(t *testing.T) {
 }
 
 // TestPhaseNORemainderLeavesReportEventLedgerProjectionStatus locks the
-// current API metadata (all 7 leaves still report "event-ledger") so a
+// current API metadata (remaining unpromoted leaves still report "event-ledger") so a
 // future promotion pass updates this test and the companion doc together
 // instead of silently drifting.
 func TestPhaseNORemainderLeavesReportEventLedgerProjectionStatus(t *testing.T) {
 	kinds := []string{
-		"item-wise-item-wise-net-sales",
 		"sale-return-summary-inv-type-wise",
 		"dead-item-list",
 		"purchase-return-summary",
@@ -97,7 +95,7 @@ func TestPhaseNORemainderLeavesReportEventLedgerProjectionStatus(t *testing.T) {
 }
 
 // TestPhaseNORemainderSalesLeavesUseGenericRawPassthrough documents that
-// the 3 assigned N leaves dispatch to the plain salesReadModelQuery (the
+// the remaining empty-mode N leaves dispatch to the plain salesReadModelQuery (the
 // same raw per-line/per-document union used by the generic fallback path),
 // not any dedicated item-aggregation, invoice-type-grouping, or
 // last-sale-date projection - there is no query-level implementation of

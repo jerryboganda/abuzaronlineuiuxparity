@@ -109,6 +109,7 @@
   let message = '';
   let error = '';
   let promptBeforePrinting = false;
+  let askPrintCopies = false;
   let rows: PurchaseRow[] = [blankRow()];
   let focusedRowIndex = 0;
   let activeTab: 'detail' | 'list' = 'detail';
@@ -782,6 +783,9 @@
         if (item.caption === 'Prompt Before Printing:') {
           promptBeforePrinting = /^(yes|true|1|y)$/i.test(item.value || 'No');
         }
+        if (item.caption === 'Ask No. of copies in print dialog:') {
+          askPrintCopies = /^(yes|true|1|y)$/i.test(item.value || 'No');
+        }
       }
     } catch {
       /* operators without preferences.read keep registry default No */
@@ -792,6 +796,13 @@
     if (promptBeforePrinting && !window.confirm('Print this purchase?')) {
       message = 'Print cancelled.';
       return;
+    }
+    if (askPrintCopies) {
+      const copies = window.prompt('Number of copies', '1');
+      if (copies == null) {
+        message = 'Print cancelled.';
+        return;
+      }
     }
     message = `${label}: print preview ready.`;
     window.print();

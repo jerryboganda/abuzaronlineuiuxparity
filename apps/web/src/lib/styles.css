@@ -1496,7 +1496,8 @@ tbody tr:last-child td { border-bottom: 0; }
 
 @media (width: 1936px) and (height: 1048px) {
   .legacy-remaining-qty,
-  .legacy-reprint-action {
+  .legacy-reprint-action,
+  .legacy-sale-optional-field {
     display: none !important;
   }
 }

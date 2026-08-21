@@ -14,20 +14,10 @@ import (
 // changes sort/grouping, not the column contract, so the query text must be
 // byte-identical to "sale-detail"'s.
 //
-// Note: this wave also examined "sales-return-detail-inv-wise" and
-// "selected-sales-and-summaries-report" (both reuse of existing modes) and
-// "category-wise-item-category-wise-monthly-sales" (a new mode backed by a
-// verified master_categories join) as promotion candidates and found
-// supporting evidence for all three (see
-// docs/evidence/PHASE_N_REPORT_PROMOTION_WAVE2_2026-08-09.md), but left them
-// unpromoted this pass: the first two collide with a concurrently-written
-// diagnostic test file (report_golden_n_salereturn_test.go) that already
-// pins both leaves' current salesMode == "", and the third would require
-// adding a new salesMode value to the closed allow-list switch in the
-// pre-existing TestPhaseNReportRegistryDefinitionsAndAggregateFilters
-// (server_test.go) -- this pass is not permitted to edit existing _test.go
-// files, so none of the three could be safely promoted without breaking a
-// test this pass cannot touch.
+// Later sibling promotion (TestPhaseNSiblingLeavesReuseExistingSalesModes)
+// reuses existing line-detail / invoice-summary / hour-summary / item-summary
+// contracts for additional N leaves. category-wise monthly sales still needs
+// a new salesMode and remains unpromoted.
 func TestSaleDetailInvWiseReportUsesLineDetailProjection(t *testing.T) {
 	spec, ok := reportSpecForKey("sale-detail-inv-wise")
 	if !ok || !spec.salesReadModel || spec.salesMode != "line-detail" {
@@ -60,6 +50,43 @@ func TestSaleDetailInvWiseReportUsesLineDetailProjection(t *testing.T) {
 // server_test.go), which expects literal "event-ledger" projection status
 // for every phaseNReportRegistry leaf that is not a documentReadModel or
 // financeMode leaf.
+func TestPhaseNSiblingLeavesReuseExistingSalesModes(t *testing.T) {
+	cases := []struct {
+		kind string
+		mode string
+	}{
+		{"sale-detail-format-2", "line-detail"},
+		{"sale-detail-inv-wise-with-diff-col", "line-detail"},
+		{"sale-summary-inv-cust-wise", "invoice-summary"},
+		{"sale-summary-machine-and-invoice-range-wise", "invoice-summary"},
+		{"selected-sales-and-summaries-report", "invoice-summary"},
+		{"hourly-sales-graph", "hour-summary"},
+		{"item-wise-item-wise-net-sales", "item-summary"},
+	}
+	for _, test := range cases {
+		spec, ok := reportSpecForKey(test.kind)
+		if !ok || !spec.salesReadModel || spec.salesMode != test.mode {
+			t.Fatalf("%s spec = %+v (ok=%v), want salesMode %s", test.kind, spec, ok, test.mode)
+		}
+		query := salesReadModelQueryMode(spec.aggregateCondition, spec.salesMode, "LIMIT $6 OFFSET $7")
+		want := salesReadModelQueryMode(reportSaleAggregate, test.mode, "LIMIT $6 OFFSET $7")
+		if query != want {
+			t.Errorf("%s query diverges from the shared %s contract", test.kind, test.mode)
+		}
+		definition := reportDefinitionFor(test.kind)
+		if definition.ProjectionStatus != "event-ledger" {
+			t.Errorf("%s projection status = %q, want event-ledger", test.kind, definition.ProjectionStatus)
+		}
+		if test.mode == "line-detail" {
+			if len(definition.Columns) != 11 || definition.Columns[0].Label != "Alias" {
+				t.Errorf("%s columns = %+v, want line-detail", test.kind, definition.Columns)
+			}
+		} else if len(definition.Columns) != 6 || definition.Columns[0].Label == "Event / Document" {
+			t.Errorf("%s columns = %+v, want %s summary", test.kind, definition.Columns, test.mode)
+		}
+	}
+}
+
 func TestPhaseNWave2PromotedLeavesStillSatisfyRegistryInvariant(t *testing.T) {
 	for _, kind := range []string{
 		"sale-detail-inv-wise",

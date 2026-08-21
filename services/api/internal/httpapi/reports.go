@@ -171,8 +171,10 @@ var phaseNReportRegistry = func() map[string]reportSpec {
 			switch report.kind {
 			case "sale-summary", "sale-summary-inv-wise", "sale-summary-invoice-wise":
 				mode = "invoice-summary"
-			case "sale-detail":
+			case "sale-detail", "sale-detail-format-2", "sale-detail-inv-wise-with-diff-col":
 				mode = "line-detail"
+			case "sale-summary-inv-cust-wise", "sale-summary-machine-and-invoice-range-wise", "selected-sales-and-summaries-report":
+				mode = "invoice-summary"
 			case "sale-detail-inv-wise":
 				// Sibling of "sale-detail" differing only in sort/grouping key
 				// ("invoice wise" vs. chronological) -- the same relationship
@@ -217,7 +219,7 @@ var phaseNReportRegistry = func() map[string]reportSpec {
 			salesReadModel:     true,
 			salesMode:          mode,
 		}
-		if report.kind == "sales-return-detail" {
+		if report.kind == "sales-return-detail" || report.kind == "sales-return-detail-inv-wise" {
 			registry[report.kind] = reportSpec{
 				title:              report.title,
 				aggregateCondition: reportSaleReturnAggregate,
@@ -326,6 +328,10 @@ var phaseNReportRegistry = func() map[string]reportSpec {
 			mode = "month-summary"
 		case "daily-sales-summary-with-profit-day-wise-grouping":
 			mode = "profit-day-summary"
+		case "hourly-sales-graph":
+			mode = "hour-summary"
+		case "item-wise-item-wise-net-sales":
+			mode = "item-summary"
 		}
 		registry[report.kind] = reportSpec{title: report.title, aggregateCondition: condition, salesReadModel: true, salesMode: mode}
 	}

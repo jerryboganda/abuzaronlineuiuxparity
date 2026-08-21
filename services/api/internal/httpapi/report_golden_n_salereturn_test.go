@@ -72,33 +72,21 @@ func TestPhaseNGoldenSaleReturnSummaryLeavesAreByteIdenticalSQL(t *testing.T) {
 	}
 }
 
-// TestPhaseNGoldenSaleReturnDetailInvWiseIsUngroupedRawView documents a
-// naming/wiring gap: sales-return-detail-inv-wise's "Inv.wise" name implies
-// per-invoice grouping (like sales-return-summary-inv-wise), but its
-// salesMode is "" (unset), so it dispatches to the raw, ungrouped
-// saleReturnReadModelQuery ("" mode) instead of the invoice-summary grouped
-// query. Confirmed against the sandbox tenant: the raw view returns one row
-// per business_document_lines row (44,579) across only 30,704 distinct
-// invoices for the 'cash-sale-return' kind alone - i.e. it is NOT grouped by
-// invoice despite the name. This is flagged for the promotion agent to
-// decide (real invoice-summary wiring vs. intentional distinct raw-line
-// "detail" semantics), not fixed here per the read-only reports.go
-// constraint on this pass.
-func TestPhaseNGoldenSaleReturnDetailInvWiseIsUngroupedRawView(t *testing.T) {
+func TestSalesReturnDetailInvWiseUsesLineDetailProjection(t *testing.T) {
 	spec, ok := reportSpecForKey("sales-return-detail-inv-wise")
-	if !ok {
-		t.Fatal("sales-return-detail-inv-wise: not present in the report registry")
+	if !ok || !spec.salesReadModel || spec.salesMode != "line-detail" {
+		t.Fatalf("sales-return-detail-inv-wise spec = %+v (ok=%v), want line-detail", spec, ok)
 	}
-	if spec.salesMode != "" {
-		t.Fatalf("sales-return-detail-inv-wise: salesMode = %q, want \"\" (update this test and the companion doc if this leaf was promoted to a real grouped mode)", spec.salesMode)
-	}
-
 	query := saleReturnReadModelQueryMode(spec.salesMode, "LIMIT $6 OFFSET $7")
-	if strings.Contains(query, "GROUP BY document") {
-		t.Fatalf("sales-return-detail-inv-wise now groups by document; update this test (and the companion doc's 'promotion needed' note) to reflect the fix; query:\n%s", query)
+	if want := saleReturnReadModelQueryMode("line-detail", "LIMIT $6 OFFSET $7"); query != want {
+		t.Errorf("sales-return-detail-inv-wise query diverges from sales-return-detail line-detail")
 	}
-	if query != saleReturnReadModelQuery("LIMIT $6 OFFSET $7") {
-		t.Fatalf("expected sales-return-detail-inv-wise (empty salesMode) to dispatch to the raw saleReturnReadModelQuery, got a different query:\n%s", query)
+	if strings.Contains(query, "GROUP BY document") {
+		t.Fatalf("line-detail must stay per-line, not invoice-grouped; query:\n%s", query)
+	}
+	definition := reportDefinitionFor("sales-return-detail-inv-wise")
+	if len(definition.Columns) != 11 || definition.Columns[0].Label != "Alias" {
+		t.Errorf("sales-return-detail-inv-wise columns = %+v, want dailySaleDetailColumns", definition.Columns)
 	}
 }
 
@@ -135,7 +123,7 @@ func TestPhaseNGoldenSaleReturnKindCoverage(t *testing.T) {
 // every one of the sandbox tenant's 44,579 posted cash-sale-return lines,
 // business_document_lines.legacy_payload->>'SalesTax' is the literal string
 // "0.00" (never empty), so
-// COALESCE(NULLIF(legacy_payload->>'SalesTax', ''), ..., bl.tax_amount::text, '0.00')
+// COALESCE(NULLIF(legacy_payload->>'SalesTax', ”), ..., bl.tax_amount::text, '0.00')
 // always stops at the first branch and the correctly-populated bl.tax_amount
 // column (which is genuinely non-zero for 1,970 of those 44,579 lines,
 // totaling Rs 311,703.05) is never reached. The "SalesTax Value" column on
