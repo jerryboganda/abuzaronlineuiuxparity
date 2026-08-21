@@ -776,6 +776,12 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Seeds overlay-hidden adjustment Alternate Alias and default Quantity.", "wired"
 	case category == "Cashier Job Activity":
 		return "Seeds overlay-hidden cashier activity columns/fields and optional auto-refresh of the shift table.", "wired"
+	case category == "Point of Sale" && (strings.Contains(lower, "invoice size") || strings.Contains(lower, "delivered by") || strings.Contains(lower, "default lcd config") || strings.Contains(lower, "lcd display manufacturer") || strings.Contains(lower, "cash drawer printer name") || strings.Contains(lower, "barcode printer name")):
+		return "Seeds overlay-hidden POS invoice/delivery/device-name header fields. Use LCD/drawer/barcode adapters remain env-backed.", "wired"
+	case category == "Point of Sale" && (strings.Contains(lower, "list view retrieval limit") || strings.Contains(lower, "list view max. retrieval limit")):
+		return "Seeds overlay-hidden POS list-view retrieval day limits.", "wired"
+	case category == "Point of Sale" && (strings.Contains(lower, "show cashier window") || strings.Contains(lower, "show master cashier window in pos") || strings.Contains(lower, "print store summary") || strings.Contains(lower, "show sale in cashier activity") || strings.Contains(lower, "allow ctrl+d")):
+		return "When Yes, the matching POS extra is shown on cash/credit sale. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask pur. invoice"):
 		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
 	case category == "Purchase" && strings.Contains(lower, "show net rate"):

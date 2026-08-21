@@ -155,6 +155,19 @@
   let showRetailPriceOnSaleInv = false;
   let mfgDistributorCode = '';
   let distributorCode = '';
+  let posInvoiceSize = '';
+  let posDeliveredBy = '';
+  let posLcdConfig = '';
+  let posLcdModel = '';
+  let posCashDrawerPrinter = '';
+  let posBarcodePrinter = '';
+  let posListViewDays = '';
+  let posListViewMaxDays = '';
+  let showPosCashierWindow = false;
+  let showPosMasterCashier = false;
+  let printPosStoreSummary = false;
+  let showPosSaleInCashier = false;
+  let allowPosCtrlD = false;
   let alternateAliasName = '';
   let itemFlatDiscount = '';
   let bonusQty = '';
@@ -1213,6 +1226,26 @@
           } catch {
             /* others extras stay hidden when Others prefs cannot be read */
           }
+          try {
+            const posPrefs = await api.preferences('Point of Sale');
+            for (const item of posPrefs.registry ?? posPrefs.items ?? []) {
+              if (item.caption === 'Invoice Size:') posInvoiceSize = item.value || posInvoiceSize;
+              if (item.caption === 'Delivered By:') posDeliveredBy = item.value || posDeliveredBy;
+              if (item.caption === 'Default LCD Config:') posLcdConfig = item.value || posLcdConfig;
+              if (item.caption === 'LCD Display Manufacturer/Model:') posLcdModel = item.value || posLcdModel;
+              if (item.caption === 'Cash Drawer Printer Name:') posCashDrawerPrinter = item.value || posCashDrawerPrinter;
+              if (item.caption === 'BarCode Printer Name/Model:') posBarcodePrinter = item.value || posBarcodePrinter;
+              if (item.caption === 'POS List View Retrieval Limit (days):') posListViewDays = item.value || posListViewDays;
+              if (item.caption === 'POS List View Max. Retrieval Limit (days):') posListViewMaxDays = item.value || posListViewMaxDays;
+              if (item.caption === 'Show Cashier Window:') showPosCashierWindow = preferenceYes(item.value);
+              if (item.caption === 'Show Master Cashier Window In POS') showPosMasterCashier = preferenceYes(item.value);
+              if (item.caption === 'Print Store Summary With POS Sale Inv.:') printPosStoreSummary = preferenceYes(item.value);
+              if (item.caption === 'Show Sale in Cashier Activity Window:') showPosSaleInCashier = preferenceYes(item.value);
+              if (item.caption === 'Allow CTRL+D :') allowPosCtrlD = preferenceYes(item.value);
+            }
+          } catch {
+            /* POS extras stay hidden when Point of Sale prefs cannot be read */
+          }
         } catch {
           /* operators without preferences.read keep registry defaults */
         }
@@ -1604,6 +1637,19 @@
         <label class="legacy-sale-optional-field">Packing Factor:<input aria-label="Packing factor per unit" bind:value={packingFactorPerUnit} /></label>
         <label class="legacy-sale-optional-field">Mfg. Distributor Code:<input aria-label="Manufacturer distributor code" bind:value={mfgDistributorCode} /></label>
         <label class="legacy-sale-optional-field">Distributor Code:<input aria-label="Distributor code" bind:value={distributorCode} /></label>
+        <label class="legacy-sale-optional-field">Invoice Size:<input aria-label="POS invoice size" bind:value={posInvoiceSize} /></label>
+        <label class="legacy-sale-optional-field">Delivered By:<input aria-label="POS delivered by" bind:value={posDeliveredBy} /></label>
+        <label class="legacy-sale-optional-field">Default LCD Config:<input aria-label="POS LCD config" bind:value={posLcdConfig} /></label>
+        <label class="legacy-sale-optional-field">LCD Display Manufacturer/Model:<input aria-label="POS LCD model" bind:value={posLcdModel} /></label>
+        <label class="legacy-sale-optional-field">Cash Drawer Printer Name:<input aria-label="POS cash drawer printer" bind:value={posCashDrawerPrinter} /></label>
+        <label class="legacy-sale-optional-field">BarCode Printer Name/Model:<input aria-label="POS barcode printer" bind:value={posBarcodePrinter} /></label>
+        <label class="legacy-sale-optional-field">POS List View Retrieval Limit (days):<input aria-label="POS list view days" bind:value={posListViewDays} /></label>
+        <label class="legacy-sale-optional-field">POS List View Max. Retrieval Limit (days):<input aria-label="POS list view max days" bind:value={posListViewMaxDays} /></label>
+        {#if showPosCashierWindow}<label class="legacy-sale-optional-field">Show Cashier Window:<input type="checkbox" checked={showPosCashierWindow} disabled /></label>{/if}
+        {#if showPosMasterCashier}<label class="legacy-sale-optional-field">Show Master Cashier Window In POS:<input type="checkbox" checked={showPosMasterCashier} disabled /></label>{/if}
+        {#if printPosStoreSummary}<label class="legacy-sale-optional-field">Print Store Summary With POS Sale Inv.:<input type="checkbox" checked={printPosStoreSummary} disabled /></label>{/if}
+        {#if showPosSaleInCashier}<label class="legacy-sale-optional-field">Show Sale in Cashier Activity Window:<input type="checkbox" checked={showPosSaleInCashier} disabled /></label>{/if}
+        {#if allowPosCtrlD}<label class="legacy-sale-optional-field">Allow CTRL+D:<input type="checkbox" checked={allowPosCtrlD} disabled /></label>{/if}
         {#if aggregate === 'sale_return'}
           <label class="legacy-sale-optional-field">Payment Mode:<input aria-label="Sale return payment mode" bind:value={paymentModeAmtPaid} /></label>
           <label class="legacy-sale-optional-field">Payment A/C:<input aria-label="Sale return payment account" bind:value={paymentAccountAmtPaid} /></label>

@@ -1,5 +1,14 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 POS overlay extras
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Point of Sale invoice size / delivered-by / device-name / list-view day seeds plus Show Cashier / Master Cashier / store-summary / cashier-activity / CTRL+D overlay flags on cash/credit sale.
+- Hardware Use LCD / drawer / barcode adapters remain env-backed and stored_only.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 adjustment / cashier overlay extras
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

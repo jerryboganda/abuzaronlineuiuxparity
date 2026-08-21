@@ -310,7 +310,20 @@ func TestPreferenceRuntimeStatusOnlyClaimsProvenBehavior(t *testing.T) {
 			"Cashier Job Activity/Auto Fill Cash Charged:",
 			"Cashier Job Activity/Show Empty Doc. Code by Default:",
 			"Cashier Job Activity/Keep Cash Window Always Open:",
-			"Cashier Job Activity/Show Saving/Supervised Messages:":
+			"Cashier Job Activity/Show Saving/Supervised Messages:",
+			"Point of Sale/Invoice Size:",
+			"Point of Sale/Delivered By:",
+			"Point of Sale/Default LCD Config:",
+			"Point of Sale/LCD Display Manufacturer/Model:",
+			"Point of Sale/Cash Drawer Printer Name:",
+			"Point of Sale/BarCode Printer Name/Model:",
+			"Point of Sale/POS List View Retrieval Limit (days):",
+			"Point of Sale/POS List View Max. Retrieval Limit (days):",
+			"Point of Sale/Show Cashier Window:",
+			"Point of Sale/Show Master Cashier Window In POS",
+			"Point of Sale/Print Store Summary With POS Sale Inv.:",
+			"Point of Sale/Show Sale in Cashier Activity Window:",
+			"Point of Sale/Allow CTRL+D :":
 			continue
 		default:
 			t.Fatalf("unreviewed preference marked wired: %s/%s", definition.Category, definition.Caption)

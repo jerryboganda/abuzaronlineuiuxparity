@@ -2,6 +2,10 @@
 
 Date: 2026-08-09. Companion to `PARITY_FIX_PLAN_A-Z.md`, `GAP_ANALYSIS_2026-08-06.md`, `PARITY_STATUS.md`, `HANDOFF_2026-08-08.md`.
 
+## Progress update — 2026-08-09, POS overlay extras
+
+Not 100% parity. Wired Point of Sale invoice/delivery/device-name/list-view seeds and Show Cashier / Master Cashier / store-summary / cashier-activity / CTRL+D overlay flags on cash/credit sale. Skipped Use LCD/drawer/barcode, Prompt For Zero Stock, Must Save Invoice on Exit, Ask User/Password, Lock Qty/Name.
+
 ## Progress update — 2026-08-09, adjustment / cashier overlay extras
 
 Not 100% parity. Wired Adjustment Show Header / Show Update Avg. Price Column plus Alternate Alias and Adjustment Qty seeds. Wired the entire Cashier Job Activity category onto cashier-job and cashier-activity-window overlay extras (including Date/Posted/Supervised columns and Refresh Time auto-refresh). Still skipped: Update Avg. Price mutation, Ask User/Password, Activity Monitor, LCD/drawer/barcode, POS route, Email/SMS env vs prefs.
