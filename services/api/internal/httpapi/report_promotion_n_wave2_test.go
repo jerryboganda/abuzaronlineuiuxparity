@@ -62,6 +62,8 @@ func TestPhaseNSiblingLeavesReuseExistingSalesModes(t *testing.T) {
 		{"selected-sales-and-summaries-report", "invoice-summary"},
 		{"hourly-sales-graph", "hour-summary"},
 		{"item-wise-item-wise-net-sales", "item-summary"},
+		{"slow-fast-moving-items", "item-summary"},
+		{"net-sale-summary", "invoice-summary"},
 	}
 	for _, test := range cases {
 		spec, ok := reportSpecForKey(test.kind)
@@ -84,6 +86,21 @@ func TestPhaseNSiblingLeavesReuseExistingSalesModes(t *testing.T) {
 		} else if len(definition.Columns) != 6 || definition.Columns[0].Label == "Event / Document" {
 			t.Errorf("%s columns = %+v, want %s summary", test.kind, definition.Columns, test.mode)
 		}
+	}
+}
+
+func TestPhaseNReturnActivityReusesItemSummary(t *testing.T) {
+	spec, ok := reportSpecForKey("item-wise-item-sale-and-return-activity")
+	if !ok || !spec.salesReadModel || spec.salesMode != "item-summary" {
+		t.Fatalf("item-wise-item-sale-and-return-activity spec = %+v (ok=%v), want item-summary", spec, ok)
+	}
+	query := salesReadModelQueryMode(spec.aggregateCondition, spec.salesMode, "LIMIT $6 OFFSET $7")
+	want := salesReadModelQueryMode(spec.aggregateCondition, "item-summary", "LIMIT $6 OFFSET $7")
+	if query != want {
+		t.Errorf("item-wise-item-sale-and-return-activity query diverges from item-summary")
+	}
+	if definition := reportDefinitionFor("item-wise-item-sale-and-return-activity"); definition.ProjectionStatus != "event-ledger" {
+		t.Errorf("projection status = %q, want event-ledger", definition.ProjectionStatus)
 	}
 }
 

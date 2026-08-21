@@ -1,5 +1,15 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 return payment / round / pack qty / report extras
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Sale Return Payment Mode / Payment A/C / Round Item Total; Purchase Return Payment Mode / Payment A/C / Round Item Total / Show Pack Qty.
+- Sale Print Warranted Invoice, Quotation Pack Units, Purchase Order Default Purchase Order Category seeds.
+- Report promotions: net-sale-summary (invoice-summary), slow-fast-moving-items (item-summary), item-wise-item-sale-and-return-activity (item-summary with sale-or-return aggregate).
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 PO line Show-* extras
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

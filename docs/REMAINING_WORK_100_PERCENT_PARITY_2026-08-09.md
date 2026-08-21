@@ -211,6 +211,20 @@ Still open: ~315 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon
 
 ---
 
+## Progress update — 2026-08-09, return payment / round / pack qty / report extras
+
+**100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase V:** Sale Return Payment Mode Amt. Paid / Payment A/C / Round Item Total; Purchase Return Payment Mode Amt. Received / Payment A/C / Round Item Total / Show Pack Qty. Overlay-hidden. Default Show Pack Qty No.
+- **Phase V:** Sale Print Warranted Invoice, Quotation Pack Units, Purchase Order Default Purchase Order Category seeds.
+- **Phase N:** `net-sale-summary` reuses invoice-summary; `slow-fast-moving-items` reuses item-summary; `item-wise-item-sale-and-return-activity` reuses item-summary with sale-or-return aggregate.
+
+Still open: ~305 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
+
+---
+
 ## ⚠ Corrections to prior claims (read this first)
 
 A few things previously reported as done in this session's evidence docs — including two items marked `completed` on the running task list — do **not** hold up under independent verification:

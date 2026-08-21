@@ -726,8 +726,20 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, purchase-return save/post asks for the header/remarks value.", "wired"
 	case category == "Sale Return" && strings.Contains(lower, "header on sale return"):
 		return "When Yes, sale-return save/post asks for the header/remarks value.", "wired"
-	case category == "Quotation" && (strings.Contains(lower, "manufacturer name") || lower == "color:" || strings.Contains(lower, "quantity denomination")):
-		return "Seeds overlay-hidden quotation Manufacturer / Color / Quantity Denomination fields.", "wired"
+	case category == "Quotation" && (strings.Contains(lower, "manufacturer name") || lower == "color:" || strings.Contains(lower, "quantity denomination") || lower == "pack units:"):
+		return "Seeds overlay-hidden quotation Manufacturer / Color / Quantity Denomination / Pack Units fields.", "wired"
+	case category == "Sale Return" && (strings.Contains(lower, "payment mode amt. paid") || strings.Contains(lower, "payment a/c for amt. paid")):
+		return "Seeds overlay-hidden sale-return Payment Mode and Payment A/C fields used with amount-paid.", "wired"
+	case category == "Purchase Return" && (strings.Contains(lower, "payment mode amt. received") || strings.Contains(lower, "payment a/c for amt. received")):
+		return "Seeds overlay-hidden purchase-return Payment Mode and Payment A/C fields used with amount-received.", "wired"
+	case (category == "Sale Return" || category == "Purchase Return") && strings.Contains(lower, "round item total"):
+		return "When set, displayed return line totals are rounded to this many decimal places.", "wired"
+	case category == "Purchase Return" && strings.Contains(lower, "show pack qty"):
+		return "When Yes, the purchase-return grid shows a Pack Qty column. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Purchase Order" && strings.Contains(lower, "default purchase order category"):
+		return "Seeds the purchase-order Purchase Type header field.", "wired"
+	case category == "Sale" && strings.Contains(lower, "print warranted invoice"):
+		return "Seeds the overlay-hidden Print Warranted Invoice sale header field.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask pur. invoice"):
 		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
 	case category == "Purchase" && strings.Contains(lower, "show net rate"):

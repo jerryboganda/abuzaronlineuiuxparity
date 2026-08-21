@@ -132,6 +132,11 @@
   let loyaltyPoints = '';
   let currency = '';
   let motorVehicle = '';
+  let paymentModeAmtPaid = '';
+  let paymentAccountAmtPaid = '';
+  let roundItemTotalPlaces: number | null = null;
+  let quotationPackUnits = '';
+  let printWarrantedInvoice = '';
   let remarks = '';
   let busy = false;
   let message = '';
@@ -960,6 +965,12 @@
   }
 
   const barcodeScanListener = createBarcodeScanListener((code) => { void handleBarcodeScan(code); });
+  function roundDisplayedTotal(value: string | number): string {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return String(value ?? '');
+    if (roundItemTotalPlaces == null || aggregate !== 'sale_return') return amount.toFixed(2);
+    return amount.toFixed(roundItemTotalPlaces);
+  }
   $: totalAmount = rows.reduce((sum, row) => sum + (Number(row.total) || ((Number(row.salePrice) || 0) * (Number(row.quantity) || 0))), 0).toFixed(2);
   $: effectiveTotal = pricingPreview?.total ?? totalAmount;
   $: cashTenderedValue = cashTendered.trim() || effectiveTotal;
@@ -1080,6 +1091,7 @@
               if (item.caption === 'Loyalty Points:') loyaltyPoints = item.value || loyaltyPoints;
               if (item.caption === 'Currency:') currency = item.value || currency;
               if (item.caption === 'Motor Vehicle:') motorVehicle = item.value || motorVehicle;
+              if (item.caption === 'Print Warranted Invoice:') printWarrantedInvoice = item.value || printWarrantedInvoice;
               if (item.caption === 'Ask Header:') askSaleHeader = preferenceYes(item.value);
               if (item.caption === 'Customer Balance:') customerBalance = item.value || customerBalance;
             }
@@ -1101,6 +1113,7 @@
               if (item.caption === 'Manufacturer Name:') quotationManufacturer = item.value || quotationManufacturer;
               if (item.caption === 'Color:') quotationColor = item.value || quotationColor;
               if (item.caption === 'Quantity Denomination:') quotationQuantityDenomination = item.value || quotationQuantityDenomination;
+              if (item.caption === 'Pack Units:') quotationPackUnits = item.value || quotationPackUnits;
             }
           } catch {
             /* quotation extras stay hidden when Quotation prefs cannot be read */
@@ -1112,6 +1125,12 @@
               if (item.caption === 'Ask Amount Paid on S/Return Saving:') askAmountPaidOnSaleReturn = preferenceYes(item.value);
               if (item.caption === 'Sale Return Account For:') saleReturnAccount = item.value || saleReturnAccount;
               if (item.caption === 'Header On Sale Return:') askSaleReturnHeader = preferenceYes(item.value);
+              if (item.caption === 'Payment Mode Amt. Paid in S/Return:') paymentModeAmtPaid = item.value || paymentModeAmtPaid;
+              if (item.caption === 'Payment A/C for Amt. Paid in S/Return:') paymentAccountAmtPaid = item.value || paymentAccountAmtPaid;
+              if (item.caption === 'Round Item Total (decimal places):' && item.value?.trim()) {
+                const places = Number(item.value);
+                if (Number.isFinite(places) && places >= 0 && places <= 6) roundItemTotalPlaces = places;
+              }
             }
           } catch {
             /* sale-return account stays hidden when Sale Return prefs cannot be read */
@@ -1492,6 +1511,11 @@
         <label class="legacy-sale-optional-field">Currency:<input aria-label="Currency" bind:value={currency} /></label>
         <label class="legacy-sale-optional-field">Motor Vehicle:<input aria-label="Motor vehicle" bind:value={motorVehicle} /></label>
         <label class="legacy-sale-optional-field">Customer Balance:<input aria-label="Customer balance" bind:value={customerBalance} /></label>
+        <label class="legacy-sale-optional-field">Print Warranted Invoice:<input aria-label="Print warranted invoice" bind:value={printWarrantedInvoice} /></label>
+        {#if aggregate === 'sale_return'}
+          <label class="legacy-sale-optional-field">Payment Mode:<input aria-label="Sale return payment mode" bind:value={paymentModeAmtPaid} /></label>
+          <label class="legacy-sale-optional-field">Payment A/C:<input aria-label="Sale return payment account" bind:value={paymentAccountAmtPaid} /></label>
+        {/if}
         {#if kind === 'quotation' && showQuotationRefNo}<label class="legacy-sale-optional-field">Quotation Ref.:<input aria-label="Quotation reference number" bind:value={quotationRefNo} /></label>{/if}
         {#if kind === 'quotation'}
           <label class="legacy-sale-optional-field">Delivery Days:<input aria-label="Delivery days" bind:value={deliveryDays} /></label>
@@ -1500,6 +1524,7 @@
           <label class="legacy-sale-optional-field">Manufacturer:<input aria-label="Quotation manufacturer" bind:value={quotationManufacturer} /></label>
           <label class="legacy-sale-optional-field">Color:<input aria-label="Quotation color" bind:value={quotationColor} /></label>
           <label class="legacy-sale-optional-field">Qty Denomination:<input aria-label="Quantity denomination" bind:value={quotationQuantityDenomination} /></label>
+          <label class="legacy-sale-optional-field">Pack Units:<input aria-label="Quotation pack units" bind:value={quotationPackUnits} /></label>
         {/if}
       </div>
       <div class="legacy-sale-lookup" aria-label="Item lookup list">
@@ -1508,7 +1533,7 @@
         </tbody></table>
       </div>
       <div class="legacy-sale-grid-wrap"><table class="legacy-sale-grid"><thead><tr><th>No.</th><th>Item Name</th>{#if kind === 'cash-return' || kind === 'credit-return'}<th>Source Sale Line ID</th>{/if}{#if kind === 'open-cash-return' || kind === 'open-credit-return'}<th>Batch</th><th>Expiry</th><th>Unit Cost</th>{/if}<th>Stock</th><th>Purchase Price</th><th>Sale Price</th><th>Manufacturer</th><th>P/Pcs.</th><th>Location</th><th>Qty</th><th>Total</th><th></th></tr></thead><tbody>
-        {#each rows as row, index}<tr><td>{index + 1}</td><td><input aria-label={`Item name ${index + 1}`} value={row.itemName} readonly={Boolean(row.itemId)} oninput={(event) => updateRow(index, 'itemName', event.currentTarget.value)} /></td>{#if kind === 'cash-return' || kind === 'credit-return'}<td><input aria-label={`Source sale line ID ${index + 1}`} value={row.sourceLineId ?? ''} oninput={(event) => updateRow(index, 'sourceLineId', event.currentTarget.value)} /></td>{/if}{#if kind === 'open-cash-return' || kind === 'open-credit-return'}<td><input aria-label={`Batch ${index + 1}`} value={row.batchNumber} oninput={(event) => updateRow(index, 'batchNumber', event.currentTarget.value)} /></td><td><input aria-label={`Expiry ${index + 1}`} type="date" value={row.expiryDate} oninput={(event) => updateRow(index, 'expiryDate', event.currentTarget.value)} /></td><td><input aria-label={`Unit cost ${index + 1}`} value={row.unitCost} oninput={(event) => updateRow(index, 'unitCost', event.currentTarget.value)} /></td>{/if}<td>{row.stock}{#if row.stockError}<small class="error">{row.stockError}</small>{/if}</td><td>{row.purchasePrice}</td><td><input aria-label={`Sale price ${index + 1}`} value={row.salePrice} oninput={(event) => updateRow(index, 'salePrice', event.currentTarget.value)} /></td><td>{row.manufacturer}</td><td>{row.pieces}</td><td>{row.location}</td><td><input aria-label={`Quantity ${index + 1}`} value={row.quantity} oninput={(event) => updateRow(index, 'quantity', event.currentTarget.value)} /></td><td>{row.total}</td><td><button type="button" aria-label={`Remove row ${index + 1}`} onclick={() => removeRow(index)}>×</button></td></tr>{/each}
+        {#each rows as row, index}<tr><td>{index + 1}</td><td><input aria-label={`Item name ${index + 1}`} value={row.itemName} readonly={Boolean(row.itemId)} oninput={(event) => updateRow(index, 'itemName', event.currentTarget.value)} /></td>{#if kind === 'cash-return' || kind === 'credit-return'}<td><input aria-label={`Source sale line ID ${index + 1}`} value={row.sourceLineId ?? ''} oninput={(event) => updateRow(index, 'sourceLineId', event.currentTarget.value)} /></td>{/if}{#if kind === 'open-cash-return' || kind === 'open-credit-return'}<td><input aria-label={`Batch ${index + 1}`} value={row.batchNumber} oninput={(event) => updateRow(index, 'batchNumber', event.currentTarget.value)} /></td><td><input aria-label={`Expiry ${index + 1}`} type="date" value={row.expiryDate} oninput={(event) => updateRow(index, 'expiryDate', event.currentTarget.value)} /></td><td><input aria-label={`Unit cost ${index + 1}`} value={row.unitCost} oninput={(event) => updateRow(index, 'unitCost', event.currentTarget.value)} /></td>{/if}<td>{row.stock}{#if row.stockError}<small class="error">{row.stockError}</small>{/if}</td><td>{row.purchasePrice}</td><td><input aria-label={`Sale price ${index + 1}`} value={row.salePrice} oninput={(event) => updateRow(index, 'salePrice', event.currentTarget.value)} /></td><td>{row.manufacturer}</td><td>{row.pieces}</td><td>{row.location}</td><td><input aria-label={`Quantity ${index + 1}`} value={row.quantity} oninput={(event) => updateRow(index, 'quantity', event.currentTarget.value)} /></td><td>{roundDisplayedTotal(row.total || ((Number(row.salePrice) || 0) * (Number(row.quantity) || 0)))}</td><td><button type="button" aria-label={`Remove row ${index + 1}`} onclick={() => removeRow(index)}>×</button></td></tr>{/each}
       </tbody></table></div>
       <div class="legacy-sale-lines"><table><thead><tr><th>No.</th><th>Item Name</th></tr></thead><tbody>{#each rows as row, index}<tr><td>{index + 1}</td><td><input aria-label={`Item name summary ${index + 1}`} value={row.itemName} oninput={(event) => updateRow(index, 'itemName', event.currentTarget.value)} /></td></tr>{/each}</tbody></table></div>
 	  {#if activeTab === 'list'}<div class="legacy-history-filter" role="search"><label>Filter:<input aria-label="Sales history filter" bind:value={historyFilter} onkeydown={(event) => { if (event.key === 'Enter') void loadHistory(); }} /></label><button type="button" onclick={() => void loadHistory()}>Filter / Retrieve</button></div><div class="legacy-sale-list"><table><thead><tr><th>Document</th><th>Date</th><th>Customer</th><th>Item</th><th>Qty</th><th>Total</th></tr></thead><tbody>
