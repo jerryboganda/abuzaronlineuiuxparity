@@ -338,7 +338,16 @@ func TestPreferenceRuntimeStatusOnlyClaimsProvenBehavior(t *testing.T) {
 			"Sale Return/Show Master Cashier Window in Credit S/R:",
 			"Sale Return/Show Master Cashier Window in In-Patient S/R:",
 			"Sale Return/Show Master Cashier Window in Buffer S/R:",
-			"Sale Return/Show S/R in Cash Activity Window:":
+			"Sale Return/Show S/R in Cash Activity Window:",
+			"General/Alias Name:",
+			"General/Local Item Name:",
+			"General/Packing:",
+			"General/Pack Units:",
+			"General/Pack Stock",
+			"General/Generic Item Name",
+			"General/Packing Description:",
+			"General/Transit Stock:",
+			"General/Item Alert:":
 			continue
 		default:
 			t.Fatalf("unreviewed preference marked wired: %s/%s", definition.Category, definition.Caption)

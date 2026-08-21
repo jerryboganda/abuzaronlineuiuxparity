@@ -1,5 +1,13 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 general item-lookup overlay columns
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- General alias/local name/packing/pack stock/generic/transit/alert overlay-hidden item-lookup columns.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 others/report/item packing extras
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

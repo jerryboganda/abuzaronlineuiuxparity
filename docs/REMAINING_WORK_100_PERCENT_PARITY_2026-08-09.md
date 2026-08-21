@@ -2,6 +2,10 @@
 
 Date: 2026-08-09. Companion to `PARITY_FIX_PLAN_A-Z.md`, `GAP_ANALYSIS_2026-08-06.md`, `PARITY_STATUS.md`, `HANDOFF_2026-08-08.md`.
 
+## Progress update — 2026-08-09, general item-lookup overlay columns
+
+Not 100% parity. Wired General leftover item-search TEXT captions as overlay-hidden lookup extra columns (alias, local name, packing, pack units/stock, generic, packing description, transit stock, item alert).
+
 ## Progress update — 2026-08-09, others/report/item packing extras
 
 Not 100% parity. Wired Others output/printer/scan/SMS-expiry/refresh seeds and Report Allow Print Setup on the report pane; BasicData Item Packing / Associated Godown on item master; Sale Return Show Master Cashier and cash-activity flags.

@@ -790,6 +790,8 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Seeds overlay-hidden item-master Item Packing and Associated Godown fields.", "wired"
 	case category == "Sale Return" && (strings.Contains(lower, "show master cashier window") || strings.Contains(lower, "show s/r in cash activity")):
 		return "When Yes, the matching sale-return extra is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "General" && ((strings.Contains(lower, "alias name") && !strings.Contains(lower, "enable") && !strings.Contains(lower, "search item code") && !strings.Contains(lower, "auto responsive")) || strings.Contains(lower, "local item name") || lower == "packing:" || strings.Contains(lower, "pack units") || strings.Contains(lower, "pack stock") || strings.Contains(lower, "generic item name") || strings.Contains(lower, "packing description") || strings.Contains(lower, "transit stock") || strings.Contains(lower, "item alert")):
+		return "Maps overlay-hidden item-lookup extra columns (alias, local name, packing, pack stock, generic, transit, alert).", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask pur. invoice"):
 		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
 	case category == "Purchase" && strings.Contains(lower, "show net rate"):
