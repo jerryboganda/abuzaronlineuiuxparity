@@ -1,5 +1,13 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 others retail / distributor codes
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Others Retail Price(%) for Sale Inv. overlay-hidden column; Mfg. Distributor Code and Distributor Code seeds.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 item-master BasicData defaults
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

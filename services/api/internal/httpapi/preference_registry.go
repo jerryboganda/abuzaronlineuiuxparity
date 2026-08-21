@@ -766,6 +766,10 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Falls back the browser document title when Application Title is empty.", "wired"
 	case category == "BasicData" && (lower == "manufacturer:" || strings.Contains(lower, "item category") || strings.Contains(lower, "item class")):
 		return "Seeds Manufacturer / Category / Class on a new item-master record.", "wired"
+	case category == "Others" && strings.Contains(lower, "retail price(%) for sale inv"):
+		return "When Yes, the sale grid shows a Retail Price % column. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Others" && (strings.Contains(lower, "mfg. distributor code") || lower == "distributor code:"):
+		return "Seeds overlay-hidden manufacturer/distributor code sale header fields.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask pur. invoice"):
 		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
 	case category == "Purchase" && strings.Contains(lower, "show net rate"):

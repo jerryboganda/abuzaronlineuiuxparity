@@ -278,6 +278,18 @@ Still open: ~239 stored-only prefs (POS/cashier/email/SMS/schedule/dashboard/adj
 
 ---
 
+## Progress update — 2026-08-09, others retail / distributor codes
+
+**100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase V:** `Others/Retail Price(%) for Sale Inv.:` overlay-hidden sale column; Mfg. Distributor Code and Distributor Code header seeds.
+
+Still open: ~236 stored-only prefs (POS/cashier/email/SMS/schedule/dashboard/adjustment/activity-monitor, password prompts, empty-invoice skips, FEFO/G/P, and unguessable leftovers), pixel baselines, extra PBDs, VirtualGl recon, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
+
+---
+
 ## ⚠ Corrections to prior claims (read this first)
 
 A few things previously reported as done in this session's evidence docs — including two items marked `completed` on the running task list — do **not** hold up under independent verification:
