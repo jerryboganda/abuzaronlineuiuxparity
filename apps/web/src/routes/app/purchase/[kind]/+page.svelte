@@ -143,6 +143,7 @@
   let remarks3 = '';
   let purchaseOrderPrintLines: string[] = [];
   let purchaseOrderFooter = '';
+  let accountFor = '';
   let agency = '';
   let vehicle = '';
   let shipTo = '';
@@ -846,6 +847,7 @@
           if (item.caption === 'Ask L. C. No.:') askLcNo = yes(item.value);
           if (item.caption === 'Ask New Purchase Order No.:') askNewPurchaseOrderNo = yes(item.value);
           if (item.caption === 'Show Net Rate:') showNetRate = yes(item.value);
+          if (item.caption === 'Account For:') accountFor = item.value || accountFor;
         }
       } catch {
         /* purchase header extras stay hidden when Purchase prefs cannot be read */
@@ -1673,6 +1675,7 @@
         {#if showSupplierAmount}<label class="legacy-purchase-optional-field">Supplier Amount:<input aria-label="Supplier amount" bind:value={supplierAmount} /></label>{/if}
         {#if showGrn}<label class="legacy-purchase-optional-field">GRN No.:<input aria-label="GRN number" bind:value={grn} /></label>{/if}
         {#if showItemImage}<span class="legacy-purchase-optional-field legacy-purchase-item-photo" aria-label="Item image">Item Photo</span>{/if}
+        <label class="legacy-purchase-optional-field">Account For:<input aria-label="Purchase account for" bind:value={accountFor} /></label>
         {#if kind === 'order' && showSupplierReference}<label class="legacy-purchase-optional-field">Supplier Ref.:<input aria-label="Supplier reference" bind:value={supplierReference} /></label>{/if}
         {#if kind === 'order' && showDeliveryPlace}<label class="legacy-purchase-optional-field">Delivery Place:<input aria-label="Delivery place" bind:value={deliveryPlace} /></label>{/if}
         {#if kind === 'order' && showUsagePalace}<label class="legacy-purchase-optional-field">Usage Palace:<input aria-label="Usage palace" bind:value={usagePalace} /></label>{/if}

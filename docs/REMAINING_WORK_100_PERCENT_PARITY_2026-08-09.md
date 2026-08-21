@@ -159,6 +159,16 @@ Shipped:
 
 Still open: ~347 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
 
+## Progress update — 2026-08-09, extra sale/purchase header seeds
+
+**100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase V:** sale Loyalty/Currency/Motor Vehicle fields; sale-return Account For seed; purchase Account For field.
+
+Still open: ~342 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
+
 ---
 
 ## ⚠ Corrections to prior claims (read this first)

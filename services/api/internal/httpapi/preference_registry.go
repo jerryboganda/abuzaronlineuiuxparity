@@ -732,8 +732,12 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Non-empty Line1-8 and Purchase Order Footer values are included in purchase-order print preview.", "wired"
 	case category == "Quotation" && (strings.Contains(lower, "delivery days") || strings.Contains(lower, "validity days") || strings.Contains(lower, "payment to")):
 		return "Seeds the quotation Delivery Days / Validity Days / Payment To header fields (overlay-hidden at 1936x1048).", "wired"
-	case category == "Sale" && (strings.Contains(lower, "reference no. 2") || strings.Contains(lower, "reference no. 3") || strings.Contains(lower, "reference no. 4") || strings.Contains(lower, "sales person") || lower == "account for:" || lower == "message:" || lower == "doctor:"):
-		return "Seeds overlay-hidden sale header fields (Ref 2/3/4, Sales Person, Doctor, Message, Account For).", "wired"
+	case category == "Sale" && (strings.Contains(lower, "reference no. 2") || strings.Contains(lower, "reference no. 3") || strings.Contains(lower, "reference no. 4") || strings.Contains(lower, "sales person") || lower == "account for:" || lower == "message:" || lower == "doctor:" || strings.Contains(lower, "loyalty points") || lower == "currency:" || strings.Contains(lower, "motor vehicle")):
+		return "Seeds overlay-hidden sale header fields (Ref 2/3/4, Sales Person, Doctor, Message, Account For, Loyalty, Currency, Motor Vehicle).", "wired"
+	case category == "Sale Return" && strings.Contains(lower, "sale return account for"):
+		return "Seeds the overlay-hidden sale-return Account field.", "wired"
+	case category == "Purchase" && lower == "account for:":
+		return "Seeds the overlay-hidden purchase Account For header field.", "wired"
 	case (category == "Sale Return" || category == "Purchase Return") && strings.Contains(lower, "copy remarks in item description"):
 		return "When Yes, empty document line notes are filled from header remarks on save/post.", "wired"
 	case category == "Purchase Order" && strings.Contains(lower, "copy remarks in item description"):

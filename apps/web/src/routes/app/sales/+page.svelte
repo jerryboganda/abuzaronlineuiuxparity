@@ -120,6 +120,9 @@
   let validityDays = '';
   let paymentTo = '';
   let quotationPrintLines: string[] = [];
+  let loyaltyPoints = '';
+  let currency = '';
+  let motorVehicle = '';
   let remarks = '';
   let busy = false;
   let message = '';
@@ -1065,6 +1068,9 @@
               if (item.caption === 'Doctor:') doctor = item.value || doctor;
               if (item.caption === 'Message:') saleMessage = item.value || saleMessage;
               if (item.caption === 'Account For:') accountFor = item.value || accountFor;
+              if (item.caption === 'Loyalty Points:') loyaltyPoints = item.value || loyaltyPoints;
+              if (item.caption === 'Currency:') currency = item.value || currency;
+              if (item.caption === 'Motor Vehicle:') motorVehicle = item.value || motorVehicle;
             }
           } catch {
             /* sale header extras stay hidden when Sale prefs cannot be read */
@@ -1088,6 +1094,7 @@
             for (const item of saleReturnPrefs.registry ?? saleReturnPrefs.items ?? []) {
               if (item.caption === 'Show Account for Sale Return:') showSaleReturnAccount = preferenceYes(item.value);
               if (item.caption === 'Ask Amount Paid on S/Return Saving:') askAmountPaidOnSaleReturn = preferenceYes(item.value);
+              if (item.caption === 'Sale Return Account For:') saleReturnAccount = item.value || saleReturnAccount;
             }
           } catch {
             /* sale-return account stays hidden when Sale Return prefs cannot be read */
@@ -1440,6 +1447,9 @@
         <label class="legacy-sale-optional-field">Doctor:<input aria-label="Doctor" bind:value={doctor} /></label>
         <label class="legacy-sale-optional-field">Message:<input aria-label="Sale message" bind:value={saleMessage} /></label>
         <label class="legacy-sale-optional-field">Account For:<input aria-label="Account for" bind:value={accountFor} /></label>
+        <label class="legacy-sale-optional-field">Loyalty Points:<input aria-label="Loyalty points" bind:value={loyaltyPoints} /></label>
+        <label class="legacy-sale-optional-field">Currency:<input aria-label="Currency" bind:value={currency} /></label>
+        <label class="legacy-sale-optional-field">Motor Vehicle:<input aria-label="Motor vehicle" bind:value={motorVehicle} /></label>
         {#if kind === 'quotation'}
           <label class="legacy-sale-optional-field">Delivery Days:<input aria-label="Delivery days" bind:value={deliveryDays} /></label>
           <label class="legacy-sale-optional-field">Validity Days:<input aria-label="Validity days" bind:value={validityDays} /></label>
