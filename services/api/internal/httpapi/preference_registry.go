@@ -720,6 +720,14 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, the quotation shows an extra Ref. No. field. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "Purchase Return" && lower == "account for:":
 		return "Seeds the overlay-hidden purchase-return Account For header field.", "wired"
+	case category == "Purchase" && strings.Contains(lower, "supplier balance"):
+		return "Seeds the overlay-hidden Supplier Balance purchase header field.", "wired"
+	case category == "Purchase Return" && lower == "header:":
+		return "When Yes, purchase-return save/post asks for the header/remarks value.", "wired"
+	case category == "Sale Return" && strings.Contains(lower, "header on sale return"):
+		return "When Yes, sale-return save/post asks for the header/remarks value.", "wired"
+	case category == "Quotation" && (strings.Contains(lower, "manufacturer name") || lower == "color:" || strings.Contains(lower, "quantity denomination")):
+		return "Seeds overlay-hidden quotation Manufacturer / Color / Quantity Denomination fields.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask pur. invoice"):
 		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
 	case category == "Purchase" && strings.Contains(lower, "show net rate"):

@@ -99,6 +99,10 @@
   let askAmountPaidOnSaleReturn = false;
   let askSaleHeader = false;
   let askQuotationHeader = false;
+  let askSaleReturnHeader = false;
+  let quotationManufacturer = '';
+  let quotationColor = '';
+  let quotationQuantityDenomination = '';
   let showQuotationRefNo = false;
   let quotationRefNo = '';
   let customerBalance = '';
@@ -1094,6 +1098,9 @@
               if (/^Line[1-8]:$/.test(item.caption) && item.value?.trim()) quotationPrintLines = [...quotationPrintLines, item.value.trim()];
               if (item.caption === 'Ask Header:') askQuotationHeader = preferenceYes(item.value);
               if (item.caption === 'Show Ref. No.:') showQuotationRefNo = preferenceYes(item.value);
+              if (item.caption === 'Manufacturer Name:') quotationManufacturer = item.value || quotationManufacturer;
+              if (item.caption === 'Color:') quotationColor = item.value || quotationColor;
+              if (item.caption === 'Quantity Denomination:') quotationQuantityDenomination = item.value || quotationQuantityDenomination;
             }
           } catch {
             /* quotation extras stay hidden when Quotation prefs cannot be read */
@@ -1104,6 +1111,7 @@
               if (item.caption === 'Show Account for Sale Return:') showSaleReturnAccount = preferenceYes(item.value);
               if (item.caption === 'Ask Amount Paid on S/Return Saving:') askAmountPaidOnSaleReturn = preferenceYes(item.value);
               if (item.caption === 'Sale Return Account For:') saleReturnAccount = item.value || saleReturnAccount;
+              if (item.caption === 'Header On Sale Return:') askSaleReturnHeader = preferenceYes(item.value);
             }
           } catch {
             /* sale-return account stays hidden when Sale Return prefs cannot be read */
@@ -1371,6 +1379,14 @@
       }
       remarks = value;
     }
+    if (askSaleReturnHeader && aggregate === 'sale_return') {
+      const value = window.prompt('Header', remarks);
+      if (value == null) {
+        message = 'Save cancelled.';
+        return;
+      }
+      remarks = value;
+    }
     const requestRevision = workflowRevision;
     busy = true; message = ''; error = '';
     let event: SyncEnvelope | undefined;
@@ -1481,6 +1497,9 @@
           <label class="legacy-sale-optional-field">Delivery Days:<input aria-label="Delivery days" bind:value={deliveryDays} /></label>
           <label class="legacy-sale-optional-field">Validity Days:<input aria-label="Validity days" bind:value={validityDays} /></label>
           <label class="legacy-sale-optional-field">Payment To:<input aria-label="Payment to" bind:value={paymentTo} /></label>
+          <label class="legacy-sale-optional-field">Manufacturer:<input aria-label="Quotation manufacturer" bind:value={quotationManufacturer} /></label>
+          <label class="legacy-sale-optional-field">Color:<input aria-label="Quotation color" bind:value={quotationColor} /></label>
+          <label class="legacy-sale-optional-field">Qty Denomination:<input aria-label="Quantity denomination" bind:value={quotationQuantityDenomination} /></label>
         {/if}
       </div>
       <div class="legacy-sale-lookup" aria-label="Item lookup list">

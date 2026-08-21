@@ -192,7 +192,13 @@ func TestPreferenceRuntimeStatusOnlyClaimsProvenBehavior(t *testing.T) {
 			"Purchase Order/Show Invoice GST (%):",
 			"Purchase Order/Show Invoice Flat Discount:",
 			"Purchase Order/Show Grand Total:",
-			"Purchase Order/Show Item Remarks/Description:":
+			"Purchase Order/Show Item Remarks/Description:",
+			"Purchase/Supplier Balance:",
+			"Purchase Return/Header:",
+			"Sale Return/Header On Sale Return:",
+			"Quotation/Manufacturer Name:",
+			"Quotation/Color:",
+			"Quotation/Quantity Denomination:":
 			continue
 		default:
 			t.Fatalf("unreviewed preference marked wired: %s/%s", definition.Category, definition.Caption)

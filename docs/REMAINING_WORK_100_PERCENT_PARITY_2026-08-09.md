@@ -189,6 +189,16 @@ Shipped:
 
 Still open: ~325 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
 
+## Progress update — 2026-08-09, supplier balance / return headers / quotation extras
+
+**100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase V:** Purchase Supplier Balance; return Header prompts; quotation Manufacturer/Color/Quantity Denomination.
+
+Still open: ~319 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
+
 ---
 
 ## ⚠ Corrections to prior claims (read this first)

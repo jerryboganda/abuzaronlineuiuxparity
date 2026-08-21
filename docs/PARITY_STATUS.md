@@ -1,5 +1,15 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 supplier balance / return headers / quotation extras
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Purchase Supplier Balance overlay field.
+- Purchase Return Header and Sale Return Header On Sale Return prompts.
+- Quotation Manufacturer / Color / Quantity Denomination seeds.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 ask-header / PO invoice extras
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:
