@@ -137,6 +137,15 @@
   let roundItemTotalPlaces: number | null = null;
   let quotationPackUnits = '';
   let printWarrantedInvoice = '';
+  let fiscalizationMachineIp = '';
+  let showItemDisc = false;
+  let showItemGst = false;
+  let showExtraTax = false;
+  let showDiscOnCashSale = false;
+  let showDiscOnCreditSale = false;
+  let showPreDiscount = false;
+  let showClaimableDisc = false;
+  let showQuotationClaimableDisc = false;
   let remarks = '';
   let busy = false;
   let message = '';
@@ -1092,6 +1101,14 @@
               if (item.caption === 'Currency:') currency = item.value || currency;
               if (item.caption === 'Motor Vehicle:') motorVehicle = item.value || motorVehicle;
               if (item.caption === 'Print Warranted Invoice:') printWarrantedInvoice = item.value || printWarrantedInvoice;
+              if (item.caption === 'Fiscalization Machine IP:') fiscalizationMachineIp = item.value || fiscalizationMachineIp;
+              if (item.caption === 'Item Disc. %:') showItemDisc = preferenceYes(item.value);
+              if (item.caption === 'Item GST %:') showItemGst = preferenceYes(item.value);
+              if (item.caption === 'Extra Tax %:') showExtraTax = preferenceYes(item.value);
+              if (item.caption === 'Disc. % On Cash Sale:') showDiscOnCashSale = preferenceYes(item.value);
+              if (item.caption === 'Disc. % On Credit Sale:') showDiscOnCreditSale = preferenceYes(item.value);
+              if (item.caption === 'Pre-Discount %age:') showPreDiscount = preferenceYes(item.value);
+              if (item.caption === 'Claimable Disc.%:') showClaimableDisc = preferenceYes(item.value);
               if (item.caption === 'Ask Header:') askSaleHeader = preferenceYes(item.value);
               if (item.caption === 'Customer Balance:') customerBalance = item.value || customerBalance;
             }
@@ -1114,6 +1131,7 @@
               if (item.caption === 'Color:') quotationColor = item.value || quotationColor;
               if (item.caption === 'Quantity Denomination:') quotationQuantityDenomination = item.value || quotationQuantityDenomination;
               if (item.caption === 'Pack Units:') quotationPackUnits = item.value || quotationPackUnits;
+              if (item.caption === 'Claimable Discount %:') showQuotationClaimableDisc = preferenceYes(item.value);
             }
           } catch {
             /* quotation extras stay hidden when Quotation prefs cannot be read */
@@ -1512,6 +1530,7 @@
         <label class="legacy-sale-optional-field">Motor Vehicle:<input aria-label="Motor vehicle" bind:value={motorVehicle} /></label>
         <label class="legacy-sale-optional-field">Customer Balance:<input aria-label="Customer balance" bind:value={customerBalance} /></label>
         <label class="legacy-sale-optional-field">Print Warranted Invoice:<input aria-label="Print warranted invoice" bind:value={printWarrantedInvoice} /></label>
+        <label class="legacy-sale-optional-field">Fiscalization Machine IP:<input aria-label="Fiscalization machine IP" bind:value={fiscalizationMachineIp} /></label>
         {#if aggregate === 'sale_return'}
           <label class="legacy-sale-optional-field">Payment Mode:<input aria-label="Sale return payment mode" bind:value={paymentModeAmtPaid} /></label>
           <label class="legacy-sale-optional-field">Payment A/C:<input aria-label="Sale return payment account" bind:value={paymentAccountAmtPaid} /></label>
@@ -1532,8 +1551,8 @@
           {#if lookupBusy}<tr><td colspan="7">Looking up active canonical items…</td></tr>{:else if availableLookupItems.length === 0}<tr><td colspan="7">Search by item name, alias, barcode, or code. No demo items are available.</td></tr>{:else}{#each availableLookupItems as item}<tr><td><button type="button" onclick={() => chooseLookupItem(item)}>{item.name}</button></td><td>{item.stock || 'Select godown'}</td><td>{item.purchasePrice}</td><td>{item.salePrice}</td><td>{item.manufacturer}</td><td>{item.pieces}</td><td>{item.location}</td></tr>{/each}{/if}
         </tbody></table>
       </div>
-      <div class="legacy-sale-grid-wrap"><table class="legacy-sale-grid"><thead><tr><th>No.</th><th>Item Name</th>{#if kind === 'cash-return' || kind === 'credit-return'}<th>Source Sale Line ID</th>{/if}{#if kind === 'open-cash-return' || kind === 'open-credit-return'}<th>Batch</th><th>Expiry</th><th>Unit Cost</th>{/if}<th>Stock</th><th>Purchase Price</th><th>Sale Price</th><th>Manufacturer</th><th>P/Pcs.</th><th>Location</th><th>Qty</th><th>Total</th><th></th></tr></thead><tbody>
-        {#each rows as row, index}<tr><td>{index + 1}</td><td><input aria-label={`Item name ${index + 1}`} value={row.itemName} readonly={Boolean(row.itemId)} oninput={(event) => updateRow(index, 'itemName', event.currentTarget.value)} /></td>{#if kind === 'cash-return' || kind === 'credit-return'}<td><input aria-label={`Source sale line ID ${index + 1}`} value={row.sourceLineId ?? ''} oninput={(event) => updateRow(index, 'sourceLineId', event.currentTarget.value)} /></td>{/if}{#if kind === 'open-cash-return' || kind === 'open-credit-return'}<td><input aria-label={`Batch ${index + 1}`} value={row.batchNumber} oninput={(event) => updateRow(index, 'batchNumber', event.currentTarget.value)} /></td><td><input aria-label={`Expiry ${index + 1}`} type="date" value={row.expiryDate} oninput={(event) => updateRow(index, 'expiryDate', event.currentTarget.value)} /></td><td><input aria-label={`Unit cost ${index + 1}`} value={row.unitCost} oninput={(event) => updateRow(index, 'unitCost', event.currentTarget.value)} /></td>{/if}<td>{row.stock}{#if row.stockError}<small class="error">{row.stockError}</small>{/if}</td><td>{row.purchasePrice}</td><td><input aria-label={`Sale price ${index + 1}`} value={row.salePrice} oninput={(event) => updateRow(index, 'salePrice', event.currentTarget.value)} /></td><td>{row.manufacturer}</td><td>{row.pieces}</td><td>{row.location}</td><td><input aria-label={`Quantity ${index + 1}`} value={row.quantity} oninput={(event) => updateRow(index, 'quantity', event.currentTarget.value)} /></td><td>{roundDisplayedTotal(row.total || ((Number(row.salePrice) || 0) * (Number(row.quantity) || 0)))}</td><td><button type="button" aria-label={`Remove row ${index + 1}`} onclick={() => removeRow(index)}>×</button></td></tr>{/each}
+      <div class="legacy-sale-grid-wrap"><table class="legacy-sale-grid"><thead><tr><th>No.</th><th>Item Name</th>{#if kind === 'cash-return' || kind === 'credit-return'}<th>Source Sale Line ID</th>{/if}{#if kind === 'open-cash-return' || kind === 'open-credit-return'}<th>Batch</th><th>Expiry</th><th>Unit Cost</th>{/if}<th>Stock</th><th>Purchase Price</th><th>Sale Price</th><th>Manufacturer</th><th>P/Pcs.</th><th>Location</th><th>Qty</th>{#if showItemDisc}<th class="legacy-sale-optional-field">Item Disc. %</th>{/if}{#if showItemGst}<th class="legacy-sale-optional-field">Item GST %</th>{/if}{#if showExtraTax}<th class="legacy-sale-optional-field">Extra Tax %</th>{/if}{#if showDiscOnCashSale}<th class="legacy-sale-optional-field">Disc. % Cash</th>{/if}{#if showDiscOnCreditSale}<th class="legacy-sale-optional-field">Disc. % Credit</th>{/if}{#if showPreDiscount}<th class="legacy-sale-optional-field">Pre-Discount %</th>{/if}{#if showClaimableDisc || (kind === 'quotation' && showQuotationClaimableDisc)}<th class="legacy-sale-optional-field">Claimable Disc.%</th>{/if}<th>Total</th><th></th></tr></thead><tbody>
+        {#each rows as row, index}<tr><td>{index + 1}</td><td><input aria-label={`Item name ${index + 1}`} value={row.itemName} readonly={Boolean(row.itemId)} oninput={(event) => updateRow(index, 'itemName', event.currentTarget.value)} /></td>{#if kind === 'cash-return' || kind === 'credit-return'}<td><input aria-label={`Source sale line ID ${index + 1}`} value={row.sourceLineId ?? ''} oninput={(event) => updateRow(index, 'sourceLineId', event.currentTarget.value)} /></td>{/if}{#if kind === 'open-cash-return' || kind === 'open-credit-return'}<td><input aria-label={`Batch ${index + 1}`} value={row.batchNumber} oninput={(event) => updateRow(index, 'batchNumber', event.currentTarget.value)} /></td><td><input aria-label={`Expiry ${index + 1}`} type="date" value={row.expiryDate} oninput={(event) => updateRow(index, 'expiryDate', event.currentTarget.value)} /></td><td><input aria-label={`Unit cost ${index + 1}`} value={row.unitCost} oninput={(event) => updateRow(index, 'unitCost', event.currentTarget.value)} /></td>{/if}<td>{row.stock}{#if row.stockError}<small class="error">{row.stockError}</small>{/if}</td><td>{row.purchasePrice}</td><td><input aria-label={`Sale price ${index + 1}`} value={row.salePrice} oninput={(event) => updateRow(index, 'salePrice', event.currentTarget.value)} /></td><td>{row.manufacturer}</td><td>{row.pieces}</td><td>{row.location}</td><td><input aria-label={`Quantity ${index + 1}`} value={row.quantity} oninput={(event) => updateRow(index, 'quantity', event.currentTarget.value)} /></td>{#if showItemDisc}<td class="legacy-sale-optional-field"><input aria-label={`Item discount ${index + 1}`} value={row.discountPercent} oninput={(event) => updateRow(index, 'discountPercent', event.currentTarget.value)} /></td>{/if}{#if showItemGst}<td class="legacy-sale-optional-field"><input aria-label={`Item GST ${index + 1}`} value={row.gstRate} oninput={(event) => updateRow(index, 'gstRate', event.currentTarget.value)} /></td>{/if}{#if showExtraTax}<td class="legacy-sale-optional-field"></td>{/if}{#if showDiscOnCashSale}<td class="legacy-sale-optional-field"></td>{/if}{#if showDiscOnCreditSale}<td class="legacy-sale-optional-field"></td>{/if}{#if showPreDiscount}<td class="legacy-sale-optional-field"></td>{/if}{#if showClaimableDisc || (kind === 'quotation' && showQuotationClaimableDisc)}<td class="legacy-sale-optional-field"></td>{/if}<td>{roundDisplayedTotal(row.total || ((Number(row.salePrice) || 0) * (Number(row.quantity) || 0)))}</td><td><button type="button" aria-label={`Remove row ${index + 1}`} onclick={() => removeRow(index)}>×</button></td></tr>{/each}
       </tbody></table></div>
       <div class="legacy-sale-lines"><table><thead><tr><th>No.</th><th>Item Name</th></tr></thead><tbody>{#each rows as row, index}<tr><td>{index + 1}</td><td><input aria-label={`Item name summary ${index + 1}`} value={row.itemName} oninput={(event) => updateRow(index, 'itemName', event.currentTarget.value)} /></td></tr>{/each}</tbody></table></div>
 	  {#if activeTab === 'list'}<div class="legacy-history-filter" role="search"><label>Filter:<input aria-label="Sales history filter" bind:value={historyFilter} onkeydown={(event) => { if (event.key === 'Enter') void loadHistory(); }} /></label><button type="button" onclick={() => void loadHistory()}>Filter / Retrieve</button></div><div class="legacy-sale-list"><table><thead><tr><th>Document</th><th>Date</th><th>Customer</th><th>Item</th><th>Qty</th><th>Total</th></tr></thead><tbody>

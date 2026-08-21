@@ -740,6 +740,16 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Seeds the purchase-order Purchase Type header field.", "wired"
 	case category == "Sale" && strings.Contains(lower, "print warranted invoice"):
 		return "Seeds the overlay-hidden Print Warranted Invoice sale header field.", "wired"
+	case category == "Sale" && strings.Contains(lower, "fiscalization machine ip"):
+		return "Seeds the overlay-hidden Fiscalization Machine IP sale header field.", "wired"
+	case category == "Sale" && (strings.Contains(lower, "item disc. %") || lower == "item gst %:" || strings.Contains(lower, "extra tax %") || strings.Contains(lower, "disc. % on cash sale") || strings.Contains(lower, "disc. % on credit sale") || strings.Contains(lower, "pre-discount") || strings.Contains(lower, "claimable disc")):
+		return "When Yes, the matching sale grid column is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Purchase" && (lower == "disc. %:" || strings.Contains(lower, "item level gst") || strings.Contains(lower, "extra tax %") || strings.Contains(lower, "sale disc. %") || lower == "margin%:" || strings.Contains(lower, "net margin")):
+		return "When Yes, the matching purchase grid column is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Purchase" && (strings.Contains(lower, "pct code") || strings.Contains(lower, "sales tax schedule")):
+		return "Seeds overlay-hidden purchase PCT Code and Sales Tax Schedule header fields.", "wired"
+	case category == "Quotation" && strings.Contains(lower, "claimable discount"):
+		return "When Yes, the quotation grid shows a Claimable Disc. column. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask pur. invoice"):
 		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
 	case category == "Purchase" && strings.Contains(lower, "show net rate"):

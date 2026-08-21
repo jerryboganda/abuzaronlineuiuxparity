@@ -130,6 +130,14 @@
   let showItemFlatDiscount = false;
   let showDiscPerc2 = false;
   let showPackQty = false;
+  let showPurchaseDisc = false;
+  let showPurchaseItemGst = false;
+  let showPurchaseExtraTax = false;
+  let showPurchaseSaleDisc = false;
+  let showPurchaseMargin = false;
+  let showPurchaseNetMargin = false;
+  let pctCode = '';
+  let salesTaxSchedule = '';
   let paymentModeAmtReceived = '';
   let paymentAccountAmtReceived = '';
   let roundItemTotalPlaces: number | null = null;
@@ -877,6 +885,14 @@
           if (item.caption === 'Ask Header:') askHeader = yes(item.value);
           if (item.caption === 'Ask Purchase Type:') askPurchaseType = yes(item.value);
           if (item.caption === 'Supplier Balance:') supplierBalance = item.value || supplierBalance;
+          if (item.caption === 'Disc. %:') showPurchaseDisc = yes(item.value);
+          if (item.caption === 'Item Level GST %:') showPurchaseItemGst = yes(item.value);
+          if (item.caption === 'Extra Tax %:') showPurchaseExtraTax = yes(item.value);
+          if (item.caption === 'Sale Disc. %:') showPurchaseSaleDisc = yes(item.value);
+          if (item.caption === 'Margin%:') showPurchaseMargin = yes(item.value);
+          if (item.caption === 'Net Margin %:') showPurchaseNetMargin = yes(item.value);
+          if (item.caption === 'PCT Code:') pctCode = item.value || pctCode;
+          if (item.caption === 'Sales Tax Schedule:') salesTaxSchedule = item.value || salesTaxSchedule;
         }
       } catch {
         /* purchase header extras stay hidden when Purchase prefs cannot be read */
@@ -1756,6 +1772,8 @@
         {#if showItemImage}<span class="legacy-purchase-optional-field legacy-purchase-item-photo" aria-label="Item image">Item Photo</span>{/if}
         <label class="legacy-purchase-optional-field">Account For:<input aria-label="Purchase account for" bind:value={accountFor} /></label>
         <label class="legacy-purchase-optional-field">Supplier Balance:<input aria-label="Supplier balance" bind:value={supplierBalance} /></label>
+        <label class="legacy-purchase-optional-field">PCT Code:<input aria-label="PCT code" bind:value={pctCode} /></label>
+        <label class="legacy-purchase-optional-field">Sales Tax Schedule:<input aria-label="Sales tax schedule" bind:value={salesTaxSchedule} /></label>
         {#if kind === 'return'}
           <label class="legacy-purchase-optional-field">Payment Mode:<input aria-label="Purchase return payment mode" bind:value={paymentModeAmtReceived} /></label>
           <label class="legacy-purchase-optional-field">Payment A/C:<input aria-label="Purchase return payment account" bind:value={paymentAccountAmtReceived} /></label>
@@ -1789,7 +1807,7 @@
       </div>
       <div class="legacy-transaction-grid-wrap">
         <table class="legacy-transaction-grid" class:legacy-pack-purchase-grid={kind === 'pack'}>
-          <thead>{#if kind === 'pack'}<tr>{#each packHeaders as header}<th>{header}</th>{/each}<th class="legacy-remaining-qty">Remaining</th>{#if showNetRate}<th class="legacy-purchase-optional-field">Net Rate</th>{/if}</tr>{:else}<tr><th>No.</th><th>Quick Search</th><th>Alias Name</th><th>Alternate Alias Name</th><th>Item Name</th><th>Pack Units</th><th>Packing</th><th>Item Location</th><th>Godown</th><th>Batch</th><th>Mfg. Date</th><th>Expiry</th><th>Batch Sale Price</th><th>Quantity</th><th class="legacy-remaining-qty">Remaining</th><th>Purchase Price</th><th>Total</th>{#if kind === 'return' && showPackQty}<th class="legacy-purchase-optional-field">Pack Qty</th>{/if}{#if showNetRate}<th class="legacy-purchase-optional-field">Net Rate</th>{/if}{#if showUnitWeight}<th class="legacy-purchase-optional-field">Weight/Unit</th>{/if}{#if showTotalWeight}<th class="legacy-purchase-optional-field">Total Weight</th>{/if}{#if kind === 'order' && showItemRemarks}<th class="legacy-purchase-optional-field">Item Remarks</th>{/if}{#if kind === 'order' && showItemSaleTax}<th class="legacy-purchase-optional-field">Item Sale Tax</th>{/if}{#if kind === 'order' && showItemGst}<th class="legacy-purchase-optional-field">Item GST %</th>{/if}{#if kind === 'order' && showItemFlatDiscount}<th class="legacy-purchase-optional-field">Item Flat Disc.</th>{/if}{#if kind === 'order' && showDiscPerc2}<th class="legacy-purchase-optional-field">Disc. Perc. 2</th>{/if}<th></th>{#if kind === 'return'}<th>Source Batch ID</th>{/if}</tr>{/if}</thead>
+          <thead>{#if kind === 'pack'}<tr>{#each packHeaders as header}<th>{header}</th>{/each}<th class="legacy-remaining-qty">Remaining</th>{#if showNetRate}<th class="legacy-purchase-optional-field">Net Rate</th>{/if}</tr>{:else}<tr><th>No.</th><th>Quick Search</th><th>Alias Name</th><th>Alternate Alias Name</th><th>Item Name</th><th>Pack Units</th><th>Packing</th><th>Item Location</th><th>Godown</th><th>Batch</th><th>Mfg. Date</th><th>Expiry</th><th>Batch Sale Price</th><th>Quantity</th><th class="legacy-remaining-qty">Remaining</th><th>Purchase Price</th>{#if showPurchaseDisc}<th class="legacy-purchase-optional-field">Disc. %</th>{/if}{#if showPurchaseItemGst}<th class="legacy-purchase-optional-field">Item GST %</th>{/if}{#if showPurchaseExtraTax}<th class="legacy-purchase-optional-field">Extra Tax %</th>{/if}{#if showPurchaseSaleDisc}<th class="legacy-purchase-optional-field">Sale Disc. %</th>{/if}{#if showPurchaseMargin}<th class="legacy-purchase-optional-field">Margin%</th>{/if}{#if showPurchaseNetMargin}<th class="legacy-purchase-optional-field">Net Margin %</th>{/if}<th>Total</th>{#if kind === 'return' && showPackQty}<th class="legacy-purchase-optional-field">Pack Qty</th>{/if}{#if showNetRate}<th class="legacy-purchase-optional-field">Net Rate</th>{/if}{#if showUnitWeight}<th class="legacy-purchase-optional-field">Weight/Unit</th>{/if}{#if showTotalWeight}<th class="legacy-purchase-optional-field">Total Weight</th>{/if}{#if kind === 'order' && showItemRemarks}<th class="legacy-purchase-optional-field">Item Remarks</th>{/if}{#if kind === 'order' && showItemSaleTax}<th class="legacy-purchase-optional-field">Item Sale Tax</th>{/if}{#if kind === 'order' && showItemGst}<th class="legacy-purchase-optional-field">Item GST %</th>{/if}{#if kind === 'order' && showItemFlatDiscount}<th class="legacy-purchase-optional-field">Item Flat Disc.</th>{/if}{#if kind === 'order' && showDiscPerc2}<th class="legacy-purchase-optional-field">Disc. Perc. 2</th>{/if}<th></th>{#if kind === 'return'}<th>Source Batch ID</th>{/if}</tr>{/if}</thead>
           <tbody>
             {#each rows as row, index}
               <tr>
@@ -1809,6 +1827,12 @@
                 <td><input aria-label={`Quantity ${index + 1}${row.remainingQuantity ? ` remaining ${row.remainingQuantity}` : ''}`} title={row.remainingQuantity ? `Remaining ${row.remainingQuantity}` : ''} value={row.quantity} oninput={(event) => updateRow(index, 'quantity', event.currentTarget.value)} /></td>
                 <td class="legacy-remaining-qty"><input aria-label={`Remaining quantity ${index + 1}`} value={row.remainingQuantity} readonly tabindex="-1" /></td>
                 <td><input aria-label={`Purchase price ${index + 1}`} value={row.purchasePrice} oninput={(event) => updateRow(index, 'purchasePrice', event.currentTarget.value)} /></td>
+                {#if showPurchaseDisc}<td class="legacy-purchase-optional-field"><input aria-label={`Discount percent ${index + 1}`} value={row.discountPercent} oninput={(event) => updateRow(index, 'discountPercent', event.currentTarget.value)} /></td>{/if}
+                {#if showPurchaseItemGst}<td class="legacy-purchase-optional-field"><input aria-label={`Item GST ${index + 1}`} value={row.gstRate} oninput={(event) => updateRow(index, 'gstRate', event.currentTarget.value)} /></td>{/if}
+                {#if showPurchaseExtraTax}<td class="legacy-purchase-optional-field"></td>{/if}
+                {#if showPurchaseSaleDisc}<td class="legacy-purchase-optional-field"></td>{/if}
+                {#if showPurchaseMargin}<td class="legacy-purchase-optional-field"></td>{/if}
+                {#if showPurchaseNetMargin}<td class="legacy-purchase-optional-field"></td>{/if}
                 <td>{roundDisplayedTotal(row.total)}</td>
                 {#if kind === 'return' && showPackQty}<td class="legacy-purchase-optional-field">{row.packUnits}</td>{/if}
                 {#if showNetRate}<td class="legacy-purchase-optional-field">{((Number(row.purchasePrice) || 0) * (1 - (Number(row.discountPercent) || 0) / 100)).toFixed(2)}</td>{/if}

@@ -225,6 +225,20 @@ Still open: ~305 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon
 
 ---
 
+## Progress update — 2026-08-09, sale/purchase tax-discount grid extras
+
+**100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase V:** Sale Item Disc. % / Item GST % bind existing line discount/GST; Extra Tax / cash-credit disc / Pre-Discount / Claimable Disc overlay-hidden columns; Fiscalization Machine IP seed.
+- **Phase V:** Purchase Disc. % / Item Level GST % bind existing line fields; Extra Tax / Sale Disc / Margin / Net Margin overlay-hidden columns; PCT Code and Sales Tax Schedule seeds.
+- **Phase V:** Quotation Claimable Discount % overlay-hidden column.
+
+Still open: ~288 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
+
+---
+
 ## ⚠ Corrections to prior claims (read this first)
 
 A few things previously reported as done in this session's evidence docs — including two items marked `completed` on the running task list — do **not** hold up under independent verification:

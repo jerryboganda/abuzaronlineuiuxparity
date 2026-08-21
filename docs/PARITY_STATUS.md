@@ -1,5 +1,15 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 sale/purchase tax-discount grid extras
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Sale Item Disc. % / Item GST % / Extra Tax % / cash-credit disc / Pre-Discount / Claimable Disc overlay-hidden columns; Fiscalization Machine IP seed.
+- Purchase Disc. % / Item Level GST % / Extra Tax % / Sale Disc. % / Margin% / Net Margin % overlay-hidden columns; PCT Code and Sales Tax Schedule seeds.
+- Quotation Claimable Discount % overlay-hidden column.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 return payment / round / pack qty / report extras
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:
