@@ -2,6 +2,10 @@
 
 Date: 2026-08-09. Companion to `PARITY_FIX_PLAN_A-Z.md`, `GAP_ANALYSIS_2026-08-06.md`, `PARITY_STATUS.md`, `HANDOFF_2026-08-08.md`.
 
+## Progress update — 2026-08-09, dashboard / activity-monitor / POS leftover / Email-SMS overlay
+
+Not 100% parity. Wired Dashboard Sales Analysis Days Lim. onto the workspace sales window and remaining Dashboard limits as overlay extras. Wired activity-monitor Show-* flags, POS Sales Person/Loyalty/% leftovers, Email/SMS interface-setting extras (no passwords), and existing always-visible lookup/grid leftover captions. Leftover dump ~116 stored-only (including Schedule not_configured and Email/SMS passwords).
+
 ## Progress update — 2026-08-09, general item-lookup overlay columns
 
 Not 100% parity. Wired General leftover item-search TEXT captions as overlay-hidden lookup extra columns (alias, local name, packing, pack units/stock, generic, packing description, transit stock, item alert).

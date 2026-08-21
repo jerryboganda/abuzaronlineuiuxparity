@@ -16,6 +16,16 @@
   let conflictBusy = '';
   let conflictMessage = '';
   let dashboardNotice = '';
+  let salesAnalysisDays = 1;
+  let summaryAnalysisDays = '30';
+  let purchaseAnalysisDays = '30';
+  let receiptAnalysisDays = '30';
+  let issueAnalysisDays = '30';
+  let adjustmentAnalysisDays = '30';
+  let godownTransferAnalysisDays = '30';
+  let accountsAnalysisDays = '30';
+  let serviceAnalysisDays = '30';
+  let inventoryBreakupOn = 'Category';
   const api = new AbuzarApi();
 
   function amount(value: string): number {
@@ -48,9 +58,33 @@
       counterLabel = result.context.counterId ? `Counter ${result.context.counterId.slice(0, 8)}` : 'Counter scope';
       operatorLabel = result.context.displayName;
       const today = localDateString();
+      try {
+        const dashboardPrefs = await api.preferences('Dashboard');
+        const yesNo = (value: string | undefined) => (value || '').trim();
+        for (const item of dashboardPrefs.registry ?? dashboardPrefs.items ?? []) {
+          if (item.caption === 'Sales Analysis Days Lim.:') {
+            const parsed = Number.parseInt(item.value || '1', 10);
+            if (parsed > 0) salesAnalysisDays = parsed;
+          }
+          if (item.caption === 'Summary Analysis Days Lim.:') summaryAnalysisDays = item.value || summaryAnalysisDays;
+          if (item.caption === 'Purchase Analysis Days Lim.:') purchaseAnalysisDays = item.value || purchaseAnalysisDays;
+          if (item.caption === 'Receipt Analysis Days Lim.:') receiptAnalysisDays = item.value || receiptAnalysisDays;
+          if (item.caption === 'Issue Analysis Days Lim.:') issueAnalysisDays = item.value || issueAnalysisDays;
+          if (item.caption === 'Adjustment Analysis Days Lim.:') adjustmentAnalysisDays = item.value || adjustmentAnalysisDays;
+          if (item.caption === 'Godown Transfer Analysis Days Lim.:') godownTransferAnalysisDays = item.value || godownTransferAnalysisDays;
+          if (item.caption === 'Accounts Analysis Days Lim.:') accountsAnalysisDays = item.value || accountsAnalysisDays;
+          if (item.caption === 'Service Analysis Days Lim.:') serviceAnalysisDays = item.value || serviceAnalysisDays;
+          if (item.caption === 'Inventory Breakup On:') inventoryBreakupOn = yesNo(item.value) || inventoryBreakupOn;
+        }
+      } catch {
+        /* dashboard extras keep defaults */
+      }
+      const start = new Date();
+      start.setDate(start.getDate() - Math.max(0, salesAnalysisDays - 1));
+      const from = localDateString(start);
       const [conflictResult, salesResult, shiftResult, branchResult] = await Promise.all([
         api.conflicts(),
-        api.transactions('sale', today, today),
+        api.transactions('sale', from, today),
         api.shifts(),
         api.branches()
       ]);
@@ -182,6 +216,9 @@
           <strong>—</strong>
           <small class="muted">Receivables ledger pending</small>
         </article>
+      </section>
+      <section class="legacy-sale-optional-field" aria-label="Dashboard analysis limits">
+        <p class="muted">Summary {summaryAnalysisDays}d · Purchase {purchaseAnalysisDays}d · Receipt {receiptAnalysisDays}d · Issue {issueAnalysisDays}d · Adjustment {adjustmentAnalysisDays}d · Godown transfer {godownTransferAnalysisDays}d · Accounts {accountsAnalysisDays}d · Service {serviceAnalysisDays}d · Breakup {inventoryBreakupOn}</p>
       </section>
 
       <section class="content-grid">

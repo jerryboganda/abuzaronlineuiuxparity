@@ -782,6 +782,28 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Seeds overlay-hidden POS list-view retrieval day limits.", "wired"
 	case category == "Point of Sale" && (strings.Contains(lower, "show cashier window") || strings.Contains(lower, "show master cashier window in pos") || strings.Contains(lower, "print store summary") || strings.Contains(lower, "show sale in cashier activity") || strings.Contains(lower, "allow ctrl+d")):
 		return "When Yes, the matching POS extra is shown on cash/credit sale. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Point of Sale" && (strings.Contains(lower, "sales person") || strings.Contains(lower, "loyalty points") || strings.Contains(lower, "item discount") || strings.Contains(lower, "item flat discount") || strings.Contains(lower, "item gst") || strings.Contains(lower, "item unit sales tax") || strings.Contains(lower, "invoice gst") || strings.Contains(lower, "misc. charges") || strings.Contains(lower, "invoice discount") || strings.Contains(lower, "invoice flat discount")):
+		return "Seeds overlay-hidden POS sales-person/loyalty extras and column flags on cash/credit sale.", "wired"
+	case (category == "Sale Return" || category == "Quotation" || category == "Purchase Return" || category == "Purchase Order" || category == "Adjustment") && strings.Contains(lower, "activity monitor"):
+		return "When Yes, the matching activity-monitor extra is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Dashboard":
+		return "Sales Analysis Days Lim. scopes the workspace dashboard sales window; remaining limits seed overlay extras.", "wired"
+	case category == "Email" && lower == "email password:":
+		return "Stored only; email passwords are not copied into the interface-setting overlay or SMTP_* env.", "stored_only"
+	case category == "Email":
+		return "Seeds overlay-hidden interface-setting SMTP extras. The edge SMTP adapter still reads SMTP_* environment variables.", "wired"
+	case category == "SMS" && strings.Contains(lower, "web sms password"):
+		return "Stored only; SMS passwords are not copied into the interface-setting overlay or SMS_GATEWAY_* env.", "stored_only"
+	case category == "SMS":
+		return "Seeds overlay-hidden interface-setting SMS extras. The edge SMS adapter still reads SMS_GATEWAY_* environment variables.", "wired"
+	case category == "General" && (lower == "item name:" || lower == "manufacturer:" || lower == "sale price:" || lower == "stock:" || strings.Contains(lower, "item location")):
+		return "Maps existing always-visible item-lookup columns.", "wired"
+	case category == "Sale" && (lower == "location:" || strings.Contains(lower, "purchase price")):
+		return "Maps existing always-visible sale grid Location / Purchase Price columns.", "wired"
+	case category == "Purchase" && (strings.Contains(lower, "pack units") || strings.Contains(lower, "batch number") || strings.Contains(lower, "mfg. date") || strings.Contains(lower, "expiry date") || strings.Contains(lower, "purchase price") || strings.Contains(lower, "item location") || strings.Contains(lower, "batch sale price") || strings.Contains(lower, "show supplier inv")):
+		return "Maps existing always-visible purchase grid columns (not gated behind default-No Show-*).", "wired"
+	case category == "Purchase Return" && (strings.Contains(lower, "show expiry") || strings.Contains(lower, "show purchase batch")):
+		return "Maps existing purchase-return Batch/Expiry columns (not gated behind default-No Show-*).", "wired"
 	case category == "Others" && (strings.Contains(lower, "preferred printer for activity monitor") || strings.Contains(lower, "sms expiry") || strings.Contains(lower, "refresh time (seconds)") || strings.Contains(lower, "activity period") || strings.Contains(lower, "output file") || strings.Contains(lower, "save as pdf") || strings.Contains(lower, "image scan tool")):
 		return "Seeds overlay-hidden report extras for printer/output locations, SMS expiry, refresh, and scan tool.", "wired"
 	case category == "Report" && strings.Contains(lower, "allow print setup"):

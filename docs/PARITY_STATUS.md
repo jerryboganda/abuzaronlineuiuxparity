@@ -1,5 +1,17 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 dashboard / activity-monitor / POS leftover / Email-SMS overlay
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Dashboard Sales Analysis Days Lim. scopes the workspace sales window; remaining Dashboard limits seed overlay extras.
+- Activity-monitor Show-* flags on sale-return, quotation, purchase-return, purchase-order, and adjustment.
+- Point of Sale Sales Person / Loyalty Points seeds and leftover % / discount / GST overlay flags on cash/credit sale.
+- Email/SMS overlay seeds on interface-setting (passwords stay stored_only; adapters still read env).
+- Always-visible lookup/grid columns mapped for General/Sale/Purchase/Purchase Return leftover captions.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 general item-lookup overlay columns
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

@@ -9,7 +9,7 @@
 
   export let section: 'maintenance' | 'manage';
 
-  type WorkflowField = { key: string; label: string; kind?: 'text' | 'number' | 'date' | 'select'; value?: string; options?: string[] };
+  type WorkflowField = { key: string; label: string; kind?: 'text' | 'number' | 'date' | 'select'; value?: string; options?: string[]; optional?: boolean };
   type GroupScopeDefinition = { title: string; scopeKind: string; sourceTable: string };
 
   const api = new AbuzarApi();
@@ -80,7 +80,8 @@
       { key: 'group', label: 'Group' }, { key: 'godown', label: 'Godown' }, { key: 'active', label: 'Active', kind: 'select', value: 'Yes', options: ['Yes', 'No'] }
     ],
     'interface-setting': [
-      { key: 'interfaceType', label: 'Interface', kind: 'select', value: 'Printer', options: ['Printer', 'Barcode', 'Cash Drawer', 'SMS', 'Email'] }, { key: 'enabled', label: 'Enabled', kind: 'select', value: 'No', options: ['Yes', 'No'] }, { key: 'endpoint', label: 'Endpoint / Port' }
+      { key: 'interfaceType', label: 'Interface', kind: 'select', value: 'Printer', options: ['Printer', 'Barcode', 'Cash Drawer', 'SMS', 'Email'] }, { key: 'enabled', label: 'Enabled', kind: 'select', value: 'No', options: ['Yes', 'No'] }, { key: 'endpoint', label: 'Endpoint / Port' },
+      { key: 'smtpServer', label: 'SMTP Server', optional: true }, { key: 'smtpPort', label: 'SMTP Port', optional: true }, { key: 'fromName', label: 'From/Sender Name', optional: true }, { key: 'emailUser', label: 'Email User ID', optional: true }, { key: 'smtpAuth', label: 'SMTP Server Requires Authentication', kind: 'select', value: 'No', options: ['Yes', 'No'], optional: true }, { key: 'smtpEncryption', label: 'SMTP Encryption Type', kind: 'select', value: 'None', options: ['None', 'SSL', 'TLS'], optional: true }, { key: 'emailSubject', label: 'Email Subject', optional: true }, { key: 'emailBody', label: 'Email Body', optional: true }, { key: 'smsMethod', label: 'SMS Method', optional: true }, { key: 'smsProvider', label: 'Web SMS Provider', optional: true }, { key: 'smsUser', label: 'Web SMS User ID', optional: true }, { key: 'smsMask', label: 'Web SMS Mask', optional: true }, { key: 'smsApiKey', label: 'Web SMS API Key', optional: true }
     ],
     'update-item-basic-data': [
       { key: 'itemCode', label: 'Item Code' }, { key: 'field', label: 'Field', kind: 'select', value: 'Name', options: ['Name', 'Manufacturer', 'Category', 'Class', 'Location'] }, { key: 'value', label: 'New Value' }
@@ -110,7 +111,8 @@
       { key: 'group', label: 'Group' }, { key: 'cashAccount', label: 'Cash Account' }, { key: 'active', label: 'Active', kind: 'select', value: 'Yes', options: ['Yes', 'No'] }
     ],
     'job-schedule': [
-      { key: 'job', label: 'Job' }, { key: 'schedule', label: 'Schedule' }, { key: 'enabled', label: 'Enabled', kind: 'select', value: 'No', options: ['Yes', 'No'] }
+      { key: 'job', label: 'Job' }, { key: 'schedule', label: 'Schedule' }, { key: 'enabled', label: 'Enabled', kind: 'select', value: 'No', options: ['Yes', 'No'] },
+      { key: 'activate', label: 'Activate', kind: 'select', value: 'No', options: ['Yes', 'No'], optional: true }, { key: 'onceAt', label: 'Once At', optional: true }, { key: 'hour', label: 'Hour', kind: 'number', optional: true }, { key: 'minute', label: 'Minute', kind: 'number', optional: true }, { key: 'second', label: 'Second', kind: 'number', optional: true }, { key: 'every', label: 'Every', optional: true }, { key: 'postCashSale', label: 'Post Cash Sale Invoices', optional: true }, { key: 'minutesOld', label: 'Minutes old', kind: 'number', optional: true }, { key: 'occursEvery', label: 'Occurs Every', optional: true }, { key: 'postCreditSale', label: 'Post Credit Sale Invoices', optional: true }, { key: 'onceADayAt', label: 'Once a day at', optional: true }
     ],
     'group-wise-supplier-category': [
       { key: 'group', label: 'Group' }, { key: 'category', label: 'Supplier Category' }, { key: 'enabled', label: 'Enabled', kind: 'select', value: 'Yes', options: ['Yes', 'No'] }
@@ -172,6 +174,7 @@
   let operationStatus = '';
   let showAdjustmentHeader = false;
   let showAdjustmentAvgPrice = false;
+  let showAdjustmentInActivityMonitor = false;
   let adjustmentHeader = '';
   let adjustmentAvgPrice = '';
   let adjustmentAlternateAlias = '';
@@ -276,6 +279,8 @@
     if (isSessionMonitor) void loadSessionMonitor();
     if (adjustment) { void loadAdjustmentContext(); void loadAdjustmentPrefs(); }
     if (kind === 'cashier-job' || isCashierActivity) void loadCashierPrefs();
+    if (kind === 'job-schedule') void loadSchedulePrefs();
+    if (kind === 'interface-setting') void loadInterfacePrefs();
     if (!isGroups && !isImportedGroupScope && !isSessionMonitor && kind !== 'change-password') void loadWorkflowState();
     void api.session().then((result) => { if (result.authenticated) session = result.context; }).catch(() => { /* offline workflow remains visible */ });
     return () => { window.clearInterval(clockTimer); if (cashierRefreshTimer) window.clearInterval(cashierRefreshTimer); window.removeEventListener('online', update); window.removeEventListener('offline', update); };
@@ -302,6 +307,7 @@
         if (item.caption === 'Show Update Avg. Price Column:') showAdjustmentAvgPrice = preferenceYes(item.value);
         if (item.caption === 'Alternate Alias Name:') adjustmentAlternateAlias = item.value || adjustmentAlternateAlias;
         if (item.caption === 'Adjustment Qty:' && quantity === '1' && (item.value || '').trim()) quantity = item.value.trim();
+        if (item.caption === 'Show Adjustments in Activity Monitor:') showAdjustmentInActivityMonitor = preferenceYes(item.value);
       }
     } catch {
       /* overlay extras stay default */
@@ -344,6 +350,57 @@
       if (cashierRefreshSeconds > 0 && isCashierActivity) {
         cashierRefreshTimer = window.setInterval(() => { void loadShiftActivity(); }, cashierRefreshSeconds * 1000);
       }
+    } catch {
+      /* overlay extras stay default */
+    }
+  }
+
+  async function loadSchedulePrefs() {
+    try {
+      const prefs = await api.preferences('Schedule');
+      const next = { ...extraValues };
+      for (const item of prefs.registry ?? prefs.items ?? []) {
+        if (item.caption === 'Activate:') next.activate = preferenceYes(item.value) ? 'Yes' : (next.activate || 'No');
+        if (item.caption === 'Once At:') next.onceAt = item.value || next.onceAt || '';
+        if (item.caption === 'Hour:') next.hour = item.value || next.hour || '';
+        if (item.caption === 'Minute:') next.minute = item.value || next.minute || '';
+        if (item.caption === 'Second:') next.second = item.value || next.second || '';
+        if (item.caption === 'Every:') next.every = item.value || next.every || '';
+        if (item.caption === 'Post Cash Sale Invoices:') next.postCashSale = item.value || next.postCashSale || '';
+        if (item.caption === 'Minutes old:') next.minutesOld = item.value || next.minutesOld || '';
+        if (item.caption === 'Occurs Every:') next.occursEvery = item.value || next.occursEvery || '';
+        if (item.caption === 'Post Credit Sale Invoices:') next.postCreditSale = item.value || next.postCreditSale || '';
+        if (item.caption === 'Once a day at:') next.onceADayAt = item.value || next.onceADayAt || '';
+      }
+      extraValues = next;
+    } catch {
+      /* overlay extras stay default */
+    }
+  }
+
+  async function loadInterfacePrefs() {
+    try {
+      const emailPrefs = await api.preferences('Email');
+      const smsPrefs = await api.preferences('SMS');
+      const next = { ...extraValues };
+      for (const item of emailPrefs.registry ?? emailPrefs.items ?? []) {
+        if (item.caption === 'SMTP Server:') next.smtpServer = item.value || next.smtpServer || '';
+        if (item.caption === 'SMTP Port:') next.smtpPort = item.value || next.smtpPort || '';
+        if (item.caption === 'From/Sender Name:') next.fromName = item.value || next.fromName || '';
+        if (item.caption === 'Email User ID:') next.emailUser = item.value || next.emailUser || '';
+        if (item.caption === 'SMTP Server Requires Authentication (User/Password):') next.smtpAuth = item.value || next.smtpAuth || 'No';
+        if (item.caption === 'SMTP Encryption Type:') next.smtpEncryption = item.value || next.smtpEncryption || 'None';
+        if (item.caption === 'Email Subject:') next.emailSubject = item.value || next.emailSubject || '';
+        if (item.caption === 'Email Body:') next.emailBody = item.value || next.emailBody || '';
+      }
+      for (const item of smsPrefs.registry ?? smsPrefs.items ?? []) {
+        if (item.caption === 'SMS Method:') next.smsMethod = item.value || next.smsMethod || '';
+        if (item.caption === 'Web SMS Provider:') next.smsProvider = item.value || next.smsProvider || '';
+        if (item.caption === 'Web SMS User ID:') next.smsUser = item.value || next.smsUser || '';
+        if (item.caption === 'Web SMS Mask:') next.smsMask = item.value || next.smsMask || '';
+        if (item.caption === 'Web SMS API Key:') next.smsApiKey = item.value || next.smsApiKey || '';
+      }
+      extraValues = next;
     } catch {
       /* overlay extras stay default */
     }
@@ -950,6 +1007,7 @@
           {#if showAdjustmentHeader}<label class="legacy-workflow-optional-field">Header:<input bind:value={adjustmentHeader} /></label>{/if}
           {#if showAdjustmentAvgPrice}<label class="legacy-workflow-optional-field">Update Avg. Price:<input bind:value={adjustmentAvgPrice} /></label>{/if}
           <label class="legacy-workflow-optional-field">Alternate Alias Name:<input bind:value={adjustmentAlternateAlias} /></label>
+          {#if showAdjustmentInActivityMonitor}<label class="legacy-workflow-optional-field">Show Adjustments in Activity Monitor:<input type="checkbox" checked={showAdjustmentInActivityMonitor} disabled /></label>{/if}
         {/if}
         {#if kind === 'cashier-job'}<label>Shift action:<select bind:value={shiftAction}><option value="open">Open shift</option><option value="close">Close shift</option></select></label><label>Amount:<input type="number" step="0.01" bind:value={amount} /></label>
           <div class="legacy-workflow-optional-field">
@@ -972,7 +1030,9 @@
         {/if}
         {#if kind === 'change-password'}<label>Current password:<input type="password" bind:value={currentPassword} required /></label><label>New password:<input type="password" bind:value={newPassword} required /></label><label>Confirm password:<input type="password" bind:value={confirmPassword} required /></label>{/if}
           {#each workflowFields as field}
+          <div class:legacy-workflow-optional-field={field.optional}>
           <label for={canonicalItemMaintenance && field.key === 'itemCode' ? 'maintenance-item-input' : kind === 'update-item-suppliers' && field.key === 'supplier' ? 'maintenance-supplier-input' : `workflow-field-${field.key}`}>{field.label}:</label>{#if canonicalItemMaintenance && field.key === 'itemCode'}<div class="legacy-maintenance-item-lookup"><input id="maintenance-item-input" bind:value={extraValues[field.key]} required /><button type="button" aria-label="Lookup maintenance item" onclick={searchMaintenanceItems} disabled={maintenanceItemBusy}>Lookup</button></div>{#if maintenanceItemBusy}<p role="status">Searching active canonical items...</p>{:else if maintenanceItemResults.length}<div class="legacy-adjustment-item-results" aria-label="Maintenance item results">{#each maintenanceItemResults as item}<button type="button" onclick={() => chooseMaintenanceItem(item)}>{item.name} ({item.legacyId})</button>{/each}</div>{/if}{:else if kind === 'update-item-suppliers' && field.key === 'supplier'}<div class="legacy-maintenance-item-lookup"><input id="maintenance-supplier-input" bind:value={extraValues[field.key]} required /><button type="button" aria-label="Lookup maintenance supplier" onclick={searchMaintenanceSuppliers} disabled={maintenanceSupplierBusy}>Lookup</button></div>{#if maintenanceSupplierBusy}<p role="status">Searching active canonical suppliers...</p>{:else if maintenanceSupplierResults.length}<div class="legacy-adjustment-item-results" aria-label="Maintenance supplier results">{#each maintenanceSupplierResults as supplier}<button type="button" onclick={() => chooseMaintenanceSupplier(supplier)}>{supplier.name} ({supplier.legacyId || supplier.code})</button>{/each}</div>{/if}{:else if adjustment && field.key === 'godownId'}<select id={`workflow-field-${field.key}`} bind:value={extraValues[field.key]}><option value="">Select active godown</option>{#each adjustmentGodowns as godown}<option value={godown.id}>{godown.name}</option>{/each}</select>{:else if adjustment && field.key === 'itemLegacyId'}<input id={`workflow-field-${field.key}`} value={extraValues[field.key] ?? ''} readonly />{:else if field.kind === 'select'}<select id={`workflow-field-${field.key}`} bind:value={extraValues[field.key]}>{#each field.options ?? [] as option}<option value={option}>{option}</option>{/each}</select>{:else}<input id={`workflow-field-${field.key}`} type={field.kind === 'date' ? 'date' : field.kind === 'number' ? 'number' : 'text'} step={field.kind === 'number' ? 'any' : undefined} bind:value={extraValues[field.key]} />{/if}
+         </div>
         {/each}
         <label>Notes:<textarea rows="5" bind:value={notes}></textarea></label>
         <div class="legacy-master-actions"><button type="submit" disabled={busy}>Save</button><button type="button" onclick={cancelWorkflow}>Cancel</button></div>

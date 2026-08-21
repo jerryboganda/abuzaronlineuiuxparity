@@ -160,6 +160,8 @@
   let requiredPacksFractionTreatment = '';
   let purchaseOrderPageSize = '';
   let poSupplierConsideration = '';
+  let showPurchaseReturnInActivityMonitor = false;
+  let showPurchaseOrderInActivityMonitor = false;
   let paymentModeAmtReceived = '';
   let paymentAccountAmtReceived = '';
   let roundItemTotalPlaces: number | null = null;
@@ -954,6 +956,7 @@
           if (item.caption === 'Item Description:') purchaseReturnItemDescription = item.value || purchaseReturnItemDescription;
           if (item.caption === 'Total Pieces:') purchaseReturnTotalPieces = item.value || purchaseReturnTotalPieces;
           if (item.caption === 'Price in Purchase Return:') priceInPurchaseReturn = item.value || priceInPurchaseReturn;
+          if (item.caption === 'Show P/Return in Activity Monitor:' && /^(yes|true|1|y)$/i.test(item.value || 'No')) showPurchaseReturnInActivityMonitor = true;
           if (item.caption === 'Round Item Total (decimal places):' && item.value?.trim()) {
             const places = Number(item.value);
             if (Number.isFinite(places) && places >= 0 && places <= 6) roundItemTotalPlaces = places;
@@ -988,6 +991,7 @@
           if (item.caption === 'Required Packs Fraction Treatment:') requiredPacksFractionTreatment = item.value || requiredPacksFractionTreatment;
           if (item.caption === 'Page Size for print out:') purchaseOrderPageSize = item.value || purchaseOrderPageSize;
           if (item.caption === 'P/O Supplier Consideration:') poSupplierConsideration = item.value || poSupplierConsideration;
+          if (item.caption === 'Show Pur. Order in Activity Monitor:') showPurchaseOrderInActivityMonitor = yes(item.value);
           if (/^Line[1-8]:$/.test(item.caption) && item.value?.trim()) purchaseOrderPrintLines = [...purchaseOrderPrintLines, item.value.trim()];
           if (item.caption === 'Purchase Order Footer:') purchaseOrderFooter = item.value || purchaseOrderFooter;
         }
@@ -1839,6 +1843,7 @@
           <label class="legacy-purchase-optional-field">Item Description:<input aria-label="Purchase return item description" bind:value={purchaseReturnItemDescription} /></label>
           <label class="legacy-purchase-optional-field">Total Pieces:<input aria-label="Purchase return total pieces" bind:value={purchaseReturnTotalPieces} /></label>
           <label class="legacy-purchase-optional-field">Price in P/Return:<input aria-label="Price in purchase return" bind:value={priceInPurchaseReturn} /></label>
+          {#if showPurchaseReturnInActivityMonitor}<label class="legacy-purchase-optional-field">Show P/Return in Activity Monitor:<input type="checkbox" checked={showPurchaseReturnInActivityMonitor} disabled /></label>{/if}
         {/if}
         {#if kind === 'order' && showSupplierReference}<label class="legacy-purchase-optional-field">Supplier Ref.:<input aria-label="Supplier reference" bind:value={supplierReference} /></label>{/if}
         {#if kind === 'order' && showDeliveryPlace}<label class="legacy-purchase-optional-field">Delivery Place:<input aria-label="Delivery place" bind:value={deliveryPlace} /></label>{/if}
@@ -1852,6 +1857,7 @@
           <label class="legacy-purchase-optional-field">Packs Fraction:<input aria-label="Required packs fraction treatment" bind:value={requiredPacksFractionTreatment} /></label>
           <label class="legacy-purchase-optional-field">Page Size:<input aria-label="Purchase order page size" bind:value={purchaseOrderPageSize} /></label>
           <label class="legacy-purchase-optional-field">Supplier Consideration:<input aria-label="Purchase order supplier consideration" bind:value={poSupplierConsideration} /></label>
+          {#if showPurchaseOrderInActivityMonitor}<label class="legacy-purchase-optional-field">Show Pur. Order in Activity Monitor:<input type="checkbox" checked={showPurchaseOrderInActivityMonitor} disabled /></label>{/if}
         {/if}
         {#if kind === 'pack' || kind === 'loose' || kind === 'opening'}<label class="legacy-purchase-optional-field">Purchase Type:<input aria-label="Purchase type" bind:value={purchaseType} /></label>{/if}
         {#if kind === 'order' && showMiscCharges}<label class="legacy-purchase-optional-field">Misc. Charges:<input aria-label="Miscellaneous charges" bind:value={miscCharges} /></label>{/if}

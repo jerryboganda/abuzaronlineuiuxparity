@@ -168,6 +168,16 @@
   let printPosStoreSummary = false;
   let showPosSaleInCashier = false;
   let allowPosCtrlD = false;
+  let posSalesPerson = '';
+  let posLoyaltyPoints = '';
+  let showPosItemDiscount = false;
+  let showPosItemFlatDiscount = false;
+  let showPosItemGst = false;
+  let showPosItemUnitSalesTax = false;
+  let showPosInvoiceGst = false;
+  let showPosMiscCharges = false;
+  let showPosInvoiceDiscount = false;
+  let showPosInvoiceFlatDiscount = false;
   let alternateAliasName = '';
   let itemFlatDiscount = '';
   let bonusQty = '';
@@ -190,6 +200,8 @@
   let showSrMasterCashierInPatient = false;
   let showSrMasterCashierBuffer = false;
   let showSrInCashActivity = false;
+  let showSrInActivityMonitor = false;
+  let showQuotationInActivityMonitor = false;
   let remarks = '';
   let busy = false;
   let message = '';
@@ -1193,6 +1205,7 @@
               if (item.caption === 'Remote Optimum Qty:') remoteOptimumQty = item.value || remoteOptimumQty;
               if (item.caption === 'Remote Min Qty:') remoteMinQty = item.value || remoteMinQty;
               if (item.caption === 'Remote P/O Qty:') remotePoQty = item.value || remotePoQty;
+              if (item.caption === 'Show Quotation in Activity Monitor:') showQuotationInActivityMonitor = preferenceYes(item.value);
             }
           } catch {
             /* quotation extras stay hidden when Quotation prefs cannot be read */
@@ -1218,6 +1231,7 @@
               if (item.caption === 'Show Master Cashier Window in In-Patient S/R:') showSrMasterCashierInPatient = preferenceYes(item.value);
               if (item.caption === 'Show Master Cashier Window in Buffer S/R:') showSrMasterCashierBuffer = preferenceYes(item.value);
               if (item.caption === 'Show S/R in Cash Activity Window:') showSrInCashActivity = preferenceYes(item.value);
+              if (item.caption === 'Show Sale Return in Activity Monitor:') showSrInActivityMonitor = preferenceYes(item.value);
               if (item.caption === 'Round Item Total (decimal places):' && item.value?.trim()) {
                 const places = Number(item.value);
                 if (Number.isFinite(places) && places >= 0 && places <= 6) roundItemTotalPlaces = places;
@@ -1252,6 +1266,16 @@
               if (item.caption === 'Print Store Summary With POS Sale Inv.:') printPosStoreSummary = preferenceYes(item.value);
               if (item.caption === 'Show Sale in Cashier Activity Window:') showPosSaleInCashier = preferenceYes(item.value);
               if (item.caption === 'Allow CTRL+D :') allowPosCtrlD = preferenceYes(item.value);
+              if (item.caption === 'Sales Person:') posSalesPerson = item.value || posSalesPerson;
+              if (item.caption === 'Loyalty Points:') posLoyaltyPoints = item.value || posLoyaltyPoints;
+              if (item.caption === 'Item Discount %:') showPosItemDiscount = preferenceYes(item.value);
+              if (item.caption === 'Item Flat Discount:') showPosItemFlatDiscount = preferenceYes(item.value);
+              if (item.caption === 'Item GST %:') showPosItemGst = preferenceYes(item.value);
+              if (item.caption === 'Item Unit Sales Tax:') showPosItemUnitSalesTax = preferenceYes(item.value);
+              if (item.caption === 'Invoice GST %:') showPosInvoiceGst = preferenceYes(item.value);
+              if (item.caption === 'Misc. Charges:') showPosMiscCharges = preferenceYes(item.value);
+              if (item.caption === 'Invoice Discount %:') showPosInvoiceDiscount = preferenceYes(item.value);
+              if (item.caption === 'Invoice Flat Discount:') showPosInvoiceFlatDiscount = preferenceYes(item.value);
             }
           } catch {
             /* POS extras stay hidden when Point of Sale prefs cannot be read */
@@ -1660,6 +1684,16 @@
         {#if printPosStoreSummary}<label class="legacy-sale-optional-field">Print Store Summary With POS Sale Inv.:<input type="checkbox" checked={printPosStoreSummary} disabled /></label>{/if}
         {#if showPosSaleInCashier}<label class="legacy-sale-optional-field">Show Sale in Cashier Activity Window:<input type="checkbox" checked={showPosSaleInCashier} disabled /></label>{/if}
         {#if allowPosCtrlD}<label class="legacy-sale-optional-field">Allow CTRL+D:<input type="checkbox" checked={allowPosCtrlD} disabled /></label>{/if}
+        <label class="legacy-sale-optional-field">Sales Person:<input aria-label="POS sales person" bind:value={posSalesPerson} /></label>
+        <label class="legacy-sale-optional-field">Loyalty Points:<input aria-label="POS loyalty points" bind:value={posLoyaltyPoints} /></label>
+        {#if showPosItemDiscount}<label class="legacy-sale-optional-field">POS Item Discount %:<input type="checkbox" checked={showPosItemDiscount} disabled /></label>{/if}
+        {#if showPosItemFlatDiscount}<label class="legacy-sale-optional-field">POS Item Flat Discount:<input type="checkbox" checked={showPosItemFlatDiscount} disabled /></label>{/if}
+        {#if showPosItemGst}<label class="legacy-sale-optional-field">POS Item GST %:<input type="checkbox" checked={showPosItemGst} disabled /></label>{/if}
+        {#if showPosItemUnitSalesTax}<label class="legacy-sale-optional-field">POS Item Unit Sales Tax:<input type="checkbox" checked={showPosItemUnitSalesTax} disabled /></label>{/if}
+        {#if showPosInvoiceGst}<label class="legacy-sale-optional-field">POS Invoice GST %:<input type="checkbox" checked={showPosInvoiceGst} disabled /></label>{/if}
+        {#if showPosMiscCharges}<label class="legacy-sale-optional-field">POS Misc. Charges:<input type="checkbox" checked={showPosMiscCharges} disabled /></label>{/if}
+        {#if showPosInvoiceDiscount}<label class="legacy-sale-optional-field">POS Invoice Discount %:<input type="checkbox" checked={showPosInvoiceDiscount} disabled /></label>{/if}
+        {#if showPosInvoiceFlatDiscount}<label class="legacy-sale-optional-field">POS Invoice Flat Discount:<input type="checkbox" checked={showPosInvoiceFlatDiscount} disabled /></label>{/if}
         {#if aggregate === 'sale_return'}
           <label class="legacy-sale-optional-field">Payment Mode:<input aria-label="Sale return payment mode" bind:value={paymentModeAmtPaid} /></label>
           <label class="legacy-sale-optional-field">Payment A/C:<input aria-label="Sale return payment account" bind:value={paymentAccountAmtPaid} /></label>
@@ -1674,6 +1708,7 @@
           {#if showSrMasterCashierInPatient}<label class="legacy-sale-optional-field">Show Master Cashier Window in In-Patient S/R:<input type="checkbox" checked={showSrMasterCashierInPatient} disabled /></label>{/if}
           {#if showSrMasterCashierBuffer}<label class="legacy-sale-optional-field">Show Master Cashier Window in Buffer S/R:<input type="checkbox" checked={showSrMasterCashierBuffer} disabled /></label>{/if}
           {#if showSrInCashActivity}<label class="legacy-sale-optional-field">Show S/R in Cash Activity Window:<input type="checkbox" checked={showSrInCashActivity} disabled /></label>{/if}
+          {#if showSrInActivityMonitor}<label class="legacy-sale-optional-field">Show Sale Return in Activity Monitor:<input type="checkbox" checked={showSrInActivityMonitor} disabled /></label>{/if}
         {/if}
         {#if kind === 'quotation' && showQuotationRefNo}<label class="legacy-sale-optional-field">Quotation Ref.:<input aria-label="Quotation reference number" bind:value={quotationRefNo} /></label>{/if}
         {#if kind === 'quotation'}
@@ -1690,6 +1725,7 @@
           <label class="legacy-sale-optional-field">Remote Optimum Qty:<input aria-label="Remote optimum quantity" bind:value={remoteOptimumQty} /></label>
           <label class="legacy-sale-optional-field">Remote Min Qty:<input aria-label="Remote minimum quantity" bind:value={remoteMinQty} /></label>
           <label class="legacy-sale-optional-field">Remote P/O Qty:<input aria-label="Remote purchase-order quantity" bind:value={remotePoQty} /></label>
+          {#if showQuotationInActivityMonitor}<label class="legacy-sale-optional-field">Show Quotation in Activity Monitor:<input type="checkbox" checked={showQuotationInActivityMonitor} disabled /></label>{/if}
         {/if}
       </div>
       <div class="legacy-sale-lookup" aria-label="Item lookup list">
