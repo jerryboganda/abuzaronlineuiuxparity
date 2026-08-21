@@ -710,6 +710,12 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, sale and purchase Print asks how many copies before preview.", "wired"
 	case category == "Sale" && strings.HasPrefix(lower, "show "):
 		return "When Yes, the matching cash/credit sale header field is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Purchase" && (strings.Contains(lower, "show agency") || strings.Contains(lower, "show vehicle") || strings.Contains(lower, "show ship to") || strings.Contains(lower, "show associated sale inv") || strings.Contains(lower, "show dept") || strings.Contains(lower, "show supplier date") || strings.Contains(lower, "show supplier amount") || strings.Contains(lower, "show grn no") || strings.Contains(lower, "show item image")):
+		return "When Yes, the matching purchase header field is shown. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "General" && strings.Contains(lower, "application title"):
+		return "Sets the browser document title to the captured legacy application title (default ABUZAR V3 01.01.2025).", "wired"
+	case category == "Purchase Return" && strings.Contains(lower, "ask no. of copies"):
+		return "When Yes, purchase-return Print asks how many copies before preview.", "wired"
 	case strings.Contains(lower, "price #") || strings.Contains(lower, "retail price"):
 		return "Stored for the captured preference contract; the current pricing API does not implicitly read this setting.", "stored_only"
 	case strings.Contains(lower, "gst") || strings.Contains(lower, "sales tax") || strings.Contains(lower, "pct code") || strings.Contains(lower, "extra tax"):

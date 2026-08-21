@@ -110,6 +110,23 @@
   let error = '';
   let promptBeforePrinting = false;
   let askPrintCopies = false;
+  let showAgency = false;
+  let showVehicle = false;
+  let showShipTo = false;
+  let showAssociatedSale = false;
+  let showDept = false;
+  let showSupplierDate = false;
+  let showSupplierAmount = false;
+  let showGrn = false;
+  let showItemImage = false;
+  let agency = '';
+  let vehicle = '';
+  let shipTo = '';
+  let associatedSaleInv = '';
+  let dept = '';
+  let supplierDate = '';
+  let supplierAmount = '';
+  let grn = '';
   let rows: PurchaseRow[] = [blankRow()];
   let focusedRowIndex = 0;
   let activeTab: 'detail' | 'list' = 'detail';
@@ -786,6 +803,33 @@
         if (item.caption === 'Ask No. of copies in print dialog:') {
           askPrintCopies = /^(yes|true|1|y)$/i.test(item.value || 'No');
         }
+      }
+      try {
+        const purchasePrefs = await api.preferences('Purchase');
+        const yes = (value: string | undefined) => /^(yes|true|1|y)$/i.test(value || 'No');
+        for (const item of purchasePrefs.registry ?? purchasePrefs.items ?? []) {
+          if (item.caption === 'Show Agency:') showAgency = yes(item.value);
+          if (item.caption === 'Show Vehicle:') showVehicle = yes(item.value);
+          if (item.caption === 'Show Ship To:') showShipTo = yes(item.value);
+          if (item.caption === 'Show Associated Sale Inv. Code:') showAssociatedSale = yes(item.value);
+          if (item.caption === 'Show Dept:') showDept = yes(item.value);
+          if (item.caption === 'Show Supplier Date:') showSupplierDate = yes(item.value);
+          if (item.caption === 'Show Supplier Amount:') showSupplierAmount = yes(item.value);
+          if (item.caption === 'Show GRN No.:') showGrn = yes(item.value);
+          if (item.caption === 'Show Item Image/Photo:') showItemImage = yes(item.value);
+        }
+      } catch {
+        /* purchase header extras stay hidden when Purchase prefs cannot be read */
+      }
+      try {
+        const purchaseReturnPrefs = await api.preferences('Purchase Return');
+        for (const item of purchaseReturnPrefs.registry ?? purchaseReturnPrefs.items ?? []) {
+          if (item.caption === 'Ask No. of Copies to Print:' && /^(yes|true|1|y)$/i.test(item.value || 'No')) {
+            askPrintCopies = true;
+          }
+        }
+      } catch {
+        /* purchase-return copy prompt stays off unless General already enabled it */
       }
     } catch {
       /* operators without preferences.read keep registry default No */
@@ -1517,6 +1561,15 @@
          <label>Remarks:<input bind:value={remarks} /></label>
          <label>Order Code:<input bind:value={orderCode} /></label>
          <label>Date:<input type="date" bind:value={transactionDate} /></label>
+        {#if showAgency}<label class="legacy-purchase-optional-field">Agency:<input aria-label="Agency" bind:value={agency} /></label>{/if}
+        {#if showVehicle}<label class="legacy-purchase-optional-field">Vehicle:<input aria-label="Vehicle" bind:value={vehicle} /></label>{/if}
+        {#if showShipTo}<label class="legacy-purchase-optional-field">Ship To:<input aria-label="Ship To" bind:value={shipTo} /></label>{/if}
+        {#if showAssociatedSale}<label class="legacy-purchase-optional-field">Assoc. Sale Inv.:<input aria-label="Associated sale invoice" bind:value={associatedSaleInv} /></label>{/if}
+        {#if showDept}<label class="legacy-purchase-optional-field">Dept:<input aria-label="Department" bind:value={dept} /></label>{/if}
+        {#if showSupplierDate}<label class="legacy-purchase-optional-field">Supplier Date:<input type="date" aria-label="Supplier date" bind:value={supplierDate} /></label>{/if}
+        {#if showSupplierAmount}<label class="legacy-purchase-optional-field">Supplier Amount:<input aria-label="Supplier amount" bind:value={supplierAmount} /></label>{/if}
+        {#if showGrn}<label class="legacy-purchase-optional-field">GRN No.:<input aria-label="GRN number" bind:value={grn} /></label>{/if}
+        {#if showItemImage}<span class="legacy-purchase-optional-field legacy-purchase-item-photo" aria-label="Item image">Item Photo</span>{/if}
          {#if kind === 'pack' || kind === 'loose' || kind === 'opening'}<label>Credit Days:<input aria-label="Credit days" inputmode="numeric" bind:value={creditDays} /></label><label class="legacy-remaining-qty">Source PO #:<input aria-label="Source purchase order number" bind:value={sourceDocumentNumber} /></label>{/if}
          {#if kind === 'return'}<label>Source Document ID:<input aria-label="Source document ID" bind:value={sourceDocumentId} /></label><label>Source Document #:<input aria-label="Source document number" bind:value={sourceDocumentNumber} /></label>{/if}
       </div>

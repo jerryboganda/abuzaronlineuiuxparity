@@ -1,5 +1,15 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 purchase Show-* / application title / P-return copies
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Purchase `Show Agency/Vehicle/Ship To/Dept/GRN/...` header fields appear when those prefs are Yes (default No; overlay-hidden at 1936x1048).
+- Browser title uses `General/Application Title:` (default `ABUZAR V3 01.01.2025`).
+- `Purchase Return/Ask No. of Copies to Print:` also prompts before Print.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 report sibling promotion / sale Show-* / print copies
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

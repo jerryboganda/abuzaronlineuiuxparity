@@ -48,6 +48,12 @@
       menuAccess = { tenantAdmin: false, permissions: [], scopes: {}, loaded: false };
       notice = 'Access rights are unavailable; commands remain disabled.';
     });
+    void api.preferences('General').then((general) => {
+      const title = (general.registry ?? general.items ?? []).find((item) => item.caption === 'Application Title:')?.value?.trim();
+      if (title) document.title = title;
+    }).catch(() => {
+      /* operators without preferences.read keep the registry default title */
+    });
   });
 
   const toolbarCommands = [

@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-  <title>Abuzar Next</title>
+  <title>ABUZAR V3 01.01.2025</title>
   <meta name="description" content="Abuzar multi-tenant operations workspace" />
 </svelte:head>
 
