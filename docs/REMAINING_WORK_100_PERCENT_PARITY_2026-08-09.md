@@ -266,6 +266,18 @@ Still open: ~242 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon
 
 ---
 
+## Progress update — 2026-08-09, item-master BasicData defaults
+
+**100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase F/V:** BasicData Manufacturer / Item Category / Item Class seed a blank item-master record on New/after delete.
+
+Still open: ~239 stored-only prefs (POS/cashier/email/SMS/schedule/dashboard/adjustment/activity-monitor, password prompts, empty-invoice skips, FEFO/G/P, and unguessable leftovers), pixel baselines, extra PBDs, VirtualGl recon, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
+
+---
+
 ## ⚠ Corrections to prior claims (read this first)
 
 A few things previously reported as done in this session's evidence docs — including two items marked `completed` on the running task list — do **not** hold up under independent verification:

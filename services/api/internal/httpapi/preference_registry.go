@@ -764,6 +764,8 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Seeds overlay-hidden purchase-order Item Alert / packs fraction / page size / supplier consideration fields.", "wired"
 	case category == "General" && strings.Contains(lower, "business short name"):
 		return "Falls back the browser document title when Application Title is empty.", "wired"
+	case category == "BasicData" && (lower == "manufacturer:" || strings.Contains(lower, "item category") || strings.Contains(lower, "item class")):
+		return "Seeds Manufacturer / Category / Class on a new item-master record.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask pur. invoice"):
 		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
 	case category == "Purchase" && strings.Contains(lower, "show net rate"):

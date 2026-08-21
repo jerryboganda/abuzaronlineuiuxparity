@@ -182,11 +182,24 @@
   $: canEdit = isUser || hasDefinition;
   let lockItemSalePrice = false;
   let lockItemDisc = false;
+  let basicManufacturer = '';
+  let basicItemCategory = '';
+  let basicItemClass = '';
   function fieldLocked(field: Field): boolean {
     if (kind !== 'item') return false;
     if (lockItemSalePrice && field.key === 'SalePrice') return true;
     if (lockItemDisc && field.key === 'SaleDiscPercent') return true;
     return false;
+  }
+  function blankValues(): string[] {
+    return definition.fields.map((field) => {
+      if (kind === 'item') {
+        if (field.key === 'Manufacturer' && basicManufacturer) return basicManufacturer;
+        if (field.key === 'Category' && basicItemCategory) return basicItemCategory;
+        if (field.key === 'Class' && basicItemClass) return basicItemClass;
+      }
+      return field.value ?? '';
+    });
   }
   $: values = definition.fields.map((field) => field.value ?? '');
   $: visibleRecords = records
@@ -243,7 +256,7 @@
     itemUnpostedTransactionsDialogOpen = false;
     itemUnpostedTransactionsError = '';
     itemUnpostedTransactionsTruncated = false;
-    values = definition.fields.map((field) => field.value ?? '');
+    values = blankValues();
     activeTab = 'detail';
     message = 'New record ready.';
     error = '';
@@ -1095,6 +1108,9 @@
       for (const item of prefs.registry ?? prefs.items ?? []) {
         if (item.caption === 'Lock Item Sale Price:') lockItemSalePrice = yes(item.value);
         if (item.caption === 'Lock Item Disc. (%):') lockItemDisc = yes(item.value);
+        if (item.caption === 'Manufacturer:') basicManufacturer = item.value || basicManufacturer;
+        if (item.caption === 'Item Category:') basicItemCategory = item.value || basicItemCategory;
+        if (item.caption === 'Item Class:') basicItemClass = item.value || basicItemClass;
       }
     }).catch(() => {
       /* operators without preferences.read keep item price/discount editable */
@@ -1170,7 +1186,7 @@
       records = records.filter((record) => record.id !== selectedRecordId);
       selectedRecordId = '';
       supplierRows = [];
-      values = definition.fields.map((field) => field.value ?? '');
+      values = blankValues();
       message = `${definition.title} record deleted from the current tenant scope.`;
     } catch (cause) { error = cause instanceof Error ? cause.message : 'The record could not be deleted.'; }
     finally { busy = false; }
