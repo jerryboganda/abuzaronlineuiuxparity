@@ -770,6 +770,12 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, the sale grid shows a Retail Price % column. Default No keeps the 1936x1048 overlay clean.", "wired"
 	case category == "Others" && (strings.Contains(lower, "mfg. distributor code") || lower == "distributor code:"):
 		return "Seeds overlay-hidden manufacturer/distributor code sale header fields.", "wired"
+	case category == "Adjustment" && (strings.Contains(lower, "show header") || strings.Contains(lower, "show update avg. price column")):
+		return "When Yes, the stock-adjustment workflow shows the matching extra field. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Adjustment" && (strings.Contains(lower, "alternate alias") || strings.Contains(lower, "adjustment qty")):
+		return "Seeds overlay-hidden adjustment Alternate Alias and default Quantity.", "wired"
+	case category == "Cashier Job Activity":
+		return "Seeds overlay-hidden cashier activity columns/fields and optional auto-refresh of the shift table.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask pur. invoice"):
 		return "When Yes, purchase-return save/post asks for the source purchase invoice number.", "wired"
 	case category == "Purchase" && strings.Contains(lower, "show net rate"):

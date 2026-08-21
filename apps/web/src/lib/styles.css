@@ -1498,7 +1498,8 @@ tbody tr:last-child td { border-bottom: 0; }
   .legacy-remaining-qty,
   .legacy-reprint-action,
   .legacy-sale-optional-field,
-  .legacy-purchase-optional-field {
+  .legacy-purchase-optional-field,
+  .legacy-workflow-optional-field {
     display: none !important;
   }
 }

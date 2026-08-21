@@ -170,6 +170,36 @@
   let savedWorkflow: { reference: string; notes: string; itemName: string; quantity: string; amount: string; shiftAction: 'open' | 'close'; extraValues: Record<string, string> } | null = null;
   let operationId = '';
   let operationStatus = '';
+  let showAdjustmentHeader = false;
+  let showAdjustmentAvgPrice = false;
+  let adjustmentHeader = '';
+  let adjustmentAvgPrice = '';
+  let adjustmentAlternateAlias = '';
+  let cashierHeaderInv = '';
+  let cashierRemarks = '';
+  let cashierUser = '';
+  let cashierMachine = '';
+  let cashierGlVoucher = '';
+  let cashierTypeModule = '';
+  let cashierInvoiceNumber = '';
+  let cashierInvoiceAmount = '';
+  let cashierTendered = '';
+  let cashierCharged = '';
+  let cashierCashBack = '';
+  let cashierCashAccount = '';
+  let cashierCategory = '';
+  let cashierAccountTitle = '';
+  let cashierMode = '';
+  let cashierShowDate = false;
+  let cashierShowPosted = false;
+  let cashierShowSupervised = false;
+  let cashierAllowSelection = false;
+  let cashierAutoFillCharged = false;
+  let cashierShowEmptyDoc = false;
+  let cashierKeepWindowOpen = false;
+  let cashierShowMessages = false;
+  let cashierRefreshSeconds = 0;
+  let cashierRefreshTimer = 0;
 
   $: kind = $page?.params?.kind ?? 'workflow';
   $: legacyPath = $page?.url?.searchParams?.get('legacyPath') ?? '';
@@ -244,10 +274,11 @@
     if (isGroups || isImportedGroupScope) void loadRoles();
     if (isCashierActivity) void loadShiftActivity();
     if (isSessionMonitor) void loadSessionMonitor();
-    if (adjustment) void loadAdjustmentContext();
+    if (adjustment) { void loadAdjustmentContext(); void loadAdjustmentPrefs(); }
+    if (kind === 'cashier-job' || isCashierActivity) void loadCashierPrefs();
     if (!isGroups && !isImportedGroupScope && !isSessionMonitor && kind !== 'change-password') void loadWorkflowState();
     void api.session().then((result) => { if (result.authenticated) session = result.context; }).catch(() => { /* offline workflow remains visible */ });
-    return () => { window.clearInterval(clockTimer); window.removeEventListener('online', update); window.removeEventListener('offline', update); };
+    return () => { window.clearInterval(clockTimer); if (cashierRefreshTimer) window.clearInterval(cashierRefreshTimer); window.removeEventListener('online', update); window.removeEventListener('offline', update); };
   });
 
   async function loadAdjustmentContext() {
@@ -255,6 +286,66 @@
       adjustmentGodowns = (await api.masterRecords('godown')).records.filter((record) => record.active);
     } catch (cause) {
       if (!(cause instanceof ApiError && cause.status === 401)) error = 'Active godowns could not be loaded for stock adjustment.';
+    }
+  }
+
+  function preferenceYes(value: string | undefined): boolean {
+    const normalized = (value || '').trim().toLowerCase();
+    return normalized === 'yes' || normalized === 'true' || normalized === '1';
+  }
+
+  async function loadAdjustmentPrefs() {
+    try {
+      const prefs = await api.preferences('Adjustment');
+      for (const item of prefs.registry ?? prefs.items ?? []) {
+        if (item.caption === 'Show Header:') showAdjustmentHeader = preferenceYes(item.value);
+        if (item.caption === 'Show Update Avg. Price Column:') showAdjustmentAvgPrice = preferenceYes(item.value);
+        if (item.caption === 'Alternate Alias Name:') adjustmentAlternateAlias = item.value || adjustmentAlternateAlias;
+        if (item.caption === 'Adjustment Qty:' && quantity === '1' && (item.value || '').trim()) quantity = item.value.trim();
+      }
+    } catch {
+      /* overlay extras stay default */
+    }
+  }
+
+  async function loadCashierPrefs() {
+    try {
+      const prefs = await api.preferences('Cashier Job Activity');
+      for (const item of prefs.registry ?? prefs.items ?? []) {
+        if (item.caption === 'Header Inv. No.:') cashierHeaderInv = item.value || cashierHeaderInv;
+        if (item.caption === 'Remarks:') cashierRemarks = item.value || cashierRemarks;
+        if (item.caption === 'User:') cashierUser = item.value || cashierUser;
+        if (item.caption === 'Machine Name:') cashierMachine = item.value || cashierMachine;
+        if (item.caption === 'GL Voucher Code:') cashierGlVoucher = item.value || cashierGlVoucher;
+        if (item.caption === 'Type/Module:') cashierTypeModule = item.value || cashierTypeModule;
+        if (item.caption === 'Invoice Number:') cashierInvoiceNumber = item.value || cashierInvoiceNumber;
+        if (item.caption === 'Invoice Amount:') cashierInvoiceAmount = item.value || cashierInvoiceAmount;
+        if (item.caption === 'Cash Tendered:') cashierTendered = item.value || cashierTendered;
+        if (item.caption === 'Cash Charged:') cashierCharged = item.value || cashierCharged;
+        if (item.caption === 'Balance/Cash Back:') cashierCashBack = item.value || cashierCashBack;
+        if (item.caption === 'Cash Account:') cashierCashAccount = item.value || cashierCashAccount;
+        if (item.caption === 'Category:') cashierCategory = item.value || cashierCategory;
+        if (item.caption === 'Account Title:') cashierAccountTitle = item.value || cashierAccountTitle;
+        if (item.caption === 'Mode:') cashierMode = item.value || cashierMode;
+        if (item.caption === 'Date:') cashierShowDate = preferenceYes(item.value);
+        if (item.caption === 'Posted:') cashierShowPosted = preferenceYes(item.value);
+        if (item.caption === 'Supervised:') cashierShowSupervised = preferenceYes(item.value);
+        if (item.caption === 'Allow Selection:') cashierAllowSelection = preferenceYes(item.value);
+        if (item.caption === 'Auto Fill Cash Charged:') cashierAutoFillCharged = preferenceYes(item.value);
+        if (item.caption === 'Show Empty Doc. Code by Default:') cashierShowEmptyDoc = preferenceYes(item.value);
+        if (item.caption === 'Keep Cash Window Always Open:') cashierKeepWindowOpen = preferenceYes(item.value);
+        if (item.caption === 'Show Saving/Supervised Messages:') cashierShowMessages = preferenceYes(item.value);
+        if (item.caption === 'Refresh Time (in seconds):') {
+          const parsed = Number.parseInt(item.value || '0', 10);
+          if (parsed > 0) cashierRefreshSeconds = parsed;
+        }
+      }
+      if (cashierAutoFillCharged && cashierCharged && (amount === '0' || amount === '')) amount = cashierCharged;
+      if (cashierRefreshSeconds > 0 && isCashierActivity) {
+        cashierRefreshTimer = window.setInterval(() => { void loadShiftActivity(); }, cashierRefreshSeconds * 1000);
+      }
+    } catch {
+      /* overlay extras stay default */
     }
   }
 
@@ -808,7 +899,30 @@
       <header class="legacy-transaction-titlebar"><a href="/app/legacy" aria-label="Back to main window">←</a><h1>{formatLegacyTitle(session?.username, clock)} : [Cashier Activity Window]</h1></header>
       <LegacyMenuBar context={menuContext} windowId={workflowWindowId} windowLabel="Cashier Activity Window" windowHref={workflowWindowHref} />
       <div class="legacy-transaction-toolbar" role="toolbar" aria-label="Cashier activity toolbar"><button type="button" aria-label="Refresh cashier activity" onclick={loadShiftActivity}>⟳</button><span class="legacy-toolbar-separator"></span><span class="legacy-toolbar-caption">{online ? 'Online' : 'Offline'} · Cashier Activity</span></div>
-      <div class="legacy-workflow-body"><div class="legacy-workflow-help"><h2>Cashier Activity Window</h2>{#if shiftRows.length === 0}<p>No cashier shifts are recorded for the current branch and counter.</p>{:else}<table><thead><tr><th>Shift</th><th>Operator</th><th>Opened</th><th>Closed</th><th>Status</th><th>Opening</th><th>Closing</th></tr></thead><tbody>{#each shiftRows as shift}<tr><td>{shift.id}</td><td>{shift.operatorId}</td><td>{shift.openedAt}</td><td>{shift.closedAt || '—'}</td><td>{shift.status}</td><td>{shift.openingAmount}</td><td>{shift.closingAmount || '—'}</td></tr>{/each}</tbody></table>{/if}</div></div>
+      <div class="legacy-workflow-body"><div class="legacy-workflow-help"><h2>Cashier Activity Window</h2>
+        <div class="legacy-workflow-optional-field">
+          <label>Header Inv. No.:<input bind:value={cashierHeaderInv} /></label>
+          <label>Remarks:<input bind:value={cashierRemarks} /></label>
+          <label>User:<input bind:value={cashierUser} /></label>
+          <label>Machine Name:<input bind:value={cashierMachine} /></label>
+          <label>GL Voucher Code:<input bind:value={cashierGlVoucher} /></label>
+          <label>Type/Module:<input bind:value={cashierTypeModule} /></label>
+          <label>Invoice Number:<input bind:value={cashierInvoiceNumber} /></label>
+          <label>Invoice Amount:<input bind:value={cashierInvoiceAmount} /></label>
+          <label>Cash Tendered:<input bind:value={cashierTendered} /></label>
+          <label>Cash Charged:<input bind:value={cashierCharged} /></label>
+          <label>Balance/Cash Back:<input bind:value={cashierCashBack} /></label>
+          <label>Cash Account:<input bind:value={cashierCashAccount} /></label>
+          <label>Category:<input bind:value={cashierCategory} /></label>
+          <label>Account Title:<input bind:value={cashierAccountTitle} /></label>
+          <label>Mode:<input bind:value={cashierMode} /></label>
+          {#if cashierAllowSelection}<label>Allow Selection:<input type="checkbox" checked={cashierAllowSelection} disabled /></label>{/if}
+          {#if cashierAutoFillCharged}<label>Auto Fill Cash Charged:<input type="checkbox" checked={cashierAutoFillCharged} disabled /></label>{/if}
+          {#if cashierShowEmptyDoc}<label>Show Empty Doc. Code by Default:<input type="checkbox" checked={cashierShowEmptyDoc} disabled /></label>{/if}
+          {#if cashierKeepWindowOpen}<label>Keep Cash Window Always Open:<input type="checkbox" checked={cashierKeepWindowOpen} disabled /></label>{/if}
+          {#if cashierShowMessages}<label>Show Saving/Supervised Messages:<input type="checkbox" checked={cashierShowMessages} disabled /></label>{/if}
+        </div>
+        {#if shiftRows.length === 0}<p>No cashier shifts are recorded for the current branch and counter.</p>{:else}<table><thead><tr><th>Shift</th><th>Operator</th><th>Opened</th><th>Closed</th><th>Status</th><th>Opening</th><th>Closing</th>{#if cashierShowDate}<th class="legacy-workflow-optional-field">Date</th>{/if}{#if cashierShowPosted}<th class="legacy-workflow-optional-field">Posted</th>{/if}{#if cashierShowSupervised}<th class="legacy-workflow-optional-field">Supervised</th>{/if}</tr></thead><tbody>{#each shiftRows as shift}<tr><td>{shift.id}</td><td>{shift.operatorId}</td><td>{shift.openedAt}</td><td>{shift.closedAt || '—'}</td><td>{shift.status}</td><td>{shift.openingAmount}</td><td>{shift.closingAmount || '—'}</td>{#if cashierShowDate}<td class="legacy-workflow-optional-field">{shift.openedAt}</td>{/if}{#if cashierShowPosted}<td class="legacy-workflow-optional-field">{shift.status === 'closed' ? 'Yes' : 'No'}</td>{/if}{#if cashierShowSupervised}<td class="legacy-workflow-optional-field">—</td>{/if}</tr>{/each}</tbody></table>{/if}</div></div>
       <footer class="legacy-transaction-footer">{#if error}<span class="error" role="alert">{error}</span>{:else}<span role="status">{message || 'Ready'}</span>{/if}<a href="/app/legacy">Back to main window</a></footer>
     </section>
   {:else if isSessionMonitor}
@@ -832,8 +946,30 @@
     <div class="legacy-workflow-body">
       <form class="legacy-workflow-form" onsubmit={(event) => { event.preventDefault(); run(); }}>
         <label>Reference / code:<input bind:value={reference} /></label>
-        {#if adjustment}<label for="adjustment-item-input">Item:</label><input id="adjustment-item-input" bind:value={itemName} required onkeydown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void searchAdjustmentItems(); } }} /><button type="button" aria-label="Lookup adjustment item" onclick={searchAdjustmentItems}>Lookup</button>{#if adjustmentItemBusy}<p role="status">Searching active canonical items...</p>{:else if adjustmentItemResults.length}<div class="legacy-adjustment-item-results" aria-label="Adjustment item results">{#each adjustmentItemResults as item}<button type="button" onclick={() => chooseAdjustmentItem(item)}>{item.name} ({item.legacyId})</button>{/each}</div>{/if}<label for="adjustment-quantity-input">Quantity:</label><input id="adjustment-quantity-input" type="number" min="0.0001" step="0.0001" bind:value={quantity} required />{/if}
-        {#if kind === 'cashier-job'}<label>Shift action:<select bind:value={shiftAction}><option value="open">Open shift</option><option value="close">Close shift</option></select></label><label>Amount:<input type="number" step="0.01" bind:value={amount} /></label>{/if}
+        {#if adjustment}<label for="adjustment-item-input">Item:</label><input id="adjustment-item-input" bind:value={itemName} required onkeydown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void searchAdjustmentItems(); } }} /><button type="button" aria-label="Lookup adjustment item" onclick={searchAdjustmentItems}>Lookup</button>{#if adjustmentItemBusy}<p role="status">Searching active canonical items...</p>{:else if adjustmentItemResults.length}<div class="legacy-adjustment-item-results" aria-label="Adjustment item results">{#each adjustmentItemResults as item}<button type="button" onclick={() => chooseAdjustmentItem(item)}>{item.name} ({item.legacyId})</button>{/each}</div>{/if}<label for="adjustment-quantity-input">Quantity:</label><input id="adjustment-quantity-input" type="number" min="0.0001" step="0.0001" bind:value={quantity} required />
+          {#if showAdjustmentHeader}<label class="legacy-workflow-optional-field">Header:<input bind:value={adjustmentHeader} /></label>{/if}
+          {#if showAdjustmentAvgPrice}<label class="legacy-workflow-optional-field">Update Avg. Price:<input bind:value={adjustmentAvgPrice} /></label>{/if}
+          <label class="legacy-workflow-optional-field">Alternate Alias Name:<input bind:value={adjustmentAlternateAlias} /></label>
+        {/if}
+        {#if kind === 'cashier-job'}<label>Shift action:<select bind:value={shiftAction}><option value="open">Open shift</option><option value="close">Close shift</option></select></label><label>Amount:<input type="number" step="0.01" bind:value={amount} /></label>
+          <div class="legacy-workflow-optional-field">
+            <label>Header Inv. No.:<input bind:value={cashierHeaderInv} /></label>
+            <label>Remarks:<input bind:value={cashierRemarks} /></label>
+            <label>User:<input bind:value={cashierUser} /></label>
+            <label>Machine Name:<input bind:value={cashierMachine} /></label>
+            <label>GL Voucher Code:<input bind:value={cashierGlVoucher} /></label>
+            <label>Type/Module:<input bind:value={cashierTypeModule} /></label>
+            <label>Invoice Number:<input bind:value={cashierInvoiceNumber} /></label>
+            <label>Invoice Amount:<input bind:value={cashierInvoiceAmount} /></label>
+            <label>Cash Tendered:<input bind:value={cashierTendered} /></label>
+            <label>Cash Charged:<input bind:value={cashierCharged} /></label>
+            <label>Balance/Cash Back:<input bind:value={cashierCashBack} /></label>
+            <label>Cash Account:<input bind:value={cashierCashAccount} /></label>
+            <label>Category:<input bind:value={cashierCategory} /></label>
+            <label>Account Title:<input bind:value={cashierAccountTitle} /></label>
+            <label>Mode:<input bind:value={cashierMode} /></label>
+          </div>
+        {/if}
         {#if kind === 'change-password'}<label>Current password:<input type="password" bind:value={currentPassword} required /></label><label>New password:<input type="password" bind:value={newPassword} required /></label><label>Confirm password:<input type="password" bind:value={confirmPassword} required /></label>{/if}
           {#each workflowFields as field}
           <label for={canonicalItemMaintenance && field.key === 'itemCode' ? 'maintenance-item-input' : kind === 'update-item-suppliers' && field.key === 'supplier' ? 'maintenance-supplier-input' : `workflow-field-${field.key}`}>{field.label}:</label>{#if canonicalItemMaintenance && field.key === 'itemCode'}<div class="legacy-maintenance-item-lookup"><input id="maintenance-item-input" bind:value={extraValues[field.key]} required /><button type="button" aria-label="Lookup maintenance item" onclick={searchMaintenanceItems} disabled={maintenanceItemBusy}>Lookup</button></div>{#if maintenanceItemBusy}<p role="status">Searching active canonical items...</p>{:else if maintenanceItemResults.length}<div class="legacy-adjustment-item-results" aria-label="Maintenance item results">{#each maintenanceItemResults as item}<button type="button" onclick={() => chooseMaintenanceItem(item)}>{item.name} ({item.legacyId})</button>{/each}</div>{/if}{:else if kind === 'update-item-suppliers' && field.key === 'supplier'}<div class="legacy-maintenance-item-lookup"><input id="maintenance-supplier-input" bind:value={extraValues[field.key]} required /><button type="button" aria-label="Lookup maintenance supplier" onclick={searchMaintenanceSuppliers} disabled={maintenanceSupplierBusy}>Lookup</button></div>{#if maintenanceSupplierBusy}<p role="status">Searching active canonical suppliers...</p>{:else if maintenanceSupplierResults.length}<div class="legacy-adjustment-item-results" aria-label="Maintenance supplier results">{#each maintenanceSupplierResults as supplier}<button type="button" onclick={() => chooseMaintenanceSupplier(supplier)}>{supplier.name} ({supplier.legacyId || supplier.code})</button>{/each}</div>{/if}{:else if adjustment && field.key === 'godownId'}<select id={`workflow-field-${field.key}`} bind:value={extraValues[field.key]}><option value="">Select active godown</option>{#each adjustmentGodowns as godown}<option value={godown.id}>{godown.name}</option>{/each}</select>{:else if adjustment && field.key === 'itemLegacyId'}<input id={`workflow-field-${field.key}`} value={extraValues[field.key] ?? ''} readonly />{:else if field.kind === 'select'}<select id={`workflow-field-${field.key}`} bind:value={extraValues[field.key]}>{#each field.options ?? [] as option}<option value={option}>{option}</option>{/each}</select>{:else}<input id={`workflow-field-${field.key}`} type={field.kind === 'date' ? 'date' : field.kind === 'number' ? 'number' : 'text'} step={field.kind === 'number' ? 'any' : undefined} bind:value={extraValues[field.key]} />{/if}

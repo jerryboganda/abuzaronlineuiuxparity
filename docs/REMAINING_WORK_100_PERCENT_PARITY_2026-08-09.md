@@ -2,6 +2,10 @@
 
 Date: 2026-08-09. Companion to `PARITY_FIX_PLAN_A-Z.md`, `GAP_ANALYSIS_2026-08-06.md`, `PARITY_STATUS.md`, `HANDOFF_2026-08-08.md`.
 
+## Progress update — 2026-08-09, adjustment / cashier overlay extras
+
+Not 100% parity. Wired Adjustment Show Header / Show Update Avg. Price Column plus Alternate Alias and Adjustment Qty seeds. Wired the entire Cashier Job Activity category onto cashier-job and cashier-activity-window overlay extras (including Date/Posted/Supervised columns and Refresh Time auto-refresh). Still skipped: Update Avg. Price mutation, Ask User/Password, Activity Monitor, LCD/drawer/barcode, POS route, Email/SMS env vs prefs.
+
 **Method:** 10 independent read-only audit agents, one per phase-cluster (A–Z), each instructed to verify existing-doc claims directly against current code/tests/data rather than trust the docs — because several prior-session claims turned out to be stale or overstated (see below). No files were edited or migrated as part of this audit; every finding below is grounded in a file path, test name, or artifact cited by the auditing agent.
 
 ---

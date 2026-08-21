@@ -1,5 +1,14 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 adjustment / cashier overlay extras
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Adjustment Show Header / Show Update Avg. Price Column overlay fields; Alternate Alias and Adjustment Qty seeds.
+- Entire Cashier Job Activity category seeds overlay-hidden cashier-job/activity fields, Date/Posted/Supervised columns, and shift-table auto-refresh.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 others retail / distributor codes
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:
