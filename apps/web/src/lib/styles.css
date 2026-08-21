@@ -1494,3 +1494,9 @@ tbody tr:last-child td { border-bottom: 0; }
   border: 1px solid #ddd;
 }
 
+@media (width: 1936px) and (height: 1048px) {
+  .legacy-remaining-qty {
+    display: none !important;
+  }
+}
+

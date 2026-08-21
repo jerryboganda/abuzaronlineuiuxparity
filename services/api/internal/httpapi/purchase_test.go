@@ -34,6 +34,29 @@ func TestPurchaseCommandValidationRequiresReceiptMetadataButKeepsPONeutral(t *te
 	}
 }
 
+func TestPurchaseReceiptAllowsOptionalSourceLineID(t *testing.T) {
+	for _, kind := range []string{"pack-purchase", "loose-purchase", "opening-purchase"} {
+		save := purchaseValidationCommand(kind, "save")
+		save.Document.Lines[0].SourceLineID = "00000000-0000-0000-0000-000000000099"
+		if err := validateDocumentCommand(save, kind); err != nil {
+			t.Fatalf("%s save with sourceLineId rejected: %v", kind, err)
+		}
+		post := purchaseValidationCommand(kind, "post")
+		post.Document.ID = "00000000-0000-0000-0000-000000000043"
+		post.Document.Lines[0].SourceLineID = "00000000-0000-0000-0000-000000000099"
+		post.Document.Lines[0].BatchNumber = "B-1"
+		post.Document.Lines[0].UnitCost = "10.00"
+		if err := validateDocumentCommand(post, kind); err != nil {
+			t.Fatalf("%s post with sourceLineId rejected: %v", kind, err)
+		}
+	}
+	po := purchaseValidationCommand("purchase-order", "save")
+	po.Document.Lines[0].SourceLineID = "00000000-0000-0000-0000-000000000099"
+	if err := validateDocumentCommand(po, "purchase-order"); err == nil || !strings.Contains(err.Error(), "only valid") {
+		t.Fatalf("purchase order with sourceLineId should be rejected: %v", err)
+	}
+}
+
 func TestPurchaseMigrationExtendsKindsAndPreservesSaleCompatibility(t *testing.T) {
 	path := filepath.Join("..", "..", "..", "..", "db", "migrations", "014_purchase_documents.sql")
 	data, err := os.ReadFile(path)

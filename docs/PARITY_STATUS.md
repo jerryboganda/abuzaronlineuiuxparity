@@ -1,5 +1,14 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 remaining-qty UI / voucher pickers
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- Purchase receipts may send optional `sourceLineId`; GET exposes `remainingQuantity`; Populate Invoice uses remaining qty.
+- Voucher UI picks customers/suppliers and journal accounts instead of raw UUIDs.
+
+Evidence: `TestPurchaseReceiptAllowsOptionalSourceLineID`. Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 PO fetch / vouchers / shell chrome
 
 Not 100% parity. Closed three named remaining-work gates in AbuzarNext:

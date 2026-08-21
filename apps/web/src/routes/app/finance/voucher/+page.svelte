@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import type { MasterRecord } from '@abuzar/contracts';
   import { AbuzarApi, ApiError } from '$lib/api';
   import LegacyMenuBar from '$lib/LegacyMenuBar.svelte';
 
@@ -12,6 +14,34 @@
   let message = '';
   let error = '';
   let busy = false;
+  let customers: MasterRecord[] = [];
+  let suppliers: MasterRecord[] = [];
+  let accounts: Array<{ id: string; code: string; name: string; category: string; active: boolean }> = [];
+
+  $: parties = categoryCode === 'payment' ? suppliers : customers;
+  $: if (categoryCode !== 'journal' && partyId && !parties.some((party) => party.id === partyId)) partyId = '';
+
+  onMount(() => {
+    void loadLookups();
+  });
+
+  async function loadLookups() {
+    try {
+      const [customerResult, supplierResult] = await Promise.all([
+        api.masterRecords('customer'),
+        api.masterRecords('supplier')
+      ]);
+      customers = customerResult.records.filter((record) => record.active);
+      suppliers = supplierResult.records.filter((record) => record.active);
+    } catch (cause) {
+      error = cause instanceof ApiError ? cause.message : 'Party lookup failed.';
+    }
+    try {
+      accounts = (await api.financeAccounts()).accounts.filter((account) => account.active);
+    } catch {
+      accounts = [];
+    }
+  }
 
   async function postVoucher() {
     error = '';
@@ -57,15 +87,30 @@
         </select>
       </label>
       {#if categoryCode !== 'journal'}
-        <label>Party ID
-          <input bind:value={partyId} aria-label="Party ID" required />
+        <label>{categoryCode === 'payment' ? 'Supplier' : 'Customer'}
+          <select bind:value={partyId} aria-label={categoryCode === 'payment' ? 'Supplier' : 'Customer'} required>
+            <option value="">Select {categoryCode === 'payment' ? 'supplier' : 'customer'}</option>
+            {#each parties as party}
+              <option value={party.id}>{party.code} — {party.name}</option>
+            {/each}
+          </select>
         </label>
       {:else}
-        <label>Debit account ID
-          <input bind:value={debitAccountId} aria-label="Debit account ID" required />
+        <label>Debit account
+          <select bind:value={debitAccountId} aria-label="Debit account" required>
+            <option value="">Select debit account</option>
+            {#each accounts as account}
+              <option value={account.id}>{account.code} — {account.name}</option>
+            {/each}
+          </select>
         </label>
-        <label>Credit account ID
-          <input bind:value={creditAccountId} aria-label="Credit account ID" required />
+        <label>Credit account
+          <select bind:value={creditAccountId} aria-label="Credit account" required>
+            <option value="">Select credit account</option>
+            {#each accounts as account}
+              <option value={account.id}>{account.code} — {account.name}</option>
+            {/each}
+          </select>
         </label>
       {/if}
       <label>Amount

@@ -17,7 +17,7 @@ Shipped:
 - **Phase J:** `POST /v1/maintenance/godown-transfer` FIFO-moves on-hand stock between godowns (paired `stock_ledger` out/in, dest batch via `lockOrCreatePurchaseBatch`). UI: `/app/maintenance/godown-transfer`. Parser unit test plus `TestGodownTransferMovesStock` (skipped without `DATABASE_URL`).
 - **Phase F:** captured-menu extras now inject Godown, Areas, Customer Group, and Godown Transfer. Areas / Customer Group use the existing master form (thin `master_records`); Godown was already canonical.
 
-Still open at the same priority as before: remaining ~437 stored-only preferences, report golden vs SQL Server, pixel-parity catalog, Accounting/Payroll/eRx extra PBDs, VirtualGl recon, PO remaining-qty UI, purchase G/P formula.
+Still open at the same priority as before: remaining ~437 stored-only preferences, report golden vs SQL Server, pixel-parity catalog, Accounting/Payroll/eRx extra PBDs, VirtualGl recon, purchase G/P formula.
 
 ## Progress update — 2026-08-09, PO fetch / vouchers / shell chrome wave
 
@@ -30,6 +30,18 @@ Shipped:
 - **Phase D / chrome:** shared shell toolbar (New/Spray/Save/Erase/First/Prev/Next/Last/Print/Exit), focus-in field hints, cascade/tile/layer tab geometry, child titlebar/8px border/toolbar caption/unimplemented Phase links hidden.
 
 Still open: remaining-qty UI on the purchase grid, VirtualGl reconciliation, ~437 prefs, pixel baselines, extra PBDs.
+
+## Progress update — 2026-08-09, remaining-qty UI / voucher pickers wave
+
+Highest-leverage remaining gates after PO-fetch/vouchers/chrome. **100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase I / PO remaining qty:** receipt `sourceLineId` is optional and persisted on pack/loose/opening. GET returns `remainingQuantity`. Populate Invoice fills quantity from remaining and skips fully received lines. Remaining column is overlay-hidden at 1936x1048.
+- **Phase K / voucher pickers:** receipt/payment party selects (customer/supplier) and journal account selects via `GET /v1/finance/accounts`.
+- Master delete and catalog Ctrl+X / Ctrl+Alt+M shortcuts were already live; no extra work.
+
+Still open: VirtualGl recon, ~437 prefs, pixel baselines, extra PBDs, purchase G/P formula, legacy batch format (no PB evidence).
 
 ---
 
@@ -122,9 +134,9 @@ Documented, not yet fixed (needs either a legacy-semantics judgment call or an o
 | F | Master data engine | PARTIAL — Godown/Areas/Customer Group now menu-reachable; CustomerGroup category/detail still thin; no shared list-chrome |
 | G | Pricing & discount policies | PARTIAL — PricePolicy overlay + GroupAllowedPrice now on priced sales; golden `pricing.Calculate()` replay still overstated |
 | H | Sales workflows | PARTIAL — real screens/lifecycle, no raster gate, pack/loose fix only spot-verified |
-| I | Purchase workflows | PARTIAL — PO source lock/remaining-qty on post; remaining-qty UI and legacy batch format still open |
+| I | Purchase workflows | PARTIAL — PO source lock + remaining-qty field/UI; legacy batch format and purchase G/P still open |
 | J | Inventory & stock engine | PARTIAL — moving-average done; godown transfer implemented (unit tests; DB integration skipped without DATABASE_URL) |
-| K | Financial core (GL/ledgers) | PARTIAL — voucher posting live (receipt/payment/journal); VirtualGl recon still open |
+| K | Financial core (GL/ledgers) | PARTIAL — voucher posting + party/account pickers; VirtualGl recon still open |
 | L | Tax engine | PARTIAL — engine real, legacy rates unmigrated, no paisa-replay, no tax register |
 | M | Reports engine core | PARTIAL — dialogs/preview/export real, Daily Sale Detail pixel-diff never run |
 | N–Q | 151 report leaves | **UPDATED 2026-08-09 — see "Progress update" above: 114/151 evidence-verified, ≥79/151 confirmed correct or fixed, ~15 bugs found (9 fixed)** |
@@ -206,7 +218,7 @@ All named document kinds are real, wired screens (not stubs): draft→Post lifec
 Same maturity level as Sales — real screens, batch/expiry, GL postings, supplier scheme.
 **Remaining:**
 - Auto Batch Generation produces `AUTO-YYYYMMDD-NNN`, explicitly **not** legacy-format — directly fails this phase's stated accept criterion.
-- PO→invoice fetch posts with remaining-qty lock; the purchase grid still has no remaining-qty column/UI.
+- PO→invoice fetch posts with remaining-qty lock and remaining-qty column/UI; overlay hides Remaining at 1936x1048. Legacy batch format and purchase G/P formula remain open.
 - Print Purchase Labels has no physical/byte-level legacy comparison.
 - Same replay-test-suite gap as Phase H (shared data).
 
@@ -220,7 +232,7 @@ Moving-average valuation is real, tested, and wired into sale/purchase-return co
 ### Phase K — Financial core (GL & party ledgers)
 Credit-limit enforcement is real, row-locked, and tested — but is a documented simplification (see Phase V, `CheckCrLimitInCrSales`).
 **Remaining:**
-- Voucher posting exists (`POST /v1/finance/vouchers`); remaining-qty/party pickers and VirtualGl recon are still open.
+- Voucher posting exists (`POST /v1/finance/vouchers`) with party/account pickers; VirtualGl recon is still open.
 - No "migrated VirtualGl balance == recomputed balance" verification has ever been run (1,021,801 imported GL rows are displayed, never reconciled).
 - No "10 sampled parties" ledger-statement comparison against real legacy statements exists anywhere.
 - Chart-of-accounts naming/mapping vs legacy `GroupSummaryAccount`/`GroupCashAccount` remains an open human-decision item.

@@ -30,6 +30,7 @@
     gstRate: string;
     sourceBatchId: string;
     sourceLineId?: string;
+    remainingQuantity: string;
     total: string;
   };
   type HistoryMode = 'browse' | 'populate-invoice' | 'populate-return';
@@ -200,6 +201,7 @@
         gstRate: line.tax?.lines?.[0]?.rate || '',
         sourceBatchId: allocation?.batchId || '',
         sourceLineId: useDocumentLineIdsAsSource ? line.id : line.sourceLineId || '',
+        remainingQuantity: line.remainingQuantity || '',
         total: line.lineTotal || line.price.netAmount || '0.00'
       };
     });
@@ -250,6 +252,15 @@
       sourceDocumentNumber = sourceDocument?.documentNumber || document.sourceDocumentNumber || '';
       creditDays = sourceDocument?.creditDays ?? document.creditDays ?? '';
       rows = purchaseRowsFromDocument(document, historyMode === 'populate-return' || historyMode === 'populate-invoice');
+      if (historyMode === 'populate-invoice') {
+        rows = rows
+          .map((row) => {
+            const remaining = row.remainingQuantity.trim();
+            return remaining ? { ...row, quantity: remaining } : row;
+          })
+          .filter((row) => Number(row.quantity) > 0);
+        if (!rows.length) rows = [blankRow()];
+      }
       focusedRowIndex = 0;
       if (historyMode === 'populate-return') await prepareReturnSourceBatches(document);
       if (requestRevision !== workflowRevision || requestId !== historySelectionRequestId) return;
@@ -533,7 +544,7 @@
   }
 
   function blankRow(): PurchaseRow {
-    return { quickSearch: '', itemLegacyId: '', itemName: '', packUnits: '', packing: '', location: '', godown: '', batch: '', mfgDate: '', expiry: '', batchSalePrice: '', quantity: '1', purchasePrice: '', discountPercent: '', gstRate: '', sourceBatchId: '', total: '0.00' };
+    return { quickSearch: '', itemLegacyId: '', itemName: '', packUnits: '', packing: '', location: '', godown: '', batch: '', mfgDate: '', expiry: '', batchSalePrice: '', quantity: '1', purchasePrice: '', discountPercent: '', gstRate: '', sourceBatchId: '', remainingQuantity: '', total: '0.00' };
   }
 
   function freshWorkflowState(): PurchaseWorkflowState {
@@ -1185,8 +1196,8 @@
       unitCost: documentKind === 'purchase-order' ? (row.purchasePrice || '0') : row.purchasePrice || '0',
       ...(row.discountPercent.trim() ? { discountPercent: row.discountPercent.trim() } : {}),
       ...(row.gstRate.trim() ? { gstRate: row.gstRate.trim() } : {}),
+      ...(row.sourceLineId?.trim() ? { sourceLineId: row.sourceLineId.trim() } : {}),
       ...(documentKind === 'purchase-return' ? {
-        ...(row.sourceLineId?.trim() ? { sourceLineId: row.sourceLineId.trim() } : {}),
         allocations: returnAllocationsFor(rows.indexOf(row), row).map((allocation) => ({
           batchId: allocation.batchId.trim(),
           batchNumber: allocation.batchNumber.trim(),
@@ -1462,7 +1473,7 @@
          <label>Remarks:<input bind:value={remarks} /></label>
          <label>Order Code:<input bind:value={orderCode} /></label>
          <label>Date:<input type="date" bind:value={transactionDate} /></label>
-         {#if kind === 'pack' || kind === 'loose' || kind === 'opening'}<label>Credit Days:<input aria-label="Credit days" inputmode="numeric" bind:value={creditDays} /></label>{/if}
+         {#if kind === 'pack' || kind === 'loose' || kind === 'opening'}<label>Credit Days:<input aria-label="Credit days" inputmode="numeric" bind:value={creditDays} /></label><label class="legacy-remaining-qty">Source PO #:<input aria-label="Source purchase order number" bind:value={sourceDocumentNumber} /></label>{/if}
          {#if kind === 'return'}<label>Source Document ID:<input aria-label="Source document ID" bind:value={sourceDocumentId} /></label><label>Source Document #:<input aria-label="Source document number" bind:value={sourceDocumentNumber} /></label>{/if}
       </div>
       <div class="legacy-purchase-lookup" aria-label="Purchase item lookup list">
@@ -1478,7 +1489,7 @@
       </div>
       <div class="legacy-transaction-grid-wrap">
         <table class="legacy-transaction-grid" class:legacy-pack-purchase-grid={kind === 'pack'}>
-          <thead>{#if kind === 'pack'}<tr>{#each packHeaders as header}<th>{header}</th>{/each}</tr>{:else}<tr><th>No.</th><th>Quick Search</th><th>Alias Name</th><th>Alternate Alias Name</th><th>Item Name</th><th>Pack Units</th><th>Packing</th><th>Item Location</th><th>Godown</th><th>Batch</th><th>Mfg. Date</th><th>Expiry</th><th>Batch Sale Price</th><th>Quantity</th><th>Purchase Price</th><th>Total</th><th></th>{#if kind === 'return'}<th>Source Batch ID</th>{/if}</tr>{/if}</thead>
+          <thead>{#if kind === 'pack'}<tr>{#each packHeaders as header}<th>{header}</th>{/each}<th class="legacy-remaining-qty">Remaining</th></tr>{:else}<tr><th>No.</th><th>Quick Search</th><th>Alias Name</th><th>Alternate Alias Name</th><th>Item Name</th><th>Pack Units</th><th>Packing</th><th>Item Location</th><th>Godown</th><th>Batch</th><th>Mfg. Date</th><th>Expiry</th><th>Batch Sale Price</th><th>Quantity</th><th class="legacy-remaining-qty">Remaining</th><th>Purchase Price</th><th>Total</th><th></th>{#if kind === 'return'}<th>Source Batch ID</th>{/if}</tr>{/if}</thead>
           <tbody>
             {#each rows as row, index}
               <tr>
@@ -1495,7 +1506,8 @@
                 <td><input aria-label={`Expiry ${index + 1}`} type="date" value={row.expiry} oninput={(event) => updateRow(index, 'expiry', event.currentTarget.value)} /></td>
                 <td><input value={row.batchSalePrice} oninput={(event) => updateRow(index, 'batchSalePrice', event.currentTarget.value)} /></td>
                 {#if kind === 'pack'}<td></td><td></td><td></td><td></td>{/if}
-                <td><input aria-label={`Quantity ${index + 1}`} value={row.quantity} oninput={(event) => updateRow(index, 'quantity', event.currentTarget.value)} /></td>
+                <td><input aria-label={`Quantity ${index + 1}${row.remainingQuantity ? ` remaining ${row.remainingQuantity}` : ''}`} title={row.remainingQuantity ? `Remaining ${row.remainingQuantity}` : ''} value={row.quantity} oninput={(event) => updateRow(index, 'quantity', event.currentTarget.value)} /></td>
+                <td class="legacy-remaining-qty"><input aria-label={`Remaining quantity ${index + 1}`} value={row.remainingQuantity} readonly tabindex="-1" /></td>
                 <td><input aria-label={`Purchase price ${index + 1}`} value={row.purchasePrice} oninput={(event) => updateRow(index, 'purchasePrice', event.currentTarget.value)} /></td>
                 <td>{row.total}</td>
                 <td><button type="button" aria-label={`Remove row ${index + 1}`} onclick={() => removeRow(index)}>×</button></td>

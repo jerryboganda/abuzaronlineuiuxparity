@@ -6,7 +6,92 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/abuzar/abuzar-next/services/api/internal/pricing"
 )
+
+func receivedQuantityAgainstPOLine(ctx context.Context, tx *sql.Tx, tenantID, sourceLineID, excludeDocumentID string) (pricing.Quantity, error) {
+	var prior string
+	if err := tx.QueryRowContext(ctx, `
+		SELECT COALESCE(SUM(l.quantity), 0)::text
+		FROM business_document_lines l
+		JOIN business_documents d
+		  ON d.tenant_id = l.tenant_id AND d.id = l.document_id
+		WHERE l.tenant_id = $1::uuid AND l.source_line_id = $2::uuid
+		  AND d.kind IN ('pack-purchase', 'loose-purchase', 'opening-purchase')
+		  AND d.status IN ('draft', 'posted') AND d.deleted_at IS NULL
+		    AND CASE WHEN BTRIM($3) = '' THEN TRUE ELSE d.id <> BTRIM($3)::uuid END
+	`, tenantID, sourceLineID, strings.TrimSpace(excludeDocumentID)).Scan(&prior); err != nil {
+		return 0, err
+	}
+	already, err := parseQuantity(prior)
+	if err != nil {
+		return 0, nil
+	}
+	return already, nil
+}
+
+func remainingQuantityForPOLine(ctx context.Context, tx *sql.Tx, tenantID, poLineID, orderedText, excludeDocumentID string) (string, error) {
+	ordered, err := parseQuantity(orderedText)
+	if err != nil {
+		return "0", err
+	}
+	already, err := receivedQuantityAgainstPOLine(ctx, tx, tenantID, poLineID, excludeDocumentID)
+	if err != nil {
+		return "0", err
+	}
+	remaining := ordered - already
+	if remaining < 0 {
+		remaining = 0
+	}
+	return formatQuantity(remaining), nil
+}
+
+func remainingQuantityForSourceLine(ctx context.Context, tx *sql.Tx, tenantID, sourceLineID, excludeDocumentID string) (string, error) {
+	var ordered string
+	err := tx.QueryRowContext(ctx, `
+		SELECT quantity::text
+		FROM business_document_lines
+		WHERE tenant_id = $1::uuid AND id = $2::uuid
+	`, tenantID, sourceLineID).Scan(&ordered)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return remainingQuantityForPOLine(ctx, tx, tenantID, sourceLineID, ordered, excludeDocumentID)
+}
+
+func attachPurchaseRemainingQuantities(ctx context.Context, tx *sql.Tx, operator *sessionContext, document *documentResponse) error {
+	if document == nil || operator == nil {
+		return nil
+	}
+	excludeID := ""
+	if isPurchaseReceiptKind(document.Kind) {
+		excludeID = document.ID
+	}
+	for index := range document.Lines {
+		if document.Kind == "purchase-order" {
+			remaining, err := remainingQuantityForPOLine(ctx, tx, operator.TenantID, document.Lines[index].ID, document.Lines[index].Quantity, "")
+			if err != nil {
+				return err
+			}
+			document.Lines[index].RemainingQuantity = remaining
+			continue
+		}
+		sourceLineID := strings.TrimSpace(document.Lines[index].SourceLineID)
+		if !isPurchaseReceiptKind(document.Kind) || sourceLineID == "" {
+			continue
+		}
+		remaining, err := remainingQuantityForSourceLine(ctx, tx, operator.TenantID, sourceLineID, excludeID)
+		if err != nil {
+			return err
+		}
+		document.Lines[index].RemainingQuantity = remaining
+	}
+	return nil
+}
 
 func validatePurchaseOrderSource(ctx context.Context, tx *sql.Tx, operator *sessionContext, currentDocumentID, supplierID, sourceDocumentID string, lines []documentLineRequest) error {
 	var sourceKind, sourceStatus, sourceSupplier string
@@ -62,22 +147,9 @@ func validatePurchaseOrderSource(ctx context.Context, tx *sql.Tx, operator *sess
 		if err != nil {
 			return fmt.Errorf("line %d quantity: %w", index+1, err)
 		}
-		var prior string
-		if err := tx.QueryRowContext(ctx, `
-			SELECT COALESCE(SUM(l.quantity), 0)::text
-			FROM business_document_lines l
-			JOIN business_documents d
-			  ON d.tenant_id = l.tenant_id AND d.id = l.document_id
-			WHERE l.tenant_id = $1::uuid AND l.source_line_id = $2::uuid
-			  AND d.kind IN ('pack-purchase', 'loose-purchase', 'opening-purchase')
-			  AND d.status IN ('draft', 'posted') AND d.deleted_at IS NULL
-			  AND ($3 = '' OR d.id <> $3::uuid)
-		`, operator.TenantID, sourceLineID, strings.TrimSpace(currentDocumentID)).Scan(&prior); err != nil {
-			return err
-		}
-		already, err := parseQuantity(prior)
+		already, err := receivedQuantityAgainstPOLine(ctx, tx, operator.TenantID, sourceLineID, currentDocumentID)
 		if err != nil {
-			already = 0
+			return err
 		}
 		remaining := ordered - already
 		if requested > remaining {

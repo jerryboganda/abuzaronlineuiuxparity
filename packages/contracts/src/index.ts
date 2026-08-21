@@ -756,6 +756,7 @@ export interface DocumentLine {
   itemCode: string;
   itemName: string;
   quantity: Decimal;
+  remainingQuantity?: Decimal;
   unitOfMeasure?: string;
   price: DocumentPrice;
   tax: DocumentTaxSummary;

@@ -197,24 +197,25 @@ type documentResponse struct {
 }
 
 type documentLineResponse struct {
-	ID           string                       `json:"id"`
-	LineNumber   int                          `json:"lineNumber"`
-	ItemID       string                       `json:"itemId"`
-	SourceLineID string                       `json:"sourceLineId,omitempty"`
-	ItemLegacyID string                       `json:"itemLegacyId,omitempty"`
-	ItemCode     string                       `json:"itemCode"`
-	ItemName     string                       `json:"itemName"`
-	Quantity     string                       `json:"quantity"`
-	Price        documentPrice                `json:"price"`
-	Tax          documentTaxSummary           `json:"tax"`
-	LineTotal    string                       `json:"lineTotal"`
-	Stock        documentStockSummary         `json:"stock"`
-	Allocations  []documentAllocationResponse `json:"allocations,omitempty"`
-	BatchNumber  string                       `json:"batchNumber,omitempty"`
-	ExpiryDate   string                       `json:"expiryDate,omitempty"`
-	UnitCost     string                       `json:"unitCost,omitempty"`
-	TaxAmount    string                       `json:"taxAmount,omitempty"`
-	Notes        string                       `json:"notes,omitempty"`
+	ID                string                       `json:"id"`
+	LineNumber        int                          `json:"lineNumber"`
+	ItemID            string                       `json:"itemId"`
+	SourceLineID      string                       `json:"sourceLineId,omitempty"`
+	ItemLegacyID      string                       `json:"itemLegacyId,omitempty"`
+	ItemCode          string                       `json:"itemCode"`
+	ItemName          string                       `json:"itemName"`
+	Quantity          string                       `json:"quantity"`
+	RemainingQuantity string                       `json:"remainingQuantity,omitempty"`
+	Price             documentPrice                `json:"price"`
+	Tax               documentTaxSummary           `json:"tax"`
+	LineTotal         string                       `json:"lineTotal"`
+	Stock             documentStockSummary         `json:"stock"`
+	Allocations       []documentAllocationResponse `json:"allocations,omitempty"`
+	BatchNumber       string                       `json:"batchNumber,omitempty"`
+	ExpiryDate        string                       `json:"expiryDate,omitempty"`
+	UnitCost          string                       `json:"unitCost,omitempty"`
+	TaxAmount         string                       `json:"taxAmount,omitempty"`
+	Notes             string                       `json:"notes,omitempty"`
 }
 
 type documentTaxLine struct {
@@ -1575,8 +1576,13 @@ func validateDocumentCommand(request documentCommandRequest, kind string) error 
 					strings.TrimSpace(line.SourceLineID) == "" {
 					return fmt.Errorf("line %d sourceLineId is required when posting a %s", index+1, kind)
 				}
+			} else if isPurchaseReceiptKind(kind) {
+				if strings.TrimSpace(line.SourceLineID) != "" &&
+					!documentUUIDPattern.MatchString(strings.TrimSpace(line.SourceLineID)) {
+					return fmt.Errorf("line %d sourceLineId must be a UUID", index+1)
+				}
 			} else if strings.TrimSpace(line.SourceLineID) != "" {
-				return fmt.Errorf("line %d sourceLineId is only valid for a source-bound sale or purchase return", index+1)
+				return fmt.Errorf("line %d sourceLineId is only valid for a source-bound sale, purchase return, or purchase receipt", index+1)
 			}
 			if isOpenSaleReturnDocumentKind(kind) &&
 				(request.Action == "post" || request.Action == "save-and-post") &&
@@ -1891,6 +1897,9 @@ func readBusinessDocument(ctx context.Context, tx *sql.Tx, operator *sessionCont
 		if len(allocations) > 0 {
 			document.Lines[index].Stock = documentStockSummary{Direction: "out", Quantity: document.Lines[index].Quantity}
 		}
+	}
+	if err := attachPurchaseRemainingQuantities(ctx, tx, operator, &document); err != nil {
+		return documentResponse{}, err
 	}
 	finance, financeErr := readDocumentFinanceSummary(ctx, tx, operator, document.ID)
 	if financeErr != nil {
