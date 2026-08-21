@@ -32,6 +32,24 @@ func validDocumentCommand(action string) documentCommandRequest {
 	}
 }
 
+func TestZeroRetailPriceBlockedForCashAndCreditSales(t *testing.T) {
+	if !zeroRetailPriceBlocked("cash-sale", false, 0) {
+		t.Fatal("cash-sale zero price should be blocked when Allow Zero Retail Price is No")
+	}
+	if !zeroRetailPriceBlocked("credit-sale", false, 0) {
+		t.Fatal("credit-sale zero price should be blocked when Allow Zero Retail Price is No")
+	}
+	if zeroRetailPriceBlocked("cash-sale", true, 0) {
+		t.Fatal("cash-sale zero price should be allowed when Allow Zero Retail Price is Yes")
+	}
+	if zeroRetailPriceBlocked("cash-sale", false, 1) {
+		t.Fatal("positive cash-sale price should not be blocked")
+	}
+	if zeroRetailPriceBlocked("pack-purchase", false, 0) {
+		t.Fatal("purchase documents are not gated by Allow Zero Retail Price")
+	}
+}
+
 func TestDocumentCommandValidationCoversLifecycleAndRevisionRequirements(t *testing.T) {
 	for _, action := range []string{"save", "save-and-post"} {
 		if err := validateDocumentCommand(validDocumentCommand(action), "cash-sale"); err != nil {

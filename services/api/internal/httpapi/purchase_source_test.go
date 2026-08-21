@@ -20,6 +20,23 @@ func TestRemainingQuantityNeverNegative(t *testing.T) {
 	}
 }
 
+func TestApplyPurchaseRegistryDefaultsFillsEmptyBatchAndExpiry(t *testing.T) {
+	lines := []documentLineRequest{
+		{BatchNumber: "", ExpiryDate: ""},
+		{BatchNumber: "KEEP", ExpiryDate: "2027-01-01"},
+	}
+	applyPurchaseRegistryDefaults(lines)
+	if lines[0].BatchNumber != "." {
+		t.Fatalf("empty batch default = %q, want .", lines[0].BatchNumber)
+	}
+	if lines[0].ExpiryDate != "2030-12-12" {
+		t.Fatalf("empty expiry default = %q, want 2030-12-12", lines[0].ExpiryDate)
+	}
+	if lines[1].BatchNumber != "KEEP" || lines[1].ExpiryDate != "2027-01-01" {
+		t.Fatalf("explicit batch/expiry were overwritten: %+v", lines[1])
+	}
+}
+
 func TestPurchaseReceiptKindClassification(t *testing.T) {
 	for _, kind := range []string{"pack-purchase", "loose-purchase", "opening-purchase"} {
 		if !isPurchaseReceiptKind(kind) {

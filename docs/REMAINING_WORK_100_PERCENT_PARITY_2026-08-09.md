@@ -43,6 +43,20 @@ Shipped:
 
 Still open: VirtualGl recon, ~437 prefs, pixel baselines, extra PBDs, purchase G/P formula, legacy batch format (no PB evidence).
 
+## Progress update — 2026-08-09, zero-price / default batch / reprint / customer-group wave
+
+Highest-leverage remaining gates after remaining-qty/voucher pickers. **100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase V / zero retail:** `Sale/Allow Zero Retail Price:` (default No) rejects cash/credit sale lines with resolved unit price <= 0.
+- **Phase I / default batch:** empty purchase receipt batch/expiry fill from `General/Default Batch:` (`.`) and `General/Default Expiry:` (`2030-12-12`). Auto Batch Generation uses the same values instead of `AUTO-YYYYMMDD-NNN`.
+- **Phase H / reprint:** sale and purchase Reprint opens the reprint report with `?filter=`; the report page seeds `filter` from the query. Overlay hides the extra toolbar control at 1936x1048.
+- **Phase F / customer group:** payload fields for Category, GroupAllowedPrice, CreditLimit, DefaultItemDiscPerc.
+- Report SQL bugs listed later in this audit as still open were already fixed in `docs/evidence/REPORTS_BUG_FIX_WAVE_2026-08-09.md` (9/10); purchase G/P remains a product decision.
+
+Still open: ~434 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay.
+
 ---
 
 ## ⚠ Corrections to prior claims (read this first)
@@ -211,13 +225,13 @@ All named document kinds are real, wired screens (not stubs): draft→Post lifec
 **Remaining:**
 - No raster-diff gate per document kind (create→post→print functional script never run against legacy raster).
 - Pack/loose unit fix verified only on one golden invoice (695336) at the per-line level, plus dataset-wide aggregate sums/identity checks — no per-invoice replay test suite across many historical invoices exists.
-- In-document reprint action missing (reprint only exists as separate report leaves).
+- In-document reprint now opens the reprint report with `?filter=`; exact PowerBuilder selection/format/print output remains open.
 - Exact rounding / non-cash tender void-refund settlement open.
 
 ### Phase I — Purchase workflows
 Same maturity level as Sales — real screens, batch/expiry, GL postings, supplier scheme.
 **Remaining:**
-- Auto Batch Generation produces `AUTO-YYYYMMDD-NNN`, explicitly **not** legacy-format — directly fails this phase's stated accept criterion.
+- Auto Batch Generation and empty-receipt posting now fill Default Batch `.` and Default Expiry `2030-12-12` (legacy stock evidence). Physical/byte-level label comparison remains open.
 - PO→invoice fetch posts with remaining-qty lock and remaining-qty column/UI; overlay hides Remaining at 1936x1048. Legacy batch format and purchase G/P formula remain open.
 - Print Purchase Labels has no physical/byte-level legacy comparison.
 - Same replay-test-suite gap as Phase H (shared data).
@@ -330,10 +344,10 @@ OUT OF SCOPE (documented 2026-08-08). One nuance: `docs/RUNBOOK_CUTOVER.md` alre
 
 1. **Report leaves golden verification (N–Q)** — wave 1 done 2026-08-09 (114/151 evidence-verified, 9 bugs fixed); 37 leaves untouched and ~6 documented bugs still open (see progress update above). Still the largest gap in the project, but no longer a 0% start.
 2. **Pixel-parity sweep (Phase X)** — catalog doesn't exist, baseline directory is empty; needs to start from scratch.
-3. **Preferences wiring (Phase V/S)** — ~437 of ~441 preferences still have no backend behavior (credit-limit + cash/credit default price # now wired).
+3. **Preferences wiring (Phase V/S)** — ~434 of ~441 preferences still have no backend behavior (credit-limit, cash/credit default price #, Allow Zero Retail Price, Default Batch, Default Expiry now wired).
 4. **Pricing engine real logic (Phase G)** — PricePolicy tiers and GroupAllowedPrice now apply on priced-sale posting; redo golden replay so invoices are computed by `pricing.Calculate()`, not copied from source.
 5. **Security hardening (Phase R)** — make ADMINISTRATOR table-driven or explicitly ratify the bypass; get real menu-snapshot tests for all 4 groups, not 1.
-6. **Master data gaps (Phase F)** — Godown/Areas/Customer Group are menu-reachable; still need CustomerGroup category/detail depth and shared list-chrome.
+6. **Master data gaps (Phase F)** — Godown/Areas/Customer Group are menu-reachable; Customer Group now has payload category/price/credit/disc fields. Shared list-chrome remains.
 7. **Stock engine gaps (Phase J/K)** — godown transfers implemented; StockReport reconciliation, voucher posting, VirtualGl balance check remain.
 8. **Tax engine completion (Phase L)** — migrate legacy rate tables, paisa-exact replay, tax register report.
 9. **Maintenance stubs (Phase S/T)** — import/export adapters, legacy password rules, SMS/email templates, R0002 decision.

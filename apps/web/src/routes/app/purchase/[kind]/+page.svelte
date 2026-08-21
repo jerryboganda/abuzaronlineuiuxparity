@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { beforeNavigate } from '$app/navigation';
+  import { beforeNavigate, goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import type { ApplyItemGSTRequest, Document, DocumentCommandForKind, InventoryAvailableBatch, ItemLookupResult, MasterRecord, PurchaseDocumentKind, SessionResponse, SyncEnvelope, ReportRow } from '@abuzar/contracts';
   import { AbuzarApi, ApiError, OfflineQueue, edgeRequest, newEventId } from '$lib/api';
@@ -302,16 +302,24 @@
 
   function autoGenerateBatches() {
     error = '';
-    const dateToken = transactionDate.replace(/[^0-9]/g, '').slice(0, 8) || localDateString().replace(/-/g, '');
     let sequence = 0;
     rows = rows.map((row) => {
       if (!row.itemName.trim() && !row.quickSearch.trim()) return row;
       sequence += 1;
-      return row.batch.trim() ? row : { ...row, batch: `AUTO-${dateToken}-${String(sequence).padStart(3, '0')}` };
+      return {
+        ...row,
+        batch: row.batch.trim() ? row.batch : '.',
+        expiry: row.expiry.trim() ? row.expiry : '2030-12-12'
+      };
     });
     message = sequence
-      ? `Auto Batch Generation: ${sequence} batch identifier${sequence === 1 ? '' : 's'} generated.`
+      ? `Auto Batch Generation: ${sequence} line${sequence === 1 ? '' : 's'} filled with Default Batch '.' and Default Expiry 2030-12-12.`
       : 'Select at least one item before generating batch identifiers.';
+  }
+
+  function reprintPurchase() {
+    const filterValue = encodeURIComponent((invoiceNumber || '').trim());
+    void goto(`/app/report/reprinting-purchase?filter=${filterValue}`);
   }
 
   async function printPurchaseLabels() {
@@ -400,6 +408,11 @@
       case 'Purchase Slip':
         message = `${action.label}: print preview ready.`;
         window.print();
+        return true;
+      case 'Reprint':
+      case 'Re-Print':
+      case 'RePrinting':
+        reprintPurchase();
         return true;
       case 'Print Purchase Labels':
         void printPurchaseLabels();
@@ -1459,6 +1472,7 @@
       <button type="button" aria-label="Save document" onclick={() => { void savePurchase('save'); }} disabled={busy} title="Save document">▣</button>
       <button type="button" aria-label="Void document" onclick={() => { void voidPurchase(); }} disabled={busy || !businessDocumentId} title="Void document">⊘</button>
       <button type="button" aria-label="Print document" onclick={() => { message = 'Purchase Slip: print preview ready.'; window.print(); }} title="Print">▤</button>
+      <button type="button" class="legacy-reprint-action" aria-label="Reprint document" onclick={reprintPurchase} title="Reprint">▤*</button>
       <span class="legacy-toolbar-separator"></span>
       <button type="button" aria-label="Previous document" onclick={() => { void navigateHistory(-1); }} disabled={busy} title="Previous">◀</button>
       <button type="button" aria-label="Next document" onclick={() => { void navigateHistory(1); }} disabled={busy} title="Next">▶</button>

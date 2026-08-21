@@ -1454,10 +1454,36 @@ func (s *Server) priceDocument(ctx context.Context, tx *sql.Tx, operator *sessio
 	for index := range priced.lines {
 		priced.lines[index].result = result.Lines[index]
 	}
+	if err := enforceZeroRetailPricePolicy(ctx, tx, operator, draft.Kind, priced); err != nil {
+		return pricedDocument{}, err
+	}
 	priced.request = preview
 	priced.result = result
 	priced.pricingJSON = mustJSON(buildPricingResult(result))
 	return priced, nil
+}
+
+func zeroRetailPriceBlocked(kind string, allowZero bool, unitPrice pricing.Money) bool {
+	if kind != "cash-sale" && kind != "credit-sale" {
+		return false
+	}
+	return !allowZero && unitPrice <= 0
+}
+
+func enforceZeroRetailPricePolicy(ctx context.Context, tx *sql.Tx, operator *sessionContext, kind string, priced pricedDocument) error {
+	if kind != "cash-sale" && kind != "credit-sale" {
+		return nil
+	}
+	allowZero, err := effectivePreferenceYes(ctx, tx, operator, "Sale", "Allow Zero Retail Price:", false)
+	if err != nil {
+		return err
+	}
+	for index, line := range priced.lines {
+		if zeroRetailPriceBlocked(kind, allowZero, line.result.ResolvedUnitPrice) {
+			return fmt.Errorf("line %d retail price is zero; Sale/Allow Zero Retail Price is No", index+1)
+		}
+	}
+	return nil
 }
 
 func resolveCanonicalSupplierScheme(ctx context.Context, tx *sql.Tx, tenantID, itemID, supplierID string) (*pricingPreviewSupplierScheme, error) {
@@ -1551,6 +1577,9 @@ func validateDocumentCommand(request documentCommandRequest, kind string) error 
 		}
 		if request.ExpectedVersion != nil && *request.ExpectedVersion < 1 {
 			return errors.New("expectedVersion must be positive")
+		}
+		if isPurchaseReceiptKind(kind) {
+			applyPurchaseRegistryDefaults(request.Document.Lines)
 		}
 		for index, line := range request.Document.Lines {
 			if !documentUUIDPattern.MatchString(strings.TrimSpace(line.ItemID)) {

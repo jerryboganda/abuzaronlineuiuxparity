@@ -45,6 +45,12 @@
   $: legacyPath = $page?.url?.searchParams?.get('legacyPath') ?? '';
   $: godownId = $page?.url?.searchParams?.get('godownId') ?? '';
   $: batchNumber = $page?.url?.searchParams?.get('batchNumber') ?? '';
+  $: queryFilter = $page?.url?.searchParams?.get('filter') ?? '';
+  let appliedQueryFilter = '';
+  $: if (queryFilter !== appliedQueryFilter) {
+    filter = queryFilter;
+    appliedQueryFilter = queryFilter;
+  }
   $: legacyLeaf = String(legacyPath ?? '').split(' > ').at(-1)?.replace(/\t.*$/, '').replace(/&/g, '').trim() ?? '';
   $: if (definition.kind !== kind || (legacyLeaf && definition.title !== legacyLeaf)) {
     definition = defaultReportDefinition(kind, legacyLeaf || undefined, legacyPath);

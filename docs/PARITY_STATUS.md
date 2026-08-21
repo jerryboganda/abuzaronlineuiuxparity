@@ -1,5 +1,16 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 zero-price / default batch / reprint / customer-group
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- `Sale/Allow Zero Retail Price:` (default No) blocks cash/credit sale lines whose resolved retail price is zero.
+- Purchase receipts fill empty batch/expiry from `General/Default Batch:` (`.`) and `General/Default Expiry:` (`2030-12-12`); Auto Batch UI uses the same values.
+- Sale/purchase Reprint opens `reprinting-sale` / `reprinting-purchase` with `?filter=`; the report page seeds the filter from the query.
+- Customer Group master now stores category, allowed price #, credit limit, and default disc in payload.
+
+Evidence: `TestZeroRetailPriceBlockedForCashAndCreditSales`, `TestApplyPurchaseRegistryDefaultsFillsEmptyBatchAndExpiry`, `TestPurchasePostFillsDefaultBatchFromRegistry`. Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 remaining-qty UI / voucher pickers
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

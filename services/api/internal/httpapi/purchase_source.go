@@ -6,9 +6,40 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/abuzar/abuzar-next/services/api/internal/pricing"
 )
+
+func purchaseRegistryDefault(category, caption, fallback string) string {
+	if definition, ok := preferenceDefinitionMap(category)[caption]; ok && strings.TrimSpace(definition.Default) != "" {
+		return strings.TrimSpace(definition.Default)
+	}
+	return fallback
+}
+
+func purchaseDefaultExpiryDate() string {
+	raw := purchaseRegistryDefault("General", "Default Expiry:", "2030-12-12")
+	if len(raw) >= 10 {
+		if _, err := time.Parse("2006-01-02", raw[:10]); err == nil {
+			return raw[:10]
+		}
+	}
+	return "2030-12-12"
+}
+
+func applyPurchaseRegistryDefaults(lines []documentLineRequest) {
+	defaultBatch := purchaseRegistryDefault("General", "Default Batch:", ".")
+	defaultExpiry := purchaseDefaultExpiryDate()
+	for index := range lines {
+		if strings.TrimSpace(lines[index].BatchNumber) == "" {
+			lines[index].BatchNumber = defaultBatch
+		}
+		if strings.TrimSpace(lines[index].ExpiryDate) == "" {
+			lines[index].ExpiryDate = defaultExpiry
+		}
+	}
+}
 
 func receivedQuantityAgainstPOLine(ctx context.Context, tx *sql.Tx, tenantID, sourceLineID, excludeDocumentID string) (pricing.Quantity, error) {
 	var prior string

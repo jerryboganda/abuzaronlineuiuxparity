@@ -34,6 +34,21 @@ func TestPurchaseCommandValidationRequiresReceiptMetadataButKeepsPONeutral(t *te
 	}
 }
 
+func TestPurchasePostFillsDefaultBatchFromRegistry(t *testing.T) {
+	post := purchaseValidationCommand("pack-purchase", "post")
+	post.Document.ID = "00000000-0000-0000-0000-000000000043"
+	post.Document.Lines[0].UnitCost = "10.00"
+	if err := validateDocumentCommand(post, "pack-purchase"); err != nil {
+		t.Fatalf("post with empty batch should fill Default Batch: %v", err)
+	}
+	if post.Document.Lines[0].BatchNumber != "." {
+		t.Fatalf("batch = %q, want .", post.Document.Lines[0].BatchNumber)
+	}
+	if post.Document.Lines[0].ExpiryDate != "2030-12-12" {
+		t.Fatalf("expiry = %q, want 2030-12-12", post.Document.Lines[0].ExpiryDate)
+	}
+}
+
 func TestPurchaseReceiptAllowsOptionalSourceLineID(t *testing.T) {
 	for _, kind := range []string{"pack-purchase", "loose-purchase", "opening-purchase"} {
 		save := purchaseValidationCommand(kind, "save")

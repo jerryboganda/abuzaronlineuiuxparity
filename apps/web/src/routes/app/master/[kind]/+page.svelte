@@ -24,7 +24,15 @@
     'manufacturer-category': { title: 'Manufacturer Category', fields: [{ label: 'Code' }, { label: 'Name' }, { label: 'Description', kind: 'textarea' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }] },
     godown: { title: 'Godown', fields: [{ label: 'Code' }, { label: 'Name' }, { label: 'Address' }, { label: 'Description', kind: 'textarea' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }] },
     areas: { title: 'Areas', fields: [{ label: 'Code' }, { label: 'Name' }, { label: 'Description', kind: 'textarea' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }] },
-    'customer-group': { title: 'Customer Group', fields: [{ label: 'Code' }, { label: 'Name' }, { label: 'Description', kind: 'textarea' }, { label: 'Active', kind: 'select', options: ['YES', 'NO'] }] },
+    'customer-group': { title: 'Customer Group', fields: [
+      { label: 'Code' }, { label: 'Name' },
+      { label: 'Category', key: 'Category' },
+      { label: 'Allowed Price #', key: 'GroupAllowedPrice' },
+      { label: 'Credit Limit', key: 'CreditLimit', kind: 'number' },
+      { label: 'Default Disc(%)', key: 'DefaultItemDiscPerc', kind: 'number' },
+      { label: 'Description', kind: 'textarea' },
+      { label: 'Active', kind: 'select', options: ['YES', 'NO'] }
+    ] },
     user: { title: 'Users', fields: [{ label: 'User Code' }, { label: 'User Name' }, { label: 'Password', kind: 'text' }, { label: 'Confirm Password', kind: 'text' }, { label: 'Active', kind: 'select', value: 'YES', options: ['YES', 'NO'] }, { label: 'Group', kind: 'select', options: ['ADMIN'] }, { label: 'Phone' }, { label: 'Remarks', kind: 'textarea' }] }
   };
   const auxiliaryMasterDefinitions: Record<string, { title: string; fields: Field[] }> = {

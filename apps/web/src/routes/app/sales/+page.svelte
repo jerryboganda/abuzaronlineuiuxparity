@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { beforeNavigate } from '$app/navigation';
+  import { beforeNavigate, goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import type { ApplyItemGSTRequest, Document, ItemLookupResult, InventoryAvailableBatch, MasterRecord, SessionResponse, SyncEnvelope, ReportRow, PricingPreviewResponse, PricingPreviewRequest, DocumentCommandForKind } from '@abuzar/contracts';
   import { AbuzarApi, ApiError, OfflineQueue, edgeRequest, newEventId } from '$lib/api';
@@ -272,6 +272,11 @@
     void applyHistoryRow(history[index < 0 ? history.length - 1 : Math.min(index, history.length - 1)]);
   }
 
+  function reprintDocument() {
+    const filterValue = encodeURIComponent((documentNumber || '').trim());
+    void goto(`/app/report/reprinting-sale?filter=${filterValue}`);
+  }
+
   async function printSaleSlip() {
     const slip = {
       header: 'WASEELA ABUZAR',
@@ -394,6 +399,11 @@
       case 'Print':
       case 'Sale Slip':
         void printSaleSlip();
+        return true;
+      case 'Reprint':
+      case 'Re-Print':
+      case 'RePrinting':
+        reprintDocument();
         return true;
       case 'First':
         void navigateHistoryTo(0);
@@ -1266,6 +1276,7 @@
       <button type="button" aria-label="Post sale" onclick={() => { void submitSale('posted', businessDocumentId ? 'post' : 'save-and-post'); }} disabled={busy} title="Post sale">▣</button>
       <button type="button" aria-label="Void sale" onclick={() => { busy = true; error = ''; void submitBusinessVoid().catch((cause) => { error = apiErrorMessage(cause, 'The canonical sale could not be voided.'); }).finally(() => { busy = false; }); }} disabled={busy || !businessDocumentId} title="Void sale">⊘</button>
       <button type="button" aria-label="Print sale" onclick={() => { void printSaleSlip(); }} title="Print">▤</button>
+      <button type="button" class="legacy-reprint-action" aria-label="Reprint sale" onclick={() => reprintDocument()} title="Reprint">▤*</button>
       <span class="legacy-toolbar-separator"></span><button type="button" aria-label="Previous sale" onclick={() => { void navigateHistory(-1); }} disabled={busy} title="Previous">◀</button><button type="button" aria-label="Next sale" onclick={() => { void navigateHistory(1); }} disabled={busy} title="Next">▶</button>
       <span class="legacy-toolbar-caption">{online ? 'Online' : 'Offline'} · {workflowTitle}</span>
     </div>

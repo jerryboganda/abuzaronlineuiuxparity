@@ -696,6 +696,12 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, credit-sale posting is blocked if the customer's CrLimit would be exceeded. When No, the limit is observational only.", "wired"
 	case category == "Sale" && (strings.Contains(lower, "price # in cash sale") || strings.Contains(lower, "price # in credit sale")):
 		return "Sets the default sale price level (1-10) when the document does not specify priceLevel.", "wired"
+	case category == "Sale" && strings.Contains(lower, "allow zero retail price"):
+		return "When No, cash/credit sale posting rejects lines whose resolved retail price is zero.", "wired"
+	case category == "General" && strings.Contains(lower, "default batch"):
+		return "Empty purchase receipt batches are filled from this value (legacy default '.').", "wired"
+	case category == "General" && strings.Contains(lower, "default expiry"):
+		return "Empty purchase receipt expiry dates are filled from this value (legacy default 2030-12-12).", "wired"
 	case strings.Contains(lower, "price #") || strings.Contains(lower, "retail price"):
 		return "Stored for the captured preference contract; the current pricing API does not implicitly read this setting.", "stored_only"
 	case strings.Contains(lower, "gst") || strings.Contains(lower, "sales tax") || strings.Contains(lower, "pct code") || strings.Contains(lower, "extra tax"):

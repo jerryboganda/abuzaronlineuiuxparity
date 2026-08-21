@@ -84,7 +84,10 @@ func TestPreferenceRuntimeStatusOnlyClaimsProvenBehavior(t *testing.T) {
 		case "Report/Default Header On Report:",
 			"Sale/Check Cr Limit In Cr Sales:",
 			"Sale/Price # in Cash Sale:",
-			"Sale/Price # in Credit Sale:":
+			"Sale/Price # in Credit Sale:",
+			"Sale/Allow Zero Retail Price:",
+			"General/Default Batch:",
+			"General/Default Expiry:":
 			continue
 		default:
 			t.Fatalf("unreviewed preference marked wired: %s/%s", definition.Category, definition.Caption)
