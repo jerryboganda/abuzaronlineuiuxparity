@@ -119,6 +119,7 @@
   let deliveryDays = '';
   let validityDays = '';
   let paymentTo = '';
+  let quotationPrintLines: string[] = [];
   let remarks = '';
   let busy = false;
   let message = '';
@@ -351,7 +352,7 @@
       discount: pricingPreview?.totalDiscount ?? '0.00',
       tax: pricingPreview?.taxes?.reduce((sum, tax) => sum + Number(tax.amount || 0), 0).toFixed(2) ?? '0.00',
       total: effectiveTotal,
-      footer: 'Thank you'
+      footer: kind === 'quotation' && quotationPrintLines.length ? quotationPrintLines.join(' / ') : 'Thank you'
     };
     try {
       await edgeRequest('/v1/hardware/print/sale-slip', slip);
@@ -1077,6 +1078,7 @@
               if (item.caption === 'Delivery Days:') deliveryDays = item.value || deliveryDays;
               if (item.caption === 'Validity Days:') validityDays = item.value || validityDays;
               if (item.caption === 'Payment To:') paymentTo = item.value || paymentTo;
+              if (/^Line[1-8]:$/.test(item.caption) && item.value?.trim()) quotationPrintLines = [...quotationPrintLines, item.value.trim()];
             }
           } catch {
             /* quotation extras stay hidden when Quotation prefs cannot be read */

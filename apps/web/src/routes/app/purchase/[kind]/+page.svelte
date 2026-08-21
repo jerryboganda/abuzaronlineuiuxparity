@@ -141,6 +141,8 @@
   let remarks2 = '';
   let purchaseType = '';
   let remarks3 = '';
+  let purchaseOrderPrintLines: string[] = [];
+  let purchaseOrderFooter = '';
   let agency = '';
   let vehicle = '';
   let shipTo = '';
@@ -875,6 +877,8 @@
           if (item.caption === 'Show Remarks 2:') showRemarks2 = yes(item.value);
           if (item.caption === 'Show Purchase Type:') showPurchaseType = yes(item.value);
           if (item.caption === 'Show Remarks 3:') showRemarks3 = yes(item.value);
+          if (/^Line[1-8]:$/.test(item.caption) && item.value?.trim()) purchaseOrderPrintLines = [...purchaseOrderPrintLines, item.value.trim()];
+          if (item.caption === 'Purchase Order Footer:') purchaseOrderFooter = item.value || purchaseOrderFooter;
         }
       } catch {
         /* purchase-order extras stay hidden when Purchase Order prefs cannot be read */
@@ -895,6 +899,10 @@
         message = 'Print cancelled.';
         return;
       }
+    }
+    if (kind === 'order') {
+      const footer = [...purchaseOrderPrintLines, purchaseOrderFooter].filter((line) => line.trim()).join(' / ');
+      if (footer) label = `${label} — ${footer}`;
     }
     message = `${label}: print preview ready.`;
     window.print();

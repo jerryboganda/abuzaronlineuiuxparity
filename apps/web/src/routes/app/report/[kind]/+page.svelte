@@ -82,14 +82,22 @@
     void api.session().then((result) => {
       if (result.authenticated && result.context) authenticatedUsername = result.context.username || 'ADMIN';
     }).catch(() => { /* captured title remains available while the session resolves */ });
+    let refreshTimer = 0;
+    let cancelled = false;
     void api.preferences('Report').then((reportPrefs) => {
+      if (cancelled) return;
       const items = reportPrefs.registry ?? reportPrefs.items ?? [];
       const yes = (value: string | undefined) => /^(yes|true|1|y)$/i.test(value || 'No');
       let defaultStart = '';
+      let refreshMinutes = 1;
       for (const item of items) {
         if (item.caption === 'Apply Default Date for Report Arg. Window?') applyDefaultReportDate = yes(item.value);
         if (item.caption === 'Show Account in Reports:') showAccountInReports = yes(item.value);
         if (item.caption === 'Default Start Date:') defaultStart = (item.value || '').slice(0, 10);
+        if (item.caption === 'Refresh Time(Minutes):') {
+          const parsed = Number.parseInt(item.value || '1', 10);
+          if (parsed > 0) refreshMinutes = parsed;
+        }
       }
       if (applyDefaultReportDate && /^\d{4}-\d{2}-\d{2}$/.test(defaultStart)) {
         let hasSavedFrom = false;
@@ -101,6 +109,11 @@
         }
         if (!hasSavedFrom) fromDate = defaultStart;
       }
+      if (refreshMinutes > 0) {
+        refreshTimer = window.setInterval(() => {
+          if (retrieved && !loading) void retrieve(reportPage);
+        }, refreshMinutes * 60 * 1000);
+      }
     }).catch(() => {
       /* operators without preferences.read keep today and hide the extra account column */
     });
@@ -108,7 +121,11 @@
       loading = true;
       window.setTimeout(() => { loading = false; showArguments = true; }, 1800);
     }
-    return () => window.clearInterval(clockTimer);
+    return () => {
+      cancelled = true;
+      window.clearInterval(clockTimer);
+      if (refreshTimer) window.clearInterval(refreshTimer);
+    };
   });
 
   function addArea() {

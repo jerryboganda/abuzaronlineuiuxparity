@@ -146,7 +146,25 @@ func TestPreferenceRuntimeStatusOnlyClaimsProvenBehavior(t *testing.T) {
 			"Purchase Order/Show Required Date:",
 			"Purchase Order/Show Remarks 2:",
 			"Purchase Order/Show Purchase Type:",
-			"Purchase Order/Show Remarks 3:":
+			"Purchase Order/Show Remarks 3:",
+			"Report/Refresh Time(Minutes):",
+			"Quotation/Line1:",
+			"Quotation/Line2:",
+			"Quotation/Line3:",
+			"Quotation/Line4:",
+			"Quotation/Line5:",
+			"Quotation/Line6:",
+			"Quotation/Line7:",
+			"Quotation/Line8:",
+			"Purchase Order/Line1:",
+			"Purchase Order/Line2:",
+			"Purchase Order/Line3:",
+			"Purchase Order/Line4:",
+			"Purchase Order/Line5:",
+			"Purchase Order/Line6:",
+			"Purchase Order/Line7:",
+			"Purchase Order/Line8:",
+			"Purchase Order/Purchase Order Footer:":
 			continue
 		default:
 			t.Fatalf("unreviewed preference marked wired: %s/%s", definition.Category, definition.Caption)

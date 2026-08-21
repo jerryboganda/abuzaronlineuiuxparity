@@ -720,6 +720,12 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "Source date used when Apply Default Date for Report Arg. Window is Yes.", "wired"
 	case category == "Report" && strings.Contains(lower, "show account in reports"):
 		return "When Yes, report grids show an Account column. Default No keeps the 1936x1048 overlay clean.", "wired"
+	case category == "Report" && strings.Contains(lower, "refresh time"):
+		return "Auto-retrieves the open report on this interval after the first Retrieve (default 1 minute).", "wired"
+	case category == "Quotation" && strings.HasPrefix(lower, "line"):
+		return "Non-empty Line1-8 values are joined into the quotation print footer.", "wired"
+	case category == "Purchase Order" && (strings.HasPrefix(lower, "line") || strings.Contains(lower, "purchase order footer")):
+		return "Non-empty Line1-8 and Purchase Order Footer values are included in purchase-order print preview.", "wired"
 	case category == "Quotation" && (strings.Contains(lower, "delivery days") || strings.Contains(lower, "validity days") || strings.Contains(lower, "payment to")):
 		return "Seeds the quotation Delivery Days / Validity Days / Payment To header fields (overlay-hidden at 1936x1048).", "wired"
 	case category == "Sale" && (strings.Contains(lower, "reference no. 2") || strings.Contains(lower, "reference no. 3") || strings.Contains(lower, "reference no. 4") || strings.Contains(lower, "sales person") || lower == "account for:" || lower == "message:" || lower == "doctor:"):
