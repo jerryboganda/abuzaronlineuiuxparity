@@ -1,5 +1,13 @@
 # Parity status - 2026-08-06
 
+## Wave — 2026-08-09 purchase Ask PO / credit days / LC
+
+Not 100% parity. Closed named remaining-work gates in AbuzarNext:
+
+- `Purchase/Ask Purchase Order:`, `Ask Credit Days:`, and `Ask L. C. No.:` prompt on receipt save/post when Yes.
+
+Authoritative remaining list: [`REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md`](REMAINING_WORK_100_PERCENT_PARITY_2026-08-09.md).
+
 ## Wave — 2026-08-09 return amount-paid prompts
 
 Not 100% parity. Closed named remaining-work gates in AbuzarNext:

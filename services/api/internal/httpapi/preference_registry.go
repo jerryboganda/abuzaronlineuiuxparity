@@ -708,6 +708,8 @@ func preferenceBehavior(category, caption string) (string, string) {
 		return "When Yes, saving a sale return asks for the amount paid before the document is posted.", "wired"
 	case category == "Purchase Return" && strings.Contains(lower, "ask amount received on p/return"):
 		return "When Yes, saving a purchase return asks for the amount received before the document is posted.", "wired"
+	case category == "Purchase" && (strings.Contains(lower, "ask purchase order") || strings.Contains(lower, "ask credit days") || strings.Contains(lower, "ask l. c. no")):
+		return "When Yes, purchase save/post asks for the matching header value before the document is posted.", "wired"
 	case category == "General" && strings.Contains(lower, "default batch"):
 		return "Empty purchase receipt batches are filled from this value (legacy default '.').", "wired"
 	case category == "General" && strings.Contains(lower, "default expiry"):

@@ -111,6 +111,10 @@
   let promptBeforePrinting = false;
   let askPrintCopies = false;
   let askAmountReceivedOnPurchaseReturn = false;
+  let askPurchaseOrder = false;
+  let askCreditDays = false;
+  let askLcNo = false;
+  let lcNo = '';
   let showAgency = false;
   let showVehicle = false;
   let showShipTo = false;
@@ -818,6 +822,9 @@
           if (item.caption === 'Show Supplier Amount:') showSupplierAmount = yes(item.value);
           if (item.caption === 'Show GRN No.:') showGrn = yes(item.value);
           if (item.caption === 'Show Item Image/Photo:') showItemImage = yes(item.value);
+          if (item.caption === 'Ask Purchase Order:') askPurchaseOrder = yes(item.value);
+          if (item.caption === 'Ask Credit Days:') askCreditDays = yes(item.value);
+          if (item.caption === 'Ask L. C. No.:') askLcNo = yes(item.value);
         }
       } catch {
         /* purchase header extras stay hidden when Purchase prefs cannot be read */
@@ -1439,6 +1446,30 @@
         message = 'Save cancelled.';
         return;
       }
+    }
+    if (askPurchaseOrder && (kind === 'pack' || kind === 'loose' || kind === 'opening')) {
+      const value = window.prompt('Purchase order', orderCode);
+      if (value == null) {
+        message = 'Save cancelled.';
+        return;
+      }
+      orderCode = value;
+    }
+    if (askCreditDays && (kind === 'pack' || kind === 'loose' || kind === 'opening')) {
+      const value = window.prompt('Credit days', creditDays || '0');
+      if (value == null) {
+        message = 'Save cancelled.';
+        return;
+      }
+      creditDays = value;
+    }
+    if (askLcNo && (kind === 'pack' || kind === 'loose' || kind === 'opening')) {
+      const value = window.prompt('L. C. No.', lcNo);
+      if (value == null) {
+        message = 'Save cancelled.';
+        return;
+      }
+      lcNo = value;
     }
     const requestRevision = workflowRevision;
     busy = true;

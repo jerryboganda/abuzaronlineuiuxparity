@@ -109,6 +109,16 @@ Shipped:
 
 Still open: ~403 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
 
+## Progress update — 2026-08-09, purchase Ask PO / credit days / LC
+
+**100% functional and visual parity is still not achieved.**
+
+Shipped:
+
+- **Phase V:** Ask Purchase Order, Ask Credit Days, and Ask L. C. No. prompt on receipt save/post.
+
+Still open: ~400 stored-only prefs, pixel baselines, extra PBDs, VirtualGl recon, purchase G/P, FEFO stock order, 53 unmapped rights, golden SQL Server replay, dead-item-list / inv-type-wise remaining event-ledger leaves.
+
 ---
 
 ## ⚠ Corrections to prior claims (read this first)
@@ -396,7 +406,7 @@ OUT OF SCOPE (documented 2026-08-08). One nuance: `docs/RUNBOOK_CUTOVER.md` alre
 
 1. **Report leaves golden verification (N–Q)** — wave 1 done 2026-08-09 (114/151 evidence-verified, 9 bugs fixed); 37 leaves untouched and ~6 documented bugs still open (see progress update above). Still the largest gap in the project, but no longer a 0% start.
 2. **Pixel-parity sweep (Phase X)** — catalog doesn't exist, baseline directory is empty; needs to start from scratch.
-3. **Preferences wiring (Phase V/S)** — ~403 of ~441 preferences still have no backend behavior (credit-limit, cash/credit default price #, Allow Zero Retail Price, Default Batch/Expiry, Max. Allowed Days, Prompt Before Printing, Ask No. of copies, Sale/Purchase/Quotation Show-*, Application Title, quotation zero-price, return amount prompts now wired).
+3. **Preferences wiring (Phase V/S)** — ~400 of ~441 preferences still have no backend behavior (credit-limit, cash/credit default price #, Allow Zero Retail Price, Default Batch/Expiry, Max. Allowed Days, Prompt Before Printing, Ask No. of copies, Sale/Purchase/Quotation Show-*, Application Title, quotation zero-price, return amount prompts, purchase Ask PO/credit/LC now wired).
 4. **Pricing engine real logic (Phase G)** — PricePolicy tiers and GroupAllowedPrice now apply on priced-sale posting; redo golden replay so invoices are computed by `pricing.Calculate()`, not copied from source.
 5. **Security hardening (Phase R)** — make ADMINISTRATOR table-driven or explicitly ratify the bypass; get real menu-snapshot tests for all 4 groups, not 1.
 6. **Master data gaps (Phase F)** — Godown/Areas/Customer Group are menu-reachable; Customer Group now has payload category/price/credit/disc fields. Shared list-chrome remains.
